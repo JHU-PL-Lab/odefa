@@ -145,20 +145,22 @@ let toploop_operate conf e =
                            Unannotated_clause(
                              lookup_clause_by_ident (Ident site_name))
                        in
-                       let context_stack =
+                       let context_stacks =
                          match context_opt with
-                         | None -> TLA.C.empty
+                         | None -> Enum.singleton TLA.C.empty
                          | Some context_vars ->
                            context_vars
                            |> List.enum
                            |> Enum.fold
                              (fun a e ->
                                 let c = lookup_clause_by_ident (Ident e) in
-                                TLA.C.push c a
+                                a
+                                |> Enum.map (fun ctx -> TLA.C.push c ctx)
+                                |> Enum.concat
                              )
-                             TLA.C.empty
+                             (Enum.singleton TLA.C.empty)
                        in
-                       (Var(var_ident,None),site,context_stack)
+                       (Var(var_ident,None),site,context_stacks)
                     )
                 in
                 (* Perform and render the analyses. *)
@@ -167,10 +169,16 @@ let toploop_operate conf e =
                     print_endline "Variable analyses:";
                     analyses
                     |> Enum.iter
-                      (fun (var, site, context) ->
+                      (fun (var, site, contexts) ->
                          let values =
-                           TLA.contextual_values_of_variable_from
-                             var site context analysis
+                           contexts
+                           |> Enum.map
+                             (fun context ->
+                             TLA.contextual_values_of_variable_from
+                               var site context analysis)
+                           |> Enum.fold
+                             (Abs_filtered_value_set.union)
+                             Abs_filtered_value_set.empty
                          in
                          print_endline @@ Printf.sprintf
                            "    %s: %s"
@@ -224,43 +232,43 @@ let toploop_operate conf e =
   flush stdout
 ;;
 
-let command_line_parsing () = 
+let command_line_parsing () =
   let parser = BatOptParse.OptParser.make ~version:"version 0.3" () in
-  
+
   (* Add logging options *)
   BatOptParse.OptParser.add parser ~long_name:"log" logging_option;
-  
+
   (* Add ability to select the context stack. *)
   BatOptParse.OptParser.add parser ~long_name:"select-context-stack"
     ~short_name:'S' select_context_stack_option;
-    
+
   (* Add DDPA graph logging option. *)
   BatOptParse.OptParser.add parser ~long_name:"ddpa-logging"
     ddpa_logging_option;
-  
+
   (* Add PDS reachability graph logging option. *)
   BatOptParse.OptParser.add parser ~long_name:"pdr-logging" pdr_logging_option;
-  
+
   (* Add control over variables used in toploop analysis. *)
   BatOptParse.OptParser.add parser ~long_name:"analyze-variables"
     analyze_variables_option;
-  
+
   (* Add control over whether evaluation actually occurs. *)
   BatOptParse.OptParser.add parser ~long_name:"disable-evaluation"
     ~short_name:'E' disable_evaluation_option;
-  
+
   (* Add control over whether evaluation actually occurs. *)
   BatOptParse.OptParser.add parser ~long_name:"disable-inconsistency-check"
     ~short_name:'I' disable_inconsistency_check_option;
-  
+
   (* Add control over whether analysis actually occurs. *)
   BatOptParse.OptParser.add parser ~long_name:"disable-analisys"
     ~short_name:'A' disable_analysis_option;
-  
+
   (* Add ability to report sizes of generated graphs. *)
   BatOptParse.OptParser.add parser ~long_name:"report-sizes"
     report_sizes_option;
-  
+
   (* Handle arguments. *)
   let spare_args = BatOptParse.OptParser.parse_argv parser in
   match spare_args with

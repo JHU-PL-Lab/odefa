@@ -18,13 +18,13 @@ struct
   let push c x =
     let x' = Deque.cons c x in
     if Deque.size x' > S.size
-    then fst @@ Option.get @@ Deque.rear x'
-    else x'
+    then Enum.singleton @@ fst @@ Option.get @@ Deque.rear x'
+    else Enum.singleton @@ x'
   ;;
   let pop x =
     match Deque.front x with
-    | None -> Deque.empty
-    | Some(_,x') -> x'
+    | None -> Enum.singleton @@ Deque.empty
+    | Some(_,x') -> Enum.singleton @@ x'
   ;;
   let is_top c x =
     match Deque.front x with

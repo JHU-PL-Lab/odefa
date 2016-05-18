@@ -8,8 +8,8 @@ struct
   type t = S of abstract_clause option;;
   let compare = compare;;
   let empty = S(None);;
-  let push c _ = S(Some(c));;
-  let pop _ = S(None);;
+  let push c _ = Enum.singleton @@ S(Some(c));;
+  let pop _ = Enum.singleton @@ S(None);;
   let is_top c (S(c_option)) =
     match c_option with
     | Some c' -> c = c'

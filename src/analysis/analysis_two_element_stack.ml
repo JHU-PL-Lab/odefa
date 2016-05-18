@@ -9,11 +9,13 @@ struct
   let compare = compare;;
   let empty = S([]);;
   let push c (S(lst)) =
+    Enum.singleton @@
     match lst with
       | [] -> S([c])
       | h::_ -> S([c;h])
   ;;
   let pop (S(lst)) =
+    Enum.singleton @@
     match lst with
       | [] -> S([])
       | _::t -> S(t)
