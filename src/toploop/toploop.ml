@@ -262,7 +262,7 @@ let command_line_parsing () =
     ~short_name:'I' disable_inconsistency_check_option;
 
   (* Add control over whether analysis actually occurs. *)
-  BatOptParse.OptParser.add parser ~long_name:"disable-analisys"
+  BatOptParse.OptParser.add parser ~long_name:"disable-analysis"
     ~short_name:'A' disable_analysis_option;
 
   (* Add ability to report sizes of generated graphs. *)
