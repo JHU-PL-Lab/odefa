@@ -91,7 +91,7 @@ Library "nested-parser"
   BuildTools+:
     ocamllex,
     menhir
-    
+
 Library "a-translator"
   Path: src/a-translator
   Modules:
@@ -101,7 +101,7 @@ Library "a-translator"
     ast,
     nested-ast,
     utils
-    
+
 Library "pds-reachability"
   Path: src/pds-reachability
   Modules:
@@ -125,6 +125,7 @@ Library "analysis"
     Analysis_context_stack,
     Analysis_data_structures,
     Analysis_nonrepeating_stack,
+    Analysis_n_element_collapsing_stack,
     Analysis_n_element_stack,
     Analysis_single_element_stack,
     Analysis_two_element_stack,

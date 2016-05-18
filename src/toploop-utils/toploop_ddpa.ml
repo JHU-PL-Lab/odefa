@@ -22,7 +22,7 @@ let rec find_all_call_sites (Expr cls) =
       Some (call_sites_from_function_value f)
     | Clause(_, Conditional_body(_, _, f1, f2)) ->
       Some (Enum.append (call_sites_from_function_value f1)
-                        (call_sites_from_function_value f2))
+              (call_sites_from_function_value f2))
     | _ -> None
   in
   cls
@@ -46,34 +46,52 @@ let name_parsing_functions =
   [
     (* A function for the literally-named modules. *)
     (fun name ->
-      match name with
-      | "0ddpa" ->
-        Some (module Analysis_unit_stack.Stack : Stack)
-      | "1ddpa" ->
-        Some (module Analysis_single_element_stack.Stack : Stack)
-      | "2ddpa" ->
-        Some (module Analysis_two_element_stack.Stack : Stack)
-      | "ddpaNR" ->
-        Some (module Analysis_nonrepeating_stack.Stack : Stack)
-      | "none" -> None
-      | _ -> raise Not_found
+       match name with
+       | "0ddpa" ->
+         Some (module Analysis_unit_stack.Stack : Stack)
+       | "1ddpa" ->
+         Some (module Analysis_single_element_stack.Stack : Stack)
+       | "2ddpa" ->
+         Some (module Analysis_two_element_stack.Stack : Stack)
+       | "ddpaNR" ->
+         Some (module Analysis_nonrepeating_stack.Stack : Stack)
+       | "none" -> None
+       | _ -> raise Not_found
     )
-  ;
-    (* A function for parsing kddpa *)
+    ;
+    (* A function for parsing kDDPA *)
     (fun name ->
-      if not @@ String.ends_with name "ddpa" then raise Not_found;
-      let num_str = String.sub name 0 @@ String.length name - 4 in
-      try
-        let num = int_of_string num_str in
-        let module Spec : Analysis_n_element_stack.Spec =
-          struct
-            let size = num
-          end
-        in
-        let module NStack = Analysis_n_element_stack.Make(Spec) in
-        Some (module NStack : Stack)
-      with
-      | Failure _ -> raise Not_found 
+       if not @@ String.ends_with name "ddpa" then raise Not_found;
+       let num_str = String.sub name 0 @@ String.length name - 4 in
+       try
+         let num = int_of_string num_str in
+         let module Spec : Analysis_n_element_stack.Spec =
+         struct
+           let size = num
+         end
+         in
+         let module NStack = Analysis_n_element_stack.Make(Spec) in
+         Some (module NStack : Stack)
+       with
+       | Failure _ -> raise Not_found
+    )
+    ;
+    (* A function for parsing CkDDPA. *)
+    (fun name ->
+       if not @@ String.starts_with name "c" then raise Not_found;
+       if not @@ String.ends_with name "ddpa" then raise Not_found;
+       let num_str = String.sub name 1 @@ String.length name - 5 in
+       try
+         let num = int_of_string num_str in
+         let module Spec : Analysis_n_element_collapsing_stack.Spec =
+         struct
+           let size = num
+         end
+         in
+         let module NStack = Analysis_n_element_collapsing_stack.Make(Spec) in
+         Some (module NStack : Stack)
+       with
+       | Failure _ -> raise Not_found
     )
   ];;
 let stack_from_name name =
@@ -97,9 +115,9 @@ struct
     { aref : A.ddpa_analysis ref
     ; expression : expr
     };;
-  
+
   module C = A.C;;
-  
+
   let create_analysis ?logging_prefix:(pfx=None) expr =
     let a = A.create_initial_analysis ~logging_prefix:pfx expr in
     { aref = ref @@ A.perform_full_closure a
@@ -118,24 +136,24 @@ struct
     let a = !(analysis.aref) in
     let (values,a') = A.contextual_values_of_variable x acl ctx a in
     analysis.aref := a';
-    values    
+    values
   ;;
 
   let check_inconsistencies analysis =
     find_all_call_sites analysis.expression
     |> Enum.map
       (fun (x2, cl) ->
-        let acl = Unannotated_clause(lift_clause cl) in
-        let (values, a') = A.values_of_variable x2 acl !(analysis.aref) in
-        analysis.aref := a';
-        values
-        |> Abs_filtered_value_set.enum
-        |> Enum.filter_map
-          (fun (Abs_filtered_value(v,_,_)) ->
-            match v with
-            | Abs_value_function _ -> None
-            | _ -> Some (Application_of_non_function(x2, cl, v))
-          )
+         let acl = Unannotated_clause(lift_clause cl) in
+         let (values, a') = A.values_of_variable x2 acl !(analysis.aref) in
+         analysis.aref := a';
+         values
+         |> Abs_filtered_value_set.enum
+         |> Enum.filter_map
+           (fun (Abs_filtered_value(v,_,_)) ->
+              match v with
+              | Abs_value_function _ -> None
+              | _ -> Some (Application_of_non_function(x2, cl, v))
+           )
       )
     |> Enum.concat
     |> List.of_enum (* force us to pull on the enum so the analysis
