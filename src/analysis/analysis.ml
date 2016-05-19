@@ -1,6 +1,6 @@
 (**
-  This module gives an implementation of the DDPA analysis.  It is parametric
-  in the choice of context stack.
+   This module gives an implementation of the DDPA analysis.  It is parametric
+   in the choice of context stack.
 *)
 
 open Batteries;;
@@ -33,7 +33,14 @@ sig
   (** Pretty-prints a DDPA structure. *)
   val pp_ddpa : ddpa_analysis -> string
 
-  (** Get size of DDPA and underlying PDS. *)
+  (** Get size of DDPA and underlying PDS.  The return values are, in order,
+      + The number of DDPA nodes in the analysis (except for those which can
+        be inferred)
+      + The number of active, non-immediate, non-inferrable DDPA nodes
+      + The number of edges in the DDPA graph
+      + The number of nodes in the PDS
+      + The number of edges in the PDS
+  *)
   val get_size : ddpa_analysis -> int * int * int * int * int
 
   (** Performs a series of closure steps on an analysis.  This is not guaranteed
@@ -54,11 +61,11 @@ sig
       of this question in the future. *)
   val values_of_variable :
     var -> annotated_clause -> ddpa_analysis ->
-      Abs_filtered_value_set.t * ddpa_analysis
+    Abs_filtered_value_set.t * ddpa_analysis
 
   val contextual_values_of_variable :
     var -> annotated_clause -> C.t -> ddpa_analysis ->
-      Abs_filtered_value_set.t * ddpa_analysis
+    Abs_filtered_value_set.t * ddpa_analysis
 
   (** Sets the logging level for the PDS reachability analysis used by this
       module. *)
@@ -73,7 +80,7 @@ sig
 end;;
 
 (**
-  A functor which constructs a DDPA analysis module.
+   A functor which constructs a DDPA analysis module.
 *)
 module Make(C : Context_stack)
   : Analysis_sig with module C = C =
@@ -83,7 +90,7 @@ struct
   let rv body =
     match body with
     | [] -> raise @@
-              Utils.Invariant_failure "empty function body provided to rv"
+      Utils.Invariant_failure "empty function body provided to rv"
     | _ -> let Abs_clause(x,_) = List.last body in x
   ;;
 
@@ -97,14 +104,14 @@ struct
     let (Record_value m) = record_type in
     let record_labels = Ident_set.of_enum @@ Ident_map.keys m in
     let relevant_patterns = pattern_set
-      |> Pattern_set.enum
-      |> Enum.filter
-        (fun pattern ->
-           match pattern with
-           | Record_pattern m' ->
-            Ident_set.subset (Ident_set.of_enum @@ Ident_map.keys m')
-              record_labels
-           | _ -> false)
+                            |> Pattern_set.enum
+                            |> Enum.filter
+                              (fun pattern ->
+                                 match pattern with
+                                 | Record_pattern m' ->
+                                   Ident_set.subset (Ident_set.of_enum @@ Ident_map.keys m')
+                                     record_labels
+                                 | _ -> false)
     in
     (* This function selects a single label from a given pattern and constructs
        a pattern from it. *)
@@ -189,7 +196,7 @@ struct
   (** This module is meant to verify that the system never attempts to create
    *  a capture size larger than a fixed maximum (here, 4).  This property is
    *  necessary to argue that the analysis is decidable.
-   *)
+  *)
   module Bounded_capture_size :
   sig
     type bounded_capture_size;;
@@ -210,7 +217,7 @@ struct
       if n >= 1 && n <= max_capture_size
       then Bounded_capture_size(n)
       else raise @@ Utils.Invariant_failure(
-        Printf.sprintf "Invalid size %d provided for bounded capture" n);;
+          Printf.sprintf "Invalid size %d provided for bounded capture" n);;
     let int_of_bounded_capture_size (Bounded_capture_size(n)) = n;;
   end;;
   open Bounded_capture_size;;
@@ -280,12 +287,12 @@ struct
       if Pattern_set.is_empty patsp && Pattern_set.is_empty patsn
       then pp_var x
       else Printf.sprintf "%s(%s/%s)"
-              (pp_var x) (pp_pattern_set patsp) (pp_pattern_set patsn)
+          (pp_var x) (pp_pattern_set patsp) (pp_pattern_set patsn)
     | Project(i,patsp,patsn) ->
       if Pattern_set.is_empty patsp && Pattern_set.is_empty patsn
       then Printf.sprintf ".%s" (pp_ident i)
       else Printf.sprintf ".%s(%s/%s)"
-              (pp_ident i) (pp_pattern_set patsp) (pp_pattern_set patsn)
+          (pp_ident i) (pp_pattern_set patsp) (pp_pattern_set patsn)
     | Jump(acl,ctx) ->
       Printf.sprintf "Jump(%s,%s)"
         (ppa_annotated_clause acl) (C.ppa ctx)
@@ -310,10 +317,10 @@ struct
 
   type pds_state =
     | Program_point_state of annotated_clause * C.t
-      (** A state in the PDS representing a specific program point and
-          context. *)
+    (** A state in the PDS representing a specific program point and
+        context. *)
     | Result_state of abs_filtered_value
-      (** A state in the PDS representing a value result. *)
+    (** A state in the PDS representing a value result. *)
     [@@deriving ord]
   ;;
 
@@ -355,310 +362,310 @@ struct
 
   type pds_targeted_dynamic_pop_action =
     | Value_drop
-      (** An action to drop values from the top of the stack.  This is necessary
-          for actions such as non-local lookup which perform a subordinate
-          lookup but do not act upon the resulting value. *)
+    (** An action to drop values from the top of the stack.  This is necessary
+        for actions such as non-local lookup which perform a subordinate
+        lookup but do not act upon the resulting value. *)
     | Value_discovery_2_of_2
-      (** The second step of value discovery, which confirms that the special
-          "bottom" stack element is next on the stack.  This step pops that
-          element so that the targeted value state can be accepted (by empty
-          stack).  Note that the first step of value discovery is untargeted. *)
+    (** The second step of value discovery, which confirms that the special
+        "bottom" stack element is next on the stack.  This step pops that
+        element so that the targeted value state can be accepted (by empty
+        stack).  Note that the first step of value discovery is untargeted. *)
     | Variable_aliasing of var * var
-      (** Represents variable aliasing, as in "x = y".  The first variable
-          is the one being declared; the second variable is the one being
-          used.  This pop action is used for every rule which performs basic
-          x-to-y aliasing regardless of whether the clause in question is
-          annotated. *)
+    (** Represents variable aliasing, as in "x = y".  The first variable
+        is the one being declared; the second variable is the one being
+        used.  This pop action is used for every rule which performs basic
+        x-to-y aliasing regardless of whether the clause in question is
+        annotated. *)
     | Stateless_nonmatching_clause_skip_1_of_2 of var
-      (** Represents the first step of skipping a non-matching clause while
-          stateless.  If we are searching for x, we may skip over any clause of
-          the form x'' = b (even if b is non-immediate) as long as we are not
-          trying to dereference x''.  The first step of this process captures
-          the variable which we should *not* match.  The second step carries
-          the variable continuation and confirms the absence of a dereference
-          continuation. *)
+    (** Represents the first step of skipping a non-matching clause while
+        stateless.  If we are searching for x, we may skip over any clause of
+        the form x'' = b (even if b is non-immediate) as long as we are not
+        trying to dereference x''.  The first step of this process captures
+        the variable which we should *not* match.  The second step carries
+        the variable continuation and confirms the absence of a dereference
+        continuation. *)
     | Stateless_nonmatching_clause_skip_2_of_2 of pds_continuation
-      (** The second step of skipping a non-matching clause while stateless. *)
+    (** The second step of skipping a non-matching clause while stateless. *)
     | Value_capture_1_of_3
-      (** Represents the first step of the value capture action.  This step
-          pops and stores the value being captured. *)
+    (** Represents the first step of the value capture action.  This step
+        pops and stores the value being captured. *)
     | Value_capture_2_of_3 of abs_filtered_value
-      (** Represents the second step of the value capture action.  This step
-          extracts the number of other stack elements to gather up before
-          capturing the value. *)
+    (** Represents the second step of the value capture action.  This step
+        extracts the number of other stack elements to gather up before
+        capturing the value. *)
     | Value_capture_3_of_3 of
         abs_filtered_value * pds_continuation list * bounded_capture_size
-      (** Represents the third step of the value capture action.  This action
-          collects other stack elements into a list until it has consumed as
-          many as the original Capture stack element dictated.  It then pushes
-          a value to the stack followed by all of the elements it collected. *)
+    (** Represents the third step of the value capture action.  This action
+        collects other stack elements into a list until it has consumed as
+        many as the original Capture stack element dictated.  It then pushes
+        a value to the stack followed by all of the elements it collected. *)
     | Function_call_flow_validation of var * var * annotated_clause * C.t
-                                                 * annotated_clause * C.t * var
-      (** Represents the validation of a function at a call site to ensure that
-          we only explore exit nodes which apply in this context.  The first
-          variable is the called function. The second variable is the argument
-          passed to the function.  The given states are used to build the targets
-          to which to jump once the function argument has been validated and
-          once a function value has been discovered.  The third variable is the
-          call site for which this validation is occurring. *)
+                                       * annotated_clause * C.t * var
+    (** Represents the validation of a function at a call site to ensure that
+        we only explore exit nodes which apply in this context.  The first
+        variable is the called function. The second variable is the argument
+        passed to the function.  The given states are used to build the targets
+        to which to jump once the function argument has been validated and
+        once a function value has been discovered.  The third variable is the
+        call site for which this validation is occurring. *)
     | Function_call_flow_validation_resolution_1_of_2 of var * var
-      (** The first step of resolving function call flow validation.  The first
-          variable is the call site; the second variable is the return variable
-          for the called function's wiring node. *)
+    (** The first step of resolving function call flow validation.  The first
+        variable is the call site; the second variable is the return variable
+        for the called function's wiring node. *)
     | Function_call_flow_validation_resolution_2_of_2 of var * var
-      (** We've captured the "RealFlow?" and now expect to see a value. *)
+    (** We've captured the "RealFlow?" and now expect to see a value. *)
     | Function_closure_lookup of var * var
-      (** Represents a function closure lookup.  The first variable is the
-          parameter of the function; the second variable is the function itself.
-          If the lookup variable does not match the parameter, then this lookup
-          is for a non-local and we must search for the function's definition
-          first. *)
+    (** Represents a function closure lookup.  The first variable is the
+        parameter of the function; the second variable is the function itself.
+        If the lookup variable does not match the parameter, then this lookup
+        is for a non-local and we must search for the function's definition
+        first. *)
     | Conditional_closure_lookup of var * var * pattern * bool
-      (** Represents a conditional closure lookup.  The first variable is the
-          formal parameter of the case branch that we are leaving from the top.
-          The second variable is the subject of the pattern match.  The provided
-          pattern is the pattern against which the subject was matched; the
-          boolean is true if the match succeeded and false otherwise. *)
+    (** Represents a conditional closure lookup.  The first variable is the
+        formal parameter of the case branch that we are leaving from the top.
+        The second variable is the subject of the pattern match.  The provided
+        pattern is the pattern against which the subject was matched; the
+        boolean is true if the match succeeded and false otherwise. *)
     | Conditional_subject_validation of
         var * var * var * pattern * bool * annotated_clause * C.t
-      (** Represents the handling of an exit wiring node for a conditional.  The
-          first variable is the conditional site; the second variable is the
-          return variable of the conditional branch.  The third variable is the
-          subject of the conditional; it is followed by the conditional's
-          pattern.  The boolean indicates whether this is the "then" branch
-          (true) or the "else" branch (false).  The state and context refer to
-          this wiring clause so a jump can be issued after the subject is
-          validated in this branch. *)
+    (** Represents the handling of an exit wiring node for a conditional.  The
+        first variable is the conditional site; the second variable is the
+        return variable of the conditional branch.  The third variable is the
+        subject of the conditional; it is followed by the conditional's
+        pattern.  The boolean indicates whether this is the "then" branch
+        (true) or the "else" branch (false).  The state and context refer to
+        this wiring clause so a jump can be issued after the subject is
+        validated in this branch. *)
     | Record_projection_lookup of var * var * ident
-      (** Represents the start of a record projection.  If the first variable
-          matches our lookup target, then we've discovered that we are looking
-          up the projection of the ident label from a record stored in the
-          second variable. *)
+    (** Represents the start of a record projection.  If the first variable
+        matches our lookup target, then we've discovered that we are looking
+        up the projection of the ident label from a record stored in the
+        second variable. *)
     | Record_projection_1_of_2
-      (** Represents the processing of a record projection on the stack.  This
-          action requires two steps: one to grab the record and one to grab the
-          value. *)
+    (** Represents the processing of a record projection on the stack.  This
+        action requires two steps: one to grab the record and one to grab the
+        value. *)
     | Record_projection_2_of_2 of record_value * Pattern_set.t * Pattern_set.t
-      (** The second step of handling record projection. *)
+    (** The second step of handling record projection. *)
     | Function_filter_validation of var * abstract_function_value
-      (** Represents the validation of filters for a function under lookup.  If
-          the variable matches our lookup variable, only the `fun' filter on the
-          positive set is admissible and anything but `fun' in the negative
-          filters is admissible and can be erased. *)
+    (** Represents the validation of filters for a function under lookup.  If
+        the variable matches our lookup variable, only the `fun' filter on the
+        positive set is admissible and anything but `fun' in the negative
+        filters is admissible and can be erased. *)
     | Record_filter_validation of
         var * record_value * annotated_clause * C.t
-      (** Represents the validation of filters for a record under lookup.  If
-          the variable matches our lookup variable, we will perform a series
-          of lookups on each field of the record to validate that this record
-          does, in fact, exist.  Once those lookups succeed, the resulting
-          record value will replace the lookup variable on the stack.  The
-          PDS state given here is the source node (which follows the record
-          assignment node in control flow); it is used to construct the
-          subordinate lookups used in filter validation. *)
+    (** Represents the validation of filters for a record under lookup.  If
+        the variable matches our lookup variable, we will perform a series
+        of lookups on each field of the record to validate that this record
+        does, in fact, exist.  Once those lookups succeed, the resulting
+        record value will replace the lookup variable on the stack.  The
+        PDS state given here is the source node (which follows the record
+        assignment node in control flow); it is used to construct the
+        subordinate lookups used in filter validation. *)
     | Int_filter_validation of var
-      (** Represents the validation of filters for an integer under lookup.  If
-          the variable matches our lookup variable, only the `int' filter on the
-          positive set is admissible and anything but `int' in the negative
-          filters is admissible and can be erased. *)
+    (** Represents the validation of filters for an integer under lookup.  If
+        the variable matches our lookup variable, only the `int' filter on the
+        positive set is admissible and anything but `int' in the negative
+        filters is admissible and can be erased. *)
     | Bool_filter_validation of var * bool
-      (** Represents the validation of filters for Boolean values under lookup.  If
-          the variable matches our lookup variable, only the `true'/`false' filter on the
-          positive set is admissible and anything but `true'/`false' in the negative
-          filters is admissible and can be erased. *)
+    (** Represents the validation of filters for Boolean values under lookup.  If
+        the variable matches our lookup variable, only the `true'/`false' filter on the
+        positive set is admissible and anything but `true'/`false' in the negative
+        filters is admissible and can be erased. *)
     | String_filter_validation of var
-      (** Represents the validation of filters for String values under lookup.  If
-          the variable matches our lookup variable, only the `string' filter on the
-          positive set is admissible and anything but `string' in the negative
-          filters is admissible and can be erased. *)
+    (** Represents the validation of filters for String values under lookup.  If
+        the variable matches our lookup variable, only the `string' filter on the
+        positive set is admissible and anything but `string' in the negative
+        filters is admissible and can be erased. *)
     | Empty_record_value_discovery of var
-      (** Represents the discovery of an empty record value assuming that the
-          current lookup variable matches the one provided here. *)
+    (** Represents the discovery of an empty record value assuming that the
+        current lookup variable matches the one provided here. *)
     | Dereference_lookup of var * var
-      (** Represents a dereferencing action.  The first variable is the lookup
-          variable; the second variable is the variable it dereferences. *)
+    (** Represents a dereferencing action.  The first variable is the lookup
+        variable; the second variable is the variable it dereferences. *)
     | Cell_filter_validation of var * ref_value
-      (** Represents the validation of filters for a cell under lookup.  If
-          the variable matches our lookup variable, the cell (provided as the
-          given abstract value) is pushed in its place. *)
+    (** Represents the validation of filters for a cell under lookup.  If
+        the variable matches our lookup variable, the cell (provided as the
+        given abstract value) is pushed in its place. *)
     | Cell_dereference_1_of_2
-      (** Represents the first step of dereferencing a located cell.  This is
-          a stack reduction operation: the dereferenced cell must be on the
-          value stack. *)
+    (** Represents the first step of dereferencing a located cell.  This is
+        a stack reduction operation: the dereferenced cell must be on the
+        value stack. *)
     | Cell_dereference_2_of_2 of ref_value
-      (** Represents the second step of dereferencing a located cell.  The
-          provided value is the cell in question. *)
+    (** Represents the second step of dereferencing a located cell.  The
+        provided value is the cell in question. *)
     | Cell_update_alias_analysis_init_1_of_2 of var * pds_state * pds_state
-      (** Represents the initialization of alias analysis for a given cell
-          update.  This is used to determine if the update in question is
-          modifying a cell for which we are looking via a different name.  The
-          variable here is the cell being updated; the states are the source and
-          target state of the original transition, respectively. *)
+    (** Represents the initialization of alias analysis for a given cell
+        update.  This is used to determine if the update in question is
+        modifying a cell for which we are looking via a different name.  The
+        variable here is the cell being updated; the states are the source and
+        target state of the original transition, respectively. *)
     | Cell_update_alias_analysis_init_2_of_2 of
         var * pds_state * pds_state * var * Pattern_set.t * Pattern_set.t
-      (** Represents the second step of alias analysis initialization for a cell
-          update.  The additional parameters are the contents of the
-          continuation found during the first step. *)
+    (** Represents the second step of alias analysis initialization for a cell
+        update.  The additional parameters are the contents of the
+        continuation found during the first step. *)
     | Alias_analysis_resolution_1_of_5 of var
-      (** Represents the final step of alias analysis which determines whether
-          a cell may be an alias of the one currently under lookup.  The
-          variable here is the name of the contents of the cell under
-          consideration. *)
+    (** Represents the final step of alias analysis which determines whether
+        a cell may be an alias of the one currently under lookup.  The
+        variable here is the name of the contents of the cell under
+        consideration. *)
     | Alias_analysis_resolution_2_of_5 of var
-      (** Alias analysis resolution after consuming the alias question from
-          the stack. *)
+    (** Alias analysis resolution after consuming the alias question from
+        the stack. *)
     | Alias_analysis_resolution_3_of_5 of var * abstract_value
-      (** Alias analysis resolution after consuming the first abstract value
-          from the stack. *)
+    (** Alias analysis resolution after consuming the first abstract value
+        from the stack. *)
     | Alias_analysis_resolution_4_of_5 of var * bool
-      (** Alias analysis resolution after consuming the second abstract value
-          from the stack.  The boolean indicates whether the two abstract values
-          were equal. *)
+    (** Alias analysis resolution after consuming the second abstract value
+        from the stack.  The boolean indicates whether the two abstract values
+        were equal. *)
     | Alias_analysis_resolution_5_of_5 of
         var * bool * var * Pattern_set.t * Pattern_set.t
-      (** Alias analysis resolution after consuming the lookup variable from the
-          stack.  The additional elements here are the components of the lookup
-          continuation. *)
+    (** Alias analysis resolution after consuming the lookup variable from the
+        stack.  The additional elements here are the components of the lookup
+        continuation. *)
     | Nonsideeffecting_nonmatching_clause_skip of var
-      (** Represents the skip of a non-matching, non-stateful clause.  Although
-          the rules indicate that this step should occur only when a deref
-          exists on the stack, the rule overlaps with the stateless nonmatching
-          clause skip in each occasion that a deref is not present.  So we
-          simply drop that requirement here, as the overlap does not present
-          a problem and it reduces the number of steps involved in performing
-          this task.  The associated variable is the variable that a lookup must
-          *not* match to be able to skip the clause. *)
+    (** Represents the skip of a non-matching, non-stateful clause.  Although
+        the rules indicate that this step should occur only when a deref
+        exists on the stack, the rule overlaps with the stateless nonmatching
+        clause skip in each occasion that a deref is not present.  So we
+        simply drop that requirement here, as the overlap does not present
+        a problem and it reduces the number of steps involved in performing
+        this task.  The associated variable is the variable that a lookup must
+        *not* match to be able to skip the clause. *)
     | Side_effect_search_init_1_of_2 of
         var * annotated_clause * C.t
-      (** Represents the initialization of a search for side effects.  The
-          provided variable must *not* be the lookup variable (since we'd be
-          looking for an immediate definition in that case).  The clause and
-          context represent the starting point of the side-effect search. *)
+    (** Represents the initialization of a search for side effects.  The
+        provided variable must *not* be the lookup variable (since we'd be
+        looking for an immediate definition in that case).  The clause and
+        context represent the starting point of the side-effect search. *)
     | Side_effect_search_init_2_of_2 of
         var * Pattern_set.t * Pattern_set.t * annotated_clause * C.t
-      (** Represents the initialization of a search for side effects.  At this
-          point, all work has been performed except (1) validating the presence
-          of a deref and (2) pushing the appropriate lookup continuations onto
-          the stack. *)
+    (** Represents the initialization of a search for side effects.  At this
+        point, all work has been performed except (1) validating the presence
+        of a deref and (2) pushing the appropriate lookup continuations onto
+        the stack. *)
     | Side_effect_search_nonmatching_clause_skip
-      (** Represents the action of skipping any immediate, unannotated,
-          non-update clause while searching for side effects. *)
+    (** Represents the action of skipping any immediate, unannotated,
+        non-update clause while searching for side effects. *)
     | Side_effect_search_exit_wiring
-      (** Represents the action of moving into an exit wiring node during a
-          side-effect search. *)
+    (** Represents the action of moving into an exit wiring node during a
+        side-effect search. *)
     | Side_effect_search_enter_wiring
-      (** Represents the action of moving into an entrance wiring node during a
-          side-effect search. *)
+    (** Represents the action of moving into an entrance wiring node during a
+        side-effect search. *)
     | Side_effect_search_without_discovery
-      (** Represents the end of a side-effect search which did not discover any
-          relevant side effects. *)
+    (** Represents the end of a side-effect search which did not discover any
+        relevant side effects. *)
     | Side_effect_search_alias_analysis_init of var * annotated_clause * C.t
-      (** Represents the initialization of alias analysis for a cell update
-          while in a side-effect search.  The variable is the cell being
-          updated; the clause and context designate the state at which the
-          alias analysis began. *)
+    (** Represents the initialization of alias analysis for a cell update
+        while in a side-effect search.  The variable is the cell being
+        updated; the clause and context designate the state at which the
+        alias analysis began. *)
     | Side_effect_search_alias_analysis_resolution_1_of_4 of var
-      (** Represents the resolution of an alias analysis within a side-effect
-          lookup.  The variable is the one being assigned to the cell. *)
+    (** Represents the resolution of an alias analysis within a side-effect
+        lookup.  The variable is the one being assigned to the cell. *)
     | Side_effect_search_alias_analysis_resolution_2_of_4 of var
-      (** The second step of alias analysis resolution in a side-effect search.
-          This step has consumed the "Alias?" question. *)
+    (** The second step of alias analysis resolution in a side-effect search.
+        This step has consumed the "Alias?" question. *)
     | Side_effect_search_alias_analysis_resolution_3_of_4 of
         var * abstract_value
-      (** The third step of alias analysis resolution in a side-effect search.
-          The first abstract value has been consumed. *)
+    (** The third step of alias analysis resolution in a side-effect search.
+        The first abstract value has been consumed. *)
     | Side_effect_search_alias_analysis_resolution_4_of_4 of var * bool
-      (** The last step of alias analysis resolution in a side-effect search.
-          The variable is the one being assigned to a cell; the boolean
-          indicates whether the particular value pair discovered here indicates
-          aliasing or not. *)
+    (** The last step of alias analysis resolution in a side-effect search.
+        The variable is the one being assigned to a cell; the boolean
+        indicates whether the particular value pair discovered here indicates
+        aliasing or not. *)
     | Side_effect_search_escape_1_of_2
-      (** The first step of processing a side-effect search escape.  This is
-          used when the alias analysis of a cell update during a side-effect
-          search successfully identifies a possible aliasing of the cell we are
-          attempting to dereference.  This process is used to eliminate the
-          stack frames which represent the side-effect search portion of the
-          overall analysis so that lookup can proceed from the point at which
-          the alias update is found. *)
+    (** The first step of processing a side-effect search escape.  This is
+        used when the alias analysis of a cell update during a side-effect
+        search successfully identifies a possible aliasing of the cell we are
+        attempting to dereference.  This process is used to eliminate the
+        stack frames which represent the side-effect search portion of the
+        overall analysis so that lookup can proceed from the point at which
+        the alias update is found. *)
     | Side_effect_search_escape_2_of_2 of var
-      (** The second step of processing a side-effect search escape.  The
-          variable is the one which was found to be the new value of the cell
-          being dereferenced. *)
+    (** The second step of processing a side-effect search escape.  The
+        variable is the one which was found to be the new value of the cell
+        being dereferenced. *)
     | Side_effect_search_escape_completion_1_of_4
-      (** Represents the completion of a side-effect search escape. *)
+    (** Represents the completion of a side-effect search escape. *)
     | Side_effect_search_escape_completion_2_of_4 of var
-      (** Represents the completion of a side-effect search escape.  The given
-          variable is the one to which the aliased cell is being assigned. *)
+    (** Represents the completion of a side-effect search escape.  The given
+        variable is the one to which the aliased cell is being assigned. *)
     | Side_effect_search_escape_completion_3_of_4 of var
-      (** Represents the completion of a side-effect search escape.  The given
-          variable is the one to which the aliased cell is being assigned. *)
+    (** Represents the completion of a side-effect search escape.  The given
+        variable is the one to which the aliased cell is being assigned. *)
     | Side_effect_search_escape_completion_4_of_4 of var
-      (** Represents the completion of a side-effect search escape.  The given
-          variable is the one to which the aliased cell is being assigned. *)
+    (** Represents the completion of a side-effect search escape.  The given
+        variable is the one to which the aliased cell is being assigned. *)
     | Binary_operator_lookup_init of
         var * var * var * annotated_clause * C.t * annotated_clause * C.t
-      (** Represents the kickstart of a process which looks up values for a
-          binary operation.  The first variable above must be the
-          current target of lookup.  The next two variables are the operands
-          of the operation.  The remaining two pairs of values represent the
-          source and target states of the DDPA edge. *)
+    (** Represents the kickstart of a process which looks up values for a
+        binary operation.  The first variable above must be the
+        current target of lookup.  The next two variables are the operands
+        of the operation.  The remaining two pairs of values represent the
+        source and target states of the DDPA edge. *)
     | Unary_operator_lookup_init of
         var * var * annotated_clause * C.t
-      (** Represents the kickstart of a process which looks up values for a
-          unary operation.  The first variable above must be the
-          current target of lookup.  The second variable is the operand
-          of the operation.  The state is the source states of the DDPA edge. *)
+    (** Represents the kickstart of a process which looks up values for a
+        unary operation.  The first variable above must be the
+        current target of lookup.  The second variable is the operand
+        of the operation.  The state is the source states of the DDPA edge. *)
     | Indexing_lookup_init of
         var * var * var * annotated_clause * C.t * annotated_clause * C.t
-      (** Represents the kickstart of a process which looks up values for
-          indexing.  The first variable above must be the
-          current target of lookup.  The next two variables are the subject
-          and the index, respectively.  The remaining two pairs of values represent the
-          source and target states of the DDPA edge. *)
+    (** Represents the kickstart of a process which looks up values for
+        indexing.  The first variable above must be the
+        current target of lookup.  The next two variables are the subject
+        and the index, respectively.  The remaining two pairs of values represent the
+        source and target states of the DDPA edge. *)
     | Binary_operator_resolution_1_of_4 of var * binary_operator
-      (** Represents the start of the resolution of a binary operator after its
-          operands have been found.  The variable here is the one under
-          lookup. *)
+    (** Represents the start of the resolution of a binary operator after its
+        operands have been found.  The variable here is the one under
+        lookup. *)
     | Binary_operator_resolution_2_of_4 of var * binary_operator
-      (** The second step of binary operator resolution.  This step collects the
-          first operand if it is a valid operand for the given kind of
-          operation. *)
+    (** The second step of binary operator resolution.  This step collects the
+        first operand if it is a valid operand for the given kind of
+        operation. *)
     | Binary_operator_resolution_3_of_4 of var * binary_operator * abstract_value
-      (** The third step of binary operator resolution.  This step
-          collects the second operand.  The `abstract_value' is the first operand
-          accumulated on the previous step. *)
+    (** The third step of binary operator resolution.  This step
+        collects the second operand.  The `abstract_value' is the first operand
+        accumulated on the previous step. *)
     | Binary_operator_resolution_4_of_4 of var * binary_operator * abstract_value
-      (** The forth step of binary operator resolution.  This step
-          collects and checks the lookup variable. The `abstract_value' is
-          the result of the operation. A check guarantees that the given result
-          is valid for the given operation. *)
+    (** The forth step of binary operator resolution.  This step
+        collects and checks the lookup variable. The `abstract_value' is
+        the result of the operation. A check guarantees that the given result
+        is valid for the given operation. *)
     | Unary_operator_resolution_1_of_3 of var * unary_operator
-      (** Represents the start of the resolution of a unary operator after its
-          operands have been found.  The variable here is the one under
-          lookup. *)
+    (** Represents the start of the resolution of a unary operator after its
+        operands have been found.  The variable here is the one under
+        lookup. *)
     | Unary_operator_resolution_2_of_3 of var * unary_operator
-      (** The second step of unary operator resolution.  This step collects the
-          operand if it is a valid operand for the given kind of
-          operation. *)
+    (** The second step of unary operator resolution.  This step collects the
+        operand if it is a valid operand for the given kind of
+        operation. *)
     | Unary_operator_resolution_3_of_3 of var * unary_operator * abstract_value
-      (** The third step of binary operator resolution.  This step
-          collects and checks the lookup variable. The `abstract_value' is
-          the result of the operation. A check guarantees that the given result
-          is valid for the given operation. *)
+    (** The third step of binary operator resolution.  This step
+        collects and checks the lookup variable. The `abstract_value' is
+        the result of the operation. A check guarantees that the given result
+        is valid for the given operation. *)
     | Indexing_resolution_1_of_4 of var
-      (** Represents the start of the resolution of indexing after its
-          operands have been found.  The variable here is the one under
-          lookup. *)
+    (** Represents the start of the resolution of indexing after its
+        operands have been found.  The variable here is the one under
+        lookup. *)
     | Indexing_resolution_2_of_4 of var
-      (** The second step of binary operator resolution.  This step
-          collects the index. *)
+    (** The second step of binary operator resolution.  This step
+        collects the index. *)
     | Indexing_resolution_3_of_4 of var
-      (** The third step of binary operator resolution.  This step
-          collects the subject. *)
+    (** The third step of binary operator resolution.  This step
+        collects the subject. *)
     | Indexing_resolution_4_of_4 of var * abstract_value
-      (** The forth step of binary operator resolution.  This step
-          collects and checks the lookup variable. The `abstract_value' is
-          the result of the operation. A check guarantees that the given result
-          is valid for the given operation. *)
+    (** The forth step of binary operator resolution.  This step
+        collects and checks the lookup variable. The `abstract_value' is
+        the result of the operation. A check guarantees that the given result
+        is valid for the given operation. *)
     [@@deriving ord]
   ;;
 
@@ -687,10 +694,10 @@ struct
         (pp_annotated_clause c) (C.pp ctxc) (pp_var x_site)
     | Function_call_flow_validation_resolution_1_of_2(x,x') ->
       Printf.sprintf "Function_call_flow_validation_resolution_1_of_2(%s,%s)"
-      (pp_var x) (pp_var x')
+        (pp_var x) (pp_var x')
     | Function_call_flow_validation_resolution_2_of_2(x,x') ->
       Printf.sprintf "Function_call_flow_validation_resolution_2_of_2(%s,%s)"
-      (pp_var x) (pp_var x')
+        (pp_var x) (pp_var x')
     | Function_closure_lookup(x'',xf) ->
       Printf.sprintf "Function_closure_lookup(%s,%s)"
         (pp_var x'') (pp_var xf)
@@ -879,10 +886,10 @@ struct
         (pp_annotated_clause c) (C.pp ctxc) (pp_var x_site)
     | Function_call_flow_validation_resolution_1_of_2(x,x') ->
       Printf.sprintf "FCFVR1(%s,%s)"
-      (pp_var x) (pp_var x')
+        (pp_var x) (pp_var x')
     | Function_call_flow_validation_resolution_2_of_2(x,x') ->
       Printf.sprintf "FCFVR2(%s,%s)"
-      (pp_var x) (pp_var x')
+        (pp_var x) (pp_var x')
     | Function_closure_lookup(x'',xf) ->
       Printf.sprintf "FunCL(%s,%s)"
         (pp_var x'') (pp_var xf)
@@ -1027,14 +1034,14 @@ struct
 
   type pds_untargeted_dynamic_pop_action =
     | Do_jump
-      (** The action for performing basic jump operations. *)
+    (** The action for performing basic jump operations. *)
     | Value_discovery_1_of_2
-      (** Represents the rule that, if a value is the only element on the stack,
-          we transition to one of the result states.  To determine that the
-          value is the only element, we must be able to pop the special "bottom"
-          stack element, so this is the first step of the process (which pops
-          the value).  Because the value dictates the target of the second
-          step, this is an untargeted action.  The second step is targeted. *)
+    (** Represents the rule that, if a value is the only element on the stack,
+        we transition to one of the result states.  To determine that the
+        value is the only element, we must be able to pop the special "bottom"
+        stack element, so this is the first step of the process (which pops
+        the value).  Because the value dictates the target of the second
+        step, this is an untargeted action.  The second step is targeted. *)
     [@@deriving ord]
   ;;
 
@@ -1074,18 +1081,18 @@ struct
     let perform_targeted_dynamic_pop element action =
       Logger_utils.lazy_bracket_log (lazy_logger `trace)
         (fun () ->
-          Printf.sprintf "perform_targeted_dynamic_pop (%s) (%s)"
-            (pp_pds_continuation element)
-            (pp_pds_targeted_dynamic_pop_action action))
+           Printf.sprintf "perform_targeted_dynamic_pop (%s) (%s)"
+             (pp_pds_continuation element)
+             (pp_pds_targeted_dynamic_pop_action action))
         (fun results ->
-          String_utils.concat_sep_delim "[" "]" ", "
-            (
-              results
-              |> Enum.clone
-              |> Enum.map (String_utils.pp_list @@
-                  pp_pds_stack_action pp_pds_continuation
-                    pp_pds_targeted_dynamic_pop_action)
-            )
+           String_utils.concat_sep_delim "[" "]" ", "
+             (
+               results
+               |> Enum.clone
+               |> Enum.map (String_utils.pp_list @@
+                            pp_pds_stack_action pp_pds_continuation
+                              pp_pds_targeted_dynamic_pop_action)
+             )
         )
       @@ fun () ->
       Nondeterminism_monad.enum @@
@@ -1109,7 +1116,7 @@ struct
         (* We're looking for a variable which does not match the one in this
            clause.  If we're stateless, that'll be fine. *)
         return [Pop_dynamic_targeted(
-                  Stateless_nonmatching_clause_skip_2_of_2 element)]
+            Stateless_nonmatching_clause_skip_2_of_2 element)]
       | Stateless_nonmatching_clause_skip_2_of_2 element' ->
         begin
           match element with
@@ -1125,7 +1132,7 @@ struct
       | Value_capture_1_of_3 ->
         let%orzero (Continuation_value abs_filtered_value) = element in
         return [ Pop_dynamic_targeted(
-                    Value_capture_2_of_3(abs_filtered_value)) ]
+            Value_capture_2_of_3(abs_filtered_value)) ]
       | Value_capture_2_of_3 fv ->
         let%orzero Capture(size) = element in
         return [ Pop_dynamic_targeted(Value_capture_3_of_3(fv,[],size)) ]
@@ -1137,7 +1144,7 @@ struct
             let size' = make_bounded_capture_size (n-1) in
             return
               [Pop_dynamic_targeted
-                (Value_capture_3_of_3(fv,element::collected_elements,size'))]
+                 (Value_capture_3_of_3(fv,element::collected_elements,size'))]
           end
         else
           begin
@@ -1216,13 +1223,13 @@ struct
         [%guard (Ident_map.mem l m)];
         (* FIXME: the following isn't in the spec, but maybe it should be... just here to test things for now *)
         [% guard (not @@
-                      Pattern_set.mem (Record_pattern Ident_map.empty) patsn0) ];
+                  Pattern_set.mem (Record_pattern Ident_map.empty) patsn0) ];
         let%bind patsn2 = negative_pattern_set_selection r patsn0 in
         let x' = Ident_map.find l m in
         let patsp' = Pattern_set.union patsp1 @@
-                        pattern_set_projection patsp0 l in
+          pattern_set_projection patsp0 l in
         let patsn' = Pattern_set.union patsn1 @@
-                        pattern_set_projection patsn2 l in
+          pattern_set_projection patsn2 l in
         return @@ [ Push(Lookup_var(x',patsp',patsn')) ]
       | Function_filter_validation(x,v) ->
         let%orzero (Lookup_var(x0,patsp,patsn)) = element in
@@ -1241,7 +1248,7 @@ struct
         [% guard (is_record_pattern_set patsp0)];
         (* FIXME: the following isn't in the spec, but maybe it should be... just here to test things for now *)
         [% guard (not @@
-                    Pattern_set.mem (Record_pattern Ident_map.empty) patsn0) ];
+                  Pattern_set.mem (Record_pattern Ident_map.empty) patsn0) ];
         let%bind patsn2 = negative_pattern_set_selection r patsn0 in
         let pattern_set_labels = labels_in_pattern_set patsp0 in
         let record_labels = labels_in_record r in
@@ -1257,9 +1264,9 @@ struct
         in
         let first_pushes =
           List.enum [ Push(Continuation_value(Abs_filtered_value(
-                              Abs_value_record(r), patsp0, patsn2)))
+              Abs_value_record(r), patsp0, patsn2)))
                     ; Push(Jump(acl1,ctx1))
-                    ]
+            ]
         in
         let all_pushes =
           record_labels
@@ -1305,7 +1312,7 @@ struct
                     patsp (Pattern_set.singleton empty_record_pattern)) ];
         [% guard (not @@ Pattern_set.mem empty_record_pattern patsn) ];
         return [ Push(Continuation_value(Abs_filtered_value(
-                        empty_record,Pattern_set.empty,Pattern_set.empty))) ]
+            empty_record,Pattern_set.empty,Pattern_set.empty))) ]
       | Dereference_lookup(x,x') ->
         let%orzero (Lookup_var(x0,patsp,patsn)) = element in
         [% guard (equal_var x x0) ];
@@ -1319,11 +1326,11 @@ struct
         [% guard (not @@ Pattern_set.mem Ref_pattern patsn) ];
         let value = Abs_value_ref(cell) in
         return [ Push(Continuation_value(Abs_filtered_value(
-                        value,Pattern_set.empty,Pattern_set.empty))) ]
+            value,Pattern_set.empty,Pattern_set.empty))) ]
       | Cell_dereference_1_of_2 ->
         let%orzero
           (Continuation_value(Abs_filtered_value(
-              Abs_value_ref(cell),patsp,patsn))) = element
+               Abs_value_ref(cell),patsp,patsn))) = element
         in
         [% guard (Pattern_set.is_empty patsp) ];
         [% guard (Pattern_set.is_empty patsn) ];
@@ -1337,8 +1344,8 @@ struct
       | Cell_update_alias_analysis_init_1_of_2(x',source_state,target_state) ->
         let%orzero (Lookup_var(x,patsp,patsn)) = element in
         return [ Pop_dynamic_targeted(
-                    Cell_update_alias_analysis_init_2_of_2(
-                      x',source_state,target_state,x,patsp,patsn)) ]
+            Cell_update_alias_analysis_init_2_of_2(
+              x',source_state,target_state,x,patsp,patsn)) ]
       | Cell_update_alias_analysis_init_2_of_2(
           x',source_state,target_state,x,patsp0,patsn0) ->
         let%orzero (Deref _) = element in
@@ -1356,11 +1363,11 @@ struct
         let k3'' = [ Alias_huh ; Jump(acl0,ctx0) ] in
         let k0 = [ element ; Lookup_var(x,patsp0,patsn0) ] in
         return @@ List.map (fun x -> Push x) @@
-          k0 @ k3'' @ k2'' @ k1''
+        k0 @ k3'' @ k2'' @ k1''
       | Alias_analysis_resolution_1_of_5(x'') ->
         let%orzero Alias_huh = element in
         return [ Pop_dynamic_targeted
-                  (Alias_analysis_resolution_2_of_5(x'')) ]
+                   (Alias_analysis_resolution_2_of_5(x'')) ]
       | Alias_analysis_resolution_2_of_5(x'') ->
         let%orzero
           Continuation_value(Abs_filtered_value(v,patsp,patsn)) = element
@@ -1368,7 +1375,7 @@ struct
         [%guard (Pattern_set.is_empty patsp)];
         [%guard (Pattern_set.is_empty patsn)];
         return [ Pop_dynamic_targeted
-                  (Alias_analysis_resolution_3_of_5(x'', v)) ]
+                   (Alias_analysis_resolution_3_of_5(x'', v)) ]
       | Alias_analysis_resolution_3_of_5(x'',v) ->
         let%orzero
           Continuation_value(Abs_filtered_value(v',patsp,patsn)) = element
@@ -1377,12 +1384,12 @@ struct
         [%guard (Pattern_set.is_empty patsn)];
         let equal_values = equal_abstract_value v v' in
         return [ Pop_dynamic_targeted
-                  (Alias_analysis_resolution_4_of_5(x'',equal_values)) ]
+                   (Alias_analysis_resolution_4_of_5(x'',equal_values)) ]
       | Alias_analysis_resolution_4_of_5(x'',equal_values) ->
         let%orzero Lookup_var(x,patsp0,patsn0) = element in
         return [ Pop_dynamic_targeted
-                  (Alias_analysis_resolution_5_of_5(
-                    x'',equal_values,x,patsp0,patsn0)) ]
+                   (Alias_analysis_resolution_5_of_5(
+                       x'',equal_values,x,patsp0,patsn0)) ]
       | Alias_analysis_resolution_5_of_5(x'',equal_values,x,patsp0,patsn0) ->
         let%orzero Deref(patsp1,patsn1) = element in
         if equal_values
@@ -1399,7 +1406,7 @@ struct
         let%orzero Lookup_var(x,patsp,patsn) = element in
         [%guard (not @@ equal_var x x'')];
         return [ Pop_dynamic_targeted(
-                  Side_effect_search_init_2_of_2(x,patsp,patsn,acl0,ctx)) ]
+            Side_effect_search_init_2_of_2(x,patsp,patsn,acl0,ctx)) ]
       | Side_effect_search_init_2_of_2(x,patsp,patsn,acl0,ctx) ->
         let%orzero Deref _ = element in
         return [ Push element ; Push (Lookup_var(x,patsp,patsn))
@@ -1443,7 +1450,7 @@ struct
       | Side_effect_search_alias_analysis_resolution_1_of_4(x'') ->
         let%orzero Alias_huh = element in
         return [ Pop_dynamic_targeted (
-                  Side_effect_search_alias_analysis_resolution_2_of_4(x'')) ]
+            Side_effect_search_alias_analysis_resolution_2_of_4(x'')) ]
       | Side_effect_search_alias_analysis_resolution_2_of_4(x'') ->
         let%orzero
           Continuation_value(Abs_filtered_value(v,patsp,patsn)) = element
@@ -1451,7 +1458,7 @@ struct
         [%guard (Pattern_set.is_empty patsp) ];
         [%guard (Pattern_set.is_empty patsn) ];
         return [ Pop_dynamic_targeted (
-                  Side_effect_search_alias_analysis_resolution_3_of_4(x'',v)) ]
+            Side_effect_search_alias_analysis_resolution_3_of_4(x'',v)) ]
       | Side_effect_search_alias_analysis_resolution_3_of_4(x'',v1) ->
         let%orzero
           Continuation_value(Abs_filtered_value(v2,patsp,patsn)) = element
@@ -1460,8 +1467,8 @@ struct
         [%guard (Pattern_set.is_empty patsn) ];
         let is_alias = equal_abstract_value v1 v2 in
         return [ Pop_dynamic_targeted (
-                  Side_effect_search_alias_analysis_resolution_4_of_4(
-                    x'',is_alias)) ]
+            Side_effect_search_alias_analysis_resolution_4_of_4(
+              x'',is_alias)) ]
       | Side_effect_search_alias_analysis_resolution_4_of_4(x'',is_alias) ->
         let%orzero (Side_effect_lookup_var _) = element in
         if is_alias then
@@ -1473,22 +1480,22 @@ struct
       | Side_effect_search_escape_1_of_2 ->
         let%orzero Side_effect_search_escape x'' = element in
         return [ Pop_dynamic_targeted (
-                    Side_effect_search_escape_2_of_2 x'') ]
+            Side_effect_search_escape_2_of_2 x'') ]
       | Side_effect_search_escape_2_of_2 x'' ->
         let%orzero Side_effect_lookup_var _ = element in
         return [ Push (Side_effect_search_escape x'') ]
       | Side_effect_search_escape_completion_1_of_4 ->
         let%orzero Side_effect_search_escape x = element in
         return [ Pop_dynamic_targeted (
-                    Side_effect_search_escape_completion_2_of_4 x) ]
+            Side_effect_search_escape_completion_2_of_4 x) ]
       | Side_effect_search_escape_completion_2_of_4 x ->
         let%orzero Side_effect_search_start = element in
         return [ Pop_dynamic_targeted (
-                    Side_effect_search_escape_completion_3_of_4 x) ]
+            Side_effect_search_escape_completion_3_of_4 x) ]
       | Side_effect_search_escape_completion_3_of_4 x ->
         let%orzero Lookup_var _ = element in
         return [ Pop_dynamic_targeted (
-                    Side_effect_search_escape_completion_4_of_4 x) ]
+            Side_effect_search_escape_completion_4_of_4 x) ]
       | Side_effect_search_escape_completion_4_of_4 x ->
         let%orzero Deref(patsp,patsn) = element in
         return [ Push (Lookup_var(x,patsp,patsn)) ]
@@ -1542,7 +1549,7 @@ struct
       | Binary_operator_resolution_1_of_4(x1,op) ->
         let%orzero Binary_operation = element in
         return [ Pop_dynamic_targeted(
-                    Binary_operator_resolution_2_of_4(x1,op)) ]
+            Binary_operator_resolution_2_of_4(x1,op)) ]
       | Binary_operator_resolution_2_of_4(x1,op) ->
         begin
           match op,element with
@@ -1668,7 +1675,7 @@ struct
       | Unary_operator_resolution_1_of_3(x1,op) ->
         let%orzero Unary_operation = element in
         return [ Pop_dynamic_targeted(
-                    Unary_operator_resolution_2_of_3(x1,op)) ]
+            Unary_operator_resolution_2_of_3(x1,op)) ]
       | Unary_operator_resolution_2_of_3(x1,op) ->
         begin
           match op,element with
@@ -1695,7 +1702,7 @@ struct
       | Indexing_resolution_1_of_4(x1) ->
         let%orzero Indexing = element in
         return [ Pop_dynamic_targeted(
-                    Indexing_resolution_2_of_4(x1)) ]
+            Indexing_resolution_2_of_4(x1)) ]
       | Indexing_resolution_2_of_4(x1) ->
         let%orzero
           Continuation_value(Abs_filtered_value(Abs_value_int,patsp,patsn)) =
@@ -1727,7 +1734,7 @@ struct
                 abstract_value,Pattern_set.empty,Pattern_set.empty))) ]
           | _ -> raise @@ Utils.Invariant_failure "Invalid result of indexing."
         end
-  ;;
+    ;;
 
     let perform_untargeted_dynamic_pop element action =
       Nondeterminism_monad.enum @@
@@ -1758,13 +1765,13 @@ struct
     ; ddpa_graph_fully_closed : bool
     ; pds_reachability : Ddpa_pds_reachability.analysis
     ; ddpa_active_nodes : Annotated_clause_set.t
-        (** The active nodes in the DDPA graph.  This set is maintained
-            incrementally as edges are added. *)
+    (** The active nodes in the DDPA graph.  This set is maintained
+        incrementally as edges are added. *)
     ; ddpa_active_non_immediate_nodes : Annotated_clause_set.t
-        (** A subset of [ddpa_active_nodes] which only contains the
-            non-immediate nodes.  This is useful during closure. *)
+    (** A subset of [ddpa_active_nodes] which only contains the
+        non-immediate nodes.  This is useful during closure. *)
     ; ddpa_logging_data : ddpa_analysis_logging_data option
-        (** Data associated with logging, if appropriate. *)
+    (** Data associated with logging, if appropriate. *)
     }
   ;;
 
@@ -1836,8 +1843,8 @@ struct
     in
     if already_present then (analysis,false) else
       (* ***
-        First, update the PDS reachability analysis with the new edge
-        information.
+         First, update the PDS reachability analysis with the new edge
+         information.
       *)
       let add_edge_for_reachability edge reachability =
         (* Unpack the edge *)
@@ -1846,18 +1853,18 @@ struct
            edge. *)
         let edge_function state =
           Logger_utils.lazy_bracket_log (lazy_logger `trace)
-          (fun () -> Printf.sprintf "DDPA %s edge function at state %s"
-                        (pp_ddpa_edge edge) (pp_pds_state state))
-          (fun edges ->
-            let pp_output (actions,target) =
-              String_utils.pp_tuple
-                (String_utils.pp_list Ddpa_pds_reachability.pp_stack_action)
-                pp_pds_state
-                (actions,target)
-            in
-            Printf.sprintf "Generates edges: %s"
-                        (String_utils.pp_list pp_output @@
-                          List.of_enum @@ Enum.clone edges)) @@
+            (fun () -> Printf.sprintf "DDPA %s edge function at state %s"
+                (pp_ddpa_edge edge) (pp_pds_state state))
+            (fun edges ->
+               let pp_output (actions,target) =
+                 String_utils.pp_tuple
+                   (String_utils.pp_list Ddpa_pds_reachability.pp_stack_action)
+                   pp_pds_state
+                   (actions,target)
+               in
+               Printf.sprintf "Generates edges: %s"
+                 (String_utils.pp_list pp_output @@
+                  List.of_enum @@ Enum.clone edges)) @@
           fun () ->
           let zero = Enum.empty in
           let%orzero Program_point_state(acl0',ctx) = state in
@@ -1869,464 +1876,464 @@ struct
                    processing operations (those that simply reorder the stack
                    without transitioning to a different node). *)
           let targeted_dynamic_pops = Enum.concat @@ Enum.map enum @@ List.enum
-            [
-              (* 1b. Value drop *)
-              begin
-                return (Value_drop, Program_point_state(acl0,ctx))
-              end
-            ;
-              (* 2a. Transitivity *)
-              begin
-                let%orzero
-                  (Unannotated_clause(Abs_clause(x, Abs_var_body x'))) = acl1
-                in
-                (* x = x' *)
-                return (Variable_aliasing(x,x'),Program_point_state(acl1,ctx))
-              end
-            ;
-              (* 2b. Stateless non-matching clause skip *)
-              begin
-                let%orzero (Unannotated_clause(Abs_clause(x,_))) = acl1 in
-                (* x' = b *)
-                return ( Stateless_nonmatching_clause_skip_1_of_2 x
-                       , Program_point_state(acl1,ctx)
-                       )
-              end
-            ;
-              (* 3b. Value capture *)
-              begin
-                return ( Value_capture_1_of_3
-                       , Program_point_state(acl0, ctx)
-                       )
-              end
-            ;
-              (* 4a. Function parameter wiring *)
-              begin
-                let%orzero (Enter_clause(x,x',c)) = acl1 in
-                let%orzero (Abs_clause(_,Abs_appl_body (_,x3''))) = c in
+              [
+                (* 1b. Value drop *)
                 begin
-                  if not (equal_var x' x3'') then
-                    raise @@ Utils.Invariant_failure "Ill-formed wiring node."
-                  else
-                    ()
-                end;
-                (* x =(down)c x' *)
-                [%guard C.is_top c ctx];
-                let%bind ctx' = pick_enum @@ C.pop ctx in
-                return (Variable_aliasing(x,x'),Program_point_state(acl1,ctx'))
-              end
-            ;
-              (* 4b. Function return wiring start *)
-              begin
-                let%orzero (Exit_clause(x,_,c)) = acl1 in
-                let%orzero (Abs_clause(x1'',Abs_appl_body(x2'',x3''))) = c in
+                  return (Value_drop, Program_point_state(acl0,ctx))
+                end
+                ;
+                (* 2a. Transitivity *)
                 begin
-                  if not (equal_var x x1'') then
-                    raise @@ Utils.Invariant_failure "Ill-formed wiring node."
-                  else
-                    ()
-                end;
-                (* x =(up)c _ (for functions) *)
-                return ( Function_call_flow_validation(x2'',x3'',acl0,ctx,Unannotated_clause(c),ctx,x)
-                       , Program_point_state(Unannotated_clause(c),ctx)
-                       )
-              end
-            ;
-              (* 4c. Function return wiring finish *)
-              begin
-                let%orzero (Exit_clause(x,x',c)) = acl1 in
-                let%orzero (Abs_clause(x1'',Abs_appl_body _)) = c in
+                  let%orzero
+                    (Unannotated_clause(Abs_clause(x, Abs_var_body x'))) = acl1
+                  in
+                  (* x = x' *)
+                  return (Variable_aliasing(x,x'),Program_point_state(acl1,ctx))
+                end
+                ;
+                (* 2b. Stateless non-matching clause skip *)
                 begin
-                  if not (equal_var x x1'') then
-                    raise @@ Utils.Invariant_failure "Ill-formed wiring node."
-                  else
-                    ()
-                end;
-                (* x =(up)c x' *)
-                let%bind ctx' = pick_enum @@ C.push c ctx in
-                return ( Function_call_flow_validation_resolution_1_of_2(x,x')
-                       , Program_point_state(acl1,ctx')
-                       )
-              end
-            ;
-              (* 4d. Function non-local wiring *)
-              begin
-                let%orzero (Enter_clause(x'',x',c)) = acl1 in
-                let%orzero (Abs_clause(_,Abs_appl_body(x2'',x3''))) = c in
+                  let%orzero (Unannotated_clause(Abs_clause(x,_))) = acl1 in
+                  (* x' = b *)
+                  return ( Stateless_nonmatching_clause_skip_1_of_2 x
+                         , Program_point_state(acl1,ctx)
+                         )
+                end
+                ;
+                (* 3b. Value capture *)
                 begin
-                  if not (equal_var x' x3'') then
-                    raise @@ Utils.Invariant_failure "Ill-formed wiring node."
-                  else
-                    ()
-                end;
-                (* x'' =(down)c x' *)
-                [%guard C.is_top c ctx];
-                let%bind ctx' = pick_enum @@ C.pop ctx in
-                return ( Function_closure_lookup(x'',x2'')
-                       , Program_point_state(acl1,ctx')
-                       )
-              end
-            ;
-              (* 5a, 5b, and 5e. Conditional entrance wiring *)
-              begin
-                (* This block represents *all* conditional closure handling on
-                   the entering side. *)
-                let%orzero (Enter_clause(x',x1,c)) = acl1 in
-                let%orzero
-                  (Abs_clause(_,Abs_conditional_body(x1',p,f1,_))) = c
-                in
+                  return ( Value_capture_1_of_3
+                         , Program_point_state(acl0, ctx)
+                         )
+                end
+                ;
+                (* 4a. Function parameter wiring *)
                 begin
-                  if not (equal_var x1 x1') then
-                    raise @@ Utils.Invariant_failure "Ill-formed wiring node."
-                  else
-                    ()
-                end;
-                let Abs_function_value(f1x,_) = f1 in
-                (* x'' =(down)c x' for conditionals *)
-                let closure_for_positive_path = equal_var f1x x' in
-                return ( Conditional_closure_lookup
-                          (x',x1,p,closure_for_positive_path)
-                       , Program_point_state(acl1,ctx)
-                       )
-              end
-            ;
-              (* 5c, 5d. Conditional return wiring *)
-              begin
-                let%orzero (Exit_clause(x,x',c)) = acl1 in
-                let%orzero
-                  (Abs_clause(x2,Abs_conditional_body(x1,pat,f1,_))) = c
-                in
+                  let%orzero (Enter_clause(x,x',c)) = acl1 in
+                  let%orzero (Abs_clause(_,Abs_appl_body (_,x3''))) = c in
+                  begin
+                    if not (equal_var x' x3'') then
+                      raise @@ Utils.Invariant_failure "Ill-formed wiring node."
+                    else
+                      ()
+                  end;
+                  (* x =(down)c x' *)
+                  [%guard C.is_top c ctx];
+                  let%bind ctx' = pick_enum @@ C.pop ctx in
+                  return (Variable_aliasing(x,x'),Program_point_state(acl1,ctx'))
+                end
+                ;
+                (* 4b. Function return wiring start *)
                 begin
-                  if not (equal_var x x2) then
-                    raise @@ Utils.Invariant_failure "Ill-formed wiring node."
-                  else
-                    ()
-                end;
-                (* x =(up) x' for conditionals *)
-                let Abs_function_value(_,Abs_expr(cls)) = f1 in
-                let f1ret = rv cls in
-                let then_branch = equal_var f1ret x' in
-                return ( Conditional_subject_validation(
-                            x,x',x1,pat,then_branch,acl1,ctx)
-                       , Program_point_state(Unannotated_clause(c),ctx)
-                       )
-              end
-            ;
-              (* 6a. Record destruction *)
-              begin
-                let%orzero
-                  (Unannotated_clause(
-                    Abs_clause(x,Abs_projection_body(x',l)))) = acl1
-                in
-                (* x = x'.l *)
-                return ( Record_projection_lookup(x,x',l)
-                       , Program_point_state(acl1,ctx)
-                       )
-              end
-            ;
-              (* 6b. Record projection *)
-              begin
-                return ( Record_projection_1_of_2
-                       , Program_point_state(acl0,ctx)
-                       )
-              end
-            ;
-              (* 7a. Function filter validation *)
-              begin
-                let%orzero
-                  (Unannotated_clause(Abs_clause(
-                      x,Abs_value_body(Abs_value_function(v))))) = acl1
-                in
-                (* x = f *)
-                return ( Function_filter_validation(x,v)
-                       , Program_point_state(acl1,ctx)
-                       )
-              end
-            ;
-              (* 7b. Record validation *)
-              begin
-                let%orzero
-                  (Unannotated_clause(
-                    Abs_clause(x,Abs_value_body(Abs_value_record(r))))) = acl1
-                in
-                (* x = r *)
-                let target_state = Program_point_state(acl1,ctx) in
-                return ( Record_filter_validation(
-                           x,r,acl1,ctx)
-                       , target_state
-                       )
-              end
-            ;
-              (* 7c. Integer filter validation *)
-              begin
-                let%orzero
-                  (Unannotated_clause(Abs_clause(
-                      x,Abs_value_body(Abs_value_int)))) = acl1
-                in
-                (* x = int *)
-                return ( Int_filter_validation(x)
-                       , Program_point_state(acl1,ctx)
-                       )
-              end
-            ;
-              (* 7d, 7e. Boolean filter validation *)
-              begin
-                let%orzero
-                  (Unannotated_clause(Abs_clause(
-                      x,Abs_value_body(Abs_value_bool(b))))) = acl1
-                in
-                (* x = true OR x = false *)
-                return ( Bool_filter_validation(x,b)
-                       , Program_point_state(acl1,ctx)
-                       )
-              end
-            ;
-              (* 7f. String filter validation *)
-              begin
-                let%orzero
-                  (Unannotated_clause(Abs_clause(
-                      x,Abs_value_body(Abs_value_string)))) = acl1
-                in
-                (* x = <string> *)
-                return ( String_filter_validation(x)
-                       , Program_point_state(acl1,ctx)
-                       )
-              end
-            ;
-              (* 8a. Assignment result *)
-              begin
-                let%orzero
-                  (Unannotated_clause(Abs_clause(x, Abs_update_body _))) = acl1
-                in
-                (* x = x' <- x'' -- produce {} for x *)
-                return ( Empty_record_value_discovery x
-                       , Program_point_state(acl1,ctx)
-                       )
-              end
-            ;
-              (* 8b. Dereference lookup *)
-              begin
-                let%orzero
-                  (Unannotated_clause(Abs_clause(x, Abs_deref_body(x')))) = acl1
-                in
-                (* x = !x' *)
-                return ( Dereference_lookup(x,x')
-                       , Program_point_state(acl1,ctx)
-                       )
-              end
-            ;
-              (* 8c. Cell validation *)
-              begin
-                let%orzero
-                  (Unannotated_clause(Abs_clause(
-                      x,Abs_value_body(Abs_value_ref(cell))))) = acl1
-                in
-                (* x = ref x' *)
-                return ( Cell_filter_validation(x,cell)
-                       , Program_point_state(acl1,ctx)
-                       )
-              end
-            ;
-              (* 8d. Cell dereference *)
-              begin
-                return ( Cell_dereference_1_of_2
-                       , Program_point_state(acl0, ctx) )
-              end
-            ;
-              (* 9a. Cell update alias analysis initialization *)
-              begin
-                let%orzero
-                  (Unannotated_clause(Abs_clause(
-                      _, Abs_update_body(x',_)))) = acl1
-                in
-                (* x''' = x' <- x'' *)
-                let source_state = Program_point_state(acl1,ctx) in
-                let target_state = Program_point_state(acl0,ctx) in
-                return ( Cell_update_alias_analysis_init_1_of_2(
-                          x',source_state,target_state)
-                       , Program_point_state(acl0, ctx) )
-              end
-            ; (* 9b,9c. Alias resolution *)
-              begin
-                let%orzero
-                  (Unannotated_clause(Abs_clause(
-                      _, Abs_update_body(_,x'')))) = acl1
-                in
-                (* x''' = x' <- x'' *)
-                return ( Alias_analysis_resolution_1_of_5(x'')
-                       , Program_point_state(acl1, ctx) )
-              end
-            ; (* 10a. Stateful non-side-effecting clause skip *)
-              begin
-                let%orzero (Unannotated_clause(Abs_clause(x,b))) = acl1 in
-                [% guard (is_immediate acl1) ];
-                [% guard (b |>
-                    (function
-                      | Abs_update_body _ -> false
-                      | _ -> true)) ];
-                (* x' = b *)
-                return ( Nonsideeffecting_nonmatching_clause_skip x
-                       , Program_point_state(acl1,ctx)
-                       )
-              end
-            ; (* 10b. Side-effect search initialization *)
-              begin
-                let%orzero (Exit_clause(x'',_,c)) = acl1 in
-                (* x'' =(up)c x' *)
-                let%bind ctx' =
-                  match c with
-                  | Abs_clause(_,Abs_appl_body _) -> pick_enum @@ C.push c ctx
-                  | Abs_clause(_,Abs_conditional_body _) -> return ctx
-                  | _ -> zero ()
-                in
-                return ( Side_effect_search_init_1_of_2(x'',acl0,ctx)
-                       , Program_point_state(acl1,ctx') )
-              end
-            ; (* 10c. Side-effect search non-matching clause skip *)
-              begin
-                let%orzero (Unannotated_clause(Abs_clause(_,b))) = acl1 in
-                [% guard (is_immediate acl1) ];
-                [% guard (b |>
-                    (function
-                      | Abs_update_body _ -> false
-                      | _ -> true)) ];
-                (* x' = b *)
-                return ( Side_effect_search_nonmatching_clause_skip
-                       , Program_point_state(acl1,ctx) )
-              end
-            ; (* 10d. Side-effect search exit wiring node *)
-              begin
-                let%orzero (Exit_clause(_,_,c)) = acl1 in
-                (* x'' =(up)c x' *)
-                let%bind ctx' =
-                  match c with
-                  | Abs_clause(_,Abs_appl_body _) -> pick_enum @@ C.push c ctx
-                  | Abs_clause(_,Abs_conditional_body _) -> return ctx
-                  | _ -> zero ()
-                in
-                return ( Side_effect_search_exit_wiring
-                       , Program_point_state(acl1,ctx') )
-              end
-            ; (* 10e. Side-effect search enter wiring node *)
-              begin
-                let%orzero (Enter_clause(_,_,c)) = acl1 in
-                (* x'' =(down)c x' *)
-                let%bind ctx' =
-                  match c with
-                  | Abs_clause(_,Abs_appl_body _) -> pick_enum @@ C.pop ctx
-                  | Abs_clause(_,Abs_conditional_body _) -> return ctx
-                  | _ -> zero ()
-                in
-                return ( Side_effect_search_enter_wiring
-                       , Program_point_state(acl1,ctx') )
-              end
-              (* FIXME: why does this clause kill performance? *)
-            ; (* 10f. Side-effect search without discovery *)
-              begin
-                return ( Side_effect_search_without_discovery
-                       , Program_point_state(acl0,ctx) )
-              end
-            ; (* 10g. Side-effect search alias analysis initialization *)
-              begin
-                let%orzero (Unannotated_clause(
-                              Abs_clause(_,Abs_update_body(x',_)))) = acl1
-                in
-                return ( Side_effect_search_alias_analysis_init(x',acl0,ctx)
-                       , Program_point_state(acl1,ctx) )
-              end
-            ; (* 10h,10i. Side-effect search alias analysis resolution *)
-              begin
-                let%orzero (Unannotated_clause(
-                              Abs_clause(_,Abs_update_body(_,x'')))) = acl1
-                in
-                return ( Side_effect_search_alias_analysis_resolution_1_of_4(
-                            x'')
-                       , Program_point_state(acl1,ctx) )
-              end
-            ; (* 10j. Side-effect search escape *)
-              begin
-                return ( Side_effect_search_escape_1_of_2
-                       , Program_point_state(acl0,ctx) )
-              end
-            ; (* 10k. Side-effect search escape completion *)
-              begin
-                return ( Side_effect_search_escape_completion_1_of_4
-                       , Program_point_state(acl0,ctx) )
-              end
-            ; (* 11a. Binary operation operand lookup *)
-              begin
-                let%orzero
-                  (Unannotated_clause(Abs_clause(x1,
-                            Abs_binary_operation_body(x2,_,x3)))) = acl1
-                in
-                (* x1 = x2 op x3 *)
-                return ( Binary_operator_lookup_init(
-                            x1,x2,x3,acl1,ctx,acl0,ctx)
-                       , Program_point_state(acl1,ctx)
-                       )
-              end
-            ; (* 11b. Unary operation operand lookup *)
-              begin
-                let%orzero
-                  (Unannotated_clause(Abs_clause(x1,
-                            Abs_unary_operation_body(_,x2)))) = acl1
-                in
-                (* x1 = op x2 *)
-                return ( Unary_operator_lookup_init(
-                            x1,x2,acl0,ctx)
-                       , Program_point_state(acl1,ctx)
-                       )
-              end
-            ; (* 11c. Indexing lookup *)
-              begin
-                let%orzero
-                  (Unannotated_clause(Abs_clause(x1,
-                            Abs_indexing_body(x2,x3)))) = acl1
-                in
-                (* x1 = x2[x3] *)
-                return ( Indexing_lookup_init(
-                            x1,x2,x3,acl1,ctx,acl0,ctx)
-                       , Program_point_state(acl1,ctx)
-                       )
-              end
-            ; (* 12a,12b,12c,13a,13b,13c,13d,13e,13f,13g,13h,13i,13j,13k,13l,14a,14b,14c. Binary operator resolution *)
-              begin
-                let%orzero
-                  (Unannotated_clause(Abs_clause(x1,
-                            Abs_binary_operation_body(_,op,_)))) = acl1
-                in
-                (* x1 = x2 op x3 *)
-                return ( Binary_operator_resolution_1_of_4(x1,op)
-                       , Program_point_state(acl1,ctx)
-                       )
-              end
-            ; (* 13m,13n. Unary operator resolution *)
-              begin
-                let%orzero
-                  (Unannotated_clause(Abs_clause(x1,
-                            Abs_unary_operation_body(op,_)))) = acl1
-                in
-                (* x1 = op x2 *)
-                return ( Unary_operator_resolution_1_of_3(x1,op)
-                       , Program_point_state(acl1,ctx)
-                       )
-              end
-            ; (* 14d. Indexing resolution *)
-              begin
-                let%orzero
-                  (Unannotated_clause(Abs_clause(x1,
-                            Abs_indexing_body(_,_)))) = acl1
-                in
-                (* x1 = x2[x3] *)
-                return ( Indexing_resolution_1_of_4(x1)
-                       , Program_point_state(acl1,ctx)
-                       )
-              end
-            ]
+                  let%orzero (Exit_clause(x,_,c)) = acl1 in
+                  let%orzero (Abs_clause(x1'',Abs_appl_body(x2'',x3''))) = c in
+                  begin
+                    if not (equal_var x x1'') then
+                      raise @@ Utils.Invariant_failure "Ill-formed wiring node."
+                    else
+                      ()
+                  end;
+                  (* x =(up)c _ (for functions) *)
+                  return ( Function_call_flow_validation(x2'',x3'',acl0,ctx,Unannotated_clause(c),ctx,x)
+                         , Program_point_state(Unannotated_clause(c),ctx)
+                         )
+                end
+                ;
+                (* 4c. Function return wiring finish *)
+                begin
+                  let%orzero (Exit_clause(x,x',c)) = acl1 in
+                  let%orzero (Abs_clause(x1'',Abs_appl_body _)) = c in
+                  begin
+                    if not (equal_var x x1'') then
+                      raise @@ Utils.Invariant_failure "Ill-formed wiring node."
+                    else
+                      ()
+                  end;
+                  (* x =(up)c x' *)
+                  let%bind ctx' = pick_enum @@ C.push c ctx in
+                  return ( Function_call_flow_validation_resolution_1_of_2(x,x')
+                         , Program_point_state(acl1,ctx')
+                         )
+                end
+                ;
+                (* 4d. Function non-local wiring *)
+                begin
+                  let%orzero (Enter_clause(x'',x',c)) = acl1 in
+                  let%orzero (Abs_clause(_,Abs_appl_body(x2'',x3''))) = c in
+                  begin
+                    if not (equal_var x' x3'') then
+                      raise @@ Utils.Invariant_failure "Ill-formed wiring node."
+                    else
+                      ()
+                  end;
+                  (* x'' =(down)c x' *)
+                  [%guard C.is_top c ctx];
+                  let%bind ctx' = pick_enum @@ C.pop ctx in
+                  return ( Function_closure_lookup(x'',x2'')
+                         , Program_point_state(acl1,ctx')
+                         )
+                end
+                ;
+                (* 5a, 5b, and 5e. Conditional entrance wiring *)
+                begin
+                  (* This block represents *all* conditional closure handling on
+                     the entering side. *)
+                  let%orzero (Enter_clause(x',x1,c)) = acl1 in
+                  let%orzero
+                    (Abs_clause(_,Abs_conditional_body(x1',p,f1,_))) = c
+                  in
+                  begin
+                    if not (equal_var x1 x1') then
+                      raise @@ Utils.Invariant_failure "Ill-formed wiring node."
+                    else
+                      ()
+                  end;
+                  let Abs_function_value(f1x,_) = f1 in
+                  (* x'' =(down)c x' for conditionals *)
+                  let closure_for_positive_path = equal_var f1x x' in
+                  return ( Conditional_closure_lookup
+                             (x',x1,p,closure_for_positive_path)
+                         , Program_point_state(acl1,ctx)
+                         )
+                end
+                ;
+                (* 5c, 5d. Conditional return wiring *)
+                begin
+                  let%orzero (Exit_clause(x,x',c)) = acl1 in
+                  let%orzero
+                    (Abs_clause(x2,Abs_conditional_body(x1,pat,f1,_))) = c
+                  in
+                  begin
+                    if not (equal_var x x2) then
+                      raise @@ Utils.Invariant_failure "Ill-formed wiring node."
+                    else
+                      ()
+                  end;
+                  (* x =(up) x' for conditionals *)
+                  let Abs_function_value(_,Abs_expr(cls)) = f1 in
+                  let f1ret = rv cls in
+                  let then_branch = equal_var f1ret x' in
+                  return ( Conditional_subject_validation(
+                      x,x',x1,pat,then_branch,acl1,ctx)
+                         , Program_point_state(Unannotated_clause(c),ctx)
+                    )
+                end
+                ;
+                (* 6a. Record destruction *)
+                begin
+                  let%orzero
+                    (Unannotated_clause(
+                        Abs_clause(x,Abs_projection_body(x',l)))) = acl1
+                  in
+                  (* x = x'.l *)
+                  return ( Record_projection_lookup(x,x',l)
+                         , Program_point_state(acl1,ctx)
+                         )
+                end
+                ;
+                (* 6b. Record projection *)
+                begin
+                  return ( Record_projection_1_of_2
+                         , Program_point_state(acl0,ctx)
+                         )
+                end
+                ;
+                (* 7a. Function filter validation *)
+                begin
+                  let%orzero
+                    (Unannotated_clause(Abs_clause(
+                         x,Abs_value_body(Abs_value_function(v))))) = acl1
+                  in
+                  (* x = f *)
+                  return ( Function_filter_validation(x,v)
+                         , Program_point_state(acl1,ctx)
+                         )
+                end
+                ;
+                (* 7b. Record validation *)
+                begin
+                  let%orzero
+                    (Unannotated_clause(
+                        Abs_clause(x,Abs_value_body(Abs_value_record(r))))) = acl1
+                  in
+                  (* x = r *)
+                  let target_state = Program_point_state(acl1,ctx) in
+                  return ( Record_filter_validation(
+                      x,r,acl1,ctx)
+                         , target_state
+                    )
+                end
+                ;
+                (* 7c. Integer filter validation *)
+                begin
+                  let%orzero
+                    (Unannotated_clause(Abs_clause(
+                         x,Abs_value_body(Abs_value_int)))) = acl1
+                  in
+                  (* x = int *)
+                  return ( Int_filter_validation(x)
+                         , Program_point_state(acl1,ctx)
+                         )
+                end
+                ;
+                (* 7d, 7e. Boolean filter validation *)
+                begin
+                  let%orzero
+                    (Unannotated_clause(Abs_clause(
+                         x,Abs_value_body(Abs_value_bool(b))))) = acl1
+                  in
+                  (* x = true OR x = false *)
+                  return ( Bool_filter_validation(x,b)
+                         , Program_point_state(acl1,ctx)
+                         )
+                end
+                ;
+                (* 7f. String filter validation *)
+                begin
+                  let%orzero
+                    (Unannotated_clause(Abs_clause(
+                         x,Abs_value_body(Abs_value_string)))) = acl1
+                  in
+                  (* x = <string> *)
+                  return ( String_filter_validation(x)
+                         , Program_point_state(acl1,ctx)
+                         )
+                end
+                ;
+                (* 8a. Assignment result *)
+                begin
+                  let%orzero
+                    (Unannotated_clause(Abs_clause(x, Abs_update_body _))) = acl1
+                  in
+                  (* x = x' <- x'' -- produce {} for x *)
+                  return ( Empty_record_value_discovery x
+                         , Program_point_state(acl1,ctx)
+                         )
+                end
+                ;
+                (* 8b. Dereference lookup *)
+                begin
+                  let%orzero
+                    (Unannotated_clause(Abs_clause(x, Abs_deref_body(x')))) = acl1
+                  in
+                  (* x = !x' *)
+                  return ( Dereference_lookup(x,x')
+                         , Program_point_state(acl1,ctx)
+                         )
+                end
+                ;
+                (* 8c. Cell validation *)
+                begin
+                  let%orzero
+                    (Unannotated_clause(Abs_clause(
+                         x,Abs_value_body(Abs_value_ref(cell))))) = acl1
+                  in
+                  (* x = ref x' *)
+                  return ( Cell_filter_validation(x,cell)
+                         , Program_point_state(acl1,ctx)
+                         )
+                end
+                ;
+                (* 8d. Cell dereference *)
+                begin
+                  return ( Cell_dereference_1_of_2
+                         , Program_point_state(acl0, ctx) )
+                end
+                ;
+                (* 9a. Cell update alias analysis initialization *)
+                begin
+                  let%orzero
+                    (Unannotated_clause(Abs_clause(
+                         _, Abs_update_body(x',_)))) = acl1
+                  in
+                  (* x''' = x' <- x'' *)
+                  let source_state = Program_point_state(acl1,ctx) in
+                  let target_state = Program_point_state(acl0,ctx) in
+                  return ( Cell_update_alias_analysis_init_1_of_2(
+                      x',source_state,target_state)
+                         , Program_point_state(acl0, ctx) )
+                end
+                ; (* 9b,9c. Alias resolution *)
+                begin
+                  let%orzero
+                    (Unannotated_clause(Abs_clause(
+                         _, Abs_update_body(_,x'')))) = acl1
+                  in
+                  (* x''' = x' <- x'' *)
+                  return ( Alias_analysis_resolution_1_of_5(x'')
+                         , Program_point_state(acl1, ctx) )
+                end
+                ; (* 10a. Stateful non-side-effecting clause skip *)
+                begin
+                  let%orzero (Unannotated_clause(Abs_clause(x,b))) = acl1 in
+                  [% guard (is_immediate acl1) ];
+                  [% guard (b |>
+                            (function
+                              | Abs_update_body _ -> false
+                              | _ -> true)) ];
+                  (* x' = b *)
+                  return ( Nonsideeffecting_nonmatching_clause_skip x
+                         , Program_point_state(acl1,ctx)
+                         )
+                end
+                ; (* 10b. Side-effect search initialization *)
+                begin
+                  let%orzero (Exit_clause(x'',_,c)) = acl1 in
+                  (* x'' =(up)c x' *)
+                  let%bind ctx' =
+                    match c with
+                    | Abs_clause(_,Abs_appl_body _) -> pick_enum @@ C.push c ctx
+                    | Abs_clause(_,Abs_conditional_body _) -> return ctx
+                    | _ -> zero ()
+                  in
+                  return ( Side_effect_search_init_1_of_2(x'',acl0,ctx)
+                         , Program_point_state(acl1,ctx') )
+                end
+                ; (* 10c. Side-effect search non-matching clause skip *)
+                begin
+                  let%orzero (Unannotated_clause(Abs_clause(_,b))) = acl1 in
+                  [% guard (is_immediate acl1) ];
+                  [% guard (b |>
+                            (function
+                              | Abs_update_body _ -> false
+                              | _ -> true)) ];
+                  (* x' = b *)
+                  return ( Side_effect_search_nonmatching_clause_skip
+                         , Program_point_state(acl1,ctx) )
+                end
+                ; (* 10d. Side-effect search exit wiring node *)
+                begin
+                  let%orzero (Exit_clause(_,_,c)) = acl1 in
+                  (* x'' =(up)c x' *)
+                  let%bind ctx' =
+                    match c with
+                    | Abs_clause(_,Abs_appl_body _) -> pick_enum @@ C.push c ctx
+                    | Abs_clause(_,Abs_conditional_body _) -> return ctx
+                    | _ -> zero ()
+                  in
+                  return ( Side_effect_search_exit_wiring
+                         , Program_point_state(acl1,ctx') )
+                end
+                ; (* 10e. Side-effect search enter wiring node *)
+                begin
+                  let%orzero (Enter_clause(_,_,c)) = acl1 in
+                  (* x'' =(down)c x' *)
+                  let%bind ctx' =
+                    match c with
+                    | Abs_clause(_,Abs_appl_body _) -> pick_enum @@ C.pop ctx
+                    | Abs_clause(_,Abs_conditional_body _) -> return ctx
+                    | _ -> zero ()
+                  in
+                  return ( Side_effect_search_enter_wiring
+                         , Program_point_state(acl1,ctx') )
+                end
+                (* FIXME: why does this clause kill performance? *)
+                ; (* 10f. Side-effect search without discovery *)
+                begin
+                  return ( Side_effect_search_without_discovery
+                         , Program_point_state(acl0,ctx) )
+                end
+                ; (* 10g. Side-effect search alias analysis initialization *)
+                begin
+                  let%orzero (Unannotated_clause(
+                      Abs_clause(_,Abs_update_body(x',_)))) = acl1
+                  in
+                  return ( Side_effect_search_alias_analysis_init(x',acl0,ctx)
+                         , Program_point_state(acl1,ctx) )
+                end
+                ; (* 10h,10i. Side-effect search alias analysis resolution *)
+                begin
+                  let%orzero (Unannotated_clause(
+                      Abs_clause(_,Abs_update_body(_,x'')))) = acl1
+                  in
+                  return ( Side_effect_search_alias_analysis_resolution_1_of_4(
+                      x'')
+                         , Program_point_state(acl1,ctx) )
+                end
+                ; (* 10j. Side-effect search escape *)
+                begin
+                  return ( Side_effect_search_escape_1_of_2
+                         , Program_point_state(acl0,ctx) )
+                end
+                ; (* 10k. Side-effect search escape completion *)
+                begin
+                  return ( Side_effect_search_escape_completion_1_of_4
+                         , Program_point_state(acl0,ctx) )
+                end
+                ; (* 11a. Binary operation operand lookup *)
+                begin
+                  let%orzero
+                    (Unannotated_clause(Abs_clause(x1,
+                                                   Abs_binary_operation_body(x2,_,x3)))) = acl1
+                  in
+                  (* x1 = x2 op x3 *)
+                  return ( Binary_operator_lookup_init(
+                      x1,x2,x3,acl1,ctx,acl0,ctx)
+                         , Program_point_state(acl1,ctx)
+                    )
+                end
+                ; (* 11b. Unary operation operand lookup *)
+                begin
+                  let%orzero
+                    (Unannotated_clause(Abs_clause(x1,
+                                                   Abs_unary_operation_body(_,x2)))) = acl1
+                  in
+                  (* x1 = op x2 *)
+                  return ( Unary_operator_lookup_init(
+                      x1,x2,acl0,ctx)
+                         , Program_point_state(acl1,ctx)
+                    )
+                end
+                ; (* 11c. Indexing lookup *)
+                begin
+                  let%orzero
+                    (Unannotated_clause(Abs_clause(x1,
+                                                   Abs_indexing_body(x2,x3)))) = acl1
+                  in
+                  (* x1 = x2[x3] *)
+                  return ( Indexing_lookup_init(
+                      x1,x2,x3,acl1,ctx,acl0,ctx)
+                         , Program_point_state(acl1,ctx)
+                    )
+                end
+                ; (* 12a,12b,12c,13a,13b,13c,13d,13e,13f,13g,13h,13i,13j,13k,13l,14a,14b,14c. Binary operator resolution *)
+                begin
+                  let%orzero
+                    (Unannotated_clause(Abs_clause(x1,
+                                                   Abs_binary_operation_body(_,op,_)))) = acl1
+                  in
+                  (* x1 = x2 op x3 *)
+                  return ( Binary_operator_resolution_1_of_4(x1,op)
+                         , Program_point_state(acl1,ctx)
+                         )
+                end
+                ; (* 13m,13n. Unary operator resolution *)
+                begin
+                  let%orzero
+                    (Unannotated_clause(Abs_clause(x1,
+                                                   Abs_unary_operation_body(op,_)))) = acl1
+                  in
+                  (* x1 = op x2 *)
+                  return ( Unary_operator_resolution_1_of_3(x1,op)
+                         , Program_point_state(acl1,ctx)
+                         )
+                end
+                ; (* 14d. Indexing resolution *)
+                begin
+                  let%orzero
+                    (Unannotated_clause(Abs_clause(x1,
+                                                   Abs_indexing_body(_,_)))) = acl1
+                  in
+                  (* x1 = x2[x3] *)
+                  return ( Indexing_resolution_1_of_4(x1)
+                         , Program_point_state(acl1,ctx)
+                         )
+                end
+              ]
           in
           targeted_dynamic_pops
           |> Enum.map
-              (fun (action,state) -> ([Pop_dynamic_targeted(action)], state))
+            (fun (action,state) -> ([Pop_dynamic_targeted(action)], state))
         in
         (* Create another function to handle the untargeted dynamic pops. *)
         let untargeted_dynamic_pop_action_function state =
@@ -2337,17 +2344,17 @@ struct
           [%guard (compare_annotated_clause acl0 acl0' == 0)];
           let open Option.Monad in
           let untargeted_dynamic_pops = Enum.filter_map identity @@ List.enum
-            [
-              (* 1a. Value discovery. *)
-              begin
-                return @@ Value_discovery_1_of_2
-              end
-            ;
-              (* 3a. Jump. *)
-              begin
-                return @@ Do_jump
-              end
-            ]
+              [
+                (* 1a. Value discovery. *)
+                begin
+                  return @@ Value_discovery_1_of_2
+                end
+                ;
+                (* 3a. Jump. *)
+                begin
+                  return @@ Do_jump
+                end
+              ]
           in
           untargeted_dynamic_pops
         in
@@ -2356,23 +2363,23 @@ struct
         reachability
         |> Ddpa_pds_reachability.add_edge_function edge_function
         |> Ddpa_pds_reachability.add_untargeted_dynamic_pop_action_function
-            untargeted_dynamic_pop_action_function
+          untargeted_dynamic_pop_action_function
       in
       let pds_reachability' =
         Enum.clone edges
         |> Enum.fold (flip add_edge_for_reachability) analysis.pds_reachability
       in
       (* ***
-        Next, add the edge to the DDPA graph.
+         Next, add the edge to the DDPA graph.
       *)
       let ddpa_graph' =
         Enum.clone edges
         |> Enum.fold (flip Ddpa_graph.add_edge) analysis.ddpa_graph
       in
       (* ***
-        Now, perform closure over the active node set.  This function uses a
-        list of enumerations of nodes to explore.  This reduces the cost of
-        managing the work queue.
+         Now, perform closure over the active node set.  This function uses a
+         list of enumerations of nodes to explore.  This reduces the cost of
+         managing the work queue.
       *)
       let rec find_new_active_nodes from_acls_enums results_so_far =
         match from_acls_enums with
@@ -2397,12 +2404,12 @@ struct
           Enum.clone edges
           |> Enum.filter_map
             (fun (Ddpa_edge(acl_left,acl_right)) ->
-              if Annotated_clause_set.mem acl_left analysis.ddpa_active_nodes
-              then Some acl_right
-              else None)
+               if Annotated_clause_set.mem acl_left analysis.ddpa_active_nodes
+               then Some acl_right
+               else None)
           |> Enum.filter
             (fun acl ->
-              not @@ Annotated_clause_set.mem acl analysis.ddpa_active_nodes)
+               not @@ Annotated_clause_set.mem acl analysis.ddpa_active_nodes)
         in
         let new_active_nodes =
           find_new_active_nodes [new_active_root_nodes]
@@ -2453,33 +2460,33 @@ struct
       | Some prefix ->
         { (empty_analysis @@ Some prefix) with
           ddpa_logging_data = Some
-            { ddpa_closure_steps = 0
-            ; ddpa_logging_prefix = prefix
-            }
+              { ddpa_closure_steps = 0
+              ; ddpa_logging_prefix = prefix
+              }
         }
     in
     let analysis = fst @@ add_edges edges empty_analysis' in
     logger `trace "Created initial analysis";
     log_ddpa_graph Ddpa_graph_logger.Ddpa_log_all analysis
       (fun data ->
-        Ddpa_graph_logger.Ddpa_graph_name_initial data.ddpa_logging_prefix);
+         Ddpa_graph_logger.Ddpa_graph_name_initial data.ddpa_logging_prefix);
     analysis
   ;;
 
   let restricted_values_of_variable x acl ctx patsp patsn analysis =
     Logger_utils.lazy_bracket_log (lazy_logger `trace)
       (fun () ->
-        Printf.sprintf "Determining values of variable %s at position %s%s"
-          (pp_var x) (pp_annotated_clause acl) @@
-          if Pattern_set.is_empty patsp && Pattern_set.is_empty patsn
-          then ""
-          else
-            Printf.sprintf " with pattern sets %s and %s"
-              (pp_pattern_set patsp) (pp_pattern_set patsn)
-          )
+         Printf.sprintf "Determining values of variable %s at position %s%s"
+           (pp_var x) (pp_annotated_clause acl) @@
+         if Pattern_set.is_empty patsp && Pattern_set.is_empty patsn
+         then ""
+         else
+           Printf.sprintf " with pattern sets %s and %s"
+             (pp_pattern_set patsp) (pp_pattern_set patsn)
+      )
       (fun (values, _) ->
-        String_utils.concat_sep_delim "{" "}" ", " @@
-          Enum.map pp_abs_filtered_value @@ Enum.clone values)
+         String_utils.concat_sep_delim "{" "}" ", " @@
+         Enum.map pp_abs_filtered_value @@ Enum.clone values)
     @@ fun () ->
     let start_state = Program_point_state(acl,ctx) in
     let start_actions =
@@ -2537,7 +2544,7 @@ struct
       |> Enum.append (Enum.singleton wire_in_acl)
       |> flip Enum.append (Enum.singleton wire_out_acl)
       |> Utils.pairwise_enum_fold
-          (fun acl1 acl2 -> Ddpa_edge(acl1,acl2))
+        (fun acl1 acl2 -> Ddpa_edge(acl1,acl2))
     in
     Enum.append pred_edges @@ Enum.append inner_edges succ_edges
   ;;
@@ -2548,7 +2555,7 @@ struct
       | None -> lazy_logger `trace (fun () -> "Performing closure step")
       | Some data -> lazy_logger `trace (fun () ->
           (Printf.sprintf "Performing closure step %d"
-            (data.ddpa_closure_steps+1)));
+             (data.ddpa_closure_steps+1)));
     end;
     (* We need to do work on each of the active, non-immediate nodes.  This
        process includes variable lookups, which may result in additional work
@@ -2557,63 +2564,63 @@ struct
        which produces a new analysis, we can just update the ref. *)
     let analysis_ref = ref analysis in
     let new_edges_enum = Nondeterminism_monad.enum
-      (
-        let open Nondeterminism_monad in
-        let%bind acl =
-          pick_enum @@
+        (
+          let open Nondeterminism_monad in
+          let%bind acl =
+            pick_enum @@
             Annotated_clause_set.enum analysis.ddpa_active_non_immediate_nodes
-        in
-        let has_values x patsp patsn =
-          let (values,analysis') =
-            restricted_values_of_variable
-              x acl C.empty patsp patsn !analysis_ref
           in
-          analysis_ref := analysis';
-          not @@ Enum.is_empty values
-        in
-        match acl with
-        | Unannotated_clause(Abs_clause(x1,Abs_appl_body(x2,x3)) as cl) ->
-          lazy_logger `trace
-            (fun () ->
-              Printf.sprintf "Considering application closure for clause %s"
-                (pp_abstract_clause cl));
-          (* Make sure that a value shows up to the argument. *)
-          [%guard has_values x3 Pattern_set.empty Pattern_set.empty];
-          (* Get each of the function values. *)
-          let (x2_values,analysis_2) =
-            restricted_values_of_variable
-              x2 acl C.empty Pattern_set.empty Pattern_set.empty !analysis_ref
+          let has_values x patsp patsn =
+            let (values,analysis') =
+              restricted_values_of_variable
+                x acl C.empty patsp patsn !analysis_ref
+            in
+            analysis_ref := analysis';
+            not @@ Enum.is_empty values
           in
-          analysis_ref := analysis_2;
-          let%bind x2_value = pick_enum x2_values in
-          let%orzero
-            Abs_filtered_value(Abs_value_function(fn),_,_) = x2_value
-          in
-          (* Wire each one in. *)
-          return @@ wire cl fn x3 x1 analysis_2.ddpa_graph
-        | Unannotated_clause(
-            Abs_clause(x1,Abs_conditional_body(x2,p,f1,f2)) as cl) ->
-          lazy_logger `trace
-            (fun () ->
-              Printf.sprintf "Considering conditional closure for clause %s"
-                (pp_abstract_clause cl));
-          (* We have two functions we may wish to wire: f1 (if x2 has values
-             which match the pattern) and f2 (if x2 has values which antimatch
-             the pattern). *)
-          [ (Pattern_set.singleton p, Pattern_set.empty, f1)
-          ; (Pattern_set.empty, Pattern_set.singleton p, f2)
-          ]
+          match acl with
+          | Unannotated_clause(Abs_clause(x1,Abs_appl_body(x2,x3)) as cl) ->
+            lazy_logger `trace
+              (fun () ->
+                 Printf.sprintf "Considering application closure for clause %s"
+                   (pp_abstract_clause cl));
+            (* Make sure that a value shows up to the argument. *)
+            [%guard has_values x3 Pattern_set.empty Pattern_set.empty];
+            (* Get each of the function values. *)
+            let (x2_values,analysis_2) =
+              restricted_values_of_variable
+                x2 acl C.empty Pattern_set.empty Pattern_set.empty !analysis_ref
+            in
+            analysis_ref := analysis_2;
+            let%bind x2_value = pick_enum x2_values in
+            let%orzero
+              Abs_filtered_value(Abs_value_function(fn),_,_) = x2_value
+            in
+            (* Wire each one in. *)
+            return @@ wire cl fn x3 x1 analysis_2.ddpa_graph
+          | Unannotated_clause(
+              Abs_clause(x1,Abs_conditional_body(x2,p,f1,f2)) as cl) ->
+            lazy_logger `trace
+              (fun () ->
+                 Printf.sprintf "Considering conditional closure for clause %s"
+                   (pp_abstract_clause cl));
+            (* We have two functions we may wish to wire: f1 (if x2 has values
+               which match the pattern) and f2 (if x2 has values which antimatch
+               the pattern). *)
+            [ (Pattern_set.singleton p, Pattern_set.empty, f1)
+            ; (Pattern_set.empty, Pattern_set.singleton p, f2)
+            ]
             |> List.enum
             |> Enum.filter_map
               (fun (patsp,patsn,f) ->
-                if has_values x2 patsp patsn then Some f else None)
+                 if has_values x2 patsp patsn then Some f else None)
             |> Enum.map (fun f -> wire cl f x2 x1 (!analysis_ref).ddpa_graph)
             |> Nondeterminism_monad.pick_enum
-        | _ ->
-          raise @@ Utils.Invariant_failure
-            "Unhandled clause in perform_closure_steps"
-      )
-        |> Enum.concat
+          | _ ->
+            raise @@ Utils.Invariant_failure
+              "Unhandled clause in perform_closure_steps"
+        )
+                         |> Enum.concat
     in
     (* Due to the stateful effects of computing the new edges, we're going to
        want to pull on the entire enumeration before we start looking at the
@@ -2640,12 +2647,12 @@ struct
       match result.ddpa_logging_data with
       | None -> logger `trace "Completed closure step"
       | Some data -> lazy_logger `trace
-          (fun () -> Printf.sprintf "Completed closure step %d"
-            (data.ddpa_closure_steps));
+                       (fun () -> Printf.sprintf "Completed closure step %d"
+                           (data.ddpa_closure_steps));
     end;
     log_ddpa_graph Ddpa_graph_logger.Ddpa_log_all analysis
       (fun data -> Ddpa_graph_logger.Ddpa_graph_name_intermediate(
-          data.ddpa_logging_prefix, data.ddpa_closure_steps));
+           data.ddpa_logging_prefix, data.ddpa_closure_steps));
     result
   ;;
 
@@ -2658,7 +2665,7 @@ struct
         logger `trace "Closure complete.";
         log_ddpa_graph Ddpa_graph_logger.Ddpa_log_result analysis
           (fun data ->
-            Ddpa_graph_logger.Ddpa_graph_name_closed(data.ddpa_logging_prefix));
+             Ddpa_graph_logger.Ddpa_graph_name_closed(data.ddpa_logging_prefix));
         analysis
       end
     else
