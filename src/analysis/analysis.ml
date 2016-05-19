@@ -40,8 +40,9 @@ sig
       + The number of edges in the DDPA graph
       + The number of nodes in the PDS
       + The number of edges in the PDS
+      + The number of contexts used in the PDS
   *)
-  val get_size : ddpa_analysis -> int * int * int * int * int
+  val get_size : ddpa_analysis -> int * int * int * int * int * int
 
   (** Performs a series of closure steps on an analysis.  This is not guaranteed
       to complete closure; however, it will make progress as long as the
@@ -1797,6 +1798,20 @@ struct
           | _ -> true
       )
     in
+    let module Context_set = Set.Make(struct
+        type t = C.t
+        let compare = C.compare
+      end)
+    in
+    let contexts =
+      Ddpa_pds_reachability.get_current_states analysis.pds_reachability
+      |> Enum.filter_map
+        (function
+          | Program_point_state(_,ctx) -> Some ctx
+          | Result_state _ -> None
+        )
+      |> Context_set.of_enum
+    in
     Annotated_clause_set.cardinal (filter_inferrable_nodes analysis.ddpa_active_nodes),
     Annotated_clause_set.cardinal (filter_inferrable_nodes analysis.ddpa_active_non_immediate_nodes),
     analysis.ddpa_graph
@@ -1804,7 +1819,8 @@ struct
     |> List.of_enum
     |> List.length,
     pds_node_count,
-    pds_edge_count
+    pds_edge_count,
+    Context_set.cardinal contexts
   ;;
 
   let empty_analysis logging_prefix_opt =

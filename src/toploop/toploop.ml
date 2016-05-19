@@ -196,14 +196,16 @@ let toploop_operate conf e =
                         ddpa_number_of_active_non_immediate_nodes,
                         ddpa_number_of_edges,
                         pds_number_of_nodes,
-                        pds_number_of_edges
+                        pds_number_of_edges,
+                        pds_number_of_contexts
                       = TLA.get_size analysis in
-                    Printf.printf "DDPA number of active nodes (excluding enter and exit nodes that can be inferred): %n.\nDDPA number of active non immediate nodes (excluding enter and exit nodes that can be inferred): %n.\nDDPA number of edges: %n.\nPDS number of nodes: %n.\nPDS number of edges: %n.\n"
+                    Printf.printf "DDPA number of active nodes (excluding enter and exit nodes that can be inferred): %n.\nDDPA number of active non immediate nodes (excluding enter and exit nodes that can be inferred): %n.\nDDPA number of edges: %n.\nPDS number of nodes: %n.\nPDS number of edges: %n.\nPDS number of contexts: %n.\n"
                       ddpa_number_of_active_nodes
                       ddpa_number_of_active_non_immediate_nodes
                       ddpa_number_of_edges
                       pds_number_of_nodes
                       pds_number_of_edges
+                      pds_number_of_contexts
                   end;
                 (* Now run the actual program. *)
                 evaluation_step ()

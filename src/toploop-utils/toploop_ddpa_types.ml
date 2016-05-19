@@ -18,20 +18,20 @@ type inconsistency =
 
 module type DDPA = sig
   type analysis
-  
+
   module C : Context_stack;;
-  
+
   val create_analysis : ?logging_prefix:string option -> expr -> analysis
-  
+
   val values_of_variable_from :
     var -> annotated_clause -> analysis -> Abs_filtered_value_set.t
-  
+
   val contextual_values_of_variable_from :
     var -> annotated_clause -> C.t -> analysis -> Abs_filtered_value_set.t
-  
+
   val check_inconsistencies : analysis -> inconsistency Enum.t
-  
+
   val pp_analysis : analysis -> string
 
-  val get_size : analysis -> int * int * int * int * int
+  val get_size : analysis -> int * int * int * int * int * int
 end;;
