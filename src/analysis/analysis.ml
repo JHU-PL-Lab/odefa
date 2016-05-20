@@ -1857,13 +1857,13 @@ struct
       Ddpa_graph_logger.log level name analysis.ddpa_graph
   ;;
 
-  let add_edges edges analysis =
-    let already_present =
-      Enum.clone edges
-      |> Enum.for_all
-        (fun edge -> Ddpa_graph.has_edge edge analysis.ddpa_graph)
+  let add_edges edges_in analysis =
+    let edges =
+      edges_in
+      |> Enum.filter
+        (fun edge -> not @@ Ddpa_graph.has_edge edge analysis.ddpa_graph)
     in
-    if already_present then (analysis,false) else
+    if Enum.is_empty edges then (analysis,false) else
       (* ***
          First, update the PDS reachability analysis with the new edge
          information.
