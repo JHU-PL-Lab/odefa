@@ -1812,6 +1812,12 @@ struct
         )
       |> Context_set.of_enum
     in
+    lazy_logger `info
+      (fun () ->
+         "Contexts used: " ^
+         (String_utils.concat_sep_delim "{" "}" "," @@
+          Enum.map C.ppa @@ Context_set.enum contexts)
+      );
     Annotated_clause_set.cardinal (filter_inferrable_nodes analysis.ddpa_active_nodes),
     Annotated_clause_set.cardinal (filter_inferrable_nodes analysis.ddpa_active_non_immediate_nodes),
     analysis.ddpa_graph
