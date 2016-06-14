@@ -128,6 +128,18 @@ Library "pds-reachability"
     batteries,
     ppx_deriving.std (>= 3.2)
 
+Executable "ppx_pds_programming"
+  Path: src/pds-programming
+  MainIs: pds_programming.ml
+  CompiledObject: native
+  BuildDepends:
+    compiler-libs.common,
+    pds-reachability,
+    ppx_tools,
+    ppx_tools.metaquot,
+    utils,
+    batteries
+
 Library "analysis"
   Path: src/analysis
   Modules:
@@ -194,6 +206,8 @@ Executable "test"
   Path: test/
   MainIs: test.ml
   CompiledObject: native
+  ByteOpt+: -ppx src/pds-programming/pds_programming.native
+  NativeOpt+: -ppx src/pds-programming/pds_programming.native
   BuildDepends:
     utils,
     pds-reachability,
