@@ -5,7 +5,7 @@ let all_tests =
   [ Test_files.tests
   ; Test_utils.tests
   ; Test_reachability.tests
-  ; Test_ppx_programming.tests
+  ; Test_pds_programming.tests
   ];;
 
 let () =
