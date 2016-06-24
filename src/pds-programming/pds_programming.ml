@@ -90,6 +90,6 @@ let x = 5*2 in x + 3
   }
 ;;
 
-let () = register "dummy" dummy_mapper;;
-
-let () = register "double" double_mapper;;
+let () =
+  Ppx_utils.run_mappers [dummy_mapper; double_mapper]
+;;
