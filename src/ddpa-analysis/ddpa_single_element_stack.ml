@@ -1,6 +1,6 @@
 open Batteries;;
 
-open Analysis_context_stack;;
+open Ddpa_context_stack;;
 open Ddpa_graph;;
 open Pp_utils;;
 
@@ -19,11 +19,6 @@ struct
   let pp formatter x =
     match x with
     | S(Some(c)) -> (pp_suffix pp_abstract_clause "|?") formatter c
-    | S(None) -> Format.pp_print_string formatter "?"
-  ;;
-  let ppa formatter x =
-    match x with
-    | S(Some(c)) -> pp_abstract_clause formatter c
     | S(None) -> Format.pp_print_string formatter "?"
   ;;
   let show = pp_to_string pp;;

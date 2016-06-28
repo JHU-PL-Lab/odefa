@@ -6,6 +6,7 @@ let all_tests =
   ; Test_utils.tests
   ; Test_reachability.tests
   ; Test_pds_programming.tests
+  ; Test_swan.tests
   ];;
 
 let () =

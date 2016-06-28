@@ -1,5 +1,5 @@
 {
-  open Generated_parser;;
+  open Swan_generated_parser;;
 
   (* ocamllex is a slave to tradition, so we have to handle line breaks
      ourselves. *)
@@ -33,17 +33,19 @@ rule token = parse
   | "]"                              { CLOSE_BRACKET }
   | "("                              { OPEN_PAREN }
   | ")"                              { CLOSE_PAREN }
-  | ";"                              { SEMICOLON }
   | ","                              { COMMA }
-  | "="                              { EQUALS }
   | "->"                             { ARROW }
   | "?"                              { QUESTION_MARK }
   | "~"                              { TILDE }
   | ":"                              { COLON }
+  | "="                              { EQUALS }
   | "."                              { DOT }
-  | "<-"                             { LEFT_ARROW }
   | "!"                              { BANG }
+  | "|"                              { PIPE }
+  | "<-"                             { LEFT_ARROW }
   | "fun"                            { KEYWORD_FUN }
+  | "let"                            { KEYWORD_LET }
+  | "in"                             { KEYWORD_IN }
   | "ref"                            { KEYWORD_REF }
   | "int"                            { KEYWORD_INT }
   | "true"                           { KEYWORD_TRUE }
@@ -52,7 +54,13 @@ rule token = parse
   | "or"                             { KEYWORD_OR }
   | "not"                            { KEYWORD_NOT }
   | "string"                         { KEYWORD_STRING }
-  | "-"? digit+ as n                 { INT_LITERAL (int_of_string n) } 
+  | "if"                             { KEYWORD_IF }
+  | "then"                           { KEYWORD_THEN }
+  | "else"                           { KEYWORD_ELSE }
+  | "match"                          { KEYWORD_MATCH }
+  | "with"                           { KEYWORD_WITH }
+  | "end"                            { KEYWORD_END }
+  | "-"? digit+ as n                 { INT_LITERAL (int_of_string n) }
   | "\"" (string_contents as s) "\"" { STRING_LITERAL s }
   | "+"                              { BINOP_PLUS }
   | "-"                              { BINOP_MINUS }

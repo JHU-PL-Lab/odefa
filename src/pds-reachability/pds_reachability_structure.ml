@@ -69,14 +69,6 @@ sig
     : node -> structure -> (node * stack_element) Enum.t
   val find_nop_edges_by_target
     : node -> structure -> node Enum.t
-  val find_push_edges_by_source_and_element
-    : node -> stack_element -> structure -> node Enum.t
-  val find_pop_edges_by_source_and_element
-    : node -> stack_element -> structure -> node Enum.t
-  val find_push_edges_by_target_and_element
-    : node -> stack_element -> structure -> node Enum.t
-  val find_pop_edges_by_target_and_element
-    : node -> stack_element -> structure -> node Enum.t
 
   val enumerate_nodes : structure -> node Enum.t
   val enumerate_edges : structure -> edge Enum.t
@@ -134,8 +126,6 @@ struct
 
   (********** Substructure definitions. **********)
 
-  module State_set = Set.Make(Basis.State_ord);;
-
   module Node_ord =
   struct
     type t = node
@@ -143,8 +133,6 @@ struct
   end;;
 
   module Node_set = Set.Make(Node_ord);;
-
-  module Node_map = Map.Make(Node_ord);;
 
   module Node_and_stack_element_ord =
   struct
@@ -252,10 +240,6 @@ struct
           [@printer Node_and_stack_element_to_node_multimap_pp.pp]
     ; pop_edges_by_source_and_element : Node_and_stack_element_to_node_multimap.t
           [@printer Node_and_stack_element_to_node_multimap_pp.pp]
-    ; push_edges_by_target_and_element : Node_and_stack_element_to_node_multimap.t
-          [@printer Node_and_stack_element_to_node_multimap_pp.pp]
-    ; pop_edges_by_target_and_element : Node_and_stack_element_to_node_multimap.t
-          [@printer Node_and_stack_element_to_node_multimap_pp.pp]
     }
     [@@deriving show]
   ;;
@@ -273,8 +257,6 @@ struct
     ; nop_edges_by_target = Node_to_node_multimap.empty
     ; push_edges_by_source_and_element = Node_and_stack_element_to_node_multimap.empty
     ; pop_edges_by_source_and_element = Node_and_stack_element_to_node_multimap.empty
-    ; push_edges_by_target_and_element = Node_and_stack_element_to_node_multimap.empty
-    ; pop_edges_by_target_and_element = Node_and_stack_element_to_node_multimap.empty
     };;
 
   let has_edge edge analysis =
@@ -321,10 +303,6 @@ struct
           structure.push_edges_by_source_and_element
           |> Node_and_stack_element_to_node_multimap.add
             (edge.source, element) edge.target
-      ; push_edges_by_target_and_element =
-          structure.push_edges_by_target_and_element
-          |> Node_and_stack_element_to_node_multimap.add
-            (edge.target, element) edge.source
       }
     | Pop element ->
       { structure with
@@ -340,10 +318,6 @@ struct
           structure.pop_edges_by_source_and_element
           |> Node_and_stack_element_to_node_multimap.add
             (edge.source, element) edge.target
-      ; pop_edges_by_target_and_element =
-          structure.pop_edges_by_target_and_element
-          |> Node_and_stack_element_to_node_multimap.add
-            (edge.target, element) edge.source
       }
     | Pop_dynamic_targeted action ->
       { structure with
@@ -404,26 +378,6 @@ struct
 
   let find_nop_edges_by_target target structure =
     Node_to_node_multimap.find target structure.nop_edges_by_target
-  ;;
-
-  let find_push_edges_by_source_and_element source stack_element structure =
-    Node_and_stack_element_to_node_multimap.find
-      (source,stack_element) structure.push_edges_by_source_and_element
-  ;;
-
-  let find_pop_edges_by_source_and_element source stack_element structure =
-    Node_and_stack_element_to_node_multimap.find
-      (source,stack_element) structure.pop_edges_by_source_and_element
-  ;;
-
-  let find_push_edges_by_target_and_element target stack_element structure =
-    Node_and_stack_element_to_node_multimap.find
-      (target,stack_element) structure.push_edges_by_target_and_element
-  ;;
-
-  let find_pop_edges_by_target_and_element target stack_element structure =
-    Node_and_stack_element_to_node_multimap.find
-      (target,stack_element) structure.pop_edges_by_target_and_element
   ;;
 
   let enumerate_nodes structure =
