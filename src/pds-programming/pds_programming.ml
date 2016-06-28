@@ -2,6 +2,7 @@ open Ast_mapper;;
 open Parsetree;;
 open Asttypes;;
 open Longident;;
+open Batteries;;
 
 exception Unflattened_Extension;;
 
@@ -195,8 +196,4 @@ let x = 5*2 in x + 3
         default_mapper.expr mapper expr
 
   }
-;;
-
-let () =
-  Ppx_utils.run_mappers [dummy_mapper; double_mapper]
 ;;
