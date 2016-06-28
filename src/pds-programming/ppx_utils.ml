@@ -34,7 +34,6 @@ let run_mappers (mappers : (string list -> mapper) list) =
       |> List.iter
         (fun (mapper_fn,(source_name,target_name)) ->
            let mapper = mapper_fn args in
-           print_endline (BatPrintf.sprintf "Translating %s to %s" source_name target_name);
            apply ~source:source_name ~target:target_name mapper
         )
     else begin
