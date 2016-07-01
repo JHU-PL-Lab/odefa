@@ -166,7 +166,8 @@ Library "pds-programming"
   Path: src/pds-programming
   Modules:
     Pds_programming,
-    Ppx_utils
+    Ppx_utils,
+    Ocaml_ast_utils
   BuildDepends:
     compiler-libs.common,
     pds-reachability,
