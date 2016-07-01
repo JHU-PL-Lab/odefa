@@ -15,6 +15,7 @@ let double_test _ =
 let tests = "Pds_programming" >::: [
 
     "dummy test" >:: dummy_test;
+    "double test" >:: double_test;
 
   ]
 ;;
