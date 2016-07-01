@@ -4,7 +4,7 @@ open Asttypes;;
 open Longident;;
 open Batteries;;
 
-exception Unflattened_Extension;;
+exception Unflattened_extension;;
 
 module String_ord =
 struct
@@ -14,6 +14,9 @@ end;;
 
 module String_set =
   Set.Make (String_ord);;
+
+let show_stringset s =
+  Pp_utils.pp_to_string (Pp_utils.pp_set Format.pp_print_string String_set.enum) s;;
 
 let rec varmatch p =
   let {ppat_desc; _ } = p in
@@ -47,7 +50,7 @@ let rec varmatch p =
   | Ppat_lazy p1 -> varmatch p1
   | Ppat_unpack _ -> raise (Utils.Not_yet_implemented "varmatch Ppat_unpack")
   | Ppat_exception pat -> varmatch pat
-  | Ppat_extension _ -> raise Unflattened_Extension;;
+  | Ppat_extension _ -> raise Unflattened_extension;;
 
 let rec freevars bound expr =
   let {pexp_desc; _} = expr in
@@ -154,7 +157,7 @@ let rec freevars bound expr =
   | Pexp_newtype _ -> raise (Utils.Not_yet_implemented "freevars Pexp_newtype")
   | Pexp_pack _ -> raise (Utils.Not_yet_implemented "freevars Pexp_pack")
   | Pexp_open _ -> raise (Utils.Not_yet_implemented "freevars Pexp_open")
-  | Pexp_extension _ -> raise Unflattened_Extension;;
+  | Pexp_extension _ -> raise Unflattened_extension;;
 
 let dummy_mapper _ =
   { default_mapper with
