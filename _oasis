@@ -167,7 +167,8 @@ Library "pds-programming"
   Modules:
     Pds_programming,
     Ppx_utils,
-    Ocaml_ast_utils
+    Ocaml_ast_utils,
+    Continuation_transform
   BuildDepends:
     compiler-libs.common,
     pds-reachability,
