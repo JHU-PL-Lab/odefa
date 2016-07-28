@@ -2,8 +2,14 @@ open Parsetree;;
 open Asttypes;;
 open Longident;;
 open Batteries;;
+open Ast_helper;;
 
 exception Unflattened_extension;;
+
+let locwrap (type a) (x : a) : a Asttypes.loc =
+  {txt = x;
+   loc = !default_loc}
+;;
 
 module String_ord =
 struct

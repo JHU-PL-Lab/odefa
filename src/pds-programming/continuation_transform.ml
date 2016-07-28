@@ -3,6 +3,7 @@ open Asttypes;;
 open Batteries;;
 open Longident;;
 open Ast_helper;;
+open Ocaml_ast_utils;;
 
 type context =
   {mutable counter: int}
@@ -17,16 +18,12 @@ let new_constructor_name (c : context) =
   Lident ("Part" ^ string_of_int n)
 ;;
 
-let locwrap (type a) (x : a) : a Asttypes.loc =
-  {txt = x;
-   loc = !default_loc}
-;;
-
 let rec continuation_transform
     (e : expression)
     (context : context)
   : (pattern * expression) list * expression =
   match e with
+  | {pexp_desc = Pexp_ident _; _} -> ([], e)
   | {pexp_desc = Pexp_constant _; _} -> ([], e)
   | [%expr [%result [%e? r] ]] -> ([], [%expr Result [%e r]])
   | [%expr [%read]] ->
@@ -51,12 +48,35 @@ let rec continuation_transform
                          in (l, e1')
                       )
           | _ -> raise (Utils.Not_yet_implemented "nonrecursive let with multiple value bindings")))
-  | {pexp_desc = Pexp_tuple l; _} -> (match l with
-      | e1::e2::[] ->
-        let ((l1, e1'),(l2, e2')) = (continuation_transform e1 context, continuation_transform e2 context)
-        in (match (l1, l2) with
-            | ([],[]) -> ([],[%expr ([%e e1'],[%e e2'])])
-            | _ -> raise (Utils.Not_yet_implemented "Pexp_tuple with [%read]") )
-      | _ -> raise (Utils.Not_yet_implemented "Pexp_tuple: not a pair"))
-  | _ -> raise (Utils.Not_yet_implemented "continuation transform")
+  | {pexp_desc = Pexp_function _; _} -> raise (Utils.Not_yet_implemented "Pexp_function") (*TODO*)
+  | {pexp_desc = Pexp_fun _; _} -> raise (Utils.Not_yet_implemented "Pexp_fun") (*TODO*)
+  | {pexp_desc = Pexp_apply _; _} -> ([], e)
+  | {pexp_desc = Pexp_match _; _} -> raise (Utils.Not_yet_implemented "Pexp_match") (*TODO*)
+  | {pexp_desc = Pexp_try _; _} -> raise (Utils.Not_yet_implemented "Pexp_try") (*TODO*)
+  | {pexp_desc = Pexp_tuple _; _}-> ([], e)
+  | {pexp_desc = Pexp_construct _; _} -> ([], e)
+  | {pexp_desc = Pexp_variant _; _} -> raise (Utils.Not_yet_implemented "Pexp_variant")
+  | {pexp_desc = Pexp_record _; _} -> ([], e)
+  | {pexp_desc = Pexp_field _; _} -> ([], e)
+  | {pexp_desc = Pexp_setfield _; _} -> raise (Utils.Not_yet_implemented "Pexp_setfield")
+  | {pexp_desc = Pexp_array _; _} -> raise (Utils.Not_yet_implemented "Pexp_array")
+  | {pexp_desc = Pexp_ifthenelse _; _} -> raise (Utils.Not_yet_implemented "Pexp_ifthenelse") (*TODO*)
+  | {pexp_desc = Pexp_sequence _; _} -> raise (Utils.Not_yet_implemented "Pexp_sequence") (*TODO*)
+  | {pexp_desc = Pexp_while _; _} -> raise (Utils.Not_yet_implemented "Pexp_while")
+  | {pexp_desc = Pexp_for _; _} -> raise (Utils.Not_yet_implemented "Pexp_for")
+  | {pexp_desc = Pexp_constraint _; _} -> raise (Utils.Not_yet_implemented "Pexp_constraint")
+  | {pexp_desc = Pexp_coerce _; _} -> raise (Utils.Not_yet_implemented "Pexp_coerce")
+  | {pexp_desc = Pexp_send _; _} -> raise (Utils.Not_yet_implemented "Pexp_send")
+  | {pexp_desc = Pexp_new _; _} -> raise (Utils.Not_yet_implemented "Pexp_new")
+  | {pexp_desc = Pexp_setinstvar _; _} -> raise (Utils.Not_yet_implemented "Pexp_setinstvar")
+  | {pexp_desc = Pexp_override _; _} -> raise (Utils.Not_yet_implemented "Pexp_override")
+  | {pexp_desc = Pexp_letmodule _; _} -> raise (Utils.Not_yet_implemented "Pexp_letmodule")
+  | {pexp_desc = Pexp_assert _; _} -> raise (Utils.Not_yet_implemented "Pexp_assert")
+  | {pexp_desc = Pexp_lazy _; _} -> raise (Utils.Not_yet_implemented "Pexp_lazy")
+  | {pexp_desc = Pexp_poly _; _} -> raise (Utils.Not_yet_implemented "Pexp_poly")
+  | {pexp_desc = Pexp_object _; _} -> raise (Utils.Not_yet_implemented "Pexp_object")
+  | {pexp_desc = Pexp_newtype _; _} -> raise (Utils.Not_yet_implemented "Pexp_newtype")
+  | {pexp_desc = Pexp_pack _; _} -> raise (Utils.Not_yet_implemented "Pexp_pack")
+  | {pexp_desc = Pexp_open _; _} -> raise (Utils.Not_yet_implemented "Pexp_open")
+  | {pexp_desc = Pexp_extension _; _}-> raise (Utils.Not_yet_implemented "Pexp_extension")
 ;;

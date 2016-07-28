@@ -9,6 +9,7 @@ let all_tests =
   ; Test_swan.tests
   ; Test_ocaml_ast_utils.tests
   ; Test_continuation_transform.tests
+  ; Test_a_translate.tests
   ];;
 
 let () =
