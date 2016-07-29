@@ -77,7 +77,8 @@ let construct_test_4 _ =
 let let_test_1 _ =
   let context = new_context () in
   let e = [%expr let x = 4 in x] in
-  let expected = [%expr let x = 4 in x] in
+  let expected = [%expr let var0 = 4 in
+                        let x = var0 in x] in
   assert_equal expected (a_translator e context)
 ;;
 
@@ -85,17 +86,23 @@ let let_test_2 _ =
   let context = new_context () in
   let e = [%expr let x = C 4 in x] in
   let expected =
-    [%expr let x = (let var0 = 4 in C var0) in x] in
-  assert_equal expected (a_translator e context)
+    [%expr let var1 =
+             (let var0 = 4 in C var0) in
+           let x = var1 in x] in
+  assert_equal ~printer:Pprintast.string_of_expression expected (a_translator e context)
 ;;
 
 let let_test_3 _ =
   let context = new_context () in
   let e = [%expr let x = C 4 in ('a', x)] in
   let expected =
-    [%expr let x = (let var0 = 4 in C var0) in
-           (let var1 = 'a' in
-            let var2 = x in (var1, var2))] in
+    [%expr let var3 =
+             (let var2 = 4 in
+              C var2) in
+           let x = var3 in
+           let var0 = 'a' in
+           let var1 = x in
+           (var0, var1)] in
   assert_equal ~printer:Pprintast.string_of_expression expected (a_translator e context)
 ;;
 
@@ -106,12 +113,15 @@ let let_test_4 _ =
              (let y = 3 in ('a', y)) in
            C x] in
   let expected =
-    [%expr let x =
-             (let y = 3 in
-              (let var0 = 'a' in
-               let var1 = y in
-               (var0, var1))) in
-           (let var2 = x in C var2)] in
+    [%expr let var4 =
+      (let var3 = 3 in
+           let y = var3 in
+           (let var1 = 'a' in
+            let var2 = y in
+            (var1, var2))) in
+           let x = var4 in
+           let var0 = x in
+    C var0] in
   assert_equal ~printer:Pprintast.string_of_expression expected (a_translator e context)
 ;;
 

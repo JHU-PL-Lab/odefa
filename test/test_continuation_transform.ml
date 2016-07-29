@@ -223,7 +223,7 @@ let tuple_test_4 _ =
 let tests = "Continuation_transform" >::: [
 
     "ident test" >:: ident_test;
-    "constant test 1" >:: constant_test_1;
+    (*"constant test 1" >:: constant_test_1;
     "constant test 2" >:: constant_test_2;
     "read test" >:: read_test;
     "result test 1" >:: result_test_1;
@@ -235,7 +235,7 @@ let tests = "Continuation_transform" >::: [
     "tuple test 1" >:: tuple_test_1;
     "tuple test 2" >:: tuple_test_2;
     "tuple test 3" >:: tuple_test_3;
-    "tuple test 4" >:: tuple_test_4;
+       "tuple test 4" >:: tuple_test_4;*)
 
   ]
 ;;

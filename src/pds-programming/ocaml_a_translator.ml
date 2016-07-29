@@ -38,14 +38,41 @@ let rec a_translator e c =
     (match rflag with
      | Recursive -> raise (Utils.Not_yet_implemented "Pexp_let Recursive")
      | Nonrecursive ->
-       let a_map vb =
-         {pvb_pat = vb.pvb_pat;
-          pvb_expr = a_translator vb.pvb_expr c;
-          pvb_attributes = vb.pvb_attributes;
-          pvb_loc = vb.pvb_loc} in
-       let new_vblist = List.map a_map vblist in
-       let ldesc = Pexp_let (Nonrecursive, new_vblist, a_translator e1 c) in
-       {pexp_desc = ldesc; pexp_loc = !default_loc; pexp_attributes = []})
+       let a_e1 = a_translator e1 c in
+       let rec loop untranslated new_vb_list =
+         (match untranslated with
+          | [] ->
+            let vbs = List.rev new_vb_list in
+            let desc = Pexp_let (Nonrecursive, vbs, a_e1) in
+            {pexp_desc = desc; pexp_loc = !default_loc; pexp_attributes = []}
+          | lh::lt ->
+            let a_expr = a_translator lh.pvb_expr c in
+            let expr_name = new_var_name c in
+            let expr_name_exp = string_to_exp_ident expr_name in
+            let expr_name_pat = string_to_pat_var expr_name in
+            let new_vb =
+              {pvb_pat = lh.pvb_pat;
+               pvb_expr = expr_name_exp;
+               pvb_attributes = [];
+               pvb_loc = !default_loc} in
+            let a_e2 = loop lt (new_vb::new_vb_list) in
+            [%expr let [%p expr_name_pat] = [%e a_expr] in [%e a_e2]]) in
+       loop vblist [])
+  (*let rec loop e_list v_list =
+    (match e_list with
+     | [] ->
+       let exp_v_list = List.map string_to_exp_ident v_list in
+       let desc = Pexp_tuple (List.rev exp_v_list) in
+       {pexp_desc = desc; pexp_loc = !default_loc; pexp_attributes = []}
+     | lh::lt ->
+       let e1 = a_translator lh c in
+       let v1_name = new_var_name c in
+       let v1 = string_to_pat_var v1_name in
+       let e2 = loop lt (v1_name::v_list) in
+       [%expr let [%p v1] = [%e e1] in [%e e2]]
+    )
+    in
+    loop l []*)
   | Pexp_function l ->
     let guardmatch case =
       (match case.pc_guard with
