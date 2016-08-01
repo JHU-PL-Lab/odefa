@@ -224,7 +224,6 @@ Library "core-toploop"
     Core_toploop_options,
     Core_toploop_utils
   BuildDepends:
-    ppx_import,
     core-ast,
     core-interpreter,
     core-parser,
