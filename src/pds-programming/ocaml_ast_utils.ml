@@ -4,6 +4,10 @@ open Longident;;
 open Batteries;;
 open Ast_helper;;
 
+let pp_expression = Pprintast.expression;;
+
+let pp_pattern = Pprintast.pattern;;
+
 exception Unflattened_extension;;
 
 let locwrap (type a) (x : a) : a Asttypes.loc =
