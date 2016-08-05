@@ -255,6 +255,81 @@ let tuple_test_4 _ =
 
 (*TODO: test field*)
 
+let ifthenelse_test_1 _ =
+  let context1 = Ocaml_a_translator.new_context () in
+  let e = [%expr if x then 1 else 0] in
+  let a_e = a_translator e context1 in
+  let context2 = Continuation_transform.new_context () in
+  let actual = continuation_transform a_e context2 in
+  let expected_hgroup = None in
+  let expected_start = [%expr let var0 = x in if var0 then 1 else 0] in
+  let expected = (expected_hgroup, expected_start)
+  in
+  assert_equal ~printer:show_continuation_transform_result expected actual
+;;
+
+let ifthenelse_test_2 _ =
+  let context1 = Ocaml_a_translator.new_context () in
+  let e = [%expr if x then [%read] else 0] in
+  let a_e = a_translator e context1 in
+  let context2 = Continuation_transform.new_context () in
+  let acutal = continuation_transform a_e context2 in
+  let expected_back = {h_pat = [%pat? Goto2 __varct__0];
+                       h_exp = [%expr __varct__0];
+                       h_type = Goto_handler} in
+  let h_elt_1 = {h_pat = [%pat? Part0];
+                 h_exp = [%expr Goto2 next_token];
+                 h_type = Cont_handler} in
+  let h_elt_2 = {h_pat = [%pat? Goto0];
+                 h_exp = [%expr Part0];
+                 h_type = Goto_handler} in
+  let h_elt_3 = {h_pat = [%pat? Goto1];
+                 h_exp = [%expr Goto2 0];
+                 h_type = Goto_handler} in
+  let expected_others =
+    Handler_set.singleton h_elt_1
+    |> Handler_set.add h_elt_2
+    |> Handler_set.add h_elt_3
+  in
+  let expected_start = [%expr let var0 = x in if var0 then Goto0 else Goto1] in
+  let expected_hgroup = Some {back = expected_back;
+                         others = expected_others;} in
+  let expected = (expected_hgroup, expected_start)
+  in
+  assert_equal ~printer:show_continuation_transform_result expected acutal
+;;
+
+let ifthenelse_test_3 _ =
+  let context1 = Ocaml_a_translator.new_context () in
+  let e = [%expr if x then 0 else [%read]] in
+  let a_e = a_translator e context1 in
+  let context2 = Continuation_transform.new_context () in
+  let actual = continuation_transform a_e context2 in
+  let expected_back = {h_pat = [%pat? Goto2 __varct__0];
+                       h_exp = [%expr __varct__0];
+                       h_type = Goto_handler} in
+  let h_elt_1 = {h_pat = [%pat? Part0];
+                 h_exp = [%expr Goto2 next_token];
+                 h_type = Cont_handler} in
+  let h_elt_2 = {h_pat = [%pat? Goto1];
+                 h_exp = [%expr Part0];
+                 h_type = Goto_handler} in
+  let h_elt_3 = {h_pat = [%pat? Goto0];
+                 h_exp = [%expr Goto2 0];
+                 h_type = Goto_handler} in
+  let expected_others =
+    Handler_set.singleton h_elt_1
+    |> Handler_set.add h_elt_2
+    |> Handler_set.add h_elt_3
+  in
+  let expected_start = [%expr let var0 = x in if var0 then Goto0 else Goto1] in
+  let expected_hgroup = Some {back = expected_back;
+                              others = expected_others} in
+  let expected = (expected_hgroup, expected_start)
+  in
+  assert_equal ~cmp:equal_continuation_transform_result ~printer:show_continuation_transform_result expected actual
+;;
+
 let tests = "Continuation_transform" >::: [
 
     "ident test" >:: ident_test;
@@ -271,6 +346,9 @@ let tests = "Continuation_transform" >::: [
     "tuple test 2" >:: tuple_test_2;
     "tuple test 3" >:: tuple_test_3;
     "tuple test 4" >:: tuple_test_4;
+    "ifthenelse test 1" >:: ifthenelse_test_1;
+    "ifthenelse test 2" >:: ifthenelse_test_2;
+    "ifthenelse test 3" >:: ifthenelse_test_3;
 
   ]
 ;;

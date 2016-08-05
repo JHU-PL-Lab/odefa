@@ -6,7 +6,11 @@ open Ast_helper;;
 
 let pp_expression = Pprintast.expression;;
 
+let equal_expression = (=);;
+
 let pp_pattern = Pprintast.pattern;;
+
+let equal_pattern = (=);;
 
 exception Unflattened_extension;;
 

@@ -37,7 +37,7 @@ let new_var_name (c : context) =
 type handlertype =
   | Cont_handler
   | Goto_handler
-  [@@deriving show]
+  [@@deriving eq, show]
 ;;
 
 type handler =
@@ -45,7 +45,7 @@ type handler =
     h_exp : expression;
     h_type : handlertype;
   }
-  [@@deriving show]
+  [@@deriving eq, show]
 ;;
 
 module Handler_ord =
@@ -61,11 +61,11 @@ type handler_group =
   { back : handler;
     others : Handler_set.t [@printer Pp_utils.pp_set pp_handler Handler_set.enum]
   }
-  [@@deriving show]
+  [@@deriving eq, show]
 ;;
 
 type continuation_transform_result = handler_group option * expression
-  [@@deriving show]
+  [@@deriving eq, show]
 ;;
 
 let constructor_exp (name : Longident.t) (inner : expression option) =
@@ -155,8 +155,76 @@ let rec continuation_transform
     let (hgroup3_o, e3') = continuation_transform e3 context in
     (match (hgroup2_o, hgroup3_o) with
      | (None, None) ->  (None, e)
-     | (Some hgroup2, None) ->
+     | (_, _) ->
        let goto2_name = new_goto_name context in
+       let goto3_name = new_goto_name context in
+       let goto4_name = new_goto_name context in
+       let hgroup_others =
+         (match (hgroup2_o, hgroup3_o) with
+          | (None, None) -> raise (Utils.Invariant_failure "ifthenelse")
+          | (Some hgroup2, None) ->
+            hgroup2.others
+            |> Handler_set.add
+              ({h_pat = hgroup2.back.h_pat;
+                h_exp = constructor_exp goto4_name (Some hgroup2.back.h_exp);
+                h_type = hgroup2.back.h_type})
+            |> Handler_set.add
+              ({h_pat = constructor_pat goto2_name None;
+                h_exp = e2';
+                h_type = Goto_handler})
+            |> Handler_set.add
+              ({h_pat = constructor_pat goto3_name None;
+                h_exp = constructor_exp goto4_name (Some e3');
+                h_type = Goto_handler})
+          | (None, Some hgroup3) ->
+            hgroup3.others
+            |> Handler_set.add
+              ({h_pat = hgroup3.back.h_pat;
+                h_exp = constructor_exp goto4_name (Some hgroup3.back.h_exp);
+                h_type = hgroup3.back.h_type})
+            |> Handler_set.add
+              ({h_pat = constructor_pat goto2_name None;
+                h_exp = constructor_exp goto4_name (Some e2');
+                h_type = Goto_handler})
+            |> Handler_set.add
+              ({h_pat = constructor_pat goto3_name None;
+                h_exp = e3';
+                h_type = Goto_handler})
+          | (Some hgroup2, Some hgroup3) ->
+            hgroup3.others
+            |> Handler_set.union hgroup2.others
+            |> Handler_set.add
+              ({h_pat = hgroup2.back.h_pat;
+                h_exp = constructor_exp goto4_name (Some hgroup2.back.h_exp);
+                h_type = hgroup2.back.h_type})
+            |> Handler_set.add
+              ({h_pat = hgroup3.back.h_pat;
+                h_exp = constructor_exp goto4_name (Some hgroup3.back.h_exp);
+                h_type = hgroup3.back.h_type})
+            |> Handler_set.add
+              ({h_pat = constructor_pat goto2_name None;
+                h_exp = e2';
+                h_type = Goto_handler})
+            |> Handler_set.add
+              ({h_pat = constructor_pat goto3_name None;
+                h_exp = e3';
+                h_type = Goto_handler})
+         ) in
+       let hgroup_back =
+         let x0_name = new_var_name context in
+         let x0_pat = {ppat_desc = Ppat_var (locwrap x0_name); ppat_loc = !default_loc; ppat_attributes = []} in
+         {h_pat = constructor_pat goto4_name (Some x0_pat);
+          h_exp = {pexp_desc = Pexp_ident (locwrap (Lident x0_name));
+                   pexp_loc = !default_loc;
+                   pexp_attributes = []};
+          h_type = Goto_handler}
+       in
+       let hgroup = Some {back = hgroup_back; others = hgroup_others} in
+       let new_e = [%expr if [%e e1]
+                          then [%e constructor_exp goto2_name None]
+                          else [%e constructor_exp goto3_name None]] in
+       (hgroup, new_e))
+       (*let goto2_name = new_goto_name context in
        let goto3_name = new_goto_name context in
        let goto4_name = new_goto_name context in
        let hgroup_others =
@@ -259,7 +327,7 @@ let rec continuation_transform
                           then [%e constructor_exp goto2_name None]
                           else [%e constructor_exp goto3_name None]] in
        (hgroup, new_e)
-    )
+         )*)
     (*
     let g1_name = new_goto_name context in
     let g1_pdesc = Ppat_construct (locwrap g1_name, None) in
