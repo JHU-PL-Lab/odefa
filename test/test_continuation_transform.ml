@@ -330,6 +330,90 @@ let ifthenelse_test_3 _ =
   assert_equal ~cmp:equal_continuation_transform_result ~printer:show_continuation_transform_result expected actual
 ;;
 
+let ifthenelse_test_4 _ =
+  let context1 = Ocaml_a_translator.new_context () in
+  let e = [%expr if x then
+                   if y then [%read] else 0
+                 else
+                   0] in
+  let a_e = a_translator e context1 in
+  let context2 = Continuation_transform.new_context () in
+  let actual = continuation_transform a_e context2 in
+  let expected_back = {h_pat = [%pat? Goto5 __varct__1];
+                       h_exp = [%expr __varct__1];
+                       h_type = Goto_handler} in
+  let h_elt_1 = {h_pat = [%pat? Part0];
+                 h_exp = [%expr Goto2 next_token];
+                 h_type = Cont_handler} in
+  let h_elt_2 = {h_pat = [%pat? Goto0];
+                 h_exp = [%expr Part0];
+                 h_type = Goto_handler} in
+  let h_elt_3 = {h_pat = [%pat? Goto1];
+                 h_exp = [%expr Goto2 0];
+                 h_type = Goto_handler} in
+  let h_elt_4 = {h_pat = [%pat? Goto2 __varct__0];
+                 h_exp = [%expr Goto5 __varct__0];
+                 h_type = Goto_handler} in
+  let h_elt_5 = {h_pat = [%pat? Goto3];
+                 h_exp = [%expr let var1 = y in
+                                if var1 then Goto0 else Goto1];
+                 h_type = Goto_handler} in
+  let h_elt_6 = {h_pat = [%pat? Goto4];
+                 h_exp = [%expr Goto5 0];
+                 h_type = Goto_handler} in
+  let expected_others =
+    Handler_set.singleton h_elt_1
+    |> Handler_set.add h_elt_2
+    |> Handler_set.add h_elt_3
+    |> Handler_set.add h_elt_4
+    |> Handler_set.add h_elt_5
+    |> Handler_set.add h_elt_6
+  in
+  let expected_start = [%expr let var0 = x in
+                              if var0 then Goto3 else Goto4] in
+  let expected_hgroup = Some {back = expected_back; others = expected_others} in
+  let expected = (expected_hgroup, expected_start)
+  in
+  assert_equal ~cmp:equal_continuation_transform_result ~printer:show_continuation_transform_result expected actual
+;;
+
+let ifthenelse_test_5 _ =
+  let context1 = Ocaml_a_translator.new_context () in
+  let e = [%expr if x then (0, [%read]) else ([%read], 0)] in
+  let a_e = a_translator e context1 in
+  let context2 = Continuation_transform.new_context () in
+  let actual = continuation_transform a_e context2 in
+  let expected_back = {h_pat = [%pat? Goto2 __varct__0];
+                       h_exp = [%expr __varct__0];
+                       h_type = Goto_handler} in
+  let h_elt_1 = {h_pat = [%pat? Part0];
+                 h_exp = [%expr Goto2 (let var4 = next_token in (var3, var4))];
+                 h_type = Cont_handler} in
+  let h_elt_2 = {h_pat = [%pat? Part1];
+                 h_exp = [%expr Goto2 (let var0 = next_token in
+                                       let var1 = 0 in
+                                       (var0, var1))];
+                 h_type = Cont_handler} in
+  let h_elt_3 = {h_pat = [%pat? Goto0];
+                 h_exp = [%expr let var3 = 0 in Part0];
+                 h_type = Goto_handler} in
+  let h_elt_4 = {h_pat = [%pat? Goto1];
+                 h_exp = [%expr Part1];
+                 h_type = Goto_handler} in
+  let expected_others =
+    Handler_set.singleton h_elt_1
+    |> Handler_set.add h_elt_2
+    |> Handler_set.add h_elt_3
+    |> Handler_set.add h_elt_4
+  in
+  let expected_start = [%expr let var2 = x in if var2 then Goto0 else Goto1] in
+  let expected_hgroup = Some {back = expected_back;
+                              others = expected_others} in
+  let expected = (expected_hgroup, expected_start)
+  in
+  assert_equal ~cmp:equal_continuation_transform_result ~printer:show_continuation_transform_result expected actual
+;;
+
 let tests = "Continuation_transform" >::: [
 
     "ident test" >:: ident_test;
@@ -349,6 +433,8 @@ let tests = "Continuation_transform" >::: [
     "ifthenelse test 1" >:: ifthenelse_test_1;
     "ifthenelse test 2" >:: ifthenelse_test_2;
     "ifthenelse test 3" >:: ifthenelse_test_3;
+    "ifthenelse test 4" >:: ifthenelse_test_4;
+    "ifthenelse test 5" >:: ifthenelse_test_5;
 
   ]
 ;;
