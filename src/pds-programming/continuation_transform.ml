@@ -161,6 +161,45 @@ let rec continuation_transform
        let goto4_name = new_goto_name context in
        let hgroup_others =
          (match (hgroup2_o, hgroup3_o) with
+          | (None, None) -> Handler_set.empty
+          | (Some hgroup2, None) -> hgroup2.others
+          | (None, Some hgroup3) -> hgroup3.others
+          | (Some hgroup2, Some hgroup3) -> Handler_set.union hgroup2.others hgroup3.others)
+         |> Handler_set.union
+           (match hgroup2_o with
+            | Some hgroup2 ->
+              Handler_set.union
+                (Handler_set.singleton
+                   {h_pat = hgroup2.back.h_pat;
+                    h_exp = constructor_exp goto4_name (Some hgroup2.back.h_exp);
+                    h_type = hgroup2.back.h_type})
+                (Handler_set.singleton
+                   {h_pat = constructor_pat goto2_name None;
+                    h_exp = e2';
+                    h_type = Goto_handler})
+            | None ->
+              Handler_set.singleton
+              ({h_pat = constructor_pat goto2_name None;
+                h_exp = constructor_exp goto4_name (Some e2');
+                h_type = Goto_handler}))
+         |> Handler_set.union
+           (match hgroup3_o with
+             | Some hgroup3 ->
+               Handler_set.union
+                 (Handler_set.singleton
+                    {h_pat = hgroup3.back.h_pat;
+                     h_exp = constructor_exp goto4_name (Some hgroup3.back.h_exp);
+                     h_type = hgroup3.back.h_type})
+                 (Handler_set.singleton
+                    {h_pat = constructor_pat goto3_name None;
+                     h_exp = e3';
+                     h_type = Goto_handler})
+             | None ->
+               Handler_set.singleton
+                 ({h_pat = constructor_pat goto3_name None;
+                   h_exp = constructor_exp goto4_name (Some e3');
+                   h_type = Goto_handler}))
+         (*(match (hgroup2_o, hgroup3_o) with
           | (None, None) -> raise (Utils.Invariant_failure "ifthenelse")
           | (Some hgroup2, None) ->
             hgroup2.others
@@ -209,7 +248,7 @@ let rec continuation_transform
               ({h_pat = constructor_pat goto3_name None;
                 h_exp = e3';
                 h_type = Goto_handler})
-         ) in
+           )*) in
        let hgroup_back =
          let x0_name = new_var_name context in
          let x0_pat = {ppat_desc = Ppat_var (locwrap x0_name); ppat_loc = !default_loc; ppat_attributes = []} in
