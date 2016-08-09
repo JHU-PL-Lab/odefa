@@ -8,9 +8,13 @@ let pp_expression = Pprintast.expression;;
 
 let equal_expression = (=);;
 
+let compare_expression = Pervasives.compare;;
+
 let pp_pattern = Pprintast.pattern;;
 
 let equal_pattern = (=);;
+
+let compare_pattern = Pervasives.compare;;
 
 exception Unflattened_extension;;
 
