@@ -445,6 +445,101 @@ let match_test_1 _ =
   assert_equal ~cmp:equal_continuation_transform_result ~printer:show_continuation_transform_result expected actual
 ;;
 
+let match_test_2 _ =
+  let context1 = Ocaml_a_translator.new_context () in
+  let e = [%expr match x with
+       | A -> 0
+       | B -> [%read]
+       | C -> 1] in
+  let a_e = a_translator e context1 in
+  let context2 = Continuation_transform.new_context () in
+  let actual = continuation_transform a_e context2 in
+  let expected_back = {h_pat = [%pat? Goto0 __varct__0];
+                       h_exp = [%expr __varct__0];
+                       h_type = Goto_handler} in
+  let h_elt_1 = {h_pat = [%pat? Goto1];
+                 h_exp = [%expr Goto0 0];
+                 h_type = Goto_handler} in
+  let h_elt_2 = {h_pat = [%pat? Goto2];
+                 h_exp = [%expr Part0];
+                 h_type = Goto_handler} in
+  let h_elt_3 = {h_pat = [%pat? Part0];
+                 h_exp = [%expr Goto0 next_token];
+                 h_type = Cont_handler} in
+  let h_elt_4 = {h_pat = [%pat? Goto3];
+                 h_exp = [%expr Goto0 1];
+                 h_type = Goto_handler} in
+  let expected_others =
+    Handler_set.singleton h_elt_1
+    |> Handler_set.add h_elt_2
+    |> Handler_set.add h_elt_3
+    |> Handler_set.add h_elt_4
+  in
+  let expected_start =
+    [%expr let var0 = x in
+           match var0 with
+           | A -> Goto1
+           | B -> Goto2
+           | C -> Goto3] in
+  let expected_hgroup = Some {back = expected_back; others = expected_others} in
+  let expected = (expected_hgroup, expected_start)
+  in
+  assert_equal ~cmp:equal_continuation_transform_result ~printer:show_continuation_transform_result expected actual
+;;
+
+let match_test_3 _ =
+  let context1 = Ocaml_a_translator.new_context () in
+  let e = [%expr match x with
+       | A -> 0
+       | B -> if y then 0 else [%read]
+       | C -> [%read]] in
+  let a_e = a_translator e context1 in
+  let context2 = Continuation_transform.new_context () in
+  let actual = continuation_transform a_e context2 in
+  let expected_back = {h_pat = [%pat? Goto0 __varct__1];
+                       h_exp = [%expr __varct__1];
+                       h_type = Goto_handler} in
+  let h_elt_1 = {h_pat = [%pat? Goto1];
+                 h_exp = [%expr Goto3 0];
+                 h_type = Goto_handler} in
+  let h_elt_2 = {h_pat = [%pat? Goto2];
+                 h_exp = [%expr Part0];
+                 h_type = Goto_handler} in
+  let h_elt_3 = {h_pat = [%pat? Part0];
+                 h_exp = [%expr Goto3 next_token];
+                 h_type = Cont_handler} in
+  let h_elt_4 = {h_pat = [%pat? Goto4];
+                 h_exp = [%expr Goto0 0];
+                 h_type = Goto_handler} in
+  let h_elt_5 = {h_pat = [%pat? Goto5];
+                 h_exp = [%expr let var1 = y in
+                                if var1 then Goto1 else Goto2];
+                 h_type = Goto_handler} in
+  let h_elt_6 = {h_pat = [%pat? Goto6];
+                 h_exp = [%expr Part1];
+                 h_type = Goto_handler} in
+  let h_elt_7 = {h_pat = [%pat? Part1];
+                 h_exp = [%expr Goto0 next_token];
+                 h_type = Cont_handler} in
+  let h_elt_8 = {h_pat = [%pat? Goto3 __varct__0];
+                 h_exp = [%expr Goto0 __varct__0];
+                 h_type = Goto_handler} in
+  let expected_others =
+    List.map Handler_set.singleton [h_elt_1; h_elt_2; h_elt_3; h_elt_4; h_elt_5; h_elt_6; h_elt_7; h_elt_8]
+    |> List.fold_left Handler_set.union Handler_set.empty
+  in
+  let expected_start =
+    [%expr let var0 = x in
+           match var0 with
+           | A -> Goto4
+           | B -> Goto5
+           | C -> Goto6] in
+  let expected_hgroup = Some {back = expected_back; others = expected_others} in
+  let expected = (expected_hgroup, expected_start)
+  in
+  assert_equal ~cmp:equal_continuation_transform_result ~printer:show_continuation_transform_result expected actual
+;;
+
 let tests = "Continuation_transform" >::: [
 
     "ident test" >:: ident_test;
@@ -467,6 +562,8 @@ let tests = "Continuation_transform" >::: [
     "ifthenelse test 4" >:: ifthenelse_test_4;
     "ifthenelse test 5" >:: ifthenelse_test_5;
     "match test 1" >:: match_test_1;
+    "match test 2" >:: match_test_2;
+    "match test 3" >:: match_test_3;
 
   ]
 ;;
