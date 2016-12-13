@@ -165,10 +165,13 @@ Library "ddpa-analysis_types"
   Path: src/ddpa-analysis/types
   Modules:
     Ddpa_abstract_ast,
+    Ddpa_abstract_stores,
+    Ddpa_deque,
     Ddpa_graph
   BuildDepends:
     batteries,
     jhupllib,
+    pds-reachability,
     odefa.core-ast,
     odefa.nested-ast,
     odefa.swan-ast
