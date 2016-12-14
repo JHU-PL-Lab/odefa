@@ -11,7 +11,8 @@ module type Bounded_capture_size_sig =
 sig
   include Decorated_type;;
   val of_int : int -> t
-  val to_int : t -> int
+  val equals_one : t -> bool
+  val decrement : t -> t
 end;;
 
 module Make(Store_ops : Ddpa_abstract_stores.Ops.Sig) =
@@ -31,7 +32,8 @@ struct
       then Bounded_capture_size(n)
       else raise @@ Utils.Invariant_failure(
           Printf.sprintf "Invalid size %d provided for bounded capture" n);;
-    let to_int (Bounded_capture_size(n)) = n;;
+    let equals_one (Bounded_capture_size(n)) = n = 1;;
+    let decrement (Bounded_capture_size(n)) = Bounded_capture_size(n-1);;
     let pp formatter (Bounded_capture_size(n)) =
       Format.pp_print_int formatter n
     ;;

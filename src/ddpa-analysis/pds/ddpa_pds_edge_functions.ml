@@ -76,11 +76,60 @@ struct
           begin
             return (Intermediate_store, Program_point_state acl0)
           end
+          ;
+          (* Store Suffix *)
+          begin
+            return (Store_suffix_1_of_2, Program_point_state acl0)
+          end
+          ;
+          (* Store Parallel Join *)
+          begin
+            return (Store_parallel_join_1_of_3, Program_point_state acl0)
+          end
+          ;
+          (* Store Serial Join *)
+          begin
+            return (Store_serial_join_1_of_3, Program_point_state acl0)
+          end
+          ;
+          (* ********** Variable Search ********** *)
+          (* Value Discovery *)
+          begin
+            let%orzero
+              Unannotated_clause(Abs_clause(x,Abs_value_body v)) = acl1
+            in
+            return (Value_discovery(x,v), Program_point_state acl1)
+          end
+          ;
+          (* Value Alias *)
+          begin
+            let%orzero
+              Unannotated_clause(Abs_clause(x,Abs_var_body x')) = acl1
+            in
+            return (Value_alias(x,x'), Program_point_state acl1)
+          end
+          ;
+          (* Stateless Clause Skip *)
+          begin
+            let%orzero Unannotated_clause(Abs_clause(x',_)) = acl1 in
+            return (Stateless_clause_skip_1_of_2 x', Program_point_state acl1)
+          end
+          ;
+          (* Block Marker Skip *)
+          (* [[ this rule is handled in the nop states below ]] *)
+          (* ********** Navigation ********** *)
+          (* Jump *)
+          (* [[ this rule is handled by untargeted dynamic pops ]] *)
+          (* Capture *)
+          begin
+            return (Capture_1_of_3, Program_point_state acl1)
+          end
         ]
     in
     let nop_states =
       match acl1 with
       | Start_clause _ | End_clause _ ->
+        (* Block Marker Skip *)
         Enum.singleton @@ Program_point_state acl1
       | _ -> Enum.empty ()
     in
