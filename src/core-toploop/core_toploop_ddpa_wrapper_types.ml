@@ -5,22 +5,17 @@
 
 open Core_ast;;
 open Ddpa_analysis_logging;;
-open Ddpa_context_stack;;
 open Ddpa_abstract_ast;;
+open Ddpa_abstract_stores;;
 
 module type DDPA_wrapper = sig
   type analysis
-
-  module C : Context_stack;;
 
   val create_analysis :
     ?logging_config:(ddpa_analysis_logging_config option) -> expr -> analysis
 
   val values_of_variable_from :
-    abstract_var -> annotated_clause -> analysis -> Abs_filtered_value_set.t
-
-  val contextual_values_of_variable_from :
-    abstract_var -> annotated_clause -> C.t -> analysis -> Abs_filtered_value_set.t
+    abstract_var -> annotated_clause -> analysis -> Abstract_store_set.t
 
   val expression_of : analysis -> expr
 

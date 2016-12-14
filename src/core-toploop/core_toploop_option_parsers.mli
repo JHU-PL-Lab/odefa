@@ -3,9 +3,9 @@
     configuring the logger. *)
 val logging_option : unit BatOptParse.Opt.t
 
-(** This logging option selects a particular DDPA analysis to perform. *)
-val select_context_stack_option :
-  (module Ddpa_context_stack.Context_stack) option BatOptParse.Opt.t
+(** This logging option selects the maximum size for the stack delta in the
+    analysis. *)
+val stack_delta_size_option : int option BatOptParse.Opt.t
 
 (** This logging option configures how DDPA DOT graphs are logged. *)
 val ddpa_logging_option :
@@ -31,7 +31,7 @@ type analyze_variables_selection =
     (** Performs analysis on all top-level variables.  Each such variable is
         examined starting from the end clause and in the empty context. *)
   | Analyze_specific_variables of
-      (string * string option * string list option) list
+      (string * string option) list
     (** Performs analysis on a specific set of variables.  The first component
         of each triple is the name of the variable.  The second component is the
         unique variable name of the clause at which the analysis starts; if

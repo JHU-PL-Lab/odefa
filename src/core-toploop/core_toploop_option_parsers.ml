@@ -34,53 +34,61 @@ let logging_option:unit BatOptParse.Opt.t =
           | _ -> raise @@ Option_error ("--log","Invalid argument")
          )
       )
-    ;
+  ;
     option_set_value = (fun _ -> ())
-    ;
+  ;
     option_get = (fun () -> Some())
-    ;
+  ;
     option_metavars = ["LOG_INSTR"]
-    ;
+  ;
     option_defhelp = Some("Sets the logging level.")
-    ;
+  ;
   };;
 
-module type Stack = Ddpa_context_stack.Context_stack;;
-
-let select_context_stack_option =
+let stack_delta_size_option =
   (* This ref contains a module option.  If the option is None, no analysis is
      to be performed. *)
-  let analysis_module_ref =
-    ref (Some (module Ddpa_single_element_stack.Stack : Stack))
-  in
+  let stack_delta_size_ref = ref (Some 1) in
   {
     option_set = (fun option_name args ->
         match args with
-        | [analysis_name] ->
-          let analysis_module =
-            try
-              Core_toploop_utils.stack_from_name analysis_name
-            with
-            | Not_found ->
-              raise @@ Option_error (option_name,
-                                     Printf.sprintf "Invalid analysis name: %s" analysis_name)
+        | [stack_delta_size_str] ->
+          let stack_delta_choice =
+            if stack_delta_size_str = "none"
+            then None
+            else
+              try
+                let stack_delta_size = int_of_string stack_delta_size_str in
+                if stack_delta_size >= 0
+                then Some stack_delta_size
+                else raise @@ Option_error(
+                    option_name,
+                    Printf.sprintf "Invalid stack delta size: %s"
+                      stack_delta_size_str)
+              with
+              | Failure _ ->
+                raise @@ Option_error(
+                  option_name,
+                  Printf.sprintf "Invalid stack delta size: %s"
+                    stack_delta_size_str)
           in
-          analysis_module_ref := analysis_module
+          stack_delta_size_ref := stack_delta_choice
         | _ ->
           raise @@ Option_error (option_name,
-                                 Printf.sprintf "Invalid argument count: %d" (List.length args))
+                                 Printf.sprintf "Invalid argument count: %d"
+                                   (List.length args))
       )
-    ;
+  ;
     option_set_value = (fun analysis_module_option ->
-        analysis_module_ref := analysis_module_option
+        stack_delta_size_ref := analysis_module_option
       )
-    ;
-    option_get = (fun () -> Some (!analysis_module_ref))
-    ;
+  ;
+    option_get = (fun () -> Some (!stack_delta_size_ref))
+  ;
     option_metavars = ["ANALYSIS"]
-    ;
+  ;
     option_defhelp = Some("Selects an analysis (0ddpa,1ddpa,2ddpa,ddpaNR,none).")
-    ;
+  ;
   };;
 
 let ddpa_logging_level_option name =
@@ -104,15 +112,15 @@ let ddpa_logging_level_option name =
             option_name,
             Printf.sprintf "Invalid argument count: %d" (List.length args))
       )
-    ;
+  ;
     option_set_value = (fun level -> logging_level := Some level)
-    ;
+  ;
     option_get = (fun () -> !logging_level)
-    ;
+  ;
     option_metavars = ["LOG_LEVEL"]
-    ;
+  ;
     option_defhelp = Some("Selects a " ^ name ^ " logging level (none,result,all).")
-    ;
+  ;
   }
 ;;
 
@@ -138,8 +146,8 @@ type analyze_variables_selection =
   | Analyze_no_variables
   | Analyze_toplevel_variables
   | Analyze_specific_variables of
-      (string * string option * string list option) list
-  [@@deriving eq, ord, show]
+      (string * string option) list
+[@@deriving eq, ord, show]
 ;;
 
 let analyze_variables_option =
@@ -163,20 +171,8 @@ let analyze_variables_option =
                 let parse_component component =
                   begin
                     match String.nsplit component ~by:"@" with
-                    | [name] -> (name, None, None)
-                    | [name;rest] ->
-                      begin
-                        match String.nsplit rest ~by:":" with
-                        | [loc] -> (name, Some loc, None)
-                        | [loc;stack] ->
-                          begin
-                            let stack_elements = String.nsplit stack ~by:"|" in
-                            (name, Some loc, Some stack_elements)
-                          end
-                        | _ -> raise @@ Option_error (option_name,
-                                                      Printf.sprintf "Invalid component string: %s"
-                                                        component)
-                      end
+                    | [name] -> (name, None)
+                    | [name;rest] -> (name, Some rest)
                     | _ -> raise @@ Option_error (option_name,
                                                   Printf.sprintf "Invalid component string: %s"
                                                     component)
@@ -193,13 +189,13 @@ let analyze_variables_option =
           raise @@ Option_error (option_name,
                                  Printf.sprintf "Invalid argument count: %d" (List.length args))
       )
-    ;
+  ;
     option_set_value = (fun selection -> variables_to_analyze := selection)
-    ;
+  ;
     option_get = (fun () -> Some (!variables_to_analyze))
-    ;
+  ;
     option_metavars = ["ANALYZE_SPEC"]
-    ;
+  ;
     option_defhelp =
       Some("Selects variables to analyze.  Valid options are \"none\" (to \
             perform no variable-specific analysis), \"top\" (to analyze all \
@@ -210,7 +206,7 @@ let analyze_variables_option =
             a lookup site variable (e.g. \"s\"), optionally followed by \":\" \
             and a pipe-separated list of variable names representing a context \
             stack (from top to bottom).")
-    ;
+  ;
   }
 ;;
 

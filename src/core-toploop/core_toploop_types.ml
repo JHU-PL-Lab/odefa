@@ -8,7 +8,7 @@ open Jhupllib;;
 open Core_ast;;
 open Core_ast_pp;;
 open Core_interpreter;;
-open Ddpa_abstract_ast;;
+open Ddpa_abstract_stores;;
 
 (** Represents the result of evaluating an expression.  This data type also
     captures exceptional cases and toploop configuration properties. *)
@@ -30,15 +30,14 @@ type evaluation_result =
 
 (** Represents the information produced by a variable analysis. *)
 type variable_analysis =
-  (string * string option * string list option) * Abs_filtered_value_set.t
+  (string * string option) * Abstract_store_set.t
 ;;
 let pp_variable_analysis =
   Pp_utils.pp_tuple
-    (Pp_utils.pp_triple
+    (Pp_utils.pp_tuple
        Format.pp_print_string
-       (Pp_utils.pp_option Format.pp_print_string)
-       (Pp_utils.pp_option @@ Pp_utils.pp_list Format.pp_print_string))
-    Ddpa_abstract_ast.Abs_filtered_value_set.pp
+       (Pp_utils.pp_option Format.pp_print_string))
+    Ddpa_abstract_stores.Abstract_store_set.pp
 ;;
 
 (** Represents the result of processing an expression in the toploop. *)
@@ -73,8 +72,7 @@ type result =
 type callbacks =
   { cb_illformednesses : Core_ast_wellformedness.illformedness list -> unit
   ; cb_variable_analysis :
-      string -> string option -> string list option ->
-      Abs_filtered_value_set.t -> unit
+      string -> string option -> Abstract_store_set.t -> unit
   ; cb_errors : Core_toploop_analysis_types.error list -> unit
   ; cb_evaluation_result : var -> value Environment.t -> unit
   ; cb_evaluation_failed : string -> unit

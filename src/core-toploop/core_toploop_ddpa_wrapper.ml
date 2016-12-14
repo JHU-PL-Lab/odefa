@@ -1,15 +1,13 @@
 open Core_ast;;
-open Ddpa_analysis;;
 open Core_toploop_ddpa_wrapper_types;;
+open Ddpa_analysis;;
 
-module Make(A : Analysis_sig) : DDPA_wrapper with module C = A.C =
+module Make(A : Analysis_sig) : DDPA_wrapper =
 struct
   type analysis =
     { aref : A.ddpa_analysis ref
     ; expression : expr
     };;
-
-  module C = A.C;;
 
   let create_analysis ?logging_config:(logging_config=None) expr =
     let a =
@@ -25,13 +23,6 @@ struct
   let values_of_variable_from x acl analysis =
     let a = !(analysis.aref) in
     let (values,a') = A.values_of_variable x acl a in
-    analysis.aref := a';
-    values
-  ;;
-
-  let contextual_values_of_variable_from x acl ctx analysis =
-    let a = !(analysis.aref) in
-    let (values,a') = A.contextual_values_of_variable x acl ctx a in
     analysis.aref := a';
     values
   ;;

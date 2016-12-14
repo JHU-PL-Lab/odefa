@@ -1,4 +1,5 @@
 open Batteries;;
+open Jhupllib;;
 
 open Core_ast;;
 open Core_ast_pp;;
@@ -9,6 +10,7 @@ open Core_toploop_options;;
 open Core_toploop_types;;
 open Core_toploop_utils;;
 open Ddpa_abstract_ast;;
+open Ddpa_abstract_stores;;
 open Ddpa_analysis_logging;;
 open Ddpa_graph;;
 
@@ -23,7 +25,7 @@ let stdout_illformednesses_callback ills =
 ;;
 
 let stdout_variable_analysis_callback
-    var_name site_name_opt context_opt values =
+    var_name site_name_opt values =
   print_string "Lookup of variable ";
   print_string var_name;
   begin
@@ -33,25 +35,9 @@ let stdout_variable_analysis_callback
       print_string site_name;
     | None -> ()
   end;
-  begin
-    match context_opt with
-    | Some context ->
-      print_string " in context ";
-      let rec loop ss =
-        match ss with
-        | [] -> print_string "[]"
-        | s::[] -> print_string s
-        | s::ss' ->
-          print_string s;
-          print_string "|";
-          loop ss'
-      in
-      loop context
-    | None -> ()
-  end;
   print_endline " yields values:";
   print_string "    ";
-  print_string @@ Abs_filtered_value_set.show values;
+  print_string @@ Pp_utils.pp_to_string Abstract_store_set.pp values;
   flush stdout
 ;;
 
@@ -97,7 +83,7 @@ let stdout_size_report_callback
 
 let no_op_callbacks =
   { cb_illformednesses = (fun _ -> ())
-  ; cb_variable_analysis = (fun _ _ _ _ -> ())
+  ; cb_variable_analysis = (fun _ _ _ -> ())
   ; cb_errors = (fun _ -> ())
   ; cb_evaluation_result = (fun _ _ -> ())
   ; cb_evaluation_failed = (fun _ -> ())
@@ -125,14 +111,16 @@ let do_analysis_steps callbacks conf e =
      not conf.topconf_report_sizes
   then ([], [])
   else
-    match conf.topconf_context_stack with
+    match conf.topconf_max_stack_delta with
     | None -> ([], []) (* Nothing can be done without a context stack. *)
-    | Some context_stack ->
-      (* We're finally ready to perform some analyses.  Unpack the context
-         stack. *)
-      let module Context_stack = (val context_stack) in
+    | Some max_stack_delta ->
       (* Define the analysis module. *)
-      let module Analysis = Ddpa_analysis.Make(Context_stack) in
+      let module Analysis = Ddpa_analysis.Make(
+        struct
+          let maximum_trace_length = max_stack_delta
+        end
+        )
+      in
       (* Define the convenience wrapper. *)
       let module DDPA_wrapper = Core_toploop_ddpa_wrapper.Make(Analysis) in
       (* Set up the logging configuration for the analysis. *)
@@ -233,7 +221,7 @@ let do_analysis_steps callbacks conf e =
                  |> List.enum
                  |> Enum.map lift_clause
                  |> Enum.map
-                   (fun (Abs_clause(Abs_var(Ident i), _)) -> (i, None, None))
+                   (fun (Abs_clause(Abs_var(Ident i), _)) -> (i, None))
                  |> List.of_enum
                )
              | Analyze_specific_variables lst -> Some lst
@@ -264,7 +252,7 @@ let do_analysis_steps callbacks conf e =
              requests
              |> List.enum
              |> Enum.map
-               (fun (var_name,site_name_opt,context_opt) ->
+               (fun (var_name,site_name_opt) ->
                   let var_ident = Ident var_name in
                   let lookup_var = Abs_var var_ident in
                   let site =
@@ -274,26 +262,13 @@ let do_analysis_steps callbacks conf e =
                       Unannotated_clause(
                         lookup_clause_by_ident (Ident site_name))
                   in
-                  let context_stack =
-                    match context_opt with
-                    | None -> DDPA_wrapper.C.empty
-                    | Some context_vars ->
-                      context_vars
-                      |> List.enum
-                      |> Enum.fold
-                        (fun a e ->
-                           let c = lookup_clause_by_ident (Ident e) in
-                           DDPA_wrapper.C.push c a
-                        )
-                        DDPA_wrapper.C.empty
-                  in
                   let values =
-                    DDPA_wrapper.contextual_values_of_variable_from
-                      lookup_var site context_stack analysis
+                    DDPA_wrapper.values_of_variable_from
+                      lookup_var site analysis
                   in
                   callbacks.cb_variable_analysis
-                    var_name site_name_opt context_opt values;
-                  ((var_name,site_name_opt,context_opt),values)
+                    var_name site_name_opt values;
+                  ((var_name,site_name_opt),values)
                )
              |> List.of_enum
            in

@@ -6,7 +6,7 @@
 open Core_ast;;
 open Core_ast_wellformedness;;
 open Core_interpreter;;
-open Ddpa_abstract_ast;;
+open Ddpa_abstract_stores;;
 
 (* TODO: new form of result type *)
 (** Represents the result of processing an expression in the toploop. *)
@@ -16,8 +16,7 @@ type result =
     (** A set of ill-formednesses discovered in the expression.  If this set is
         non-empty, then the remaining components of the result will be empty. *)
 
-    analyses : ((string * string option * string list option) *
-                Abs_filtered_value_set.t) list;
+    analyses : ((string * string option) * Abstract_store_set.t) list;
     (** An association list from each requested variable analysis to the
         possible values of that variable under those conditions.  If no
         analyses were requested or if the expression was ill-formed, this
@@ -41,8 +40,7 @@ type result =
 type callbacks =
   { cb_illformednesses : Core_ast_wellformedness.illformedness list -> unit
   ; cb_variable_analysis :
-      string -> string option -> string list option ->
-      Abs_filtered_value_set.t -> unit
+      string -> string option -> Abstract_store_set.t -> unit
   ; cb_errors : Nested_toploop_analysis_types.error list -> unit
   ; cb_evaluation_result : var -> value Environment.t -> unit
   ; cb_evaluation_failed : string -> unit

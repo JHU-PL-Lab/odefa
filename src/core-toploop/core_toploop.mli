@@ -6,7 +6,7 @@ open Core_ast;;
 open Core_interpreter;;
 open Core_toploop_analysis_types;;
 open Core_toploop_types;;
-open Ddpa_abstract_ast;;
+open Ddpa_abstract_stores;;
 
 (** This function processes a core AST expression.  This function accepts
     callback functions which are invoked when various steps of the expression
@@ -29,8 +29,7 @@ val stdout_illformednesses_callback :
 
 (** A variable analysis callback which prints messages to stdout. *)
 val stdout_variable_analysis_callback :
-  string -> string option -> string list option -> Abs_filtered_value_set.t ->
-  unit
+  string -> string option -> Abstract_store_set.t -> unit
 
 (** An error-reporting callback which prints messages to stdout. *)
 val stdout_errors_callback : error list -> unit

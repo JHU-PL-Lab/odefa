@@ -2,7 +2,6 @@ open Batteries;;
 open Jhupllib;;
 
 open Ddpa_abstract_ast;;
-open Ddpa_context_stack;;
 open Ddpa_graph;;
 open Ddpa_utils;;
 open Pds_reachability_types_stack;;
@@ -11,18 +10,19 @@ let logger = Logger_utils.make_logger "Ddpa_pds_edge_functions";;
 let lazy_logger = Logger_utils.make_lazy_logger "Ddpa_pds_edge_functions";;
 
 module Make
-    (C : Context_stack)
-    (S : (module type of Ddpa_pds_structure_types.Make(C)) with module C = C)
-    (T : (module type of Ddpa_pds_dynamic_pop_types.Make(C)(S))
-     with module C = C
-      and module S = S)
+    (Store_ops : Ddpa_abstract_stores.Ops.Sig)
+    (Struct : (module type of Ddpa_pds_structure_types.Make(Store_ops))
+     with module Store_ops = Store_ops)
+    (T : (module type of Ddpa_pds_dynamic_pop_types.Make(Store_ops)(Struct))
+     with module Store_ops = Store_ops
+      and module Struct = Struct)
     (B : Pds_reachability_basis.Basis)
     (R : Pds_reachability_analysis.Analysis
-     with type State.t = S.Pds_state.t
+     with type State.t = Struct.Pds_state.t
       and type Targeted_dynamic_pop_action.t = T.pds_targeted_dynamic_pop_action)
 =
 struct
-  open S;;
+  open Struct;;
   open T;;
 
   (**
@@ -52,459 +52,36 @@ struct
             List.of_enum @@ Enum.clone edges)) @@
     fun () ->
     let zero = Enum.empty in
-    let%orzero Program_point_state(acl0',ctx) = state in
+    let%orzero Program_point_state acl0' = state in
     (* TODO: There should be a way to associate each edge function with
              its corresponding acl0 rather than using this guard. *)
     [%guard (compare_annotated_clause acl0 acl0' == 0) ];
     let open Option.Monad in
     let zero () = None in
+    (* TODO: remove these warning suppressions *)
+    ignore eobm;
+    ignore @@ zero ();
     (* TODO: It'd be nice if we had a terser way to represent stack
              processing operations (those that simply reorder the stack
              without transitioning to a different node). *)
     let targeted_dynamic_pops = Enum.filter_map identity @@ List.enum
         [
-          (* ********** Variable Discovery ********** *)
-          (* Intermediate Value *)
+          (* ********** Store Processing ********** *)
+          (* Discovered Store *)
           begin
-            return (Value_drop, Program_point_state(acl0,ctx))
+            return (Discovered_store_2_of_2, Program_point_state acl0)
           end
           ;
-          (* ********** Variable Search ********** *)
-          (* Value Alias *)
+          (* Intermediate Store *)
           begin
-            let%orzero
-              (Unannotated_clause(Abs_clause(x, Abs_var_body x'))) = acl1
-            in
-            (* x = x' *)
-            return (Variable_aliasing(x,x'),Program_point_state(acl1,ctx))
-          end
-          ;
-          (* Stateless Clause Skip *)
-          begin
-            let%orzero (Unannotated_clause(Abs_clause(x,_))) = acl1 in
-            (* x' = b *)
-            return ( Stateless_nonmatching_clause_skip_1_of_2 x
-                   , Program_point_state(acl1,ctx)
-                   )
-          end
-          ;
-          (* Block Marker Skip *)
-          (* This is handled below as a special case because it does not involve
-             a pop. *)
-          (* ********** Navigation ********** *)
-          (* Capture *)
-          begin
-            return ( Value_capture_1_of_3
-                   , Program_point_state(acl0, ctx)
-                   )
-          end
-          ;
-          (* Rewind *)
-          begin
-            (*
-              To rewind, we need to know the "end-of-block" for the node we are
-              considering.  We have a dictionary mapping all of the *abstract*
-              clauses in the program to their end-of-block clauses, but we don't
-              have such mappings for e.g. wiring nodes or block start/end nodes.
-              This code runs for *every* edge, so we need to skip those cases
-              for which our mappings don't exist.  It's safe to skip all
-              non-abstract-clause nodes, since we only rewind after looking up
-              a function to access its closure and the only nodes that can
-              complete a lookup are abstract clause nodes.
-            *)
-            match acl0 with
-            | Unannotated_clause cl0 ->
-              begin
-                match Annotated_clause_map.Exceptionless.find acl0 eobm with
-                | Some end_of_block ->
-                  return ( Rewind_step(end_of_block, ctx)
-                         , Program_point_state(acl0, ctx)
-                         )
-                | None ->
-                  raise @@ Utils.Invariant_failure(
-                    Printf.sprintf
-                      "Abstract clause lacks end-of-block mapping: %s"
-                      (show_abstract_clause cl0))
-              end
-            | Start_clause _ | End_clause _ | Enter_clause _ | Exit_clause _ ->
-              (*
-                These clauses can be safely ignored because they never complete
-                a lookup and so won't ever be the subject of a rewind.
-              *)
-              zero ()
-          end
-          ;
-          (* ********** Function Wiring ********** *)
-          (* Function Top: Parameter Variable *)
-          begin
-            let%orzero (Enter_clause(x,x',c)) = acl1 in
-            let%orzero (Abs_clause(_,Abs_appl_body (_,x3''))) = c in
-            begin
-              if not (equal_abstract_var x' x3'') then
-                raise @@ Utils.Invariant_failure "Ill-formed wiring node."
-              else
-                ()
-            end;
-            (* x =(down)c x' *)
-            [%guard C.is_top c ctx];
-            let ctx' = C.pop ctx in
-            return (Variable_aliasing(x,x'),Program_point_state(acl1,ctx'))
-          end
-          ;
-          (* Function Bottom: Flow Check *)
-          begin
-            let%orzero (Exit_clause(x,_,c)) = acl1 in
-            let%orzero (Abs_clause(x1'',Abs_appl_body(x2'',x3''))) = c in
-            begin
-              if not (equal_abstract_var x x1'') then
-                raise @@ Utils.Invariant_failure "Ill-formed wiring node."
-              else
-                ()
-            end;
-            (* x =(up)c _ (for functions) *)
-            return ( Function_call_flow_validation(x2'',x3'',acl0,ctx,Unannotated_clause(c),ctx,x)
-                   , Program_point_state(Unannotated_clause(c),ctx)
-                   )
-          end
-          ;
-          (* Function Bottom: Return Variable *)
-          begin
-            let%orzero (Exit_clause(x,x',c)) = acl1 in
-            let%orzero (Abs_clause(x1'',Abs_appl_body _)) = c in
-            begin
-              if not (equal_abstract_var x x1'') then
-                raise @@ Utils.Invariant_failure "Ill-formed wiring node."
-              else
-                ()
-            end;
-            (* x =(up)c x' *)
-            let ctx' = C.push c ctx in
-            return ( Function_call_flow_validation_resolution_1_of_2(x,x')
-                   , Program_point_state(acl1,ctx')
-                   )
-          end
-          ;
-          (* Function Top: Non-Local Variable *)
-          begin
-            let%orzero (Enter_clause(x'',x',c)) = acl1 in
-            let%orzero (Abs_clause(_,Abs_appl_body(x2'',x3''))) = c in
-            begin
-              if not (equal_abstract_var x' x3'') then
-                raise @@ Utils.Invariant_failure "Ill-formed wiring node."
-              else
-                ()
-            end;
-            (* x'' =(down)c x' *)
-            [%guard C.is_top c ctx];
-            let ctx' = C.pop ctx in
-            return ( Function_closure_lookup(x'',x2'')
-                   , Program_point_state(acl1,ctx')
-                   )
-          end
-          ;
-          (* ********** Conditional Wiring ********** *)
-          (* Conditional Top: Subject Positive
-             Conditional Top: Subject Negative
-             Conditional Top: Non-Subject Variable *)
-          begin
-            (* This block represents *all* conditional closure handling on
-               the entering side. *)
-            let%orzero (Enter_clause(x',x1,c)) = acl1 in
-            let%orzero
-              (Abs_clause(_,Abs_conditional_body(x1',p,f1,_))) = c
-            in
-            begin
-              if not (equal_abstract_var x1 x1') then
-                raise @@ Utils.Invariant_failure "Ill-formed wiring node."
-              else
-                ()
-            end;
-            let Abs_function_value(f1x,_) = f1 in
-            (* x'' =(down)c x' for conditionals *)
-            let closure_for_positive_path = equal_abstract_var f1x x' in
-            return ( Conditional_closure_lookup
-                       (x',x1,p,closure_for_positive_path)
-                   , Program_point_state(acl1,ctx)
-                   )
-          end
-          ;
-          (* Conditional Bottom: Return Positive
-             Conditional Bottom: Return Negative *)
-          begin
-            let%orzero (Exit_clause(x,x',c)) = acl1 in
-            let%orzero
-              (Abs_clause(x2,Abs_conditional_body(x1,pat,f1,_))) = c
-            in
-            begin
-              if not (equal_abstract_var x x2) then
-                raise @@ Utils.Invariant_failure "Ill-formed wiring node."
-              else
-                ()
-            end;
-            (* x =(up) x' for conditionals *)
-            let Abs_function_value(_,Abs_expr(cls)) = f1 in
-            let f1ret = rv cls in
-            let then_branch = equal_abstract_var f1ret x' in
-            return ( Conditional_subject_validation(
-                x,x',x1,pat,then_branch,acl1,ctx)
-                   , Program_point_state(Unannotated_clause(c),ctx)
-              )
-          end
-          ;
-          (* ********** Record Construction/Destruction ********** *)
-          (* Record Projection Start *)
-          begin
-            let%orzero
-              (Unannotated_clause(
-                  Abs_clause(x,Abs_projection_body(x',l)))) = acl1
-            in
-            (* x = x'.l *)
-            return ( Record_projection_lookup(x,x',l)
-                   , Program_point_state(acl1,ctx)
-                   )
-          end
-          ;
-          (* Record Projection Stop *)
-          begin
-            return ( Record_projection_1_of_2
-                   , Program_point_state(acl0,ctx)
-                   )
-          end
-          ;
-          (* ********** Filter Validation ********** *)
-          (* Filter Immediate *)
-          begin
-            let%orzero
-              (Unannotated_clause(Abs_clause(x,Abs_value_body v))) = acl1
-            in
-            (* x = v *)
-            let%orzero (Some immediate_patterns) = immediately_matched_by v in
-            return ( Immediate_filter_validation(x, immediate_patterns, v)
-                   , Program_point_state(acl1, ctx)
-                   )
-          end
-          ;
-          (* Filter Record *)
-          begin
-            let%orzero
-              (Unannotated_clause(
-                  Abs_clause(x,Abs_value_body(Abs_value_record(r))))) = acl1
-            in
-            (* x = r *)
-            let target_state = Program_point_state(acl1,ctx) in
-            return ( Record_filter_validation(x,r,acl1,ctx), target_state )
-          end
-          ;
-          (* ********** State ********** *)
-          (* Update Is Empty Record *)
-          begin
-            let%orzero
-              (Unannotated_clause(Abs_clause(x, Abs_update_body _))) = acl1
-            in
-            (* x = x' <- x'' -- produce {} for x *)
-            return ( Empty_record_value_discovery x
-                   , Program_point_state(acl1,ctx)
-                   )
-          end
-          ;
-          (* Dereference Start *)
-          begin
-            let%orzero
-              (Unannotated_clause(Abs_clause(x, Abs_deref_body(x')))) = acl1
-            in
-            (* x = !x' *)
-            return ( Dereference_lookup(x,x')
-                   , Program_point_state(acl1,ctx)
-                   )
-          end
-          ;
-          (* Dereference Stop *)
-          begin
-            return ( Cell_dereference_1_of_2
-                   , Program_point_state(acl0, ctx) )
-          end
-          ;
-          (* ********** Alias Analysis (State) ********** *)
-          (* Alias Analysis Start *)
-          begin
-            let%orzero
-              (Unannotated_clause(Abs_clause(
-                   _, Abs_update_body(x',_)))) = acl1
-            in
-            (* x''' = x' <- x'' *)
-            let source_state = Program_point_state(acl1,ctx) in
-            let target_state = Program_point_state(acl0,ctx) in
-            return ( Cell_update_alias_analysis_init_1_of_2(
-                x',source_state,target_state)
-                   , Program_point_state(acl0, ctx) )
-          end
-          ;
-          (* Alias Analysis Stop *)
-          begin
-            let%orzero
-              (Unannotated_clause(Abs_clause(
-                   _, Abs_update_body(_,x'')))) = acl1
-            in
-            (* x''' = x' <- x'' *)
-            return ( Alias_analysis_resolution_1_of_5(x'')
-                   , Program_point_state(acl1, ctx) )
-          end
-          ;
-          (* FIXME: update implementation for side effect rules! *)
-          (* 10a. Stateful non-side-effecting clause skip *)
-          begin
-            let%orzero (Unannotated_clause(Abs_clause(x,b))) = acl1 in
-            [% guard (is_immediate acl1) ];
-            [% guard (b |>
-                      (function
-                        | Abs_update_body _ -> false
-                        | _ -> true)) ];
-            (* x' = b *)
-            return ( Nonsideeffecting_nonmatching_clause_skip x
-                   , Program_point_state(acl1,ctx)
-                   )
-          end
-          ; (* 10b. Side-effect search initialization *)
-          begin
-            let%orzero (Exit_clause(x'',_,c)) = acl1 in
-            (* x'' =(up)c x' *)
-            let%bind ctx' =
-              match c with
-              | Abs_clause(_,Abs_appl_body _) -> return @@ C.push c ctx
-              | Abs_clause(_,Abs_conditional_body _) -> return ctx
-              | _ -> zero ()
-            in
-            return ( Side_effect_search_init_1_of_2(x'',acl0,ctx)
-                   , Program_point_state(acl1,ctx') )
-          end
-          ; (* 10c. Side-effect search non-matching clause skip *)
-          begin
-            let%orzero (Unannotated_clause(Abs_clause(_,b))) = acl1 in
-            [% guard (is_immediate acl1) ];
-            [% guard (b |>
-                      (function
-                        | Abs_update_body _ -> false
-                        | _ -> true)) ];
-            (* x' = b *)
-            return ( Side_effect_search_nonmatching_clause_skip
-                   , Program_point_state(acl1,ctx) )
-          end
-          ; (* 10d. Side-effect search exit wiring node *)
-          begin
-            let%orzero (Exit_clause(_,_,c)) = acl1 in
-            (* x'' =(up)c x' *)
-            let%bind ctx' =
-              match c with
-              | Abs_clause(_,Abs_appl_body _) -> return @@ C.push c ctx
-              | Abs_clause(_,Abs_conditional_body _) -> return ctx
-              | _ -> zero ()
-            in
-            return ( Side_effect_search_exit_wiring
-                   , Program_point_state(acl1,ctx') )
-          end
-          ; (* 10e. Side-effect search enter wiring node *)
-          begin
-            let%orzero (Enter_clause(_,_,c)) = acl1 in
-            (* x'' =(down)c x' *)
-            let%bind ctx' =
-              match c with
-              | Abs_clause(_,Abs_appl_body _) -> return @@ C.pop ctx
-              | Abs_clause(_,Abs_conditional_body _) -> return ctx
-              | _ -> zero ()
-            in
-            return ( Side_effect_search_enter_wiring
-                   , Program_point_state(acl1,ctx') )
-          end
-          (* FIXME: why does this clause kill performance? *)
-          ; (* 10f. Side-effect search without discovery *)
-          begin
-            return ( Side_effect_search_without_discovery
-                   , Program_point_state(acl0,ctx) )
-          end
-          ; (* 10g. Side-effect search alias analysis initialization *)
-          begin
-            let%orzero (Unannotated_clause(
-                Abs_clause(_,Abs_update_body(x',_)))) = acl1
-            in
-            return ( Side_effect_search_alias_analysis_init(x',acl0,ctx)
-                   , Program_point_state(acl1,ctx) )
-          end
-          ; (* 10h,10i. Side-effect search alias analysis resolution *)
-          begin
-            let%orzero (Unannotated_clause(
-                Abs_clause(_,Abs_update_body(_,x'')))) = acl1
-            in
-            return ( Side_effect_search_alias_analysis_resolution_1_of_4(
-                x'')
-                   , Program_point_state(acl1,ctx) )
-          end
-          ; (* 10j. Side-effect search escape *)
-          begin
-            return ( Side_effect_search_escape_1_of_2
-                   , Program_point_state(acl0,ctx) )
-          end
-          ; (* 10k. Side-effect search escape completion *)
-          begin
-            return ( Side_effect_search_escape_completion_1_of_4
-                   , Program_point_state(acl0,ctx) )
-          end
-          ;
-          (* ********** Operations ********** *)
-          (* Binary Operation Start *)
-          begin
-            let%orzero
-              (Unannotated_clause(Abs_clause(x1,
-                                             Abs_binary_operation_body(x2,_,x3)))) = acl1
-            in
-            (* x1 = x2 op x3 *)
-            return ( Binary_operator_lookup_init(
-                x1,x2,x3,acl1,ctx,acl0,ctx)
-                   , Program_point_state(acl1,ctx)
-              )
-          end
-          ;
-          (* Binary Operation Evaluation *)
-          begin
-            let%orzero
-              (Unannotated_clause(Abs_clause(x1,
-                                             Abs_binary_operation_body(_,op,_)))) = acl1
-            in
-            (* x1 = x2 op x3 *)
-            return ( Binary_operator_resolution_1_of_4(x1,op)
-                   , Program_point_state(acl1,ctx)
-                   )
-          end
-          ;
-          (* Unary Operation Start *)
-          begin
-            let%orzero
-              (Unannotated_clause(Abs_clause(x1,
-                                             Abs_unary_operation_body(_,x2)))) = acl1
-            in
-            (* x1 = op x2 *)
-            return ( Unary_operator_lookup_init(
-                x1,x2,acl0,ctx)
-                   , Program_point_state(acl1,ctx)
-              )
-          end
-          ;
-          (* Unary Operation Evaluation *)
-          begin
-            let%orzero
-              (Unannotated_clause(Abs_clause(x1,
-                                             Abs_unary_operation_body(op,_)))) = acl1
-            in
-            (* x1 = op x2 *)
-            return ( Unary_operator_resolution_1_of_3(x1,op)
-                   , Program_point_state(acl1,ctx)
-                   )
+            return (Intermediate_store, Program_point_state acl0)
           end
         ]
     in
     let nop_states =
       match acl1 with
       | Start_clause _ | End_clause _ ->
-        Enum.singleton @@ Program_point_state(acl1,ctx)
+        Enum.singleton @@ Program_point_state acl1
       | _ -> Enum.empty ()
     in
     Enum.append
@@ -520,19 +97,19 @@ struct
       (edge : ddpa_edge) (state : R.State.t) =
     let Ddpa_edge(_, acl0) = edge in
     let zero = Enum.empty in
-    let%orzero (Program_point_state(acl0',_)) = state in
+    let%orzero Program_point_state acl0' = state in
     (* TODO: There should be a way to associate each action function with
              its corresponding acl0 rather than using this guard. *)
     [%guard (compare_annotated_clause acl0 acl0' == 0)];
     let open Option.Monad in
     let untargeted_dynamic_pops = Enum.filter_map identity @@ List.enum
         [
-          (* 1a. Value discovery. *)
+          (* Store Processing: Discovered Store *)
           begin
-            return @@ Value_discovery_1_of_2
+            return @@ Discovered_store_1_of_2
           end
           ;
-          (* 3a. Jump. *)
+          (* Navigation: Jump. *)
           begin
             return @@ Do_jump
           end

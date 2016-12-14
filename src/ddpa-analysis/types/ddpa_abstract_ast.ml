@@ -171,37 +171,6 @@ let pp_abs_value_set formatter s =
   Abs_value_set.enum s
 ;;
 
-type abs_filtered_value =
-  | Abs_filtered_value of abstract_value * Pattern_set.t * Pattern_set.t
-[@@deriving eq, ord, show, to_yojson]
-;;
-let _ = show_abs_filtered_value;;
-
-let pp_abs_filtered_value formatter (Abs_filtered_value(v,patsp,patsn)) =
-  if Pattern_set.is_empty patsp && Pattern_set.is_empty patsn
-  then pp_abstract_value formatter v
-  else
-    Format.fprintf formatter "%a:(+%a,-%a)"
-      pp_abstract_value v Pattern_set.pp patsp Pattern_set.pp patsn
-;;
-let show_abs_filtered_value = pp_to_string pp_abs_filtered_value;;
-
-module Abs_filtered_value =
-struct
-  type t = abs_filtered_value
-  let compare = compare_abs_filtered_value
-  let pp = pp_abs_filtered_value
-  let to_yojson = abs_filtered_value_to_yojson
-end;;
-
-module Abs_filtered_value_set =
-struct
-  module Impl = Set.Make(Abs_filtered_value);;
-  include Impl;;
-  include Pp_utils.Set_pp(Impl)(Abs_filtered_value);;
-  include Yojson_utils.Set_to_yojson(Impl)(Abs_filtered_value);;
-end;;
-
 module Abs_clause =
 struct
   type t = abstract_clause

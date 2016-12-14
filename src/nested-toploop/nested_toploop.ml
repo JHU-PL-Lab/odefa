@@ -4,7 +4,7 @@ open Nested_toploop_types;;
 
 let no_op_callbacks =
   { cb_illformednesses = (fun _ -> ())
-  ; cb_variable_analysis = (fun _ _ _ _ -> ())
+  ; cb_variable_analysis = (fun _ _ _ -> ())
   ; cb_errors = (fun _ -> ())
   ; cb_evaluation_result = (fun _ _ -> ())
   ; cb_evaluation_failed = (fun _ -> ())
@@ -50,8 +50,8 @@ let handle_expression
     { Core_toploop_types.cb_illformednesses =
         (fun ills -> callbacks.cb_illformednesses ills)
     ; Core_toploop_types.cb_variable_analysis =
-        (fun x loc callstack fv ->
-           callbacks.cb_variable_analysis x loc callstack fv)
+        (fun x loc fv ->
+           callbacks.cb_variable_analysis x loc fv)
     ; Core_toploop_types.cb_errors =
         (fun es ->
            callbacks.cb_errors

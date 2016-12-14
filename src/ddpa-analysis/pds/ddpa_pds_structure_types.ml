@@ -4,7 +4,7 @@ open Jhupllib;;
 open Core_ast;;
 open Core_ast_pp;;
 open Ddpa_abstract_ast;;
-open Ddpa_context_stack;;
+open Ddpa_abstract_stores;;
 open Interface_utils;;
 
 module type Bounded_capture_size_sig =
@@ -14,9 +14,10 @@ sig
   val to_int : t -> int
 end;;
 
-module Make(C : Context_stack) =
+module Make(Store_ops : Ddpa_abstract_stores.Ops.Sig) =
 struct
-  module C = C;;
+  module Store_ops = Store_ops;;
+
   (** This module is meant to verify that the system never attempts to create
    *  a capture size larger than a fixed maximum (here, 4).  This property is
    *  necessary to argue that the analysis is decidable.
@@ -24,7 +25,7 @@ struct
   module Bounded_capture_size : Bounded_capture_size_sig =
   struct
     type t = Bounded_capture_size of int [@@deriving eq, ord];;
-    let max_capture_size = 5;;
+    let max_capture_size = 8;;
     let of_int n =
       if n >= 1 && n <= max_capture_size
       then Bounded_capture_size(n)
@@ -43,21 +44,26 @@ struct
     (** The bottom of stack element is necessary as a sentinel. It's pushed as
         the initial element on the continuation stack so we don't need to check
         for empty continuation stacks. *)
-    | Lookup_var of abstract_var * Pattern_set.t * Pattern_set.t
-    | Project of ident * Pattern_set.t * Pattern_set.t
-    | Jump of annotated_clause * C.t
-    | Rewind
-    | Deref of Pattern_set.t * Pattern_set.t
-    | Capture of Bounded_capture_size.t
-    | Continuation_value of abs_filtered_value
+    | Lookup_var of abstract_var
+    | Project of ident
+    | Deref
+    | Continuation_store of Abstract_store.t
     | Real_flow_huh
+    | Jump of annotated_clause
+    | Capture of Bounded_capture_size.t
     | Alias_huh
-    | Side_effect_search_start
-    | Side_effect_search_escape of abstract_var
-    | Side_effect_lookup_var of
-        abstract_var * Pattern_set.t * Pattern_set.t * annotated_clause * C.t
-    | Binary_operation
+    | Rewind
     | Unary_operation
+    | Binary_operation
+    | Parallel_join
+    | Serial_join
+    | Trace_concat of Relative_trace_part.t
+    | Continuation_matches of pattern
+    | Continuation_antimatches of pattern
+    | Side_effect_search_start
+    | Side_effect_frame
+    | Side_effect_escape
+    | Side_effect_lookup_var of abstract_var * annotated_clause
   [@@deriving eq, ord, show, to_yojson]
   ;;
 
@@ -72,10 +78,10 @@ struct
   end;;
 
   type pds_state =
-    | Program_point_state of annotated_clause * C.t
+    | Program_point_state of annotated_clause
     (** A state in the PDS representing a specific program point and
         context. *)
-    | Result_state of abs_filtered_value
+    | Result_state of Abstract_store.t
     (** A state in the PDS representing a value result. *)
   [@@deriving eq, ord, show, to_yojson]
   ;;

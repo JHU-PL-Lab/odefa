@@ -17,16 +17,16 @@ type test_expectation =
   | Expect_stuck
   | Expect_well_formed
   | Expect_ill_formed
-  | Expect_analysis_stack_is of
-      (module Ddpa_context_stack.Context_stack) option
+  | Expected_maximum_stack_delta_size_is of int option
   | Expect_analysis_variable_lookup_from_end of ident * string
   | Expect_analysis_inconsistency_at of ident
   | Expect_analysis_no_inconsistencies
 ;;
 
+
 type expectation_parse =
-  | Success of test_expectation
-  | Failure of string
+  | Parse_success of test_expectation
+  | Parse_failure of string
 ;;
 
 exception Expectation_parse_failure of string;;
@@ -34,8 +34,8 @@ exception Expectation_parse_failure of string;;
 exception Expectation_not_found;;
 
 type expectation_stack_decision =
-  | Default_stack
-  | Chosen_stack of (module Ddpa_context_stack.Context_stack) option
+  | Default_size
+  | Chosen_size of int option
 ;;
 
 let parse_expectation str =
@@ -78,15 +78,24 @@ let parse_expectation str =
       | "EXPECT-ANALYSIS-STACK-IS"::args_part ->
         let args_str = String.join "" args_part in
         let args = whitespace_split args_str in
-        let name = assert_one_arg args in
-        begin
-          try
-            let stack_module = Core_toploop_utils.stack_from_name name in
-            Expect_analysis_stack_is stack_module
-          with
-          | Not_found ->
-            raise @@ Expectation_parse_failure "invalid stack name"
-        end
+        let max_stack_delta_size_str = assert_one_arg args in
+        let max_stack_delta_size_choice =
+          if max_stack_delta_size_str = "none"
+          then None
+          else
+            try
+              let max_stack_delta_size =
+                int_of_string max_stack_delta_size_str
+              in
+              if max_stack_delta_size >= 0
+              then Some max_stack_delta_size
+              else
+                raise @@ Expectation_parse_failure "negative stack delta size"
+            with
+            | Failure _ ->
+              raise @@ Expectation_parse_failure "invalid stack delta size"
+        in
+        Expected_maximum_stack_delta_size_is max_stack_delta_size_choice
       | "EXPECT-ANALYSIS-LOOKUP-FROM-END"::args_part ->
         let args_str = String.join "" args_part in
         let args = whitespace_split ~max:2 args_str in
@@ -104,9 +113,9 @@ let parse_expectation str =
       | _ ->
         raise @@ Expectation_not_found
     in
-    Some (Success expectation)
+    Some (Parse_success expectation)
   with
-  | Expectation_parse_failure s -> Some (Failure s)
+  | Expectation_parse_failure s -> Some (Parse_failure s)
   | Expectation_not_found -> None
 ;;
 
@@ -147,17 +156,15 @@ let observe_ill_formed illformednesses expectation =
 
 let observe_analysis_stack_selection chosen_stack_ref expectation =
   match expectation with
-  | Expect_analysis_stack_is module_option ->
+  | Expected_maximum_stack_delta_size_is size_option ->
     begin
       chosen_stack_ref :=
-        begin
-          match !chosen_stack_ref with
-          | Default_stack -> Chosen_stack module_option
-          | Chosen_stack _ ->
+        match !chosen_stack_ref with
+        | Default_size -> Chosen_size size_option
+        | Chosen_size _ ->
             assert_failure @@ "multiple expectations of analysis stack"
-        end;
-      None
-    end
+    end;
+    None
   | _ -> Some expectation
 ;;
 
@@ -211,14 +218,10 @@ let make_test filename expectations =
     | Expect_stuck -> "should get stuck"
     | Expect_well_formed -> "should be well-formed"
     | Expect_ill_formed -> "should be ill-formed"
-    | Expect_analysis_stack_is stack_option ->
+    | Expected_maximum_stack_delta_size_is size_option ->
       let name =
-        match stack_option with
-        | Some stack ->
-          let module Stack =
-            (val stack : Ddpa_context_stack.Context_stack)
-          in
-          Stack.name
+        match size_option with
+        | Some size -> string_of_int size
         | None -> "none"
       in
       "should use analysis stack " ^ name
@@ -251,14 +254,12 @@ let make_test filename expectations =
     begin
       let expr = File.with_file_in filename Core_parser.parse_program in
       (* Decide what kind of analysis to perform. *)
-      let module_choice = ref Default_stack in
-      observation (observe_analysis_stack_selection module_choice);
-      let chosen_module_option =
-        match !module_choice with
-        | Default_stack ->
-          Some (module Ddpa_single_element_stack.Stack :
-                 Ddpa_context_stack.Context_stack)
-        | Chosen_stack value -> value
+      let size_choice = ref Default_size in
+      observation (observe_analysis_stack_selection size_choice);
+      let chosen_size_option =
+        match !size_choice with
+        | Default_size -> Some 1
+        | Chosen_size value -> value
       in
       (* Configure the toploop *)
       let variables_to_analyze =
@@ -272,7 +273,7 @@ let make_test filename expectations =
         |> List.of_enum
       in
       let configuration =
-        { topconf_context_stack = chosen_module_option
+        { topconf_max_stack_delta = chosen_size_option
         ; topconf_log_prefix = filename ^ "_"
         ; topconf_ddpa_log_level = None
         ; topconf_pdr_log_level = None
@@ -284,7 +285,7 @@ let make_test filename expectations =
             else
               Core_toploop_option_parsers.Analyze_specific_variables
                 (variables_to_analyze
-                 |> List.map (fun (Ident s) -> (s, None, None)))
+                 |> List.map (fun (Ident s) -> (s, None)))
         ; topconf_disable_evaluation =
             not @@ have_expectation
               (function
@@ -350,8 +351,8 @@ let make_test_from filename =
          then
            let str'' = String.trim @@ String.tail str' 1 in
            match parse_expectation str'' with
-           | Some (Success expectation) -> Some(Success expectation)
-           | Some (Failure s) -> Some(Failure(
+           | Some (Parse_success expectation) -> Some(Parse_success expectation)
+           | Some (Parse_failure s) -> Some(Parse_failure(
                Printf.sprintf
                  "Error parsing expectation:\n        Error: %s\n        Text:  %s"
                  s str''))
@@ -364,8 +365,8 @@ let make_test_from filename =
     expectations
     |> List.filter_map
       (function
-        | Success _ -> None
-        | Failure s -> Some s
+        | Parse_success _ -> None
+        | Parse_failure s -> Some s
       )
   in
   match failures with
@@ -374,8 +375,8 @@ let make_test_from filename =
       expectations
       |> List.filter_map
         (function
-          | Success expectation -> Some expectation
-          | Failure _ -> None
+          | Parse_success expectation -> Some expectation
+          | Parse_failure _ -> None
         )
     in
     begin
