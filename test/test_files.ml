@@ -111,7 +111,7 @@ let parse_expectation str =
       | "EXPECT-ILL-FORMED"::args_part ->
         assert_no_args args_part;
         Expect_ill_formed
-      | "EXPECT-ANALYSIS-STACK-IS"::args_part ->
+      | "EXPECT-MAX-STACK-DELTA-SIZE"::args_part ->
         let args_str = String.join "" args_part in
         let args = whitespace_split args_str in
         let max_stack_delta_size_str = assert_one_arg args in
