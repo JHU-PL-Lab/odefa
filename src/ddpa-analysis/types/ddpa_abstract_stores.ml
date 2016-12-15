@@ -109,6 +109,16 @@ let store_read (s : abstract_store) : abstract_value =
     v
 ;;
 
+let store_is_variable_root (s : abstract_store) : bool =
+  match s.abstract_store_root with
+  | Variable_store_root _ -> true
+  | Value_store_root _ -> false
+;;
+
+let stores_have_same_root (s1 : abstract_store) (s2 : abstract_store) : bool =
+  equal_abstract_store_root s1.abstract_store_root s2.abstract_store_root
+;;
+
 module Ops =
 struct
   (** The information necessary to construct store operations. *)

@@ -26,6 +26,8 @@ module Abstract_store_set : sig
 end;;
 
 val store_read : Abstract_store.t -> abstract_value
+val store_is_variable_root : Abstract_store.t -> bool
+val stores_have_same_root : Abstract_store.t -> Abstract_store.t -> bool
 
 (** A module defining mechanisms for transforming stores. *)
 module Ops :
