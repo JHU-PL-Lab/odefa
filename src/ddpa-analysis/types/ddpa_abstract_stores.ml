@@ -2,12 +2,23 @@ open Batteries;;
 open Jhupllib;;
 
 open Ddpa_abstract_ast;;
+open Pp_utils;;
 
 type relative_trace_part =
   | Trace_down of abstract_clause
   | Trace_up of abstract_clause
-[@@deriving eq, ord, show, to_yojson]
+[@@deriving eq, ord, to_yojson]
 ;;
+
+let pp_relative_trace_part formatter t =
+  match t with
+  | Trace_down c ->
+    Format.fprintf formatter "↓%a" pp_abstract_clause_unique_info c
+  | Trace_up c ->
+    Format.fprintf formatter "↑%a" pp_abstract_clause_unique_info c
+;;
+
+let show_relative_trace_part = pp_to_string pp_relative_trace_part;;
 
 module Relative_trace_part =
 struct
@@ -23,8 +34,15 @@ module Relative_trace = Ddpa_deque.Make(Relative_trace_part);;
 
 type relative_trace_var =
   | Relative_trace_var of abstract_var * Relative_trace.t
-[@@deriving eq, ord, show, to_yojson]
+[@@deriving eq, ord, to_yojson]
 ;;
+
+let pp_relative_trace_var formatter (Relative_trace_var(x,t)) =
+  pp_abstract_var formatter x;
+  pp_concat_sep "" pp_relative_trace_part formatter @@ Relative_trace.enum t
+;;
+
+let show_relative_trace_var = pp_to_string pp_relative_trace_var;;
 
 module Relative_trace_var =
 struct
@@ -62,8 +80,16 @@ end;;
 type abstract_store_root =
   | Variable_store_root of relative_trace_var
   | Value_store_root of abstract_value
-[@@deriving eq, ord, show, to_yojson]
+[@@deriving eq, ord, to_yojson]
 ;;
+
+let pp_abstract_store_root formatter root =
+  match root with
+  | Variable_store_root rx -> pp_relative_trace_var formatter rx
+  | Value_store_root v -> pp_abstract_value formatter v
+;;
+
+let show_abstract_store_root = pp_to_string pp_abstract_store_root;;
 
 module Abstract_store_root =
 struct
@@ -80,8 +106,27 @@ type abstract_store =
   ; raw_abstract_store : raw_abstract_store
   ; historical_trace : Relative_trace.t option
   }
-[@@deriving eq, ord, show, to_yojson]
+[@@deriving eq, ord, to_yojson]
 ;;
+
+let pp_abstract_store formatter store =
+  let pp_historical_trace formatter trace_opt =
+    match trace_opt with
+    | None -> Format.pp_print_string formatter "?"
+    | Some trace -> Relative_trace.pp formatter trace
+  in
+  pp_triple
+    pp_abstract_store_root
+    Raw_abstract_store.pp
+    pp_historical_trace
+    formatter
+    ( store.abstract_store_root
+    , store.raw_abstract_store
+    , store.historical_trace
+    )
+;;
+
+let show_abstract_store = pp_to_string pp_abstract_store;;
 
 module Abstract_store =
 struct

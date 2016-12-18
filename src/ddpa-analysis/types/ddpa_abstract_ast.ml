@@ -209,8 +209,10 @@ let is_annotated_clause_immediate acl =
 module Annotated_clause =
 struct
   type t = annotated_clause
+  let equal = equal_annotated_clause
   let compare = compare_annotated_clause
   let pp = pp_annotated_clause
+  let show = show_annotated_clause
   let to_yojson = annotated_clause_to_yojson
 end;;
 
@@ -232,4 +234,28 @@ end;;
 
 let pp_annotated_clause_set =
   Pp_utils.pp_set pp_annotated_clause Annotated_clause_set.enum
+;;
+
+let rec pp_abstract_clause_unique_info formatter cl =
+  let Abs_clause(x,_) = cl in
+  pp_abstract_var formatter x
+;;
+
+let rec pp_annotated_clause_unique_info formatter acl =
+  match acl with
+  | Unannotated_clause c -> pp_abstract_clause_unique_info formatter c
+  | Enter_clause(x1,x2,c) ->
+    Format.fprintf formatter "%a=%a(↓%a)"
+      pp_abstract_var x1
+      pp_abstract_var x2
+      pp_abstract_clause_unique_info c
+  | Exit_clause(x1,x2,c)  ->
+    Format.fprintf formatter "%a=%a(↑%a)"
+      pp_abstract_var x1
+      pp_abstract_var x2
+      pp_abstract_clause_unique_info c
+  | Start_clause x ->
+    Format.fprintf formatter "Start(%a)" pp_abstract_var x
+  | End_clause x ->
+    Format.fprintf formatter "End(%a)" pp_abstract_var x
 ;;

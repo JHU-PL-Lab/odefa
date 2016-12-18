@@ -38,6 +38,7 @@ let stdout_variable_analysis_callback
   print_endline " yields values:";
   print_string "    ";
   print_string @@ Pp_utils.pp_to_string Abstract_store_set.pp values;
+  print_string "\n";
   flush stdout
 ;;
 
