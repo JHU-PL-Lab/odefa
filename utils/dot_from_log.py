@@ -222,8 +222,7 @@ class GraphConversion(BaseConversion):
     def __init__(self):
         super(GraphConversion, self).__init__()
         self.add_singleton_variant_constructor("Ident")
-        # Discard all the crap that Var constructors contain
-        self.variant_post_translators["Var"] = lambda obj: obj[1]
+        self.add_singleton_variant_constructor("Abs_var")
 
 class ClauseType:
     def __init__(self, name, color):
@@ -239,7 +238,9 @@ class ClauseType:
             body_type = clause[1][2][0]
             if body_type in ["Abs_value_body",
                              "Abs_var_body",
-                             "Abs_projection_body"
+                             "Abs_projection_body",
+                             "Abs_binary_operation_body",
+                             "Abs_unary_operation_body"
                             ]:
                 return ClauseTypes.atomic
             elif body_type in ["Abs_appl_body",
