@@ -121,6 +121,16 @@ let is_immediate acl =
   | End_clause _ -> true
 ;;
 
+let is_stateful_update acl =
+  match acl with
+  | Unannotated_clause(Abs_clause(_,Abs_update_body _)) -> true
+  | Unannotated_clause _
+  | Enter_clause _
+  | Exit_clause _
+  | Start_clause _
+  | End_clause _ -> false
+;;
+
 let wire site_cl func x1 x2 graph =
   let site_acl = Unannotated_clause(site_cl) in
   let Abs_function_value(x0, Abs_expr(body)) = func in

@@ -65,7 +65,7 @@ struct
     | Side_effect_search_start
     | Side_effect_frame
     | Side_effect_escape
-    | Side_effect_lookup_var of abstract_var * annotated_clause
+    | Side_effect_lookup_var of abstract_var
   [@@deriving eq, ord, show, to_yojson]
   ;;
 

@@ -404,7 +404,213 @@ struct
             ]
             (Program_point_state acl1)
         end
-
+        ;
+        (* ********** Side Effect Search (State) ********** *)
+        (* Stateful Immediate Clause Skip *)
+        begin
+          let%orzero Unannotated_clause(Abs_clause(x'', _)) = acl1 in
+          [%guard is_immediate acl1 && not (is_stateful_update acl1)];
+          dynpop
+            (Stateful_immediate_clause_skip x'')
+            (Program_point_state acl1)
+        end
+        ;
+        (* Side Effect Search Start: Function Flow Check *)
+        begin
+          let%orzero Exit_clause(x,_,c) = acl1 in
+          let%orzero Abs_clause(_,Abs_appl_body(x2'',x3'')) = c in
+          static
+            [ Pop (Lookup_var x)
+            ; Pop Deref
+            ; Push Deref
+            ; Push (Lookup_var x)
+            ; Push Real_flow_huh
+            ; Push (Jump acl0)
+            ; Push (Capture (Struct.Bounded_capture_size.of_int 2))
+            ; Push (Lookup_var x2'')
+            ; Push (Jump (Unannotated_clause c))
+            ; Push (Lookup_var x3'')
+            ]
+            (Program_point_state (Unannotated_clause c))
+        end
+        ;
+        (* Side Effect Search Start: Function Flow Validated *)
+        begin
+          let%orzero Exit_clause(_,_,c) = acl1 in
+          let%orzero Abs_clause(_,Abs_appl_body _) = c in
+          static
+            [ Pop Real_flow_huh
+            ; Pop_dynamic_targeted
+                (Side_effect_search_start_function_flow_validated_1_of_2 acl1)
+            ]
+            (Program_point_state acl1)
+        end
+        ;
+        (* Side Effect Search Start: Conditional Positive *)
+        begin
+          let%orzero Exit_clause(_,x',c) = acl1 in
+          let%orzero Abs_clause(_,Abs_conditional_body(_,_,f1,_)) = c in
+          let Abs_function_value(_,Abs_expr(cls)) = f1 in
+          [%guard equal_abstract_var x' @@ rv cls];
+          dynpop
+            (Side_effect_search_start_conditional_positive acl1)
+            (Program_point_state (Unannotated_clause c))
+        end
+        ;
+        (* Side Effect Search Start: Conditional Negative *)
+        begin
+          let%orzero Exit_clause(_,x',c) = acl1 in
+          let%orzero Abs_clause(_,Abs_conditional_body(_,_,_,f2)) = c in
+          let Abs_function_value(_,Abs_expr(cls)) = f2 in
+          [%guard equal_abstract_var x' @@ rv cls];
+          dynpop
+            (Side_effect_search_start_conditional_negative acl1)
+            (Program_point_state (Unannotated_clause c))
+        end
+        ;
+        (* Side Effect Search Immediate Clause Skip *)
+        begin
+          [%guard is_immediate acl1 && not (is_stateful_update acl1)];
+          dynpop
+            Side_effect_search_immediate_clause_skip
+            (Program_point_state acl1)
+        end
+        ;
+        (* Side Effect Search: Function Bottom: Flow Check *)
+        begin
+          let%orzero Exit_clause(_,_,c) = acl1 in
+          let%orzero Abs_clause(_,Abs_appl_body _) = c in
+          dynpop
+            (Side_effect_search_function_bottom_flow_check(acl0,c))
+            (Program_point_state(Unannotated_clause c))
+        end
+        ;
+        (* Side Effect Search: Function Bottom: Return Variable *)
+        begin
+          let%orzero Exit_clause(_,_,c) = acl1 in
+          let%orzero Abs_clause(_,Abs_appl_body _) = c in
+          static
+            [ Pop Real_flow_huh
+            ; Pop_dynamic_targeted(
+                Side_effect_search_function_bottom_return_variable_1_of_2(acl1))
+            ]
+            (Program_point_state acl1)
+        end
+        ;
+        (* Side Effect Search: Function Top *)
+        begin
+          let%orzero Enter_clause(_,_,c) = acl1 in
+          let%orzero Abs_clause(_,Abs_appl_body _) = c in
+          dynpop
+            (Side_effect_search_function_top c)
+            (Program_point_state acl1)
+        end
+        ;
+        (* Side Effect Search: Conditional Positive *)
+        begin
+          let%orzero Exit_clause(_,x',c) = acl1 in
+          let%orzero Abs_clause(_,Abs_conditional_body(_,_,f1,_)) = c in
+          let Abs_function_value(_,Abs_expr cls) = f1 in
+          [%guard equal_abstract_var x' @@ rv cls];
+          dynpop
+            (Side_effect_search_conditional_positive acl1)
+            (Program_point_state acl1)
+        end
+        ;
+        (* Side Effect Search: Conditional Negative *)
+        begin
+          let%orzero Exit_clause(_,x',c) = acl1 in
+          let%orzero Abs_clause(_,Abs_conditional_body(_,_,f1,_)) = c in
+          let Abs_function_value(_,Abs_expr cls) = f1 in
+          [%guard equal_abstract_var x' @@ rv cls];
+          dynpop
+            (Side_effect_search_conditional_negative acl1)
+            (Program_point_state acl1)
+        end
+        ;
+        (* Side Effect Search: Conditional Top *)
+        begin
+          let%orzero Enter_clause(_,_,c) = acl1 in
+          let%orzero Abs_clause(_,Abs_conditional_body _) = c in
+          dynpop Side_effect_search_conditional_top (Program_point_state acl1)
+        end
+        ;
+        (* Side Effect Search: Function Wiring Join Defer *)
+        begin
+          let%orzero Enter_clause _ = acl1 in
+          dynpop
+            Side_effect_search_function_wiring_join_defer_1_of_3
+            (Program_point_state acl0)
+        end
+        ;
+        (* Side Effect Search: Conditional Wiring Join Defer *)
+        begin
+          let%orzero Enter_clause _ = acl1 in
+          dynpop
+            Side_effect_search_conditional_wiring_join_defer_1_of_2
+            (Program_point_state acl0)
+        end
+        ;
+        (* Side Effect Search: Join Compression *)
+        begin
+          let%orzero Enter_clause _ = acl1 in
+          dynpop
+            Side_effect_search_join_compression_1_of_3
+            (Program_point_state acl0)
+        end
+        ;
+        (* Side Effect Search: Alias Analysis Start *)
+        begin
+          let%orzero
+            Unannotated_clause(Abs_clause(_,Abs_update_body _)) = acl1
+          in
+          dynpop
+            (Side_effect_search_alias_analysis_start(acl1,acl0))
+            (Program_point_state acl1)
+        end
+        ;
+        (* Side Effect Search: May Not Alias *)
+        begin
+          let%orzero
+            Unannotated_clause (Abs_clause(_, Abs_update_body _)) = acl1
+          in
+          static
+            [ Pop Alias_huh
+            ; Pop_dynamic_targeted Side_effect_search_may_not_alias_1_of_3
+            ]
+            (Program_point_state acl1)
+        end
+        ;
+        (* Side Effect Search: May Alias *)
+        begin
+          let%orzero
+            Unannotated_clause (Abs_clause(_, Abs_update_body(_,x2'))) = acl1
+          in
+          static
+            [ Pop Alias_huh
+            ; Pop_dynamic_targeted (Side_effect_search_may_alias_1_of_3 x2')
+            ]
+            (Program_point_state acl1)
+        end
+        ;
+        (* Side Effect Search Escape: Frame *)
+        begin
+          dynpop Side_effect_search_escape_frame (Program_point_state acl0)
+        end
+        ;
+        (* Side Effect Search Escape: Variable Concatenation *)
+        begin
+          dynpop
+            Side_effect_search_escape_variable_concatenation_1_of_2
+            (Program_point_state acl0)
+        end
+        ;
+        (* Side Effect Search Escape: Store Join *)
+        begin
+          dynpop
+            Side_effect_search_escape_store_join_1_of_2
+            (Program_point_state acl0)
+        end
       ]
   ;;
 

@@ -170,6 +170,152 @@ struct
     (* The third step of the May Alias rule.  This step retrieves the lookup
        variable and then performs the May Alias analysis.  The arguments are the
        variable being assigned to the cell and the two operands. *)
+    | Stateful_immediate_clause_skip of abstract_var
+    (* The Stateful Immediate Clause Skip rule.  This step verifies that we are
+       not looking for the variable in the argument.  The clause has already
+       been verified to be immediate and non-stateful, so our stateful lookup
+       is permitted to ignore it. *)
+    | Side_effect_search_start_function_flow_validated_1_of_2 of
+        annotated_clause
+    (* The first step of the Side Effect Search Start: Function Flow Validated
+       rule.  The argument is the wiring node at which the search is starting.
+       This step pops and keeps a store and then waits for the lookup variable. *)
+    | Side_effect_search_start_function_flow_validated_2_of_2 of
+        annotated_clause * Abstract_store.t
+    (* The second step of the Side Effect Search Start: Function Flow Validated
+       rule. The arguments are the wiring node at which the search is starting
+       and the store which was popped in the first step.  This step initiates
+       the side effect search. *)
+    | Side_effect_search_start_conditional_positive of annotated_clause
+    (* The Side Effect Search Start: Conditional Positive rule.  The argument
+       for this step is the wiring clause that triggered the start of the
+       search. *)
+    | Side_effect_search_start_conditional_negative of annotated_clause
+    (* The Side Effect Search Start: Conditional Negative rule.  The argument
+       for this step is the wiring clause that triggered the start of the
+       search. *)
+    | Side_effect_search_immediate_clause_skip
+    (* The Side Effect Search Immediate Clause Skip rule.  During a side effect
+       search, the only meaningful immediate clause is the cell update; no other
+       clauses have an effect on lookup.  This action verifies that a side
+       effect search is under way by peeking at the top stack element. *)
+    | Side_effect_search_function_bottom_flow_check of
+        annotated_clause * abstract_clause
+    (* The Side Effect Search: Function Bottom: Flow Check rule.  The arguments
+       are the clause from which the check is being performed and the function
+       call site. *)
+    | Side_effect_search_function_bottom_return_variable_1_of_2 of
+        annotated_clause
+    (* The first step of the Side Effect Search: Function Bottom: Return
+       Variable rule.  This step retrieves a store from the stack in wait for
+       the side effect lookup variable.  The argument to this step is the wiring
+       node where we are checking function flow. *)
+    | Side_effect_search_function_bottom_return_variable_2_of_2 of
+        annotated_clause * Abstract_store.t
+    (* The second step of the Side Effect Search: Function Bottom: Return
+       Variable rule.  This step verifies the function which was discovered by
+       the Flow Check rule and directs the search into the function. *)
+    | Side_effect_search_function_top of abstract_clause
+    (* The Side Effect Search: Function Top rule.  The argument is the call site
+       for function. *)
+    | Side_effect_search_conditional_positive of annotated_clause
+    (* The Side Effect Search: Conditional Positive rule.  The argument is the
+       exit wiring for the conditional clause that triggered the search. *)
+    | Side_effect_search_conditional_negative of annotated_clause
+    (* The Side Effect Search: Conditional Positive rule.  The argument is the
+       exit wiring for the conditional clause that triggered the search. *)
+    | Side_effect_search_conditional_top
+    (* The Side Effect Search: Conditional Top rule.  This rule merely lifts the
+       appropriate side-effect lookup variable and removes the frame from
+       beneath it. *)
+    | Side_effect_search_function_wiring_join_defer_1_of_3
+    (* The first step of the Side Effect Search: Function Wiring Join
+       rule.  This step handles the conditional lookup variable as well as the
+       parallel join symbol. *)
+    | Side_effect_search_function_wiring_join_defer_2_of_3 of abstract_var
+    (* The second step of the Side Effect Search: Function Wiring Join
+       rule.  This step retrieves the store from the stack.  The argument here
+       is the side-effect lookup variable captured from the previous step. *)
+    | Side_effect_search_function_wiring_join_defer_3_of_3 of
+        abstract_var * Abstract_store.t
+    (* The third step of the Side Effect Search: Function Wiring Join
+       rule.  This step retrieves the trace concatenation from the stack.  The
+       arguments here are the side-effect lookup variable captured from the
+       first step and the store captured from the second step. *)
+    | Side_effect_search_conditional_wiring_join_defer_1_of_2
+    (* The first step of the Side Effect Search: Conditional Wiring Join Defer
+       rule.  This step pops the side-effect lookup variable and the parallel
+       join symbol. *)
+    | Side_effect_search_conditional_wiring_join_defer_2_of_2 of abstract_var
+    (* The second step of the Side Effect Search: Conditional Wiring Join Defer
+       rule.  This step pops the store and the side-effect frame symbol.  The
+       argument here is the variable popped from the first step. *)
+    | Side_effect_search_join_compression_1_of_3
+    (* The first step of the Side Effect Search: Join Compression rule.  This
+       step pops the side-effect lookup variable and the first parallel join
+       symbol. *)
+    | Side_effect_search_join_compression_2_of_3 of abstract_var
+    (* The second step of the Side Effect Search: Join Compression rule.  This
+       step pops the first store and the second parallel join symbol.  The
+       argument here is the variable popped in the first step. *)
+    | Side_effect_search_join_compression_3_of_3 of
+        abstract_var * Abstract_store.t
+    (* The third step of the Side Effect Search: Join Compression rule.  This
+       step pops the second store and performs the join compression.  The
+       arguments here are the variable popped in the first step and the store
+       popped in the second step. *)
+    | Side_effect_search_alias_analysis_start of
+        annotated_clause * annotated_clause
+    (* The Side Effect Search: Alias Analysis Start rule.  The provided
+       clauses are the cell update which triggered the analysis and the
+       clause immediately following it. *)
+    (* The Alias Analysis Start rule.  This step retrieves the current lookup
+       variable to set up the alias analysis process.  The arguments are the
+       update clause, and the current clause (which is after the update
+       clause). *)
+    | Side_effect_search_may_not_alias_1_of_3
+    (* The first step of the Side Effect Search: May Not Alias rule.  This step
+       retrieves the first operand of the aliasing operation. *)
+    | Side_effect_search_may_not_alias_2_of_3 of Abstract_store.t
+    (* The second step of the Side Effect Search: May Not Alias rule.  This step
+       retrieves the second operand and waits for the lookup variable.  The
+       argument here is the first operand. *)
+    | Side_effect_search_may_not_alias_3_of_3 of
+        Abstract_store.t * Abstract_store.t
+    (* The third step of the Side Effect Search: May Not Alias rule.  This step
+       retrieves the lookup variable and then performs the May Not Alias
+       analysis. *)
+    | Side_effect_search_may_alias_1_of_3 of abstract_var
+    (* The first step of the Side Effect Search: May Alias rule.  This step
+       retrieves the first operand of the aliasing operation.  The argument is
+        the variable being assigned to the cell in the update operation. *)
+    | Side_effect_search_may_alias_2_of_3 of abstract_var * Abstract_store.t
+    (* The second step of the Side Effect Search: May Alias rule.  This step
+       retrieves the second operand and waits for the lookup variable.  The
+       arguments are the variable being assigned to the cell and the first
+       operand. *)
+    | Side_effect_search_may_alias_3_of_3 of
+        abstract_var * Abstract_store.t * Abstract_store.t
+    (* The third step of the Side Effect Search: May Alias rule.  This step
+       retrieves the lookup variable and then performs the May Alias analysis.
+       The arguments are the variable being assigned to the cell and the two
+       operands. *)
+    | Side_effect_search_escape_frame
+    (* The Side Effect Search Escape: Frame rule. *)
+    | Side_effect_search_escape_variable_concatenation_1_of_2
+    (* The first step of the Side Effect Search Escape: Variable Concatenation
+       rule.  This step pops the store and the escape symbol. *)
+    | Side_effect_search_escape_variable_concatenation_2_of_2 of
+        Abstract_store.t
+    (* The second step of the Side Effect Search Escape: Variable Concatenation
+       rule.  This step pops the trace concatenation and performs it. *)
+    | Side_effect_search_escape_store_join_1_of_2
+    (* The first step of the Side Effect Search Escape: Store Join rule.  This
+       step pops the first operand as well as the escape and join symbols. *)
+    | Side_effect_search_escape_store_join_2_of_2 of Abstract_store.t
+    (* The second step of the Side Effect Search Escape: Store Join rule.  This
+       step pops the second operand and performs the join. *)
+
   [@@deriving eq, ord, show, to_yojson]
   ;;
 
