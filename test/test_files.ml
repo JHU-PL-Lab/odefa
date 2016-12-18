@@ -22,6 +22,7 @@ open Core_ast_wellformedness;;
 open Core_toploop_options;;
 open Core_toploop_types;;
 open Ddpa_abstract_ast;;
+open Ddpa_abstract_stores;;
 open String_utils;;
 
 let lazy_logger = Logger_utils.make_lazy_logger "Test_files";;
@@ -198,7 +199,7 @@ let observe_analysis_stack_selection chosen_stack_ref expectation =
         match !chosen_stack_ref with
         | Default_size -> Chosen_size size_option
         | Chosen_size _ ->
-            assert_failure @@ "multiple expectations of analysis stack"
+          assert_failure @@ "multiple expectations of analysis stack"
     end;
     None
   | _ -> Some expectation
@@ -268,9 +269,7 @@ let make_test filename expectations =
     | Expect_analysis_no_inconsistencies ->
       "should be consistent"
   in
-  let test_name = filename ^ ": (" ^
-                  string_of_list name_of_expectation expectations ^ ")"
-  in
+  let test_name = filename in
   (* Create the test in a thunk. *)
   test_name >::
   function _ ->
@@ -377,10 +376,16 @@ let make_test filename expectations =
       (* Report each resulting variable analysis. *)
       result.analyses
       |> List.iter
-        (fun ((varname,_),values) ->
+        (fun ((varname,_),stores) ->
+           let values =
+             stores
+             |> Abstract_store_set.enum
+             |> Enum.map store_read
+             |> Abs_value_set.of_enum
+           in
            let repr =
              Pp_utils.pp_to_string
-               Ddpa_abstract_stores.Abstract_store_set.pp values
+               Abs_value_set.pp values
            in
            observation @@ observe_analysis_variable_lookup_from_end
              (Ident varname) repr
