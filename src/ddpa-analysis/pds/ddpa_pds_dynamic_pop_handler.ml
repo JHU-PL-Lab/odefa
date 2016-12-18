@@ -312,13 +312,13 @@ struct
              ; Push Deref
              ; Push (Lookup_var x)
              ]
-    | Side_effect_search_start_function_flow_validated_1_of_2 acl1 ->
+    | Side_effect_search_start_function_flow_validated_1_of_2(acl1,acl0) ->
       let%orzero Continuation_store s = element in
       return [ Pop_dynamic_targeted
                  (Side_effect_search_start_function_flow_validated_2_of_2(
-                     acl1,s))
+                     acl0,acl1,s))
              ]
-    | Side_effect_search_start_function_flow_validated_2_of_2(acl1,s) ->
+    | Side_effect_search_start_function_flow_validated_2_of_2(acl1,acl0,s) ->
       let%orzero Lookup_var x = element in
       let%orzero Exit_clause(x0'',x',c) = acl1 in
       [%guard not @@ equal_abstract_var x x0''];
@@ -330,12 +330,12 @@ struct
              ; Push Parallel_join
              ; Push Deref
              ; Push (Lookup_var x)
-             ; Push Side_effect_search_start
+             ; Push (Side_effect_search_start acl0)
              ; Push Side_effect_frame
              ; Push (Trace_concat (Trace_up c))
              ; Push (Side_effect_lookup_var x)
              ]
-    | Side_effect_search_start_conditional_positive acl1 ->
+    | Side_effect_search_start_conditional_positive(acl1,acl0) ->
       let%orzero Lookup_var x = element in
       let%orzero Exit_clause(x0'',_,c) = acl1 in
       let%orzero Abs_clause(_,Abs_conditional_body(x2'',p,_,_)) = c in
@@ -344,7 +344,7 @@ struct
              ; Push Parallel_join
              ; Push Deref
              ; Push (Lookup_var x)
-             ; Push Side_effect_search_start
+             ; Push (Side_effect_search_start acl0)
              ; Push Side_effect_frame
              ; Push (Side_effect_lookup_var x)
              ; Push (Jump acl1)
@@ -352,7 +352,7 @@ struct
              ; Push (Continuation_matches p)
              ; Push (Lookup_var x2'')
              ]
-    | Side_effect_search_start_conditional_negative acl1 ->
+    | Side_effect_search_start_conditional_negative(acl1,acl0) ->
       let%orzero Lookup_var x = element in
       let%orzero Exit_clause(x0'',_,c) = acl1 in
       let%orzero Abs_clause(_,Abs_conditional_body(x2'',p,_,_)) = c in
@@ -361,7 +361,7 @@ struct
              ; Push Parallel_join
              ; Push Deref
              ; Push (Lookup_var x)
-             ; Push Side_effect_search_start
+             ; Push (Side_effect_search_start acl0)
              ; Push Side_effect_frame
              ; Push (Side_effect_lookup_var x)
              ; Push (Jump acl1)
@@ -590,6 +590,73 @@ struct
       return [ Push Side_effect_escape
              ; Push (Continuation_store s')
              ]
+    | Side_effect_search_escape_complete_1_of_3 ->
+      let%orzero Continuation_store s = element in
+      return [ Pop Side_effect_escape
+             ; Pop_dynamic_targeted
+                 (Side_effect_search_escape_complete_2_of_3 s)
+             ]
+    | Side_effect_search_escape_complete_2_of_3 s ->
+      let%orzero Side_effect_search_start acl = element in
+      return [ Pop_dynamic_targeted
+                 (Side_effect_search_escape_complete_3_of_3(s,acl))
+             ]
+    | Side_effect_search_escape_complete_3_of_3(s,acl) ->
+      let%orzero Lookup_var _ = element in
+      (* NOTE: the use of Jump below isn't in the specification, but it's useful
+         here since we can't easily chain untargeted actions. *)
+      return [ Pop Deref
+             ; Push (Continuation_store s)
+             ; Push (Jump acl)
+             ]
+    | Side_effect_search_not_found_shallow_1_of_2 ->
+      let%orzero Side_effect_lookup_var _ = element in
+      return [ Pop_dynamic_targeted
+                 Side_effect_search_not_found_shallow_2_of_2 ]
+    | Side_effect_search_not_found_shallow_2_of_2 ->
+      let%orzero Side_effect_search_start _ = element in
+      return []
+    | Side_effect_search_not_found_deep_1_of_4 ->
+      let%orzero Side_effect_lookup_var _ = element in
+      return [ Pop Parallel_join
+             ; Pop_dynamic_targeted Side_effect_search_not_found_deep_2_of_4
+             ]
+    | Side_effect_search_not_found_deep_2_of_4 ->
+      let%orzero Continuation_store s = element in
+      return [ Pop_dynamic_targeted
+                 (Side_effect_search_not_found_deep_3_of_4 s) ]
+    | Side_effect_search_not_found_deep_3_of_4 s ->
+      let%orzero Side_effect_search_start _ = element in
+      return [ Pop_dynamic_targeted
+                 (Side_effect_search_not_found_deep_4_of_4 s) ]
+    | Side_effect_search_not_found_deep_4_of_4 s ->
+      let%orzero Lookup_var x = element in
+      return [ Pop Deref
+             ; Push (Continuation_store s)
+             ; Push Parallel_join
+             ; Push Deref
+             ; Push (Lookup_var x)
+             ]
+    | Binary_operation_stop_1_of_2(x1,op) ->
+      let%orzero Continuation_store s1 = element in
+      return [ Pop_dynamic_targeted (Binary_operation_stop_2_of_2(x1,op,s1)) ]
+    | Binary_operation_stop_2_of_2(x1,op,s1) ->
+      let%orzero Continuation_store s2 = element in
+      let%orzero Some vs =
+        abstract_binary_operation op (store_read s1) (store_read s2)
+      in
+      let%bind v = pick_enum vs in
+      let s3'' = Store_ops.store_singleton x1 v in
+      let%orzero Some s3' = Store_ops.parallel_store_join s3'' s1 in
+      let%orzero Some s3 = Store_ops.parallel_store_join s3' s2 in
+      return [ Push (Continuation_store s3) ]
+    | Unary_operation_stop(x1,op) ->
+      let%orzero Continuation_store s = element in
+      let%orzero Some vs = abstract_unary_operation op @@ store_read s in
+      let%bind v = pick_enum vs in
+      let s' = Store_ops.store_singleton x1 v in
+      let%orzero Some s'' = Store_ops.parallel_store_join s' s in
+      return [ Push (Continuation_store s'') ]
   ;;
 
   let perform_untargeted_dynamic_pop element action =

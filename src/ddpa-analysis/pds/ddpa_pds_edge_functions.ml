@@ -441,7 +441,8 @@ struct
           static
             [ Pop Real_flow_huh
             ; Pop_dynamic_targeted
-                (Side_effect_search_start_function_flow_validated_1_of_2 acl1)
+                (Side_effect_search_start_function_flow_validated_1_of_2(
+                    acl1,acl0))
             ]
             (Program_point_state acl1)
         end
@@ -453,7 +454,7 @@ struct
           let Abs_function_value(_,Abs_expr(cls)) = f1 in
           [%guard equal_abstract_var x' @@ rv cls];
           dynpop
-            (Side_effect_search_start_conditional_positive acl1)
+            (Side_effect_search_start_conditional_positive(acl1,acl0))
             (Program_point_state (Unannotated_clause c))
         end
         ;
@@ -464,7 +465,7 @@ struct
           let Abs_function_value(_,Abs_expr(cls)) = f2 in
           [%guard equal_abstract_var x' @@ rv cls];
           dynpop
-            (Side_effect_search_start_conditional_negative acl1)
+            (Side_effect_search_start_conditional_negative(acl1,acl0))
             (Program_point_state (Unannotated_clause c))
         end
         ;
@@ -610,6 +611,94 @@ struct
           dynpop
             Side_effect_search_escape_store_join_1_of_2
             (Program_point_state acl0)
+        end
+        ;
+        (* Side Effect Search Escape: Complete *)
+        begin
+          (* NOTE: There's a bit of a stunt going on here.  The reachability
+             analysis doesn't actually support an untargeted pop on the end of
+             a targeted pop chain, so we're just going to use the jump operation
+             to get around this.  The program point specified below is therefore
+             meaningless. *)
+          dynpop
+            Side_effect_search_escape_complete_1_of_3
+            (Program_point_state acl0)
+        end
+        ;
+        (* Side Effect Search: Not Found (Shallow) *)
+        begin
+          dynpop
+            Side_effect_search_not_found_shallow_1_of_2
+            (Program_point_state acl0)
+        end
+        ;
+        (* Side Effect Search: Not Found (Deep) *)
+        begin
+          dynpop
+            Side_effect_search_not_found_deep_1_of_4
+            (Program_point_state acl0)
+        end
+        ;
+        (* ********** Operations ********** *)
+        (* Binary Operation Start *)
+        begin
+          let%orzero
+            Unannotated_clause(
+              Abs_clause(x1,Abs_binary_operation_body(x2,_,x3))) = acl1
+          in
+          static
+            [ Pop (Lookup_var x1)
+            ; Push Binary_operation
+            ; Push (Jump acl0)
+            ; Push (Capture (Struct.Bounded_capture_size.of_int 2))
+            ; Push (Lookup_var x3)
+            ; Push (Jump acl1)
+            ; Push (Capture (Struct.Bounded_capture_size.of_int 5))
+            ; Push (Lookup_var x2 )
+            ]
+            (Program_point_state acl1)
+        end
+        ;
+        (* Binary Operation Stop *)
+        begin
+        let%orzero
+          Unannotated_clause(
+            Abs_clause(x1,Abs_binary_operation_body(_,op,_))) = acl1
+        in
+        static
+          [ Pop Binary_operation
+          ; Pop_dynamic_targeted (Binary_operation_stop_1_of_2(x1,op))
+          ]
+          (Program_point_state acl1)
+        end
+        ;
+        (* Unary Operation Start *)
+        begin
+        let%orzero
+          Unannotated_clause(
+            Abs_clause(x1,Abs_unary_operation_body(_,x2))) = acl1
+        in
+        static
+          [ Pop (Lookup_var x1)
+          ; Push Unary_operation
+          ; Push (Jump acl0)
+          ; Push (Capture (Struct.Bounded_capture_size.of_int 2))
+          ; Push (Lookup_var x2)
+          ]
+          (Program_point_state acl1)
+        end
+        ;
+        (* Unary Operation Stop *)
+        begin
+          let%orzero
+            Unannotated_clause(
+              Abs_clause(x1,Abs_unary_operation_body(op,_))) = acl1
+          in
+          static
+            [ Pop Unary_operation
+            ; Pop_dynamic_targeted (Unary_operation_stop(x1,op))
+            ]
+            (Program_point_state acl1)
         end
       ]
   ;;

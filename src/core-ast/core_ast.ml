@@ -92,25 +92,39 @@ type binary_operator =
 [@@deriving eq, ord]
 ;;
 
-let binary_operator_to_yojson = function
-  | Binary_operator_plus -> `String "+"
-  | Binary_operator_int_minus -> `String "-"
-  | Binary_operator_int_less_than -> `String "<"
-  | Binary_operator_int_less_than_or_equal_to -> `String "<="
-  | Binary_operator_equal_to -> `String "=="
-  | Binary_operator_bool_and -> `String "and"
-  | Binary_operator_bool_or -> `String "or"
-  | Binary_operator_index -> `String "@"
+let show_binary_operator op =
+  match op with
+  | Binary_operator_plus -> "+"
+  | Binary_operator_int_minus -> "-"
+  | Binary_operator_int_less_than -> "<"
+  | Binary_operator_int_less_than_or_equal_to -> "<="
+  | Binary_operator_equal_to -> "=="
+  | Binary_operator_bool_and -> "and"
+  | Binary_operator_bool_or -> "or"
+  | Binary_operator_index -> "@"
 ;;
+
+let pp_binary_operator formatter op =
+  Format.pp_print_string formatter @@ show_binary_operator op
+;;
+
+let binary_operator_to_yojson op = `String (show_binary_operator op);;
 
 type unary_operator =
   | Unary_operator_bool_not
 [@@deriving eq, ord]
 ;;
 
-let unary_operator_to_yojson = function
-  | Unary_operator_bool_not ->  `String "not"
+let show_unary_operator op =
+  match op with
+  | Unary_operator_bool_not ->  "not"
 ;;
+
+let pp_unary_operator formatter op =
+  Format.pp_print_string formatter @@ show_unary_operator op
+;;
+
+let unary_operator_to_yojson op = `String (show_unary_operator op);;
 
 (** A type to express record values. *)
 type record_value =

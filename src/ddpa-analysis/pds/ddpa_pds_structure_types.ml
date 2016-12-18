@@ -62,7 +62,7 @@ struct
     | Trace_concat of Relative_trace_part.t
     | Continuation_matches of pattern
     | Continuation_antimatches of pattern
-    | Side_effect_search_start
+    | Side_effect_search_start of annotated_clause
     | Side_effect_frame
     | Side_effect_escape
     | Side_effect_lookup_var of abstract_var

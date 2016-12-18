@@ -1,4 +1,5 @@
 open Batteries;;
+open Core_ast;;
 open Ddpa_abstract_ast;;
 open Ddpa_abstract_stores;;
 
@@ -176,24 +177,27 @@ struct
        been verified to be immediate and non-stateful, so our stateful lookup
        is permitted to ignore it. *)
     | Side_effect_search_start_function_flow_validated_1_of_2 of
-        annotated_clause
+        annotated_clause * annotated_clause
     (* The first step of the Side Effect Search Start: Function Flow Validated
-       rule.  The argument is the wiring node at which the search is starting.
-       This step pops and keeps a store and then waits for the lookup variable. *)
+       rule.  The arguments are the wiring node at which the search is starting
+       and the node following that wiring node.  This step pops and keeps a
+       store and then waits for the lookup variable. *)
     | Side_effect_search_start_function_flow_validated_2_of_2 of
-        annotated_clause * Abstract_store.t
+        annotated_clause * annotated_clause * Abstract_store.t
     (* The second step of the Side Effect Search Start: Function Flow Validated
-       rule. The arguments are the wiring node at which the search is starting
-       and the store which was popped in the first step.  This step initiates
-       the side effect search. *)
-    | Side_effect_search_start_conditional_positive of annotated_clause
-    (* The Side Effect Search Start: Conditional Positive rule.  The argument
-       for this step is the wiring clause that triggered the start of the
-       search. *)
-    | Side_effect_search_start_conditional_negative of annotated_clause
-    (* The Side Effect Search Start: Conditional Negative rule.  The argument
-       for this step is the wiring clause that triggered the start of the
-       search. *)
+       rule. The arguments are the wiring node at which the search is starting,
+       the node following that wiring node, and the store which was popped in
+       the first step.  This step initiates the side effect search. *)
+    | Side_effect_search_start_conditional_positive of
+        annotated_clause * annotated_clause
+    (* The Side Effect Search Start: Conditional Positive rule.  The arguments
+       for this step are the wiring clause that triggered the start of the
+       search and the clause immediately following that wiring clause. *)
+    | Side_effect_search_start_conditional_negative of
+          annotated_clause * annotated_clause
+    (* The Side Effect Search Start: Conditional Negative rule.  The arguments
+       for this step are the wiring clause that triggered the start of the
+       search and the clause immediately following that wiring clause. *)
     | Side_effect_search_immediate_clause_skip
     (* The Side Effect Search Immediate Clause Skip rule.  During a side effect
        search, the only meaningful immediate clause is the cell update; no other
@@ -315,7 +319,54 @@ struct
     | Side_effect_search_escape_store_join_2_of_2 of Abstract_store.t
     (* The second step of the Side Effect Search Escape: Store Join rule.  This
        step pops the second operand and performs the join. *)
-
+    | Side_effect_search_escape_complete_1_of_3
+    (* The first step of the Side Effect Search Escape: Complete rule.  This
+       step pops the store and the escape symbol. *)
+    | Side_effect_search_escape_complete_2_of_3 of Abstract_store.t
+    (* The second step of the Side Effect Search Escape: Complete rule.  This
+       step pops the side-effect start symbol.  The argument here is the store
+       popped from the first step. *)
+    | Side_effect_search_escape_complete_3_of_3 of
+        Abstract_store.t * annotated_clause
+    (* The third step of the Side Effect Search Escape: Complete rule.  This
+       step pops the original lookup variable and the deref symbol, replacing
+       them with the result and moving to an appropriate position. *)
+    | Side_effect_search_not_found_shallow_1_of_2
+    (* The first step in the Side Effect Search: Not Found (Shallow) rule.  This
+       step pops and discards the side-effect lookup variable to look for a
+       start symbol beneath. *)
+    | Side_effect_search_not_found_shallow_2_of_2
+    (* The second step in the Side Effect Search: Not Found (Shallow) rule.
+       This step pops and discards any start symbol. *)
+    | Side_effect_search_not_found_deep_1_of_4
+    (* The first step in the Side Effect Search: Not Found (Deep) rule.  This
+       step pops and discards the side-effect lookup variable as well as the
+       parallel join symbol. *)
+    | Side_effect_search_not_found_deep_2_of_4
+    (* The second step in the Side Effect Search: Not Found (Deep) rule.  This
+       step pops and keeps the store. *)
+    | Side_effect_search_not_found_deep_3_of_4 of Abstract_store.t
+    (* The third step in the Side Effect Search: Not Found (Deep) rule.  This
+       step pops and discards the start symbol.  The argument here is the store
+       popped from the second step. *)
+    | Side_effect_search_not_found_deep_4_of_4 of Abstract_store.t
+    (* The fourth step in the Side Effect Search: Not Found (Deep) rule.  This
+       step pops the lookup variable and its deref symbol and then reintroduces
+       items onto the stack. *)
+    | Binary_operation_stop_1_of_2 of abstract_var * binary_operator
+    (* The first step of the Binary Operation Stop rule.  This step pops the
+       first operand.  The arguments are the variable to which the result is
+       assigned and the operator being applied. *)
+    | Binary_operation_stop_2_of_2 of
+        abstract_var * binary_operator * Abstract_store.t
+    (* The first step of the Binary Operation Stop rule.  This step pops the
+       second operand and performs the operation.  The arguments are the
+       variable to which the result is assigned, the operator being applied, and
+       the first operand. *)
+    | Unary_operation_stop of abstract_var * unary_operator
+    (* The Unary Operation Stop rule.  This step pops the operand and performs
+       the operation.  The arguments are the variable to which the result is
+       assigned and the operator being applied. *)
   [@@deriving eq, ord, show, to_yojson]
   ;;
 
