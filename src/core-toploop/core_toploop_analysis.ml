@@ -67,7 +67,7 @@ struct
       end
     | Abs_binary_operation_body(x1,op,x2) ->
       let%bind store1 = pick_enum @@ Abstract_store_set.enum @@ lookup x1 in
-      let%bind store2 = pick_enum @@ Abstract_store_set.enum @@ lookup x1 in
+      let%bind store2 = pick_enum @@ Abstract_store_set.enum @@ lookup x2 in
       let v1 = store_read store1 in
       let v2 = store_read store2 in
       let is_valid = Option.is_some (abstract_binary_operation op v1 v2) in
