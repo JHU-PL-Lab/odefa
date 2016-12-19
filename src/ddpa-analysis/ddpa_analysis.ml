@@ -449,7 +449,7 @@ struct
     let open Structure_types in
     let start_state = Program_point_state acl in
     let start_actions =
-      (Push Bottom_of_stack)::(List.map (fun x -> Push x) stack)
+      (Push Bottom_of_stack)::(List.map (fun x -> Push x) @@ List.rev stack)
     in
     let reachability = analysis.pds_reachability in
     let reachability' =

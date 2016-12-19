@@ -106,7 +106,8 @@ struct
       then
         let ks' = element::ks in
         let ks'' = (Continuation_store s)::ks' in
-        return @@ List.map (fun x -> Push x) ks''
+        let actions = List.map (fun x -> Push x) ks'' in
+        return actions
       else
         let n' = Struct.Bounded_capture_size.decrement n in
         return [ Pop_dynamic_targeted(Capture_3_of_3(s,n',element::ks)) ]
