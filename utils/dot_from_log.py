@@ -318,6 +318,8 @@ def abbrv_value(value):
         return "fun {} -> ...".format(value[1][1])
     elif value[0] == "Abs_value_ref":
         return "ref {}".format(value[1][1])
+    elif value[0] == "Abs_value_string":
+        return "string"
     else:
         raise NotImplementedError(value)
 
