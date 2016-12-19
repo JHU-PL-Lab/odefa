@@ -177,6 +177,14 @@ let observe_stuck failure expectation =
   | _ -> Some expectation
 ;;
 
+let observe_evaluation_invalidated expectation =
+  match expectation with
+  | Expect_evaluate
+  | Expect_stuck ->
+    assert_failure @@ "Evaluation cancelled due to inconsistency"
+  | _ -> Some expectation
+;;
+
 let observe_well_formed expectation =
   match expectation with
   | Expect_well_formed -> None
@@ -400,7 +408,7 @@ let make_test filename expectations =
         match result.evaluation_result with
         | Evaluation_completed _ -> observation observe_evaluated
         | Evaluation_failure failure -> observation (observe_stuck failure)
-        | Evaluation_invalidated -> ()
+        | Evaluation_invalidated -> observation observe_evaluation_invalidated
         | Evaluation_disabled -> ()
       end;
       (* If there are any expectations of errors left, they're a problem. *)
