@@ -307,9 +307,7 @@ def abbrv_value(value):
         for k,v in value[1][1].items():
             if len(buf) > 0:
                 buf += ","
-            buf += str(k)
-            buf += "="
-            buf += abbrv_value(v)
+            buf += "{}={}".format(k,v)
         buf = "{" + buf + "}"
         return buf
     elif value[0] == "Abs_value_int":
