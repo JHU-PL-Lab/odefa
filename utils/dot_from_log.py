@@ -93,7 +93,7 @@ def work_order_from_graph_type(cmd_args, graph_type):
     w.file_prefix = cmd_args[graph_type + "_file_prefix"]
 
     options = {}
-    for option in [ "exclude_edges_by_pattern" ]:
+    for option in [ "exclude_by_pattern" ]:
         name = graph_type + "_" + option
         if name in cmd_args and cmd_args[name]:
             options[option] = cmd_args[name]
@@ -135,8 +135,9 @@ def parse_args():
         '--cfg-file-prefix', nargs='?', type=str, default='ddpa_cfg_',
         help='the prefix used for CFG DOT files')
     parser.add_argument(
-        '--pdr-exclude-edges-by-pattern', action='append',
-        help='ignore PDR edges that match a particular regular expression')
+        '--pdr-exclude-by-pattern', action='append',
+        help='ignore PDR nodes and edges that match a particular regular '
+             'expression')
     parser.add_argument(
         'log_file', type=str,
         help='the JSON log file in which graphs are stored')
@@ -315,8 +316,10 @@ def abbrv_value(value):
         return "int"
     elif value[0] == "Abs_value_bool":
         return str(value[1])
+    elif value[0] == "Abs_value_function":
+        return "fun {} -> ...".format(value[1][1])
     else:
-        raise NotImplementedError(value[0])
+        raise NotImplementedError(value)
 
 def abbrv_store(store):
     if store["abstract_store_root"][0] == "Variable_store_root":
@@ -351,6 +354,15 @@ def abbrv_pdr_node(node):
     else:
         raise NotImplementedError(node)
 
+def abbrv_trace_part(tp):
+    if tp[0] == "Trace_down":
+        pfx = u"↓"
+    elif tp[0] == "Trace_up":
+        pfx = u"↑"
+    else:
+        raise NotImplementedError(tp)
+    return u"{}{}".format(pfx,tp[1][1])
+
 def abbrv_pdr_stack_element(el):
     if el[0] == "Lookup_var":
         return el[1]
@@ -374,6 +386,10 @@ def abbrv_pdr_stack_element(el):
         return "SEFrame"
     elif el[0] == "Parallel_join":
         return u"⇉"
+    elif el[0] == "Real_flow_huh":
+        return "RealFlow?"
+    elif el[0] == "Trace_concat":
+        return abbrv_trace_part(el[1])
     raise NotImplementedError(el)
 
 def abbrv_pdr_dynamic_pop_argument(x):
@@ -387,10 +403,12 @@ def abbrv_pdr_dynamic_pop_argument(x):
                     , "End_clause"
                     ]:
         return abbrv_clause(x)
+    if type(x) == type(()) and len(x) > 0 and x[0] == "Abs_clause":
+        return x[1]
     if type(x) in [type({}),ImmutableDict] and "abstract_store_root" in x:
         return abbrv_store(x)
     if type(x) == type(()):
-        return u"{}".format(list(map(abbrv_pdr_dynamic_pop_argument, list(x))))
+        return "..."
     raise NotImplementedError(x,type(x))
 
 def abbrv_pdr_dynamic_pop(el):
@@ -434,13 +452,20 @@ def abbrv_pdr_stack_action(act):
 def write_pdr_file(pdr, work_count, file_prefix, options):
     reachability = pdr["reachability"]
     exclusion_regexes = list(map(re.compile,
-                                 options.get("exclude_edges_by_pattern",[])))
+                                 options.get("exclude_by_pattern",[])))
+    def should_exclude(s):
+        for exclusion_regex in exclusion_regexes:
+            if exclusion_regex.search(s):
+                return True
+        return False
 
     # ***** Create a dictionary of every node's ID and its visible name
     nodes = {}
     uid = [0]
     def node_mapping(n):
-        nodes[n] = abbrv_pdr_node(n)
+        txt = abbrv_pdr_node(n)
+        if not should_exclude(txt):
+            nodes[n] = txt
     for k,v in reachability["push_edges_by_source"].items():
         node_mapping(k)
         for dst,act in v:
@@ -463,12 +488,7 @@ def write_pdr_file(pdr, work_count, file_prefix, options):
     # ***** Create a list of each edge
     edges = []
     def edge_found(src,dst,label):
-        exclude = False
-        for exclusion_regex in exclusion_regexes:
-            if exclusion_regex.search(label):
-                exclude = True
-                break
-        if not exclude:
+        if src in nodes and dst in nodes and not should_exclude(label):
             edges.append((src,dst,label))
     for src,v in reachability["push_edges_by_source"].items():
         for dst,act in v:
