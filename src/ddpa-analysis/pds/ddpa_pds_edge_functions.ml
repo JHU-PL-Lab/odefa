@@ -138,7 +138,7 @@ struct
         (* [[ this rule is handled by untargeted dynamic pops ]] *)
         (* Capture *)
         begin
-          dynpop Capture_1_of_3 (Program_point_state acl1)
+          dynpop Capture_1_of_3 (Program_point_state acl0)
         end
         ;
         (* Rewind *)

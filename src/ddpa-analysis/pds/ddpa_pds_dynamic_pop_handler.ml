@@ -104,12 +104,12 @@ struct
     | Capture_3_of_3(s,n,ks) ->
       if Struct.Bounded_capture_size.equals_one n
       then
-        let n' = Struct.Bounded_capture_size.decrement n in
-        return [ Pop_dynamic_targeted(Capture_3_of_3(s,n',element::ks)) ]
-      else
         let ks' = element::ks in
         let ks'' = (Continuation_store s)::ks' in
         return @@ List.map (fun x -> Push x) ks''
+      else
+        let n' = Struct.Bounded_capture_size.decrement n in
+        return [ Pop_dynamic_targeted(Capture_3_of_3(s,n',element::ks)) ]
     | Function_bottom_return_variable_1_of_2(x,x',c) ->
       let%orzero Continuation_store s = element in
       return [ Pop_dynamic_targeted(
