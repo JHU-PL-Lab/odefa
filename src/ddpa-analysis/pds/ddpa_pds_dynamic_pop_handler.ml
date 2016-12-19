@@ -635,10 +635,10 @@ struct
              ; Push (Lookup_var x)
              ]
     | Binary_operation_stop_1_of_2(x1,op) ->
-      let%orzero Continuation_store s1 = element in
-      return [ Pop_dynamic_targeted (Binary_operation_stop_2_of_2(x1,op,s1)) ]
-    | Binary_operation_stop_2_of_2(x1,op,s1) ->
       let%orzero Continuation_store s2 = element in
+      return [ Pop_dynamic_targeted (Binary_operation_stop_2_of_2(x1,op,s2)) ]
+    | Binary_operation_stop_2_of_2(x1,op,s2) ->
+      let%orzero Continuation_store s1 = element in
       let%orzero Some vs =
         abstract_binary_operation op (store_read s1) (store_read s2)
       in
