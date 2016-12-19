@@ -147,6 +147,11 @@ let parse_expectation str =
       | "EXPECT-ANALYSIS-NO-INCONSISTENCIES"::args_part ->
         assert_no_args args_part;
         Expect_analysis_no_inconsistencies
+      | expect_str::_
+        when
+          String.length expect_str >= 7 &&
+          String.equal "EXPECT-" (String.sub expect_str 0 7) ->
+        raise @@ Expectation_parse_failure("Unknown expectation: " ^ expect_str)
       | _ ->
         raise @@ Expectation_not_found
     in
