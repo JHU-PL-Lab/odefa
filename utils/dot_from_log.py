@@ -135,7 +135,7 @@ def parse_args():
         '--cfg-file-prefix', nargs='?', type=str, default='ddpa_cfg_',
         help='the prefix used for CFG DOT files')
     parser.add_argument(
-        '--pdr-exclude-by-pattern', action='append',
+        '--pdr-exclude-by-pattern', action='append', nargs='+',
         help='ignore PDR nodes and edges that match a particular regular '
              'expression')
     parser.add_argument(
@@ -318,6 +318,8 @@ def abbrv_value(value):
         return str(value[1])
     elif value[0] == "Abs_value_function":
         return "fun {} -> ...".format(value[1][1])
+    elif value[0] == "Abs_value_ref":
+        return "ref {}".format(value[1][1])
     else:
         raise NotImplementedError(value)
 
@@ -366,6 +368,13 @@ def abbrv_trace_part(tp):
 def abbrv_pattern(p):
     if p[0] == "Any_pattern":
         return "any"
+    if p[0] == "Record_pattern":
+        acc = ""
+        for lbl,pp in p[1].items():
+            if acc: acc += ", "
+            acc += "{} => {}".format(lbl, abbrv_pattern(pp))
+        acc = "{" + acc + "}"
+        return acc
     raise NotImplementedError(p)
 
 def abbrv_pdr_stack_element(el):
@@ -391,6 +400,8 @@ def abbrv_pdr_stack_element(el):
         return "SEFrame"
     elif el[0] == "Parallel_join":
         return u"⇉"
+    elif el[0] == "Serial_join":
+        return u"↫"
     elif el[0] == "Real_flow_huh":
         return "RealFlow?"
     elif el[0] == "Trace_concat":
@@ -460,8 +471,11 @@ def abbrv_pdr_stack_action(act):
 
 def write_pdr_file(pdr, work_count, file_prefix, options):
     reachability = pdr["reachability"]
-    exclusion_regexes = list(map(re.compile,
-                                 options.get("exclude_by_pattern",[])))
+    exclusion_regex_lists = options.get("exclude_by_pattern",[])
+    exclusion_regex_list = []
+    for exclusion_regex_list_ in exclusion_regex_lists:
+        exclusion_regex_list.extend(exclusion_regex_list_)
+    exclusion_regexes = list(map(re.compile,exclusion_regex_list))
     def should_exclude(s):
         for exclusion_regex in exclusion_regexes:
             if exclusion_regex.search(s):
