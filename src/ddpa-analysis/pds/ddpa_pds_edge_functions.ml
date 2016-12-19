@@ -286,7 +286,7 @@ struct
         ;
         (* Conditional Top: Non-Subject Variable *)
         begin
-          let%orzero Exit_clause(x',x1,c) = acl1 in
+          let%orzero Enter_clause(x',x1,c) = acl1 in
           let%orzero Abs_clause(_,Abs_conditional_body(x1_,_,_,_)) = c in
           [%guard equal_abstract_var x1 x1_];
           dynpop
