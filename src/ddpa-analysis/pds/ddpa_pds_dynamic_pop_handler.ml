@@ -110,17 +110,13 @@ struct
       else
         let n' = Struct.Bounded_capture_size.decrement n in
         return [ Pop_dynamic_targeted(Capture_3_of_3(s,n',element::ks)) ]
-    | Function_bottom_return_variable_1_of_2(x,x',c) ->
+    | Function_bottom_return_variable(x,x',c) ->
       let%orzero Continuation_store s = element in
-      return [ Pop_dynamic_targeted(
-          Function_bottom_return_variable_2_of_2(x,x',c,s)) ]
-    | Function_bottom_return_variable_2_of_2(x,x',c,s) ->
-      let%orzero Lookup_var x0 = element in
-      [%guard equal_abstract_var x x0];
       let%orzero Abs_value_function(Abs_function_value(_,e)) = store_read s in
       let Abs_expr cls = e in
       [%guard equal_abstract_var x' (rv @@ cls)];
-      return [ Push (Continuation_store s)
+      return [ Pop (Lookup_var x)
+             ; Push (Continuation_store s)
              ; Push Parallel_join
              ; Push (Trace_concat (Trace_up c))
              ; Push (Lookup_var x')

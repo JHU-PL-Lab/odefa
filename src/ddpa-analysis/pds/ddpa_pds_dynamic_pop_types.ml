@@ -74,23 +74,12 @@ struct
        back onto the stack to finish the capturing process.  The arguments are
        the store popped in the first step, the number of elements left to
        capture, and the list of elements already popped. *)
-    | Function_bottom_return_variable_1_of_2 of
+    | Function_bottom_return_variable of
         abstract_var * abstract_var * abstract_clause
-    (* The first step of the Function Bottom: Return Variable rule.  This step
-       is invoked after the Real_flow_huh symbol has been removed from the
-       stack.  Its purpose is to pop and keep the store on the stack
-       representing the function value found from the Function Bottom: Flow
-       Check rule.  The arguments are, in order, the variable we must be looking
-       up presently, the variable we will start looking up if the process
-       succeeds, and the call site which should be marked when performing
-       relative tracing. *)
-    | Function_bottom_return_variable_2_of_2 of
-        abstract_var * abstract_var * abstract_clause * Abstract_store.t
-    (* The second step of the Function Bottom: Return Variable rule.  This step
-       verifies that we are looking for the correct variable to trigger entering
-       the bottom of the function.  In addition to the arguments for the first
-       step, this step also carries the store which contains the function that
-       was invoked. *)
+    (* The Function Bottom: Return Variable rule.  This action is invoked after
+       the Real_flow_huh symbol has been removed from the stack.  This step pops
+       the store and verifies that we are looking for the correct variable to
+       enter the function. *)
     | Function_top_nonlocal_variable of abstract_var * abstract_clause
     (* The Function Top: Non-Local variable rule.  As long as the current lookup
        variable is not equal to the first argument, this action will add stack

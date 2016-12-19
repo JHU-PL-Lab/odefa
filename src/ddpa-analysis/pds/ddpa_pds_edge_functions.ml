@@ -179,10 +179,9 @@ struct
           let%orzero Exit_clause(x,x',c) = acl1 in
           let%orzero Abs_clause(x0,Abs_appl_body(_,_)) = c in
           [%guard equal_abstract_var x x0];
-          let dyn = Function_bottom_return_variable_1_of_2(x,x',c) in
           static
             [ Pop Real_flow_huh
-            ; Pop_dynamic_targeted dyn
+            ; Pop_dynamic_targeted (Function_bottom_return_variable(x,x',c))
             ]
             (Program_point_state acl1)
         end
