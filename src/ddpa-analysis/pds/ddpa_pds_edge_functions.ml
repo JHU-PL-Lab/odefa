@@ -164,6 +164,7 @@ struct
           [%guard equal_abstract_var x x0];
           static
             [ Pop (Lookup_var x)
+            ; Push (Lookup_var x)
             ; Push Real_flow_huh
             ; Push (Jump acl0)
             ; Push (Capture(Struct.Bounded_capture_size.of_int 2))
