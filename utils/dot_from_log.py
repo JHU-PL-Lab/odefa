@@ -363,6 +363,11 @@ def abbrv_trace_part(tp):
         raise NotImplementedError(tp)
     return u"{}{}".format(pfx,tp[1][1])
 
+def abbrv_pattern(p):
+    if p[0] == "Any_pattern":
+        return "any"
+    raise NotImplementedError(p)
+
 def abbrv_pdr_stack_element(el):
     if el[0] == "Lookup_var":
         return el[1]
@@ -390,6 +395,10 @@ def abbrv_pdr_stack_element(el):
         return "RealFlow?"
     elif el[0] == "Trace_concat":
         return abbrv_trace_part(el[1])
+    elif el[0] == "Continuation_matches":
+        return "~{}".format(abbrv_pattern(el[1]))
+    elif el[0] == "Continuation_antimatches":
+        return u"≁{}".format(abbrv_pattern(el[1]))
     raise NotImplementedError(el)
 
 def abbrv_pdr_dynamic_pop_argument(x):
