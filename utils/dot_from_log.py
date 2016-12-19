@@ -1,4 +1,4 @@
-#!/usr/bin/env python
+#!/usr/bin/env python3
 # -*- coding: utf-8 -*-
 
 import argparse
@@ -91,6 +91,14 @@ def work_order_from_graph_type(cmd_args, graph_type):
         w.must_generate = w.must_generate.union(
             cmd_args[graph_type + "_by_number"])
     w.file_prefix = cmd_args[graph_type + "_file_prefix"]
+
+    options = {}
+    for option in [ "exclude_edges_by_pattern" ]:
+        name = graph_type + "_" + option
+        if name in cmd_args and cmd_args[name]:
+            options[option] = cmd_args[name]
+    w.options = options
+
     return w
 
 def parse_args():
@@ -127,6 +135,9 @@ def parse_args():
         '--cfg-file-prefix', nargs='?', type=str, default='ddpa_cfg_',
         help='the prefix used for CFG DOT files')
     parser.add_argument(
+        '--pdr-exclude-edges-by-pattern', action='append',
+        help='ignore PDR edges that match a particular regular expression')
+    parser.add_argument(
         'log_file', type=str,
         help='the JSON log file in which graphs are stored')
 
@@ -161,7 +172,7 @@ class BaseConversion(object):
         t = type(obj)
         if t == type([]):
             if len(obj) > 0:
-                obj = map(self.convert, obj)
+                obj = list(map(self.convert, obj))
                 obj0 = obj[0]
                 if obj[0] in self.singleton_variant_constructors:
                     if len(obj) == 2:
@@ -199,7 +210,7 @@ class BaseConversion(object):
                 return ImmutableDict(d)
             else:
                 d = {}
-                for k,v in obj.iteritems():
+                for k,v in obj.items():
                     d[self.convert(k)] = self.convert(v)
                 return ImmutableDict(d)
         else:
@@ -211,7 +222,7 @@ class BaseConversion(object):
         elif type(value) == type(frozenset([])):
             for x in value: self.sanity_check(x)
         elif type(value) == type(ImmutableDict({})):
-            for k,v in value.iteritems():
+            for k,v in value.items():
                 self.sanity_check(k)
                 self.sanity_check(v)
         elif type(value) in map(type, [0,u"","",False,None]):
@@ -273,7 +284,7 @@ def abbrv_clause(clause):
         raise InvariantFailure("Unrecognized clause for abbreviation: %s" %
                                str(clause))
 
-def write_cfg_file(cfg, work_count, file_prefix):
+def write_cfg_file(cfg, work_count, file_prefix, options):
     clauses = {}
     with codecs.open("%s_%d.dot" % (file_prefix, work_count), 'w', encoding="utf8") as f:
         f.write("strict digraph analysis {\n    rankdir=\"LR\"\n")
@@ -284,7 +295,7 @@ def write_cfg_file(cfg, work_count, file_prefix):
             f.write("    \"%s\" -> \"%s\";\n" % (source,target))
             clauses[source] = ClauseType.of_clause(edge[1])
             clauses[target] = ClauseType.of_clause(edge[2])
-        for k,v in clauses.iteritems():
+        for k,v in clauses.items():
             f.write("    \"%s\"[style=filled,fillcolor=\"%s\"];\n" %
                     (k,v.color))
         f.write("}\n")
@@ -292,7 +303,7 @@ def write_cfg_file(cfg, work_count, file_prefix):
 def abbrv_value(value):
     if value[0] == "Abs_value_record":
         buf = ""
-        for k,v in value[1][1].iteritems():
+        for k,v in value[1][1].items():
             if len(buf) > 0:
                 buf += ","
             buf += str(k)
@@ -302,6 +313,8 @@ def abbrv_value(value):
         return buf
     elif value[0] == "Abs_value_int":
         return "int"
+    elif value[0] == "Abs_value_bool":
+        return str(value[1])
     else:
         raise NotImplementedError(value[0])
 
@@ -322,7 +335,22 @@ def abbrv_pdr_state(state):
         return abbrv_store(state[1])
     else:
         raise NotImplementedError(state)
-    
+
+def abbrv_pdr_node(node):
+    if node[0] == "State_node":
+        return abbrv_pdr_state(node[1])
+    elif node[0] == "Intermediate_node":
+        actions = list(map(abbrv_pdr_stack_action, list(node[2])))
+        acc = ""
+        for action in actions:
+            if len(acc) > 0:
+                acc += ","
+            acc += action
+        acc = "[" + acc + "]"
+        return "{} ↦ {}".format(acc, abbrv_pdr_node(node[1]))
+    else:
+        raise NotImplementedError(node)
+
 def abbrv_pdr_stack_element(el):
     if el[0] == "Lookup_var":
         return el[1]
@@ -332,72 +360,20 @@ def abbrv_pdr_stack_element(el):
         return u"⊥"
     elif el[0] == "Binary_operation":
         return "BinOp"
+    elif el[0] == "Unary_operation":
+        return "UnOp"
     elif el[0] == "Capture":
         return "Capture({})".format(el[1])
     elif el[0] == "Jump":
         return "Jump({})".format(abbrv_clause(el[1]))
     elif el[0] == "Deref":
-        return "!"        
+        return "!"
     elif el[0] == "Side_effect_escape":
         return "SEEscape"
-    #elif el[0] == "Side_effect_search_escape_frame":
-        #return "SESEFrame"
-    #elif el[0] == "Stateless_clause_skip_1_of_2":
-        #return "SCS1({})".format(el[1])
-    #elif el[0] == "Stateless_clause_skip_2_of_2":
-        #return "SCS2({})".format(el[1])
-    #elif el[0] == "Store_parallel_join_1_of_3":
-        #return "SPJ1"
-    #elif el[0] == "Store_parallel_join_2_of_3":
-        #return "SPJ2({})".format(abbrv_store(el[1]))
-    #elif el[0] == "Capture_1_of_3":
-        #return "Cap1"
-    #elif el[0] == "Capture_2_of_3":
-        #return "Cap2({})".format(abbrv_store(el[1]))
-    #elif el[0] == "Capture_3_of_3":
-        #return "Cap2({},{})".format(abbrv_store(el[1]),el[2])
-    #elif el[0] == "Filter_nonempty_record_negative_1_of_2":
-        #return "FNRN1({})".format(abbrv_clause(el[1]))
-    #elif el[0] == "Store_suffix_1_of_2":
-        #return "StSufx1"
-    #elif el[0] == "Store_suffix_2_of_2":
-        #return "StSufx2({})".format(abbrv_store(el[1]))
-    #elif el[0] == "Discovered_store_2_of_2":
-        #return "DS2"
-    #elif el[0] == "Stateful_immediate_clause_skip":
-        #return "SICS({})".format(el[1])
-    #elif el[0] == "Intermediate_store":
-        #return "IntStore"
-    #elif el[0] == "Record_projection_stop_1_of_2":
-        #return "RProjStop1"
-    #elif el[0] == "Record_projection_stop_2_of_2":
-        #return "RProjStop2({})".format(abbrv_store(el[1]))
-    #elif el[0] == "Side_effect_search_escape_store_join_1_of_2":
-        #return "SESESJ1"
-    #elif el[0] == "Side_effect_search_not_found_deep_1_of_4":
-        #return "SESNFD1"
-    #elif el[0] == "Side_effect_search_not_found_shallow_1_of_2":
-        #return "SESNFS1"
-    #elif el[0] == "Store_serial_join_1_of_3":
-        #return "SSJ1"
-    #elif el[0] == "Store_serial_join_2_of_3":
-        #return "SSJ2({})".format(abbrv_store(el[1]))
-    #elif el[0] == "Side_effect_search_immediate_clause_skip":
-        #return "SESICS"
-    #elif el[0] == "Filter_immediate_1_of_2":
-        #return "FiltImm1"
-    #elif el[0] == "Filter_immediate_2_of_2":
-        #return "FiltImm2({})".format(abbrv_store(el[1]))
-    #elif el[0] == "Side_effect_search_escape_variable_concatenation_1_of_2":
-        #return "SESEVC1"
-    #elif el[0] == "Side_effect_search_escape_complete_1_of_3":
-        #return "SESEC"
-    #elif el[0] == "Dereference_stop":
-        #return "DerefStop"
-    #elif el[0] == "Filter_nonempty_record_positive_1_of_2":
-        #return "FNRP1({})".format(abbrv_clause(el[1]))
-    #elif el[0] == "Filter_nonempty_record_positive_2_of_2":
-        #return "FNRP2({},{})".format(abbrv_clause(el[1]),abbrv_store(el[2]))
+    elif el[0] == "Side_effect_frame":
+        return "SEFrame"
+    elif el[0] == "Parallel_join":
+        return u"⇉"
     raise NotImplementedError(el)
 
 def abbrv_pdr_dynamic_pop_argument(x):
@@ -414,7 +390,7 @@ def abbrv_pdr_dynamic_pop_argument(x):
     if type(x) in [type({}),ImmutableDict] and "abstract_store_root" in x:
         return abbrv_store(x)
     if type(x) == type(()):
-        return u"{}".format(map(abbrv_pdr_dynamic_pop_argument, list(x)))
+        return u"{}".format(list(map(abbrv_pdr_dynamic_pop_argument, list(x))))
     raise NotImplementedError(x,type(x))
 
 def abbrv_pdr_dynamic_pop(el):
@@ -423,7 +399,7 @@ def abbrv_pdr_dynamic_pop(el):
     tag_abbrv = tag[0]
     tag = tag[1:]
     while tag:
-        if tag[0:2] == "of" and len(tag) == 4:
+        if tag[0:4] == "_of_" and tag[4:].isdigit():
             tag = ""
         elif tag[0] == "_":
             tag_abbrv += tag[1].upper()
@@ -455,65 +431,70 @@ def abbrv_pdr_stack_action(act):
         raise NotImplementedError(act)
     return u"{}{}".format(modifier, abbrv_pdr_stack_element(act[1]))
 
-def write_pdr_file(pdr, work_count, file_prefix):
+def write_pdr_file(pdr, work_count, file_prefix, options):
     reachability = pdr["reachability"]
-    
+    exclusion_regexes = list(map(re.compile,
+                                 options.get("exclude_edges_by_pattern",[])))
+
     # ***** Create a dictionary of every node's ID and its visible name
     nodes = {}
     uid = [0]
     def node_mapping(n):
-        if n[0] == "Intermediate_node":
-            nodes[n] = ""
-        else:
-            nodes[n] = abbrv_pdr_state(n[1])
-    for k,v in reachability["push_edges_by_source"].iteritems():
+        nodes[n] = abbrv_pdr_node(n)
+    for k,v in reachability["push_edges_by_source"].items():
         node_mapping(k)
         for dst,act in v:
             node_mapping(dst)
-    for k,v in reachability["pop_edges_by_source"].iteritems():
+    for k,v in reachability["pop_edges_by_source"].items():
         node_mapping(k)
         for dst,act in v:
             node_mapping(dst)
-    for k,v in reachability["nop_edges_by_source"].iteritems():
+    for k,v in reachability["nop_edges_by_source"].items():
         node_mapping(k)
         for dst in v:
             node_mapping(dst)
-    for k,v in reachability["targeted_dynamic_pop_edges_by_source"].iteritems():
+    for k,v in reachability["targeted_dynamic_pop_edges_by_source"].items():
         node_mapping(k)
         for dst,act in v:
             node_mapping(dst)
-    for k,v in reachability["untargeted_dynamic_pop_actions_by_source"].iteritems():
+    for k,v in reachability["untargeted_dynamic_pop_actions_by_source"].items():
         node_mapping(k)
-    
+
     # ***** Create a list of each edge
     edges = []
     def edge_found(src,dst,label):
-        edges.append((src,dst,label))
-    for src,v in reachability["push_edges_by_source"].iteritems():
+        exclude = False
+        for exclusion_regex in exclusion_regexes:
+            if exclusion_regex.search(label):
+                exclude = True
+                break
+        if not exclude:
+            edges.append((src,dst,label))
+    for src,v in reachability["push_edges_by_source"].items():
         for dst,act in v:
             edge_found(src, dst, abbrv_pdr_stack_action(('Push', act)))
-    for src,v in reachability["pop_edges_by_source"].iteritems():
+    for src,v in reachability["pop_edges_by_source"].items():
         for dst,act in v:
             edge_found(src, dst, abbrv_pdr_stack_action(('Pop', act)))
-    for src,v in reachability["nop_edges_by_source"].iteritems():
+    for src,v in reachability["nop_edges_by_source"].items():
         for dst in v:
             edge_found(src, dst, abbrv_pdr_stack_action(('Nop',)))
-    for k,v in reachability["targeted_dynamic_pop_edges_by_source"].iteritems():
+    for k,v in reachability["targeted_dynamic_pop_edges_by_source"].items():
         for dst,act in v:
             edge_found(src, dst,
                        abbrv_pdr_stack_action(('Pop_dynamic_targeted', act)))
-    for k,v in reachability["untargeted_dynamic_pop_actions_by_source"].iteritems():
+    for k,v in reachability["untargeted_dynamic_pop_actions_by_source"].items():
         # TODO: what here?
         pass
-    
+
     # ***** Generate output
     with codecs.open("%s_%d.dot" % (file_prefix, work_count), 'w', encoding="utf8") as f:
-        f.write("strict digraph analysis {\n    rankdir=\"LR\"\n")
-        for k,v in nodes.iteritems():
+        f.write("digraph analysis {\n    rankdir=\"LR\"\n")
+        for k,v in nodes.items():
             f.write(u"    \"{}\"[label=\"{}\"];\n".format(k,v))
         for (src,dst,label) in edges:
             f.write(u"    \"{}\" -> \"{}\"[label=\"{}\"];\n".format(src,dst,label))
-        f.write("}\n")    
+        f.write("}\n")
 
 def pdr_reachability_merge_delta(r, delta):
     x = {}
@@ -525,9 +506,9 @@ def pdr_reachability_merge_delta(r, delta):
         if n in delta:
             if n in r:
                 m = {}
-                for (k,vs) in r[n].iteritems():
+                for (k,vs) in r[n].items():
                     m[k] = set(vs)
-                for (k,vs) in delta[n].iteritems():
+                for (k,vs) in delta[n].items():
                     if k in m:
                         m[k] = m[k].union(vs)
                     else:
@@ -588,7 +569,8 @@ def generate_graph_files(conversion, work, data):
     def check_generate_graph_file(
             graph, work_order, work_count, is_last, write_fn):
         if work_order.should_generate(work_count, is_last):
-            write_fn(graph, work_count, work_order.file_prefix)
+            write_fn(graph, work_count, work_order.file_prefix,
+                     work_order.options)
             work_order.have_generated(work_count)
     last_cfg = None
     last_pdr = None
@@ -637,7 +619,7 @@ def main():
     work = parse_args()
     if not work.pdrs.should_generate_any_greater_than(-1, False) and \
        not work.cfgs.should_generate_any_greater_than(-1, False):
-           print "You have not requested to generate any graphs."
+           print("You have not requested to generate any graphs.")
            sys.exit(1)
     with open(work.log_file) as f:
         data = json.load(f)
