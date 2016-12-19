@@ -1,8 +1,11 @@
 #!/usr/bin/env python
+# -*- coding: utf-8 -*-
 
 import argparse
+import codecs
 import collections
 import json
+import re
 import sys
 
 class Objdict(object):
@@ -260,9 +263,9 @@ def abbrv_clause(clause):
     if clause[0] == "Unannotated_clause":
         return clause[1][1]
     elif clause[0] == "Start_clause":
-        return "start"
+        return "start(%s)" % clause[1]
     elif clause[0] == "End_clause":
-        return "end"
+        return "end(%s)" % clause[1]
     elif clause[0] == "Enter_clause" or clause[0] == "Exit_clause":
         form = "+" if clause[0] == "Enter_caluse" else "-"
         return "%s=%s@%s%s" % (clause[1], clause[2], form, clause[3][1])
@@ -272,7 +275,7 @@ def abbrv_clause(clause):
 
 def write_cfg_file(cfg, work_count, file_prefix):
     clauses = {}
-    with open("%s_%d.dot" % (file_prefix, work_count), 'w') as f:
+    with codecs.open("%s_%d.dot" % (file_prefix, work_count), 'w', encoding="utf8") as f:
         f.write("strict digraph analysis {\n    rankdir=\"LR\"\n")
         g = cfg["ddpa_graph"][1]
         for edge in g:
@@ -286,8 +289,231 @@ def write_cfg_file(cfg, work_count, file_prefix):
                     (k,v.color))
         f.write("}\n")
 
+def abbrv_value(value):
+    if value[0] == "Abs_value_record":
+        buf = ""
+        for k,v in value[1][1].iteritems():
+            if len(buf) > 0:
+                buf += ","
+            buf += str(k)
+            buf += "="
+            buf += abbrv_value(v)
+        buf = "{" + buf + "}"
+        return buf
+    elif value[0] == "Abs_value_int":
+        return "int"
+    else:
+        raise NotImplementedError(value[0])
+
+def abbrv_store(store):
+    if store["abstract_store_root"][0] == "Variable_store_root":
+        relvar = store["abstract_store_root"][1]
+        value = store["raw_abstract_store"][relvar]
+    elif store["abstract_store_root"][0] == "Value_store_root":
+        value = store["abstract_store_root"][1]
+    else:
+        raise NotImplementedError(store["abstract_store_root"][0])
+    return abbrv_value(value)
+
+def abbrv_pdr_state(state):
+    if state[0] == "Program_point_state":
+        return abbrv_clause(state[1])
+    elif state[0] == "Result_state":
+        return abbrv_store(state[1])
+    else:
+        raise NotImplementedError(state)
+    
+def abbrv_pdr_stack_element(el):
+    if el[0] == "Lookup_var":
+        return el[1]
+    elif el[0] == "Continuation_store":
+        return abbrv_store(el[1])
+    elif el[0] == "Bottom_of_stack":
+        return u"⊥"
+    elif el[0] == "Binary_operation":
+        return "BinOp"
+    elif el[0] == "Capture":
+        return "Capture({})".format(el[1])
+    elif el[0] == "Jump":
+        return "Jump({})".format(abbrv_clause(el[1]))
+    elif el[0] == "Deref":
+        return "!"        
+    elif el[0] == "Side_effect_escape":
+        return "SEEscape"
+    #elif el[0] == "Side_effect_search_escape_frame":
+        #return "SESEFrame"
+    #elif el[0] == "Stateless_clause_skip_1_of_2":
+        #return "SCS1({})".format(el[1])
+    #elif el[0] == "Stateless_clause_skip_2_of_2":
+        #return "SCS2({})".format(el[1])
+    #elif el[0] == "Store_parallel_join_1_of_3":
+        #return "SPJ1"
+    #elif el[0] == "Store_parallel_join_2_of_3":
+        #return "SPJ2({})".format(abbrv_store(el[1]))
+    #elif el[0] == "Capture_1_of_3":
+        #return "Cap1"
+    #elif el[0] == "Capture_2_of_3":
+        #return "Cap2({})".format(abbrv_store(el[1]))
+    #elif el[0] == "Capture_3_of_3":
+        #return "Cap2({},{})".format(abbrv_store(el[1]),el[2])
+    #elif el[0] == "Filter_nonempty_record_negative_1_of_2":
+        #return "FNRN1({})".format(abbrv_clause(el[1]))
+    #elif el[0] == "Store_suffix_1_of_2":
+        #return "StSufx1"
+    #elif el[0] == "Store_suffix_2_of_2":
+        #return "StSufx2({})".format(abbrv_store(el[1]))
+    #elif el[0] == "Discovered_store_2_of_2":
+        #return "DS2"
+    #elif el[0] == "Stateful_immediate_clause_skip":
+        #return "SICS({})".format(el[1])
+    #elif el[0] == "Intermediate_store":
+        #return "IntStore"
+    #elif el[0] == "Record_projection_stop_1_of_2":
+        #return "RProjStop1"
+    #elif el[0] == "Record_projection_stop_2_of_2":
+        #return "RProjStop2({})".format(abbrv_store(el[1]))
+    #elif el[0] == "Side_effect_search_escape_store_join_1_of_2":
+        #return "SESESJ1"
+    #elif el[0] == "Side_effect_search_not_found_deep_1_of_4":
+        #return "SESNFD1"
+    #elif el[0] == "Side_effect_search_not_found_shallow_1_of_2":
+        #return "SESNFS1"
+    #elif el[0] == "Store_serial_join_1_of_3":
+        #return "SSJ1"
+    #elif el[0] == "Store_serial_join_2_of_3":
+        #return "SSJ2({})".format(abbrv_store(el[1]))
+    #elif el[0] == "Side_effect_search_immediate_clause_skip":
+        #return "SESICS"
+    #elif el[0] == "Filter_immediate_1_of_2":
+        #return "FiltImm1"
+    #elif el[0] == "Filter_immediate_2_of_2":
+        #return "FiltImm2({})".format(abbrv_store(el[1]))
+    #elif el[0] == "Side_effect_search_escape_variable_concatenation_1_of_2":
+        #return "SESEVC1"
+    #elif el[0] == "Side_effect_search_escape_complete_1_of_3":
+        #return "SESEC"
+    #elif el[0] == "Dereference_stop":
+        #return "DerefStop"
+    #elif el[0] == "Filter_nonempty_record_positive_1_of_2":
+        #return "FNRP1({})".format(abbrv_clause(el[1]))
+    #elif el[0] == "Filter_nonempty_record_positive_2_of_2":
+        #return "FNRP2({},{})".format(abbrv_clause(el[1]),abbrv_store(el[2]))
+    raise NotImplementedError(el)
+
+def abbrv_pdr_dynamic_pop_argument(x):
+    if type(x) in [type(""),type(u""),type(0)]:
+        return u"{}".format(x)
+    if type(x) == type(()) and len(x) > 0 and \
+            x[0] in [ "Unannotated_clause"
+                    , "Enter_clause"
+                    , "Exit_clause"
+                    , "Start_clause"
+                    , "End_clause"
+                    ]:
+        return abbrv_clause(x)
+    if type(x) in [type({}),ImmutableDict] and "abstract_store_root" in x:
+        return abbrv_store(x)
+    if type(x) == type(()):
+        return u"{}".format(map(abbrv_pdr_dynamic_pop_argument, list(x)))
+    raise NotImplementedError(x,type(x))
+
+def abbrv_pdr_dynamic_pop(el):
+    tag = el[0]
+    args = el[1:]
+    tag_abbrv = tag[0]
+    tag = tag[1:]
+    while tag:
+        if tag[0:2] == "of" and len(tag) == 4:
+            tag = ""
+        elif tag[0] == "_":
+            tag_abbrv += tag[1].upper()
+            tag = tag[2:]
+        else:
+            tag = tag[1:]
+    acc = tag_abbrv
+    if len(args)>0:
+        acc += "("
+        first = True
+        for arg in args:
+            if not first:
+                acc += ","
+            first = False
+            acc += abbrv_pdr_dynamic_pop_argument(arg)
+        acc += ")"
+    return acc
+
+def abbrv_pdr_stack_action(act):
+    if act[0] == "Push":
+        modifier = u"↓"
+    elif act[0] == "Pop":
+        modifier = u"↑"
+    elif act[0] == "Nop":
+        return "nop"
+    elif act[0] == "Pop_dynamic_targeted":
+        return u"⟰{}".format(abbrv_pdr_dynamic_pop(act[1]))
+    else:
+        raise NotImplementedError(act)
+    return u"{}{}".format(modifier, abbrv_pdr_stack_element(act[1]))
+
 def write_pdr_file(pdr, work_count, file_prefix):
-    raise NotImplementedError()
+    reachability = pdr["reachability"]
+    
+    # ***** Create a dictionary of every node's ID and its visible name
+    nodes = {}
+    uid = [0]
+    def node_mapping(n):
+        if n[0] == "Intermediate_node":
+            nodes[n] = ""
+        else:
+            nodes[n] = abbrv_pdr_state(n[1])
+    for k,v in reachability["push_edges_by_source"].iteritems():
+        node_mapping(k)
+        for dst,act in v:
+            node_mapping(dst)
+    for k,v in reachability["pop_edges_by_source"].iteritems():
+        node_mapping(k)
+        for dst,act in v:
+            node_mapping(dst)
+    for k,v in reachability["nop_edges_by_source"].iteritems():
+        node_mapping(k)
+        for dst in v:
+            node_mapping(dst)
+    for k,v in reachability["targeted_dynamic_pop_edges_by_source"].iteritems():
+        node_mapping(k)
+        for dst,act in v:
+            node_mapping(dst)
+    for k,v in reachability["untargeted_dynamic_pop_actions_by_source"].iteritems():
+        node_mapping(k)
+    
+    # ***** Create a list of each edge
+    edges = []
+    def edge_found(src,dst,label):
+        edges.append((src,dst,label))
+    for src,v in reachability["push_edges_by_source"].iteritems():
+        for dst,act in v:
+            edge_found(src, dst, abbrv_pdr_stack_action(('Push', act)))
+    for src,v in reachability["pop_edges_by_source"].iteritems():
+        for dst,act in v:
+            edge_found(src, dst, abbrv_pdr_stack_action(('Pop', act)))
+    for src,v in reachability["nop_edges_by_source"].iteritems():
+        for dst in v:
+            edge_found(src, dst, abbrv_pdr_stack_action(('Nop',)))
+    for k,v in reachability["targeted_dynamic_pop_edges_by_source"].iteritems():
+        for dst,act in v:
+            edge_found(src, dst,
+                       abbrv_pdr_stack_action(('Pop_dynamic_targeted', act)))
+    for k,v in reachability["untargeted_dynamic_pop_actions_by_source"].iteritems():
+        # TODO: what here?
+        pass
+    
+    # ***** Generate output
+    with codecs.open("%s_%d.dot" % (file_prefix, work_count), 'w', encoding="utf8") as f:
+        f.write("strict digraph analysis {\n    rankdir=\"LR\"\n")
+        for k,v in nodes.iteritems():
+            f.write(u"    \"{}\"[label=\"{}\"];\n".format(k,v))
+        for (src,dst,label) in edges:
+            f.write(u"    \"{}\" -> \"{}\"[label=\"{}\"];\n".format(src,dst,label))
+        f.write("}\n")    
 
 def pdr_reachability_merge_delta(r, delta):
     x = {}
