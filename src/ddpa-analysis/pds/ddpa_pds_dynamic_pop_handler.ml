@@ -204,7 +204,7 @@ struct
       return [ Pop_dynamic_targeted
                  (Filter_nonempty_record_negative_2_of_2 (acl0,s)) ]
     | Filter_nonempty_record_negative_2_of_2 (acl0,s) ->
-      let%orzero Continuation_matches(Record_pattern pr) = element in
+      let%orzero Continuation_antimatches(Record_pattern pr) = element in
       let%orzero Abs_value_record(Abs_record_value vr) = store_read s in
       [%guard not @@ Ident_map.is_empty pr];
       if Ident_map.for_all (fun i _ -> Ident_map.mem i vr) pr
