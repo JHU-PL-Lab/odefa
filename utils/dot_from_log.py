@@ -255,7 +255,9 @@ class ClauseType:
                              "Abs_var_body",
                              "Abs_projection_body",
                              "Abs_binary_operation_body",
-                             "Abs_unary_operation_body"
+                             "Abs_unary_operation_body",
+                             "Abs_deref_body",
+                             "Abs_update_body"
                             ]:
                 return ClauseTypes.atomic
             elif body_type in ["Abs_appl_body",
@@ -410,6 +412,8 @@ def abbrv_pdr_stack_element(el):
         return "~{}".format(abbrv_pattern(el[1]))
     elif el[0] == "Continuation_antimatches":
         return u"≁{}".format(abbrv_pattern(el[1]))
+    elif el[0] == "Rewind":
+        return "Rewind"
     raise NotImplementedError(el)
 
 def abbrv_pdr_dynamic_pop_argument(x):
