@@ -93,7 +93,7 @@ def work_order_from_graph_type(cmd_args, graph_type):
     w.file_prefix = cmd_args[graph_type + "_file_prefix"]
 
     options = {}
-    for option in [ "exclude_by_pattern" ]:
+    for option in [ "exclude_by_pattern", "exclude_self_loops" ]:
         name = graph_type + "_" + option
         if name in cmd_args and cmd_args[name]:
             options[option] = cmd_args[name]
@@ -138,6 +138,9 @@ def parse_args():
         '--pdr-exclude-by-pattern', action='append', nargs='+',
         help='ignore PDR nodes and edges that match a particular regular '
              'expression')
+    parser.add_argument(
+        '--pdr-exclude-self-loops', action='store_true', default=False,
+        help='ignore self-loop edges in the PDR graph')
     parser.add_argument(
         'log_file', type=str,
         help='the JSON log file in which graphs are stored')
@@ -360,9 +363,9 @@ def abbrv_pdr_node(node):
 
 def abbrv_trace_part(tp):
     if tp[0] == "Trace_down":
-        pfx = u"↓"
+        pfx = u"⋉↓"
     elif tp[0] == "Trace_up":
-        pfx = u"↑"
+        pfx = u"⋉↑"
     else:
         raise NotImplementedError(tp)
     return u"{}{}".format(pfx,tp[1][1])
@@ -414,6 +417,12 @@ def abbrv_pdr_stack_element(el):
         return u"≁{}".format(abbrv_pattern(el[1]))
     elif el[0] == "Rewind":
         return "Rewind"
+    elif el[0] == "Alias_huh":
+        return "Alias?"
+    elif el[0] == "Side_effect_lookup_var":
+        return u"★{}".format(el[1])
+    elif el[0] == "Side_effect_search_start":
+        return "SEStart({})".format(abbrv_clause(el[1]))
     raise NotImplementedError(el)
 
 def abbrv_pdr_dynamic_pop_argument(x):
@@ -480,7 +489,7 @@ def write_pdr_file(pdr, work_count, file_prefix, options):
     for exclusion_regex_list_ in exclusion_regex_lists:
         exclusion_regex_list.extend(exclusion_regex_list_)
     exclusion_regexes = list(map(re.compile,exclusion_regex_list))
-    def should_exclude(s):
+    def should_exclude_by_text(s):
         for exclusion_regex in exclusion_regexes:
             if exclusion_regex.search(s):
                 return True
@@ -491,7 +500,7 @@ def write_pdr_file(pdr, work_count, file_prefix, options):
     uid = [0]
     def node_mapping(n):
         txt = abbrv_pdr_node(n)
-        if not should_exclude(txt):
+        if not should_exclude_by_text(txt):
             nodes[n] = txt
     for k,v in reachability["push_edges_by_source"].items():
         node_mapping(k)
@@ -515,8 +524,11 @@ def write_pdr_file(pdr, work_count, file_prefix, options):
     # ***** Create a list of each edge
     edges = []
     def edge_found(src,dst,label):
-        if src in nodes and dst in nodes and not should_exclude(label):
-            edges.append((src,dst,label))
+        if src not in nodes: return
+        if dst not in nodes: return
+        if should_exclude_by_text(label): return
+        if src == dst and options.get("exclude_self_loops"): return
+        edges.append((src,dst,label))
     for src,v in reachability["push_edges_by_source"].items():
         for dst,act in v:
             edge_found(src, dst, abbrv_pdr_stack_action(('Push', act)))
