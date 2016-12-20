@@ -661,31 +661,31 @@ struct
         ;
         (* Binary Operation Stop *)
         begin
-        let%orzero
-          Unannotated_clause(
-            Abs_clause(x1,Abs_binary_operation_body(_,op,_))) = acl1
-        in
-        static
-          [ Pop Binary_operation
-          ; Pop_dynamic_targeted (Binary_operation_stop_1_of_2(x1,op))
-          ]
-          (Program_point_state acl1)
+          let%orzero
+            Unannotated_clause(
+              Abs_clause(x1,Abs_binary_operation_body(_,op,_))) = acl1
+          in
+          static
+            [ Pop Binary_operation
+            ; Pop_dynamic_targeted (Binary_operation_stop_1_of_2(x1,op))
+            ]
+            (Program_point_state acl1)
         end
         ;
         (* Unary Operation Start *)
         begin
-        let%orzero
-          Unannotated_clause(
-            Abs_clause(x1,Abs_unary_operation_body(_,x2))) = acl1
-        in
-        static
-          [ Pop (Lookup_var x1)
-          ; Push Unary_operation
-          ; Push (Jump acl0)
-          ; Push (Capture (Struct.Bounded_capture_size.of_int 2))
-          ; Push (Lookup_var x2)
-          ]
-          (Program_point_state acl1)
+          let%orzero
+            Unannotated_clause(
+              Abs_clause(x1,Abs_unary_operation_body(_,x2))) = acl1
+          in
+          static
+            [ Pop (Lookup_var x1)
+            ; Push Unary_operation
+            ; Push (Jump acl0)
+            ; Push (Capture (Struct.Bounded_capture_size.of_int 2))
+            ; Push (Lookup_var x2)
+            ]
+            (Program_point_state acl1)
         end
         ;
         (* Unary Operation Stop *)
