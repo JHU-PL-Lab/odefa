@@ -309,11 +309,26 @@ struct
              ; Push Deref
              ; Push (Lookup_var x)
              ]
+    | Side_effect_search_start_function_flow_check(acl1,acl0) ->
+      let%orzero Lookup_var x = element in
+      let%orzero Exit_clause(_,_,c) = acl1 in
+      let%orzero Abs_clause(_,Abs_appl_body(x2'',x3'')) = c in
+      return
+        [ Pop Deref
+        ; Push Deref
+        ; Push (Lookup_var x)
+        ; Push Real_flow_huh
+        ; Push (Jump acl0)
+        ; Push (Capture (Struct.Bounded_capture_size.of_int 2))
+        ; Push (Lookup_var x2'')
+        ; Push (Jump (Unannotated_clause c))
+        ; Push (Lookup_var x3'')
+        ]
     | Side_effect_search_start_function_flow_validated_1_of_2(acl1,acl0) ->
       let%orzero Continuation_store s = element in
       return [ Pop_dynamic_targeted
                  (Side_effect_search_start_function_flow_validated_2_of_2(
-                     acl0,acl1,s))
+                     acl1,acl0,s))
              ]
     | Side_effect_search_start_function_flow_validated_2_of_2(acl1,acl0,s) ->
       let%orzero Lookup_var x = element in
@@ -376,8 +391,10 @@ struct
              ; Push Real_flow_huh
              ; Push (Jump acl0)
              ; Push (Capture (Struct.Bounded_capture_size.of_int 2))
+             ; Push Parallel_join
              ; Push (Lookup_var x2'')
              ; Push (Jump (Unannotated_clause c))
+             ; Push (Capture (Struct.Bounded_capture_size.of_int 3))
              ; Push (Lookup_var x3'')
              ]
     | Side_effect_search_function_bottom_return_variable_1_of_2(acl1) ->
@@ -491,7 +508,8 @@ struct
       let%orzero
         Unannotated_clause(Abs_clause(_,Abs_update_body(x1',_))) = acl1
       in
-      return [ Push Alias_huh
+      return [ Push element
+             ; Push Alias_huh
              ; Push (Jump acl0)
              ; Push (Capture (Struct.Bounded_capture_size.of_int 2))
              ; Push (Lookup_var x1')

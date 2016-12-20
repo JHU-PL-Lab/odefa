@@ -419,20 +419,10 @@ struct
         ;
         (* Side Effect Search Start: Function Flow Check *)
         begin
-          let%orzero Exit_clause(x,_,c) = acl1 in
-          let%orzero Abs_clause(_,Abs_appl_body(x2'',x3'')) = c in
-          static
-            [ Pop (Lookup_var x)
-            ; Pop Deref
-            ; Push Deref
-            ; Push (Lookup_var x)
-            ; Push Real_flow_huh
-            ; Push (Jump acl0)
-            ; Push (Capture (Struct.Bounded_capture_size.of_int 2))
-            ; Push (Lookup_var x2'')
-            ; Push (Jump (Unannotated_clause c))
-            ; Push (Lookup_var x3'')
-            ]
+          let%orzero Exit_clause(_,_,c) = acl1 in
+          let%orzero Abs_clause(_,Abs_appl_body _) = c in
+          dynpop
+            (Side_effect_search_start_function_flow_check(acl1,acl0))
             (Program_point_state (Unannotated_clause c))
         end
         ;

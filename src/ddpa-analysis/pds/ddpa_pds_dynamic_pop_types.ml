@@ -165,6 +165,11 @@ struct
        not looking for the variable in the argument.  The clause has already
        been verified to be immediate and non-stateful, so our stateful lookup
        is permitted to ignore it. *)
+    | Side_effect_search_start_function_flow_check of
+        annotated_clause * annotated_clause
+    (* The Side Effect Search Start: Function Flow Check rule.  The arguments
+       are the wiring node at which the search is starting and the node
+       following that wiring node. *)
     | Side_effect_search_start_function_flow_validated_1_of_2 of
         annotated_clause * annotated_clause
     (* The first step of the Side Effect Search Start: Function Flow Validated
