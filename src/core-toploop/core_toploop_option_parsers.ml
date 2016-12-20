@@ -85,9 +85,9 @@ let stack_delta_size_option =
   ;
     option_get = (fun () -> Some (!stack_delta_size_ref))
   ;
-    option_metavars = ["ANALYSIS"]
+    option_metavars = ["SIZE"]
   ;
-    option_defhelp = Some("Selects an analysis (0ddpa,1ddpa,2ddpa,ddpaNR,none).")
+    option_defhelp = Some("Selects the maximum stack delta size.")
   ;
   };;
 
