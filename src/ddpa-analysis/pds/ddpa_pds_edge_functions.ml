@@ -168,8 +168,10 @@ struct
             ; Push Real_flow_huh
             ; Push (Jump acl0)
             ; Push (Capture(Struct.Bounded_capture_size.of_int 2))
+            ; Push Parallel_join
             ; Push (Lookup_var x2'')
             ; Push (Jump (Unannotated_clause c))
+            ; Push (Capture(Struct.Bounded_capture_size.of_int 3))
             ; Push (Lookup_var x3'')
             ]
             (Program_point_state(Unannotated_clause c))
