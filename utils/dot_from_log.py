@@ -526,7 +526,7 @@ def write_pdr_file(pdr, work_count, file_prefix, options):
     for src,v in reachability["nop_edges_by_source"].items():
         for dst in v:
             edge_found(src, dst, abbrv_pdr_stack_action(('Nop',)))
-    for k,v in reachability["targeted_dynamic_pop_edges_by_source"].items():
+    for src,v in reachability["targeted_dynamic_pop_edges_by_source"].items():
         for dst,act in v:
             edge_found(src, dst,
                        abbrv_pdr_stack_action(('Pop_dynamic_targeted', act)))
