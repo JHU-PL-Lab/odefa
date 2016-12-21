@@ -264,7 +264,9 @@ struct
             match Relative_trace.rear trace with
             | None ->
               (* Empty trace. *)
-              Some (Relative_trace.singleton part)
+              if S.maximum_trace_length > 0
+              then Some (Relative_trace.singleton part)
+              else None
             | Some (trace', part') ->
               begin
                 match part', part with
