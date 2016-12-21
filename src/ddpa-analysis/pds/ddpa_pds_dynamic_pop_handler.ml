@@ -63,7 +63,7 @@ struct
       return [ Pop_dynamic_targeted(Store_suffix_2_of_2 s) ]
     | Store_suffix_2_of_2 s ->
       let%orzero Trace_concat p = element in
-      let s' = Store_ops.store_suffix_trace_part s p in
+      let%orzero Some s' = Store_ops.store_suffix_trace_part s p in
       return [ Push(Continuation_store s') ]
     | Store_parallel_join_1_of_3 ->
       let%orzero Continuation_store s = element in
@@ -462,7 +462,7 @@ struct
              ]
     | Side_effect_search_function_wiring_join_defer_3_of_3(x,s) ->
       let%orzero Trace_concat t = element in
-      let s' = Store_ops.store_suffix_trace_part s t in
+      let%orzero Some s' = Store_ops.store_suffix_trace_part s t in
       return [ Pop Side_effect_frame
              ; Push (Continuation_store s')
              ; Push Parallel_join
@@ -588,7 +588,7 @@ struct
              ]
     | Side_effect_search_escape_variable_concatenation_2_of_2 s ->
       let%orzero Trace_concat t = element in
-      let s' = Store_ops.store_suffix_trace_part s t in
+      let%orzero Some s' = Store_ops.store_suffix_trace_part s t in
       return [ Push Side_effect_escape
              ; Push (Continuation_store s')
              ]

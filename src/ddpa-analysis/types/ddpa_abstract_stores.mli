@@ -40,25 +40,74 @@ sig
   (** The type of a module which can transform stores. *)
   module type Sig =
   sig
-    val trace_suffix :
-      Relative_trace.t option -> Relative_trace_part.t -> Relative_trace.t option
-    val trace_concat :
-      Relative_trace.t option -> Relative_trace.t option ->
-      Relative_trace.t option
-    val relative_trace_var_suffix :
-      Relative_trace_var.t -> Relative_trace_part.t -> Relative_trace_var.t option
-    val raw_store_suffix :
-      Raw_abstract_store.t -> Relative_trace_part.t -> Raw_abstract_store.t
+    module Exception : sig
+      (** An exception raised by trace concatenation operations when a trace would
+          generate an impossible stack operation sequence. *)
+      exception Invalid_trace_concatenation;;
+
+      (** Suffixes a part onto an existing trace.
+          If the trace grows too long, [None] is returned.  If the trace is
+          invalid, the [Invalid_trace_concatenation] exception is raised. *)
+      val trace_suffix :
+        Relative_trace.t option -> Relative_trace_part.t ->
+        Relative_trace.t option
+
+      (** Concatenates two traces.
+          If the trace grows too long, [None] is returned.  If the trace is
+          invalid, the [Invalid_trace_concatenation] exception is raised. *)
+      val trace_concat :
+        Relative_trace.t option -> Relative_trace.t option ->
+        Relative_trace.t option
+
+      (** Suffixes a trace part onto a relative trace variable.
+          If the trace grows too long, [None] is returned.  If the trace is
+          invalid, the [Invalid_trace_concatenation] exception is raised. *)
+      val relative_trace_var_suffix :
+        Relative_trace_var.t -> Relative_trace_part.t ->
+        Relative_trace_var.t option
+
+      (** Suffixes a trace part onto a raw store.  If the trace is invalid, the
+          [Invalid_trace_concatenation] exception is raised. *)
+      val raw_store_suffix :
+        Raw_abstract_store.t -> Relative_trace_part.t -> Raw_abstract_store.t
+
+      (** Suffixes a trace part onto a store.  If the trace is invalid, the
+          [Invalid_trace_concatenation] exception is raised. *)
+      val store_suffix_trace_part :
+        Abstract_store.t -> Relative_trace_part.t -> Abstract_store.t
+
+      (** Suffixes a trace onto a store.  If the trace is invalid, the
+          [Invalid_trace_concatenation] exception is raised. *)
+      val store_suffix_trace :
+        Abstract_store.t -> Relative_trace.t -> Abstract_store.t
+    end;;
+
+    (** Suffixes a trace part onto a store.  If the trace is invalid, [None] is
+        returned. *)
     val store_suffix_trace_part :
-      Abstract_store.t -> Relative_trace_part.t -> Abstract_store.t
+      Abstract_store.t -> Relative_trace_part.t -> Abstract_store.t option
+
+    (** Suffixes a trace onto a store.  If the trace is invalid, [None] is
+        returned. *)
     val store_suffix_trace :
-      Abstract_store.t -> Relative_trace.t -> Abstract_store.t
+      Abstract_store.t -> Relative_trace.t -> Abstract_store.t option
+
+    (** Joins two raw stores.  If the stores contain inconsistent mappings,
+                [None] is returned. *)
     val raw_store_join :
-      Raw_abstract_store.t -> Raw_abstract_store.t -> Raw_abstract_store.t option
+      Raw_abstract_store.t -> Raw_abstract_store.t ->
+      Raw_abstract_store.t option
+
+    (** Parallel joins two stores.  If the stores contain inconsistent
+        mappings, [None] is returned. *)
     val parallel_store_join :
       Abstract_store.t -> Abstract_store.t -> Abstract_store.t option
+
+    (** Serial joins two stores.  If the stores contain inconsistent mappings,
+        [None] is returned. *)
     val serial_store_join :
       Abstract_store.t -> Abstract_store.t -> Abstract_store.t option
+
     val store_singleton : abstract_var -> abstract_value -> Abstract_store.t
   end;;
   (** A functor to produce store operations. *)
