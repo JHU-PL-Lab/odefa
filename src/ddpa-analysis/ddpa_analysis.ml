@@ -13,7 +13,6 @@ open Ddpa_analysis_logging;;
 open Ddpa_graph;;
 open Ddpa_utils;;
 open Nondeterminism;;
-open Pds_reachability_types_stack;;
 open Pp_utils;;
 
 let logger = Logger_utils.make_logger "Ddpa_analysis";;
@@ -86,6 +85,9 @@ struct
       (Dynamic_pop_handler)
       (Pds_reachability_work_collection_templates.Work_stack)
   ;;
+
+  open Ddpa_pds_reachability.Stack_action.T;;
+  open Ddpa_pds_reachability.Terminus.T;;
 
   module Edge_functions =
     Ddpa_pds_edge_functions.Make
@@ -403,7 +405,8 @@ struct
       Ddpa_pds_reachability.empty ~logging_function:pdr_log_fn_opt ()
       |> Ddpa_pds_reachability.add_edge_function
         (fun state ->
-           Enum.singleton ([Pop Structure_types.Bottom_of_stack], state)
+           Enum.singleton ([Pop Structure_types.Bottom_of_stack],
+                           Static_terminus state)
         )
     in
     let empty_analysis =

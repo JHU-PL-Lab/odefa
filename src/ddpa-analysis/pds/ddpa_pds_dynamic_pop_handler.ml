@@ -27,11 +27,14 @@ struct
   module State = Pds_state;;
   module Targeted_dynamic_pop_action = Pds_targeted_dynamic_pop_action;;
   module Untargeted_dynamic_pop_action = Pds_untargeted_dynamic_pop_action;;
-  type stack_action =
-    ( Stack_element.t
-    , Targeted_dynamic_pop_action.t
-    ) pds_stack_action
+  module Stack_action =
+    Stack_action_constructor(Stack_element)(Targeted_dynamic_pop_action);;
   ;;
+  module Terminus = Terminus_constructor(State)(Untargeted_dynamic_pop_action);;
+
+  open Stack_action.T;;
+  open Terminus.T;;
+
   let perform_targeted_dynamic_pop element action =
     Logger_utils.lazy_bracket_log (lazy_logger `trace)
       (fun () ->
@@ -43,9 +46,7 @@ struct
            (
              results
              |> Enum.clone
-             |> Enum.map (String_utils.string_of_list @@
-                          show_pds_stack_action Pds_continuation.pp
-                            pp_pds_targeted_dynamic_pop_action)
+             |> Enum.map (String_utils.string_of_list Stack_action.show)
            )
       )
     @@ fun () ->
@@ -680,14 +681,14 @@ struct
     match action with
     | Do_jump ->
       let%orzero Jump acl1 = element in
-      return ([], Program_point_state acl1)
+      return ([], Static_terminus(Program_point_state acl1))
     | Discovered_store_1_of_2 ->
       let%orzero (Continuation_store store) = element in
       return ( [ Pop_dynamic_targeted(Discovered_store_2_of_2) ]
-             , Result_state store
+             , Static_terminus(Result_state store)
              )
     | Do_rewind acl ->
       let%orzero Rewind = element in
-      return ([], Program_point_state acl)
+      return ([], Static_terminus(Program_point_state acl))
   ;;
 end;;
