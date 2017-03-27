@@ -41,8 +41,8 @@ sig
   module type Sig =
   sig
     module Exception : sig
-      (** An exception raised by trace concatenation operations when a trace would
-          generate an impossible stack operation sequence. *)
+      (** An exception raised by trace concatenation operations when a trace
+          would generate an impossible stack operation sequence. *)
       exception Invalid_trace_concatenation;;
 
       (** Suffixes a part onto an existing trace.
@@ -113,3 +113,14 @@ sig
   (** A functor to produce store operations. *)
   module Make(S : Spec) : Sig
 end;;
+
+module Abstract_store_witness_registry :
+  (sig
+    include Witness_protection.Escorted_registry
+      with type elt = Abstract_store.t;;
+    include Witness_protection.Pp_utils
+      with type escorted_witness := escorted_witness;;
+    include Witness_protection.To_yojson_utils
+      with type escorted_witness := escorted_witness;;
+  end)
+;;

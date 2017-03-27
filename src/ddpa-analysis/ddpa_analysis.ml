@@ -120,6 +120,8 @@ struct
     (** Data associated with logging, if appropriate. *)
     ; ddpa_end_of_block_map : End_of_block_map.t
     (** A dictionary mapping each clause to its end-of-block clause. *)
+    ; ddpa_store_registry : Abstract_store_witness_registry.t
+          [@printer (fun fmt _ -> Format.pp_print_string fmt "<abstr>")]
     }
   [@@deriving show]
   ;;
@@ -274,7 +276,8 @@ struct
       let add_edge_for_reachability edge reachability =
         reachability
         |> Ddpa_pds_reachability.add_edge_function
-          (Edge_functions.create_edge_function edge)
+          (Edge_functions.create_edge_function
+             analysis.ddpa_store_registry edge)
         |> Ddpa_pds_reachability.add_untargeted_dynamic_pop_action_function
           (Edge_functions.create_untargeted_dynamic_pop_action_function
              analysis.ddpa_end_of_block_map edge)
@@ -344,6 +347,7 @@ struct
         ; ddpa_active_non_immediate_nodes = ddpa_active_non_immediate_nodes'
         ; ddpa_logging_data = analysis.ddpa_logging_data
         ; ddpa_end_of_block_map = analysis.ddpa_end_of_block_map
+        ; ddpa_store_registry = analysis.ddpa_store_registry
         }
       , true
       )
@@ -418,6 +422,7 @@ struct
       ; ddpa_active_non_immediate_nodes = Annotated_clause_set.empty
       ; ddpa_logging_data = logging_data_opt
       ; ddpa_end_of_block_map = create_end_of_block_map cls
+      ; ddpa_store_registry = Abstract_store_witness_registry.empty_registry ()
       }
     in
     (* Put the edges into the empty analysis. *)
@@ -468,6 +473,7 @@ struct
         (function
           | Program_point_state _ -> None
           | Result_state s -> Some s)
+      |> Enum.map Abstract_store_witness_registry.element_of_escorted_witness
     in
     (values, analysis')
   ;;

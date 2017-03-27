@@ -49,7 +49,7 @@ struct
     | Lookup_var of abstract_var
     | Project of ident
     | Deref
-    | Continuation_store of Abstract_store.t
+    | Continuation_store of Abstract_store_witness_registry.escorted_witness
     | Real_flow_huh
     | Jump of annotated_clause
     | Capture of Bounded_capture_size.t
@@ -83,7 +83,7 @@ struct
     | Program_point_state of annotated_clause
     (** A state in the PDS representing a specific program point and
         context. *)
-    | Result_state of Abstract_store.t
+    | Result_state of Abstract_store_witness_registry.escorted_witness
     (** A state in the PDS representing a value result. *)
   [@@deriving eq, ord, show, to_yojson]
   ;;

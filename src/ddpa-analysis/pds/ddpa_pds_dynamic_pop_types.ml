@@ -24,7 +24,7 @@ struct
     (* The first part of the Store Suffix rule.  This step pops the store from
        the stack and holds it, waiting for the store on which to perform the
        operation. *)
-    | Store_suffix_2_of_2 of Abstract_store.t
+    | Store_suffix_2_of_2 of Abstract_store_witness_registry.escorted_witness
     (* The second part of the Store Suffix rule.  This step pops the suffixing
        operation from the stack and performs it, putting the resulting store
        onto the stack.  The store argument is the store which was popped from
@@ -32,20 +32,24 @@ struct
     | Store_parallel_join_1_of_3
     (* The first part of the Store Parallel Join rule, which pops the first
        operand from the stack. *)
-    | Store_parallel_join_2_of_3 of Abstract_store.t
+    | Store_parallel_join_2_of_3 of
+        Abstract_store_witness_registry.escorted_witness
     (* The second part of the Store Parallel Join rule, which pops the operator
        from the stack.  The argument is the first operator. *)
-    | Store_parallel_join_3_of_3 of Abstract_store.t
+    | Store_parallel_join_3_of_3 of
+        Abstract_store_witness_registry.escorted_witness
     (* The third part of the Store Parallel Join rule.  This part pops the
        second operand, performs the parallel join, and pushes the resulting
        store. *)
     | Store_serial_join_1_of_3
     (* The first part of the Store Serial Join rule, which pops the first
        operand from the stack. *)
-    | Store_serial_join_2_of_3 of Abstract_store.t
+    | Store_serial_join_2_of_3 of
+        Abstract_store_witness_registry.escorted_witness
     (* The second part of the Store Serial Join rule, which pops the operator
        from the stack.  The argument is the first operator. *)
-    | Store_serial_join_3_of_3 of Abstract_store.t
+    | Store_serial_join_3_of_3 of
+        Abstract_store_witness_registry.escorted_witness
     (* The Value Alias rule.  If the top stack element is a lookup for the first
        variable, it should be changed to a lookup for the second variable. *)
     | Stateless_clause_skip_1_of_2 of abstract_var
@@ -60,12 +64,13 @@ struct
     | Capture_1_of_3
     (* The first part of the Capture rule.  This pops and keeps the store on the
        top of the stack. *)
-    | Capture_2_of_3 of Abstract_store.t
+    | Capture_2_of_3 of
+        Abstract_store_witness_registry.escorted_witness
     (* The second part of the Capture rule.  This pops the capture symbol and
        stores the number of elements which need to be popped and stored.  The
        store is the operand popped from the first step. *)
     | Capture_3_of_3 of
-        Abstract_store.t *
+        Abstract_store_witness_registry.escorted_witness *
         Struct.Bounded_capture_size.t *
         Struct.Pds_continuation.t list
     (* The third part of the Capture rule.  This step will pop a stack
@@ -92,7 +97,8 @@ struct
     | Record_projection_stop_1_of_2
     (* The first part of the Record Projection Stop rule.  This step simply
        retrieves and keeps a store from the stack. *)
-    | Record_projection_stop_2_of_2 of Abstract_store.t
+    | Record_projection_stop_2_of_2 of
+        Abstract_store_witness_registry.escorted_witness
     (* The second part of the Record Projection Stop rule.  This step takes a
        projection from the stack and performs it on the store given here (which
        was captured during the first step).  It then performs the projection on
@@ -103,7 +109,8 @@ struct
        empty record patterns are not formally immediate.  This part captures
        the store and holds it in wait for the next element of the stack, which
        is assumed to be a pattern instruction. *)
-    | Filter_immediate_2_of_2 of Abstract_store.t
+    | Filter_immediate_2_of_2 of
+        Abstract_store_witness_registry.escorted_witness
     (* The second part of the filtering rules which can immediately filter
        their stores.  This part captures the filter itself and performs the
        appropriate filtering operation, either pushing the store onto the stack
@@ -114,7 +121,7 @@ struct
        of the lookup, which is used to return to this lookup position after
        each label is examined. *)
     | Filter_nonempty_record_positive_2_of_2 of
-        annotated_clause * Abstract_store.t
+        annotated_clause * Abstract_store_witness_registry.escorted_witness
     (* The second part of the Filter Nonempty Record Positive rule.  This part
        retrieves a positive record filter from the stack and applies it as
        appropriate to the store fetched in the first step.  The annotated clause
@@ -127,7 +134,7 @@ struct
        lookup, which is used to return to this point in the event that a record
        label must be refuted. *)
     | Filter_nonempty_record_negative_2_of_2 of
-        annotated_clause * Abstract_store.t
+        annotated_clause * Abstract_store_witness_registry.escorted_witness
     (* The second part of the Filter Nonempty Record Negative rules (both of
        them).  This part processes the negative record pattern on the stack. *)
     | Dereference_stop
@@ -141,22 +148,28 @@ struct
     | May_not_alias_1_of_3
     (* The first step of the May Not Alias rule.  This step retrieves the first
        operand of the aliasing operation. *)
-    | May_not_alias_2_of_3 of Abstract_store.t
+    | May_not_alias_2_of_3 of Abstract_store_witness_registry.escorted_witness
     (* The second step of the May Not Alias rule.  This step retrieves the
        second operand and waits for the lookup variable.  The argument here is
        the first operand. *)
-    | May_not_alias_3_of_3 of Abstract_store.t * Abstract_store.t
+    | May_not_alias_3_of_3 of
+        Abstract_store_witness_registry.escorted_witness *
+        Abstract_store_witness_registry.escorted_witness
     (* The third step of the May Not Alias rule.  This step retrieves the lookup
        variable and then performs the May Not Alias analysis. *)
     | May_alias_1_of_3 of abstract_var
     (* The first step of the May Alias rule.  This step retrieves the first
        operand of the aliasing operation.  The argument is the variable being
        assigned to the cell in the update operation. *)
-    | May_alias_2_of_3 of abstract_var * Abstract_store.t
+    | May_alias_2_of_3 of
+        abstract_var * Abstract_store_witness_registry.escorted_witness
     (* The second step of the May Alias rule.  This step retrieves the second
        operand and waits for the lookup variable.  The arguments are the
        variable being assigned to the cell and the first operand. *)
-    | May_alias_3_of_3 of abstract_var * Abstract_store.t * Abstract_store.t
+    | May_alias_3_of_3 of
+        abstract_var *
+        Abstract_store_witness_registry.escorted_witness *
+        Abstract_store_witness_registry.escorted_witness
     (* The third step of the May Alias rule.  This step retrieves the lookup
        variable and then performs the May Alias analysis.  The arguments are the
        variable being assigned to the cell and the two operands. *)
@@ -177,7 +190,8 @@ struct
        and the node following that wiring node.  This step pops and keeps a
        store and then waits for the lookup variable. *)
     | Side_effect_search_start_function_flow_validated_2_of_2 of
-        annotated_clause * annotated_clause * Abstract_store.t
+        annotated_clause * annotated_clause *
+        Abstract_store_witness_registry.escorted_witness
     (* The second step of the Side Effect Search Start: Function Flow Validated
        rule. The arguments are the wiring node at which the search is starting,
        the node following that wiring node, and the store which was popped in
@@ -188,7 +202,7 @@ struct
        for this step are the wiring clause that triggered the start of the
        search and the clause immediately following that wiring clause. *)
     | Side_effect_search_start_conditional_negative of
-          annotated_clause * annotated_clause
+        annotated_clause * annotated_clause
     (* The Side Effect Search Start: Conditional Negative rule.  The arguments
        for this step are the wiring clause that triggered the start of the
        search and the clause immediately following that wiring clause. *)
@@ -209,7 +223,7 @@ struct
        the side effect lookup variable.  The argument to this step is the wiring
        node where we are checking function flow. *)
     | Side_effect_search_function_bottom_return_variable_2_of_2 of
-        annotated_clause * Abstract_store.t
+        annotated_clause * Abstract_store_witness_registry.escorted_witness
     (* The second step of the Side Effect Search: Function Bottom: Return
        Variable rule.  This step verifies the function which was discovered by
        the Flow Check rule and directs the search into the function. *)
@@ -235,7 +249,7 @@ struct
        rule.  This step retrieves the store from the stack.  The argument here
        is the side-effect lookup variable captured from the previous step. *)
     | Side_effect_search_function_wiring_join_defer_3_of_3 of
-        abstract_var * Abstract_store.t
+        abstract_var * Abstract_store_witness_registry.escorted_witness
     (* The third step of the Side Effect Search: Function Wiring Join
        rule.  This step retrieves the trace concatenation from the stack.  The
        arguments here are the side-effect lookup variable captured from the
@@ -257,7 +271,7 @@ struct
        step pops the first store and the second parallel join symbol.  The
        argument here is the variable popped in the first step. *)
     | Side_effect_search_join_compression_3_of_3 of
-        abstract_var * Abstract_store.t
+        abstract_var * Abstract_store_witness_registry.escorted_witness
     (* The third step of the Side Effect Search: Join Compression rule.  This
        step pops the second store and performs the join compression.  The
        arguments here are the variable popped in the first step and the store
@@ -274,12 +288,14 @@ struct
     | Side_effect_search_may_not_alias_1_of_3
     (* The first step of the Side Effect Search: May Not Alias rule.  This step
        retrieves the first operand of the aliasing operation. *)
-    | Side_effect_search_may_not_alias_2_of_3 of Abstract_store.t
+    | Side_effect_search_may_not_alias_2_of_3 of
+        Abstract_store_witness_registry.escorted_witness
     (* The second step of the Side Effect Search: May Not Alias rule.  This step
        retrieves the second operand and waits for the lookup variable.  The
        argument here is the first operand. *)
     | Side_effect_search_may_not_alias_3_of_3 of
-        Abstract_store.t * Abstract_store.t
+        Abstract_store_witness_registry.escorted_witness *
+        Abstract_store_witness_registry.escorted_witness
     (* The third step of the Side Effect Search: May Not Alias rule.  This step
        retrieves the lookup variable and then performs the May Not Alias
        analysis. *)
@@ -287,13 +303,16 @@ struct
     (* The first step of the Side Effect Search: May Alias rule.  This step
        retrieves the first operand of the aliasing operation.  The argument is
         the variable being assigned to the cell in the update operation. *)
-    | Side_effect_search_may_alias_2_of_3 of abstract_var * Abstract_store.t
+    | Side_effect_search_may_alias_2_of_3 of
+        abstract_var * Abstract_store_witness_registry.escorted_witness
     (* The second step of the Side Effect Search: May Alias rule.  This step
        retrieves the second operand and waits for the lookup variable.  The
        arguments are the variable being assigned to the cell and the first
        operand. *)
     | Side_effect_search_may_alias_3_of_3 of
-        abstract_var * Abstract_store.t * Abstract_store.t
+        abstract_var *
+        Abstract_store_witness_registry.escorted_witness *
+        Abstract_store_witness_registry.escorted_witness
     (* The third step of the Side Effect Search: May Alias rule.  This step
        retrieves the lookup variable and then performs the May Alias analysis.
        The arguments are the variable being assigned to the cell and the two
@@ -304,24 +323,26 @@ struct
     (* The first step of the Side Effect Search Escape: Variable Concatenation
        rule.  This step pops the store and the escape symbol. *)
     | Side_effect_search_escape_variable_concatenation_2_of_2 of
-        Abstract_store.t
+        Abstract_store_witness_registry.escorted_witness
     (* The second step of the Side Effect Search Escape: Variable Concatenation
        rule.  This step pops the trace concatenation and performs it. *)
     | Side_effect_search_escape_store_join_1_of_2
     (* The first step of the Side Effect Search Escape: Store Join rule.  This
        step pops the first operand as well as the escape and join symbols. *)
-    | Side_effect_search_escape_store_join_2_of_2 of Abstract_store.t
+    | Side_effect_search_escape_store_join_2_of_2 of
+        Abstract_store_witness_registry.escorted_witness
     (* The second step of the Side Effect Search Escape: Store Join rule.  This
        step pops the second operand and performs the join. *)
     | Side_effect_search_escape_complete_1_of_3
     (* The first step of the Side Effect Search Escape: Complete rule.  This
        step pops the store and the escape symbol. *)
-    | Side_effect_search_escape_complete_2_of_3 of Abstract_store.t
+    | Side_effect_search_escape_complete_2_of_3 of
+        Abstract_store_witness_registry.escorted_witness
     (* The second step of the Side Effect Search Escape: Complete rule.  This
        step pops the side-effect start symbol.  The argument here is the store
        popped from the first step. *)
     | Side_effect_search_escape_complete_3_of_3 of
-        Abstract_store.t * annotated_clause
+        Abstract_store_witness_registry.escorted_witness * annotated_clause
     (* The third step of the Side Effect Search Escape: Complete rule.  This
        step pops the original lookup variable and the deref symbol, replacing
        them with the result and moving to an appropriate position. *)
@@ -339,11 +360,13 @@ struct
     | Side_effect_search_not_found_deep_2_of_4
     (* The second step in the Side Effect Search: Not Found (Deep) rule.  This
        step pops and keeps the store. *)
-    | Side_effect_search_not_found_deep_3_of_4 of Abstract_store.t
+    | Side_effect_search_not_found_deep_3_of_4 of
+        Abstract_store_witness_registry.escorted_witness
     (* The third step in the Side Effect Search: Not Found (Deep) rule.  This
        step pops and discards the start symbol.  The argument here is the store
        popped from the second step. *)
-    | Side_effect_search_not_found_deep_4_of_4 of Abstract_store.t
+    | Side_effect_search_not_found_deep_4_of_4 of
+        Abstract_store_witness_registry.escorted_witness
     (* The fourth step in the Side Effect Search: Not Found (Deep) rule.  This
        step pops the lookup variable and its deref symbol and then reintroduces
        items onto the stack. *)
@@ -352,7 +375,8 @@ struct
        first operand.  The arguments are the variable to which the result is
        assigned and the operator being applied. *)
     | Binary_operation_stop_2_of_2 of
-        abstract_var * binary_operator * Abstract_store.t
+        abstract_var * binary_operator *
+        Abstract_store_witness_registry.escorted_witness
     (* The first step of the Binary Operation Stop rule.  This step pops the
        second operand and performs the operation.  The arguments are the
        variable to which the result is assigned, the operator being applied, and

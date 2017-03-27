@@ -430,3 +430,11 @@ struct
     ;;
   end;;
 end;;
+
+module Abstract_store_witness_registry =
+struct
+  module R = Witness_protection.Make_escorted(Abstract_store);;
+  include R;;
+  include Witness_protection.Make_pp(R)(Abstract_store);;
+  include Witness_protection.Make_to_yojson(R)(Abstract_store);;
+end;;

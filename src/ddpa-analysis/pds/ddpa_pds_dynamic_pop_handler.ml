@@ -22,6 +22,7 @@ module Make
 struct
   open Struct;;
   open T;;
+  open Abstract_store_witness_registry;;
 
   module Stack_element = Pds_continuation;;
   module State = Pds_state;;
@@ -62,30 +63,38 @@ struct
     | Store_suffix_1_of_2 ->
       let%orzero Continuation_store s = element in
       return [ Pop_dynamic_targeted(Store_suffix_2_of_2 s) ]
-    | Store_suffix_2_of_2 s ->
+    | Store_suffix_2_of_2 sw ->
+      let s = element_of_escorted_witness sw in
       let%orzero Trace_concat p = element in
       let%orzero Some s' = Store_ops.store_suffix_trace_part s p in
-      return [ Push(Continuation_store s') ]
+      let s'w = share_escort sw s' in
+      return [ Push(Continuation_store s'w) ]
     | Store_parallel_join_1_of_3 ->
       let%orzero Continuation_store s = element in
       return [ Pop_dynamic_targeted(Store_parallel_join_2_of_3 s) ]
     | Store_parallel_join_2_of_3 s ->
       let%orzero Parallel_join = element in
       return [ Pop_dynamic_targeted(Store_parallel_join_3_of_3 s) ]
-    | Store_parallel_join_3_of_3 s1 ->
-      let%orzero Continuation_store s2 = element in
+    | Store_parallel_join_3_of_3 s1w ->
+      let%orzero Continuation_store s2w = element in
+      let s1 = element_of_escorted_witness s1w in
+      let s2 = element_of_escorted_witness s2w in
       let%orzero Some s' = Store_ops.parallel_store_join s1 s2 in
-      return [ Push(Continuation_store s') ]
+      let s'w = share_escort s1w s' in
+      return [ Push(Continuation_store s'w) ]
     | Store_serial_join_1_of_3 ->
       let%orzero Continuation_store s = element in
       return [ Pop_dynamic_targeted(Store_serial_join_2_of_3 s) ]
     | Store_serial_join_2_of_3 s ->
       let%orzero Serial_join = element in
       return [ Pop_dynamic_targeted(Store_serial_join_3_of_3 s) ]
-    | Store_serial_join_3_of_3 s1 ->
-      let%orzero Continuation_store s2 = element in
+    | Store_serial_join_3_of_3 s1w ->
+      let%orzero Continuation_store s2w = element in
+      let s1 = element_of_escorted_witness s1w in
+      let s2 = element_of_escorted_witness s2w in
       let%orzero Some s' = Store_ops.serial_store_join s1 s2 in
-      return [ Push(Continuation_store s') ]
+      let s'w = share_escort s1w s' in
+      return [ Push(Continuation_store s'w) ]
     | Stateless_clause_skip_1_of_2 x' ->
       let%orzero Lookup_var x = element in
       [%guard not @@ equal_abstract_var x x'];
@@ -97,28 +106,29 @@ struct
         | _ -> return [ Push element; Push(Lookup_var x) ]
       end
     | Capture_1_of_3 ->
-      let%orzero Continuation_store s = element in
-      return [ Pop_dynamic_targeted(Capture_2_of_3 s) ]
-    | Capture_2_of_3 s ->
+      let%orzero Continuation_store sw = element in
+      return [ Pop_dynamic_targeted(Capture_2_of_3 sw) ]
+    | Capture_2_of_3 sw ->
       let%orzero Capture n = element in
-      return [ Pop_dynamic_targeted(Capture_3_of_3(s,n,[])) ]
-    | Capture_3_of_3(s,n,ks) ->
+      return [ Pop_dynamic_targeted(Capture_3_of_3(sw,n,[])) ]
+    | Capture_3_of_3(sw,n,ks) ->
       if Struct.Bounded_capture_size.equals_one n
       then
         let ks' = element::ks in
-        let ks'' = (Continuation_store s)::ks' in
+        let ks'' = (Continuation_store sw)::ks' in
         let actions = List.map (fun x -> Push x) ks'' in
         return actions
       else
         let n' = Struct.Bounded_capture_size.decrement n in
-        return [ Pop_dynamic_targeted(Capture_3_of_3(s,n',element::ks)) ]
+        return [ Pop_dynamic_targeted(Capture_3_of_3(sw,n',element::ks)) ]
     | Function_bottom_return_variable(x,x',c) ->
-      let%orzero Continuation_store s = element in
+      let%orzero Continuation_store sw = element in
+      let s = element_of_escorted_witness sw in
       let%orzero Abs_value_function(Abs_function_value(_,e)) = store_read s in
       let Abs_expr cls = e in
       [%guard equal_abstract_var x' (rv @@ cls)];
       return [ Pop (Lookup_var x)
-             ; Push (Continuation_store s)
+             ; Push (Continuation_store sw)
              ; Push Parallel_join
              ; Push (Trace_concat (Trace_up c))
              ; Push (Lookup_var x')
@@ -142,18 +152,20 @@ struct
     | Record_projection_stop_1_of_2 ->
       let%orzero Continuation_store s = element in
       return [ Pop_dynamic_targeted (Record_projection_stop_2_of_2 s) ]
-    | Record_projection_stop_2_of_2 s ->
+    | Record_projection_stop_2_of_2 sw ->
       let%orzero Project l = element in
+      let s = element_of_escorted_witness sw in
       let%orzero Abs_value_record(Abs_record_value(r)) = store_read s in
       let%orzero Some x' = Ident_map.Exceptionless.find l r in
-      return [ Push (Continuation_store s)
+      return [ Push (Continuation_store sw)
              ; Push Serial_join
              ; Push (Lookup_var x')
              ]
     | Filter_immediate_1_of_2 ->
       let%orzero Continuation_store s = element in
       return [ Pop_dynamic_targeted (Filter_immediate_2_of_2 s) ]
-    | Filter_immediate_2_of_2 s ->
+    | Filter_immediate_2_of_2 sw ->
+      let s = element_of_escorted_witness sw in
       let%bind should_immediately_match, p =
         match element with
         | Continuation_matches p -> return (true,p)
@@ -177,14 +189,16 @@ struct
         end
       in
       [%guard immediate_match = should_immediately_match];
-      return [ Push (Continuation_store s) ]
+      return [ Push (Continuation_store sw) ]
     | Filter_nonempty_record_positive_1_of_2 acl0 ->
-      let%orzero Continuation_store s = element in
+      let%orzero Continuation_store sw = element in
+      let s = element_of_escorted_witness sw in
       let%orzero Abs_value_record _ = store_read s in
       return [ Pop_dynamic_targeted
-                 (Filter_nonempty_record_positive_2_of_2 (acl0,s)) ]
-    | Filter_nonempty_record_positive_2_of_2 (acl0,s) ->
+                 (Filter_nonempty_record_positive_2_of_2 (acl0,sw)) ]
+    | Filter_nonempty_record_positive_2_of_2 (acl0,sw) ->
       let%orzero Continuation_matches(Record_pattern pr) = element in
+      let s = element_of_escorted_witness sw in
       let%orzero Abs_value_record(Abs_record_value vr) = store_read s in
       [%guard not @@ Ident_map.is_empty pr];
       let (lbl,p1),pr' = Ident_map.pop_min_binding pr in
@@ -193,19 +207,21 @@ struct
       let rest_of_pattern = Record_pattern pr' in
       return [ Push Parallel_join
              ; Push (Continuation_matches rest_of_pattern)
-             ; Push (Continuation_store s)
+             ; Push (Continuation_store sw)
              ; Push (Jump acl0)
              ; Push (Capture (Struct.Bounded_capture_size.of_int 4))
              ; Push (Continuation_matches p1)
              ; Push (Lookup_var x1)
              ]
     | Filter_nonempty_record_negative_1_of_2 acl0 ->
-      let%orzero Continuation_store s = element in
+      let%orzero Continuation_store sw = element in
+      let s = element_of_escorted_witness sw in
       let%orzero Abs_value_record _ = store_read s in
       return [ Pop_dynamic_targeted
-                 (Filter_nonempty_record_negative_2_of_2 (acl0,s)) ]
-    | Filter_nonempty_record_negative_2_of_2 (acl0,s) ->
+                 (Filter_nonempty_record_negative_2_of_2 (acl0,sw)) ]
+    | Filter_nonempty_record_negative_2_of_2 (acl0,sw) ->
       let%orzero Continuation_antimatches(Record_pattern pr) = element in
+      let s = element_of_escorted_witness sw in
       let%orzero Abs_value_record(Abs_record_value vr) = store_read s in
       [%guard not @@ Ident_map.is_empty pr];
       if Ident_map.for_all (fun i _ -> Ident_map.mem i vr) pr
@@ -215,7 +231,7 @@ struct
            pattern.  Let's pick a label wlog.  :) *)
         let%bind label = pick_enum @@ Ident_map.keys pr in
         return [ Push Parallel_join
-               ; Push (Continuation_store s)
+               ; Push (Continuation_store sw)
                ; Push (Jump acl0)
                ; Push (Capture (Struct.Bounded_capture_size.of_int 3))
                ; Push (Continuation_antimatches (Ident_map.find label pr))
@@ -224,12 +240,13 @@ struct
       else
         (* There's at least one label in the pattern which isn't in the record,
            so we've definitely refuted this pattern. *)
-        return [ Push (Continuation_store s) ]
+        return [ Push (Continuation_store sw) ]
     | Dereference_stop ->
-      let%orzero Continuation_store s = element in
+      let%orzero Continuation_store sw = element in
+      let s = element_of_escorted_witness sw in
       let%orzero Abs_value_ref(Abs_ref_value(x')) = store_read s in
       return [ Pop Deref
-             ; Push (Continuation_store s)
+             ; Push (Continuation_store sw)
              ; Push Serial_join
              ; Push (Lookup_var x')
              ]
@@ -255,8 +272,10 @@ struct
     | May_not_alias_2_of_3 s1 ->
       let%orzero Continuation_store s2 = element in
       return [ Pop_dynamic_targeted (May_not_alias_3_of_3(s1,s2)) ]
-    | May_not_alias_3_of_3 (s1,s2) ->
+    | May_not_alias_3_of_3 (s1w,s2w) ->
       let%orzero Lookup_var x = element in
+      let s1 = element_of_escorted_witness s1w in
+      let s2 = element_of_escorted_witness s2w in
       let%orzero Some s3 = Store_ops.parallel_store_join s1 s2 in
       let s3_is_ref =
         begin
@@ -275,8 +294,9 @@ struct
         (* There's some reason that this ref may not be an alias of the one
            we're seeking.  Keep moving, but remember the constraints we've
            accumulated. *)
+        let s3w = share_escort s1w s3 in
         return [ Pop Deref
-               ; Push (Continuation_store s3)
+               ; Push (Continuation_store s3w)
                ; Push Parallel_join
                ; Push Deref
                ; Push (Lookup_var x)
@@ -287,8 +307,10 @@ struct
     | May_alias_2_of_3(x2',s1) ->
       let%orzero Continuation_store s2 = element in
       return [ Pop_dynamic_targeted (May_alias_3_of_3(x2',s1,s2)) ]
-    | May_alias_3_of_3(x2',s1,s2) ->
+    | May_alias_3_of_3(x2',s1w,s2w) ->
       let%orzero Lookup_var _ = element in
+      let s1 = element_of_escorted_witness s1w in
+      let s2 = element_of_escorted_witness s2w in
       let%bind () =
         if store_is_variable_root s1 &&
            store_is_variable_root s2 &&
@@ -331,15 +353,16 @@ struct
                  (Side_effect_search_start_function_flow_validated_2_of_2(
                      acl1,acl0,s))
              ]
-    | Side_effect_search_start_function_flow_validated_2_of_2(acl1,acl0,s) ->
+    | Side_effect_search_start_function_flow_validated_2_of_2(acl1,acl0,sw) ->
       let%orzero Lookup_var x = element in
       let%orzero Exit_clause(x0'',x',c) = acl1 in
       [%guard not @@ equal_abstract_var x x0''];
+      let s = element_of_escorted_witness sw in
       let%orzero Abs_value_function(Abs_function_value(_,e)) = store_read s in
       let Abs_expr cls = e in
       [%guard equal_abstract_var x' @@ rv cls];
       return [ Pop Deref
-             ; Push (Continuation_store s)
+             ; Push (Continuation_store sw)
              ; Push Parallel_join
              ; Push Deref
              ; Push (Lookup_var x)
@@ -403,13 +426,14 @@ struct
       return [ Pop_dynamic_targeted(
           Side_effect_search_function_bottom_return_variable_2_of_2(
             acl1,s)) ]
-    | Side_effect_search_function_bottom_return_variable_2_of_2(acl1,s) ->
+    | Side_effect_search_function_bottom_return_variable_2_of_2(acl1,sw) ->
       let%orzero Side_effect_lookup_var x = element in
       let%orzero Exit_clause(_,x',c) = acl1 in
+      let s = element_of_escorted_witness sw in
       let%orzero Abs_value_function(Abs_function_value(_,e)) = store_read s in
       let Abs_expr cls = e in
       [%guard equal_abstract_var x' @@ rv cls];
-      return [ Push (Continuation_store s)
+      return [ Push (Continuation_store sw)
              ; Push Parallel_join
              ; Push Side_effect_frame
              ; Push (Trace_concat (Trace_up c))
@@ -461,11 +485,13 @@ struct
       return [ Pop_dynamic_targeted
                  (Side_effect_search_function_wiring_join_defer_3_of_3(x,s))
              ]
-    | Side_effect_search_function_wiring_join_defer_3_of_3(x,s) ->
+    | Side_effect_search_function_wiring_join_defer_3_of_3(x,sw) ->
       let%orzero Trace_concat t = element in
+      let s = element_of_escorted_witness sw in
       let%orzero Some s' = Store_ops.store_suffix_trace_part s t in
+      let s'w = share_escort sw s' in
       return [ Pop Side_effect_frame
-             ; Push (Continuation_store s')
+             ; Push (Continuation_store s'w)
              ; Push Parallel_join
              ; Push Side_effect_frame
              ; Push (Trace_concat t)
@@ -497,10 +523,13 @@ struct
              ; Pop_dynamic_targeted
                  (Side_effect_search_join_compression_3_of_3(x,s1))
              ]
-    | Side_effect_search_join_compression_3_of_3(x,s1) ->
-      let%orzero Continuation_store s2 = element in
+    | Side_effect_search_join_compression_3_of_3(x,s1w) ->
+      let%orzero Continuation_store s2w = element in
+      let s1 = element_of_escorted_witness s1w in
+      let s2 = element_of_escorted_witness s2w in
       let%orzero Some s = Store_ops.parallel_store_join s1 s2 in
-      return [ Push (Continuation_store s)
+      let sw = share_escort s1w s in
+      return [ Push (Continuation_store sw)
              ; Push Parallel_join
              ; Push (Side_effect_lookup_var x)
              ]
@@ -519,15 +548,17 @@ struct
              ; Push (Lookup_var x)
              ]
     | Side_effect_search_may_not_alias_1_of_3 ->
-      let%orzero Continuation_store s = element in
+      let%orzero Continuation_store sw = element in
       return [ Pop_dynamic_targeted
-                 (Side_effect_search_may_not_alias_2_of_3 s) ]
-    | Side_effect_search_may_not_alias_2_of_3 s1 ->
-      let%orzero Continuation_store s2 = element in
+                 (Side_effect_search_may_not_alias_2_of_3 sw) ]
+    | Side_effect_search_may_not_alias_2_of_3 s1w ->
+      let%orzero Continuation_store s2w = element in
       return [ Pop_dynamic_targeted
-                 (Side_effect_search_may_not_alias_3_of_3(s1,s2)) ]
-    | Side_effect_search_may_not_alias_3_of_3 (s1,s2) ->
+                 (Side_effect_search_may_not_alias_3_of_3(s1w,s2w)) ]
+    | Side_effect_search_may_not_alias_3_of_3 (s1w,s2w) ->
       let%orzero Side_effect_lookup_var x = element in
+      let s1 = element_of_escorted_witness s1w in
+      let s2 = element_of_escorted_witness s2w in
       let%orzero Some s3 = Store_ops.parallel_store_join s1 s2 in
       let s3_is_ref =
         begin
@@ -546,7 +577,8 @@ struct
         (* There's some reason that this ref may not be an alias of the one
            we're seeking.  Keep moving, but remember the constraints we've
            accumulated. *)
-        return [ Push (Continuation_store s3)
+        let s3w = share_escort s1w s3 in
+        return [ Push (Continuation_store s3w)
                ; Push Parallel_join
                ; Push (Side_effect_lookup_var x)
                ]
@@ -558,8 +590,10 @@ struct
       let%orzero Continuation_store s2 = element in
       return [ Pop_dynamic_targeted
                  (Side_effect_search_may_alias_3_of_3(x2',s1,s2)) ]
-    | Side_effect_search_may_alias_3_of_3(x2',s1,s2) ->
+    | Side_effect_search_may_alias_3_of_3(x2',s1w,s2w) ->
       let%orzero Side_effect_lookup_var _ = element in
+      let s1 = element_of_escorted_witness s1w in
+      let s2 = element_of_escorted_witness s2w in
       let%bind () =
         if store_is_variable_root s1 &&
            store_is_variable_root s2 &&
@@ -587,42 +621,47 @@ struct
              ; Pop_dynamic_targeted
                  (Side_effect_search_escape_variable_concatenation_2_of_2 s)
              ]
-    | Side_effect_search_escape_variable_concatenation_2_of_2 s ->
+    | Side_effect_search_escape_variable_concatenation_2_of_2 sw ->
       let%orzero Trace_concat t = element in
+      let s = element_of_escorted_witness sw in
       let%orzero Some s' = Store_ops.store_suffix_trace_part s t in
+      let s'w = share_escort sw s' in
       return [ Push Side_effect_escape
-             ; Push (Continuation_store s')
+             ; Push (Continuation_store s'w)
              ]
     | Side_effect_search_escape_store_join_1_of_2 ->
-      let%orzero Continuation_store s1 = element in
+      let%orzero Continuation_store s1w = element in
       return [ Pop Side_effect_escape
              ; Pop Parallel_join
              ; Pop_dynamic_targeted
-                 (Side_effect_search_escape_store_join_2_of_2 s1)
+                 (Side_effect_search_escape_store_join_2_of_2 s1w)
              ]
-    | Side_effect_search_escape_store_join_2_of_2 s1 ->
-      let%orzero Continuation_store s2 = element in
+    | Side_effect_search_escape_store_join_2_of_2 s1w ->
+      let%orzero Continuation_store s2w = element in
+      let s1 = element_of_escorted_witness s1w in
+      let s2 = element_of_escorted_witness s2w in
       let%orzero Some s' = Store_ops.parallel_store_join s1 s2 in
+      let s'w = share_escort s1w s' in
       return [ Push Side_effect_escape
-             ; Push (Continuation_store s')
+             ; Push (Continuation_store s'w)
              ]
     | Side_effect_search_escape_complete_1_of_3 ->
-      let%orzero Continuation_store s = element in
+      let%orzero Continuation_store sw = element in
       return [ Pop Side_effect_escape
              ; Pop_dynamic_targeted
-                 (Side_effect_search_escape_complete_2_of_3 s)
+                 (Side_effect_search_escape_complete_2_of_3 sw)
              ]
-    | Side_effect_search_escape_complete_2_of_3 s ->
+    | Side_effect_search_escape_complete_2_of_3 sw ->
       let%orzero Side_effect_search_start acl = element in
       return [ Pop_dynamic_targeted
-                 (Side_effect_search_escape_complete_3_of_3(s,acl))
+                 (Side_effect_search_escape_complete_3_of_3(sw,acl))
              ]
-    | Side_effect_search_escape_complete_3_of_3(s,acl) ->
+    | Side_effect_search_escape_complete_3_of_3(sw,acl) ->
       let%orzero Lookup_var _ = element in
       (* NOTE: the use of Jump below isn't in the specification, but it's useful
          here since we can't easily chain untargeted actions. *)
       return [ Pop Deref
-             ; Push (Continuation_store s)
+             ; Push (Continuation_store sw)
              ; Push (Jump acl)
              ]
     | Side_effect_search_not_found_shallow_1_of_2 ->
@@ -638,17 +677,17 @@ struct
              ; Pop_dynamic_targeted Side_effect_search_not_found_deep_2_of_4
              ]
     | Side_effect_search_not_found_deep_2_of_4 ->
-      let%orzero Continuation_store s = element in
+      let%orzero Continuation_store sw = element in
       return [ Pop_dynamic_targeted
-                 (Side_effect_search_not_found_deep_3_of_4 s) ]
-    | Side_effect_search_not_found_deep_3_of_4 s ->
+                 (Side_effect_search_not_found_deep_3_of_4 sw) ]
+    | Side_effect_search_not_found_deep_3_of_4 sw ->
       let%orzero Side_effect_search_start _ = element in
       return [ Pop_dynamic_targeted
-                 (Side_effect_search_not_found_deep_4_of_4 s) ]
-    | Side_effect_search_not_found_deep_4_of_4 s ->
+                 (Side_effect_search_not_found_deep_4_of_4 sw) ]
+    | Side_effect_search_not_found_deep_4_of_4 sw ->
       let%orzero Lookup_var x = element in
       return [ Pop Deref
-             ; Push (Continuation_store s)
+             ; Push (Continuation_store sw)
              ; Push Parallel_join
              ; Push Deref
              ; Push (Lookup_var x)
@@ -656,8 +695,10 @@ struct
     | Binary_operation_stop_1_of_2(x1,op) ->
       let%orzero Continuation_store s2 = element in
       return [ Pop_dynamic_targeted (Binary_operation_stop_2_of_2(x1,op,s2)) ]
-    | Binary_operation_stop_2_of_2(x1,op,s2) ->
-      let%orzero Continuation_store s1 = element in
+    | Binary_operation_stop_2_of_2(x1,op,s2w) ->
+      let%orzero Continuation_store s1w = element in
+      let s1 = element_of_escorted_witness s1w in
+      let s2 = element_of_escorted_witness s2w in
       let%orzero Some vs =
         abstract_binary_operation op (store_read s1) (store_read s2)
       in
@@ -665,14 +706,17 @@ struct
       let s3'' = Store_ops.store_singleton x1 v in
       let%orzero Some s3' = Store_ops.parallel_store_join s3'' s1 in
       let%orzero Some s3 = Store_ops.parallel_store_join s3' s2 in
-      return [ Push (Continuation_store s3) ]
+      let s3w = share_escort s1w s3 in
+      return [ Push (Continuation_store s3w) ]
     | Unary_operation_stop(x1,op) ->
-      let%orzero Continuation_store s = element in
+      let%orzero Continuation_store sw = element in
+      let s = element_of_escorted_witness sw in
       let%orzero Some vs = abstract_unary_operation op @@ store_read s in
       let%bind v = pick_enum vs in
       let s' = Store_ops.store_singleton x1 v in
       let%orzero Some s'' = Store_ops.parallel_store_join s' s in
-      return [ Push (Continuation_store s'') ]
+      let s''w = share_escort sw s'' in
+      return [ Push (Continuation_store s''w) ]
   ;;
 
   let perform_untargeted_dynamic_pop element action =
@@ -683,9 +727,9 @@ struct
       let%orzero Jump acl1 = element in
       return ([], Static_terminus(Program_point_state acl1))
     | Discovered_store_1_of_2 ->
-      let%orzero (Continuation_store store) = element in
+      let%orzero (Continuation_store sw) = element in
       return ( [ Pop_dynamic_targeted(Discovered_store_2_of_2) ]
-             , Static_terminus(Result_state store)
+             , Static_terminus(Result_state sw)
              )
     | Do_rewind acl ->
       let%orzero Rewind = element in
