@@ -1,0 +1,31 @@
+# EXPECT-WELL-FORMED
+# EXPECT-EVALUATE
+# EXPECT-MAX-STACK-DELTA-SIZE 1
+# EXPECT-ANALYSIS-LOOKUP-FROM-END nopr {int}
+# EXPECT-ANALYSIS-NO-INCONSISTENCIES
+
+zero = 0;
+f1 = fun g1 -> (
+        nop0f1 = {};
+        gresult1 = g1 zero;
+        nop1f1 = gresult1;
+        fret1 = gresult1 ~ {} ? fun gresultT1 -> (gresultTret1 = 0)
+                            : fun gresultF1 -> (gresultFret1 = {});
+        nop2f1 = fret1;
+    );
+f2 = fun g2 -> (
+        nop0f2 = {};
+        gresult2 = g2 zero;
+        nop1f2 = gresult2;
+        fret2 = gresult2 ~ {} ? fun gresultT2 -> (gresultTret2 = 0)
+                            : fun gresultF2 -> (gresultFret2 = {});
+        nop2f2 = fret2;
+    );
+h1 = fun h1param -> ( h1ret = h1param );
+h2 = fun h2param -> (
+        nop0h2 = {};
+        h2ret = f1 h1;
+        nop1h2 = h2ret;
+    );
+z = f2 h2;
+nopr = z;
