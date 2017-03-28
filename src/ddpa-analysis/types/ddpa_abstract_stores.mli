@@ -92,6 +92,14 @@ sig
     val store_suffix_trace :
       Abstract_store.t -> Relative_trace.t -> Abstract_store.t option
 
+    (** Determines if two traces are consistent. *)
+    val trace_consistent :
+      Relative_trace.t -> Relative_trace.t -> bool
+
+    (** Determines if two raw stores are trace-consistent. *)
+    val trace_consistent_stores :
+      Raw_abstract_store.t -> Raw_abstract_store.t -> bool
+
     (** Joins two raw stores.  If the stores contain inconsistent mappings,
                 [None] is returned. *)
     val raw_store_join :

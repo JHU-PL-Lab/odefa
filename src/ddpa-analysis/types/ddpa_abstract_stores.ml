@@ -201,12 +201,12 @@ struct
         Relative_trace_var.t option
 
       (** Suffixes a trace part onto a raw store.  If the trace is invalid, the
-          [Invalid_trace_concatenation] exception is raised. *)
+                [Invalid_trace_concatenation] exception is raised. *)
       val raw_store_suffix :
         Raw_abstract_store.t -> Relative_trace_part.t -> Raw_abstract_store.t
 
       (** Suffixes a trace part onto a store.  If the trace is invalid, the
-          [Invalid_trace_concatenation] exception is raised. *)
+                [Invalid_trace_concatenation] exception is raised. *)
       val store_suffix_trace_part :
         Abstract_store.t -> Relative_trace_part.t -> Abstract_store.t
 
@@ -226,8 +226,16 @@ struct
     val store_suffix_trace :
       Abstract_store.t -> Relative_trace.t -> Abstract_store.t option
 
+    (** Determines if two traces are consistent. *)
+    val trace_consistent :
+      Relative_trace.t -> Relative_trace.t -> bool
+
+    (** Determines if two raw stores are trace-consistent. *)
+    val trace_consistent_stores :
+      Raw_abstract_store.t -> Raw_abstract_store.t -> bool
+
     (** Joins two raw stores.  If the stores contain inconsistent mappings,
-                [None] is returned. *)
+                    [None] is returned. *)
     val raw_store_join :
       Raw_abstract_store.t -> Raw_abstract_store.t ->
       Raw_abstract_store.t option
@@ -378,6 +386,43 @@ struct
       | Exception.Invalid_trace_concatenation -> None
     ;;
 
+    let rec trace_consistent
+        (trace1 : Relative_trace.t)
+        (trace2 : Relative_trace.t)
+      : bool =
+      match Deque.rear trace1, Deque.rear trace2 with
+      | None, _
+      | _, None ->
+        (* One of them was empty, so we can't be inconsistent. *)
+        true
+      | Some(trace1', part1), Some(trace2', part2) ->
+        match part1, part2 with
+        | Trace_down c1, Trace_down c2 ->
+          equal_abstract_clause c1 c2 && trace_consistent trace1' trace2'
+        | Trace_down _, Trace_up _
+        | Trace_up _, Trace_down _
+        | Trace_up _, Trace_up _ ->
+          (* One of them didn't have an enter component.  Applying an enter
+             component is like popping from the hypothetical call stack and so
+             is the only case when non-matching call sites might matter. *)
+          true
+    ;;
+
+    let rec trace_consistent_stores
+        (rs1 : raw_abstract_store)
+        (rs2 : raw_abstract_store)
+      : bool =
+      Enum.cartesian_product
+        (Relative_trace_var_map.keys rs1)
+        (Relative_trace_var_map.keys rs2)
+      |> Enum.for_all
+        (fun (rv1,rv2) ->
+           let Relative_trace_var(_,trace1) = rv1 in
+           let Relative_trace_var(_,trace2) = rv2 in
+           trace_consistent trace1 trace2
+        )
+    ;;
+
     let raw_store_join
         (rs1 : raw_abstract_store)
         (rs2 : raw_abstract_store)
@@ -393,7 +438,10 @@ struct
           else raise Merge_failure
       in
       try
-        Some (Relative_trace_var_map.merge merge_fn rs1 rs2)
+        if trace_consistent_stores rs1 rs2 then
+          Some (Relative_trace_var_map.merge merge_fn rs1 rs2)
+        else
+          None
       with
       | Merge_failure -> None
     ;;
