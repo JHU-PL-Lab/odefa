@@ -130,14 +130,14 @@ struct
       return [ Pop (Lookup_var x)
              ; Push (Continuation_store sw)
              ; Push Parallel_join
-             ; Push (Trace_concat (Trace_up c))
+             ; Push (Trace_concat (Trace_exit c))
              ; Push (Lookup_var x')
              ]
     | Function_top_nonlocal_variable(x'',c) ->
       let%orzero Lookup_var x = element in
       [%guard not @@ equal_abstract_var x x'' ];
       let%orzero Abs_clause(_,Abs_appl_body(x2'',_)) = c in
-      return [ Push (Trace_concat (Trace_down c))
+      return [ Push (Trace_concat (Trace_enter c))
              ; Push Serial_join
              ; Push (Lookup_var x)
              ; Push Rewind
@@ -368,7 +368,7 @@ struct
              ; Push (Lookup_var x)
              ; Push (Side_effect_search_start acl0)
              ; Push Side_effect_frame
-             ; Push (Trace_concat (Trace_up c))
+             ; Push (Trace_concat (Trace_exit c))
              ; Push (Side_effect_lookup_var x)
              ]
     | Side_effect_search_start_conditional_positive(acl1,acl0) ->
@@ -436,12 +436,12 @@ struct
       return [ Push (Continuation_store sw)
              ; Push Parallel_join
              ; Push Side_effect_frame
-             ; Push (Trace_concat (Trace_up c))
+             ; Push (Trace_concat (Trace_exit c))
              ; Push (Side_effect_lookup_var x)
              ]
     | Side_effect_search_function_top c ->
       let%orzero Side_effect_lookup_var x = element in
-      return [ Pop (Trace_concat (Trace_up c))
+      return [ Pop (Trace_concat (Trace_exit c))
              ; Pop Side_effect_frame
              ; Push (Side_effect_lookup_var x)
              ]

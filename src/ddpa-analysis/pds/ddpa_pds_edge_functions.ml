@@ -159,7 +159,7 @@ struct
           [%guard equal_abstract_var x' x0'];
           static
             [ Pop(Lookup_var x)
-            ; Push(Trace_concat(Trace_down c))
+            ; Push(Trace_concat(Trace_enter c))
             ; Push(Lookup_var x')
             ]
             (Program_point_state acl1)

@@ -5,17 +5,17 @@ open Ddpa_abstract_ast;;
 open Pp_utils;;
 
 type relative_trace_part =
-  | Trace_down of abstract_clause
-  | Trace_up of abstract_clause
+  | Trace_enter of abstract_clause
+  | Trace_exit of abstract_clause
 [@@deriving eq, ord, to_yojson]
 ;;
 
 let pp_relative_trace_part formatter t =
   match t with
-  | Trace_down c ->
-    Format.fprintf formatter "↓%a" pp_abstract_clause_unique_info c
-  | Trace_up c ->
-    Format.fprintf formatter "↑%a" pp_abstract_clause_unique_info c
+  | Trace_enter c ->
+    Format.fprintf formatter "◖%a" pp_abstract_clause_unique_info c
+  | Trace_exit c ->
+    Format.fprintf formatter "◗%a" pp_abstract_clause_unique_info c
 ;;
 
 let show_relative_trace_part = pp_to_string pp_relative_trace_part;;
@@ -278,7 +278,7 @@ struct
             | Some (trace', part') ->
               begin
                 match part', part with
-                | Trace_down c1, Trace_up c2 ->
+                | Trace_enter c1, Trace_exit c2 ->
                   if equal_abstract_clause c1 c2
                   then
                     (* In this case the two trace actions have cancelled each
@@ -397,11 +397,11 @@ struct
         true
       | Some(trace1', part1), Some(trace2', part2) ->
         match part1, part2 with
-        | Trace_down c1, Trace_down c2 ->
+        | Trace_enter c1, Trace_enter c2 ->
           equal_abstract_clause c1 c2 && trace_consistent trace1' trace2'
-        | Trace_down _, Trace_up _
-        | Trace_up _, Trace_down _
-        | Trace_up _, Trace_up _ ->
+        | Trace_enter _, Trace_exit _
+        | Trace_exit _, Trace_enter _
+        | Trace_exit _, Trace_exit _ ->
           (* One of them didn't have an enter component.  Applying an enter
              component is like popping from the hypothetical call stack and so
              is the only case when non-matching call sites might matter. *)

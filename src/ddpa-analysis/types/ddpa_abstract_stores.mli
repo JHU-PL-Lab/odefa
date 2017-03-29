@@ -10,8 +10,8 @@ open Ddpa_abstract_ast;;
 open Pds_reachability_utils;;
 
 type relative_trace_part =
-  | Trace_down of abstract_clause
-  | Trace_up of abstract_clause
+  | Trace_enter of abstract_clause
+  | Trace_exit of abstract_clause
 module Relative_trace_part : Decorated_type with type t = relative_trace_part
 module Relative_trace : Decorated_type
 module Relative_trace_var : Decorated_type

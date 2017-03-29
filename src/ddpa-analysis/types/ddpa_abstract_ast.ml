@@ -79,7 +79,7 @@ and abstract_expr =
 let pp_abstract_var formatter (Abs_var(i)) = pp_ident formatter i;;
 
 let rec pp_abstract_function_value formatter (Abs_function_value(x,e)) =
-  Format.fprintf formatter "%a -> (@ %a)"
+  Format.fprintf formatter "fun %a -> (@ %a)"
     pp_abstract_var x pp_abstract_expr e
 
 and pp_abstract_value formatter v =
@@ -245,12 +245,12 @@ let rec pp_annotated_clause_unique_info formatter acl =
   match acl with
   | Unannotated_clause c -> pp_abstract_clause_unique_info formatter c
   | Enter_clause(x1,x2,c) ->
-    Format.fprintf formatter "%a=%a(↓%a)"
+    Format.fprintf formatter "%a=%a(◖%a)"
       pp_abstract_var x1
       pp_abstract_var x2
       pp_abstract_clause_unique_info c
   | Exit_clause(x1,x2,c)  ->
-    Format.fprintf formatter "%a=%a(↑%a)"
+    Format.fprintf formatter "%a=%a(◗%a)"
       pp_abstract_var x1
       pp_abstract_var x2
       pp_abstract_clause_unique_info c
