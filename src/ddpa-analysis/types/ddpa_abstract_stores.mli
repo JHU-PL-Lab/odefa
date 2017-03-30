@@ -25,9 +25,18 @@ module Abstract_store_set : sig
   include Yojson_utils.To_yojson_type with type t := t
 end;;
 
+(** Reads the value at the root of a store. *)
 val store_read : Abstract_store.t -> abstract_value
+
+(** Determines if a store is rooted as a variable. *)
 val store_is_variable_root : Abstract_store.t -> bool
+
+(** Determines if two stores have matching roots. *)
 val stores_have_same_root : Abstract_store.t -> Abstract_store.t -> bool
+
+(** Enumerates the mappings in a store. *)
+val store_enum :
+  Abstract_store.t -> (Relative_trace_var.t * abstract_value) Enum.t
 
 (** A module defining mechanisms for transforming stores. *)
 module Ops :
@@ -116,6 +125,7 @@ sig
     val serial_store_join :
       Abstract_store.t -> Abstract_store.t -> Abstract_store.t option
 
+    (** Creates a singleton store. *)
     val store_singleton : abstract_var -> abstract_value -> Abstract_store.t
   end;;
   (** A functor to produce store operations. *)

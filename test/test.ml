@@ -8,6 +8,7 @@ let all_tests =
   (* ; Test_swan.tests *)
   ; Test_nested.tests
   (* ; Test_resugar.tests *)
+  ; Test_abstract_stores.tests
   ];;
 
 let () =
@@ -24,10 +25,10 @@ let () =
           String.split logging_instructions ~by:"="
         in
         Logger_utils.set_logging_level_for module_name @@
-          parse_module_level module_level_str
+        parse_module_level module_level_str
       else
         Logger_utils.set_default_logging_level @@
-          parse_module_level logging_instructions
+        parse_module_level logging_instructions
     with
     | Not_found -> ()
   end;

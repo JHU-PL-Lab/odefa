@@ -510,4 +510,4 @@ let make_all_tests pathname =
         "Test file directory " ^ pathname ^ " is missing"))
 ;;
 
-let tests = "Test_source_files" >::: make_all_tests "test-sources";;
+let tests = "Test_files" >::: make_all_tests "test-sources";;

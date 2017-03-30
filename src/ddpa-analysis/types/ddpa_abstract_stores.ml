@@ -4,6 +4,8 @@ open Jhupllib;;
 open Ddpa_abstract_ast;;
 open Pp_utils;;
 
+let lazy_logger = Logger_utils.make_lazy_logger "Ddpa_abstract_stores";;
+
 type relative_trace_part =
   | Trace_enter of abstract_clause
   | Trace_exit of abstract_clause
@@ -62,10 +64,28 @@ struct
   include Yojson_utils.Map_to_yojson(Impl)(Relative_trace_var);;
 end;;
 
+Relative_trace_var_map.pp;;
+
 type raw_abstract_store =
   abstract_value Relative_trace_var_map.t
-[@@deriving eq, ord, show, to_yojson]
+[@@deriving eq, ord, to_yojson]
 ;;
+
+let pp_abstract_value_brief fmt v =
+  match v with
+  | Abs_value_function(Abs_function_value(x,_)) ->
+    Format.pp_print_string fmt "fun ";
+    pp_abstract_var fmt x;
+  | _ ->
+    pp_abstract_value fmt v
+;;
+
+let pp_raw_abstract_store =
+  Pp_utils.pp_map
+    Relative_trace_var.pp pp_abstract_value_brief Relative_trace_var_map.enum
+;;
+
+let show_raw_abstract_store = Pp_utils.pp_to_string pp_raw_abstract_store;;
 
 module Raw_abstract_store =
 struct
@@ -85,8 +105,10 @@ type abstract_store_root =
 
 let pp_abstract_store_root formatter root =
   match root with
-  | Variable_store_root rx -> pp_relative_trace_var formatter rx
-  | Value_store_root v -> pp_abstract_value formatter v
+  | Variable_store_root rx ->
+    pp_relative_trace_var formatter rx
+  | Value_store_root v ->
+    pp_abstract_value_brief formatter v
 ;;
 
 let show_abstract_store_root = pp_to_string pp_abstract_store_root;;
@@ -162,6 +184,11 @@ let store_is_variable_root (s : abstract_store) : bool =
 
 let stores_have_same_root (s1 : abstract_store) (s2 : abstract_store) : bool =
   equal_abstract_store_root s1.abstract_store_root s2.abstract_store_root
+;;
+
+let store_enum (s : abstract_store)
+  : (Relative_trace_var.t * abstract_value) Enum.t =
+  Relative_trace_var_map.enum s.raw_abstract_store
 ;;
 
 module Ops =
@@ -338,28 +365,36 @@ struct
           (s : abstract_store)
           (part : relative_trace_part)
         : abstract_store =
-        let raw_abstract_store' = raw_store_suffix s.raw_abstract_store part in
-        let historical_trace' = trace_suffix s.historical_trace part in
-        let abstract_store_root' =
-          match s.abstract_store_root with
-          | Value_store_root _ -> s.abstract_store_root
-          | Variable_store_root rx ->
-            (* If the root was a variable, then we extend that variable.  If this
-               extension truncates the variable, then we look up the *old* variable
-               in the *old* store and replace it with the corresponding value
-               root. *)
-            begin
-              match relative_trace_var_suffix rx part with
-              | Some rx' -> Variable_store_root rx'
-              | None ->
-                let v = Relative_trace_var_map.find rx s.raw_abstract_store in
-                Value_store_root v
-            end
+        let answer =
+          let raw_abstract_store' = raw_store_suffix s.raw_abstract_store part in
+          let historical_trace' = trace_suffix s.historical_trace part in
+          let abstract_store_root' =
+            match s.abstract_store_root with
+            | Value_store_root _ -> s.abstract_store_root
+            | Variable_store_root rx ->
+              (* If the root was a variable, then we extend that variable.  If this
+                 extension truncates the variable, then we look up the *old* variable
+                 in the *old* store and replace it with the corresponding value
+                 root. *)
+              begin
+                match relative_trace_var_suffix rx part with
+                | Some rx' -> Variable_store_root rx'
+                | None ->
+                  let v = Relative_trace_var_map.find rx s.raw_abstract_store in
+                  Value_store_root v
+              end
+          in
+          { abstract_store_root = abstract_store_root'
+          ; raw_abstract_store = raw_abstract_store'
+          ; historical_trace = historical_trace'
+          }
         in
-        { abstract_store_root = abstract_store_root'
-        ; raw_abstract_store = raw_abstract_store'
-        ; historical_trace = historical_trace'
-        }
+        lazy_logger `trace (fun () ->
+            Printf.sprintf "Store suffix:\n  %s ⋉ %s = %s\n"
+              (Abstract_store.show s) (Relative_trace_part.show part)
+              (Abstract_store.show answer)
+          );
+        answer
       ;;
 
       let store_suffix_trace
@@ -448,24 +483,44 @@ struct
 
     let parallel_store_join
         (s1 : abstract_store) (s2 : abstract_store) : abstract_store option =
-      match raw_store_join s1.raw_abstract_store s2.raw_abstract_store with
-      | None -> None
-      | Some rs -> Some { s1 with raw_abstract_store = rs }
+      let answer =
+        match raw_store_join s1.raw_abstract_store s2.raw_abstract_store with
+        | None -> None
+        | Some rs -> Some { s1 with raw_abstract_store = rs }
+      in
+      lazy_logger `trace (fun () ->
+          Printf.sprintf "Parallel store join:\n  %s ⇇ %s = %s\n"
+            (Abstract_store.show s1) (Abstract_store.show s2)
+            (match answer with
+             | None -> "☠"
+             | Some rs -> Abstract_store.show rs)
+        );
+      answer
     ;;
 
     let serial_store_join
         (s1 : abstract_store) (s2 : abstract_store) : abstract_store option =
       let open Option.Monad in
       let zero () = None in
-      match s2.historical_trace with
-      | None ->
-        return { abstract_store_root = Value_store_root (store_read s1)
-               ; raw_abstract_store = s1.raw_abstract_store
-               ; historical_trace = None
-               }
-      | Some historical_trace ->
-        let%orzero Some s1' = store_suffix_trace s1 historical_trace in
-        parallel_store_join s1' s2
+      let answer =
+        match s2.historical_trace with
+        | None ->
+          return { abstract_store_root = Value_store_root (store_read s1)
+                 ; raw_abstract_store = s2.raw_abstract_store
+                 ; historical_trace = None
+                 }
+        | Some historical_trace ->
+          let%orzero Some s1' = store_suffix_trace s1 historical_trace in
+          parallel_store_join s1' s2
+      in
+      lazy_logger `trace (fun () ->
+          Printf.sprintf "Serial store join:\n  %s ↫ %s = %s\n"
+            (Abstract_store.show s1) (Abstract_store.show s2)
+            (match answer with
+             | None -> "☠"
+             | Some rs -> Abstract_store.show rs)
+        );
+      answer
     ;;
 
     let store_singleton (x : abstract_var) (v : abstract_value)
