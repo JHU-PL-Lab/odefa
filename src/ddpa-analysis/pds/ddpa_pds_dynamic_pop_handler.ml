@@ -284,8 +284,8 @@ struct
           | _ -> false
         end
       in
-      if store_is_variable_root s1 &&
-         store_is_variable_root s2 &&
+      if store_is_unique_root s1 &&
+         store_is_unique_root s2 &&
          s3_is_ref
       then
         (* In this case, it *is* an alias and this rule gives up. *)
@@ -312,8 +312,8 @@ struct
       let s1 = element_of_escorted_witness s1w in
       let s2 = element_of_escorted_witness s2w in
       let%bind () =
-        if store_is_variable_root s1 &&
-           store_is_variable_root s2 &&
+        if store_is_unique_root s1 &&
+           store_is_unique_root s2 &&
            stores_have_same_root s1 s2
         then
           let%orzero Abs_value_ref(Abs_ref_value(x''s1)) = store_read s1 in
@@ -567,8 +567,8 @@ struct
           | _ -> false
         end
       in
-      if store_is_variable_root s1 &&
-         store_is_variable_root s2 &&
+      if store_is_unique_root s1 &&
+         store_is_unique_root s2 &&
          s3_is_ref
       then
         (* In this case, it *is* an alias and this rule gives up. *)
@@ -595,8 +595,8 @@ struct
       let s1 = element_of_escorted_witness s1w in
       let s2 = element_of_escorted_witness s2w in
       let%bind () =
-        if store_is_variable_root s1 &&
-           store_is_variable_root s2 &&
+        if store_is_unique_root s1 &&
+           store_is_unique_root s2 &&
            stores_have_same_root s1 s2
         then
           let%orzero Abs_value_ref(Abs_ref_value(x''s1)) = store_read s1 in

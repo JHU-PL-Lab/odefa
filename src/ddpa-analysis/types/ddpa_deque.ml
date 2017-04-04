@@ -28,6 +28,7 @@ struct
 
   let empty = Batteries.Deque.empty;;
   let enum = Batteries.Deque.enum;;
+  let front = Batteries.Deque.front;;
   let rear = Batteries.Deque.rear;;
   let singleton x = Batteries.Deque.cons x Batteries.Deque.empty;;
   let size = Batteries.Deque.size;;

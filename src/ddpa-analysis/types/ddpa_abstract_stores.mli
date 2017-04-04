@@ -15,7 +15,9 @@ type relative_trace_part =
 module Relative_trace_part : Decorated_type with type t = relative_trace_part
 module Relative_trace : Decorated_type
 module Relative_trace_var : Decorated_type
-module Relative_trace_var_map : Map.S with type key = Relative_trace_var.t
+module Relative_trace_var_to_abstract_value_multimap : Multimap.Multimap_sig
+  with type key = Relative_trace_var.t
+   and type value = abstract_value
 module Raw_abstract_store : Decorated_type
 module Abstract_store_root : Decorated_type
 module Abstract_store : Decorated_type
@@ -25,11 +27,18 @@ module Abstract_store_set : sig
   include Yojson_utils.To_yojson_type with type t := t
 end;;
 
+(** Determines if a trace is partial. *)
+val is_partial_trace : Relative_trace.t -> bool
+
+(** Destructs a relative trace variable into a variable and a trace. *)
+val destruct_relative_trace_var :
+  Relative_trace_var.t -> abstract_var * Relative_trace.t
+
 (** Reads the value at the root of a store. *)
 val store_read : Abstract_store.t -> abstract_value
 
 (** Determines if a store is rooted as a variable. *)
-val store_is_variable_root : Abstract_store.t -> bool
+val store_is_unique_root : Abstract_store.t -> bool
 
 (** Determines if two stores have matching roots. *)
 val stores_have_same_root : Abstract_store.t -> Abstract_store.t -> bool
@@ -54,26 +63,27 @@ sig
           would generate an impossible stack operation sequence. *)
       exception Invalid_trace_concatenation;;
 
-      (** Suffixes a part onto an existing trace.
-          If the trace grows too long, [None] is returned.  If the trace is
+      (** Suffixes a part onto an existing trace.  If the resulting trace is
           invalid, the [Invalid_trace_concatenation] exception is raised. *)
       val trace_suffix :
-        Relative_trace.t option -> Relative_trace_part.t ->
-        Relative_trace.t option
+        Relative_trace.t -> Relative_trace_part.t -> Relative_trace.t
 
-      (** Concatenates two traces.
-          If the trace grows too long, [None] is returned.  If the trace is
-          invalid, the [Invalid_trace_concatenation] exception is raised. *)
+      (** Concatenates two traces.  If the resulting trace is invalid, the
+          [Invalid_trace_concatenation] exception is raised. *)
       val trace_concat :
-        Relative_trace.t option -> Relative_trace.t option ->
-        Relative_trace.t option
+        Relative_trace.t -> Relative_trace.t -> Relative_trace.t
 
-      (** Suffixes a trace part onto a relative trace variable.
-          If the trace grows too long, [None] is returned.  If the trace is
-          invalid, the [Invalid_trace_concatenation] exception is raised. *)
+      (** Suffixes a trace part onto a relative trace variable.  If the
+          resulting trace is invalid, the [Invalid_trace_concatenation]
+          exception is raised. *)
       val relative_trace_var_suffix :
-        Relative_trace_var.t -> Relative_trace_part.t ->
-        Relative_trace_var.t option
+        Relative_trace_var.t -> Relative_trace_part.t -> Relative_trace_var.t
+
+      (** Suffixes a trace part onto a raw store mapping.  If the resulting
+          is invalid, the [Invalid_trace_concatenation] exception is raised. *)
+      val raw_store_mapping_suffix :
+        Relative_trace_var.t * abstract_value -> Relative_trace_part.t ->
+        Relative_trace_var.t * abstract_value
 
       (** Suffixes a trace part onto a raw store.  If the trace is invalid, the
           [Invalid_trace_concatenation] exception is raised. *)

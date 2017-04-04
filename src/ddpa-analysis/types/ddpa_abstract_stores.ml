@@ -2,6 +2,7 @@ open Batteries;;
 open Jhupllib;;
 
 open Ddpa_abstract_ast;;
+open Pds_reachability_utils;;
 open Pp_utils;;
 
 let lazy_logger = Logger_utils.make_lazy_logger "Ddpa_abstract_stores";;
@@ -32,7 +33,35 @@ struct
   let to_yojson = relative_trace_part_to_yojson;;
 end;;
 
-module Relative_trace = Ddpa_deque.Make(Relative_trace_part);;
+module Relative_trace_deque = Ddpa_deque.Make(Relative_trace_part);;
+
+type trace_state =
+  | Full_trace
+  | Partial_trace
+[@@deriving eq, ord, to_yojson]
+;;
+
+type trace =
+  | Trace of trace_state * Relative_trace_deque.t
+[@@deriving eq, ord, to_yojson]
+;;
+
+module Relative_trace =
+struct
+  type t = trace;;
+  let compare = compare_trace;;
+  let equal = equal_trace;;
+  let pp fmt t =
+    let (Trace(state,parts)) = t in
+    Format.pp_print_string fmt (if state = Partial_trace then "(" else "[");
+    pp_concat_sep "" pp_relative_trace_part fmt @@
+    Relative_trace_deque.enum parts;
+    Format.pp_print_string fmt "]";
+  ;;
+  let show = pp_to_string pp;;
+  let to_yojson = trace_to_yojson;;
+  let empty = Trace(Full_trace, Relative_trace_deque.empty);;
+end;;
 
 type relative_trace_var =
   | Relative_trace_var of abstract_var * Relative_trace.t
@@ -41,7 +70,8 @@ type relative_trace_var =
 
 let pp_relative_trace_var formatter (Relative_trace_var(x,t)) =
   pp_abstract_var formatter x;
-  pp_concat_sep "" pp_relative_trace_part formatter @@ Relative_trace.enum t
+  Format.pp_print_char formatter '@';
+  Relative_trace.pp formatter t;
 ;;
 
 let show_relative_trace_var = pp_to_string pp_relative_trace_var;;
@@ -56,21 +86,6 @@ struct
   let to_yojson = relative_trace_var_to_yojson;;
 end;;
 
-module Relative_trace_var_map =
-struct
-  module Impl = Map.Make(Relative_trace_var);;
-  include Impl;;
-  include Pp_utils.Map_pp(Impl)(Relative_trace_var);;
-  include Yojson_utils.Map_to_yojson(Impl)(Relative_trace_var);;
-end;;
-
-Relative_trace_var_map.pp;;
-
-type raw_abstract_store =
-  abstract_value Relative_trace_var_map.t
-[@@deriving eq, ord, to_yojson]
-;;
-
 let pp_abstract_value_brief fmt v =
   match v with
   | Abs_value_function(Abs_function_value(x,_)) ->
@@ -80,14 +95,34 @@ let pp_abstract_value_brief fmt v =
     pp_abstract_value fmt v
 ;;
 
-let pp_raw_abstract_store =
-  Pp_utils.pp_map
-    Relative_trace_var.pp pp_abstract_value_brief Relative_trace_var_map.enum
+module Abstract_value_pp_brief : Decorated_type with type t = abstract_value =
+struct
+  type t = abstract_value
+  let compare = compare_abstract_value
+  let equal = equal_abstract_value;;
+  let pp = pp_abstract_value_brief;;
+  let show = pp_to_string pp;;
+  let to_yojson = abstract_value_to_yojson;;
+end;;
+
+module Relative_trace_var_to_abstract_value_multimap =
+struct
+  module Impl = Multimap.Make(Relative_trace_var)(Abstract_value_pp_brief);;
+  include Impl;;
+  include Multimap_pp.Make(Impl)(Relative_trace_var)(Abstract_value_pp_brief);;
+  include Multimap_to_yojson.Make(Impl)(Relative_trace_var)(Abstract_value_pp_brief);;
+end;;
+
+type raw_abstract_store =
+  Relative_trace_var_to_abstract_value_multimap.t
+[@@deriving eq, ord, show, to_yojson]
 ;;
+
+ignore @@ show_raw_abstract_store;;
 
 let show_raw_abstract_store = Pp_utils.pp_to_string pp_raw_abstract_store;;
 
-module Raw_abstract_store =
+module Raw_abstract_store : Decorated_type with type t = raw_abstract_store =
 struct
   type t = raw_abstract_store
   let compare = compare_raw_abstract_store
@@ -98,17 +133,14 @@ struct
 end;;
 
 type abstract_store_root =
-  | Variable_store_root of relative_trace_var
-  | Value_store_root of abstract_value
+  | Abstract_store_root of Relative_trace_var.t * Abstract_value_pp_brief.t
 [@@deriving eq, ord, to_yojson]
 ;;
 
-let pp_abstract_store_root formatter root =
-  match root with
-  | Variable_store_root rx ->
-    pp_relative_trace_var formatter rx
-  | Value_store_root v ->
-    pp_abstract_value_brief formatter v
+let pp_abstract_store_root formatter (Abstract_store_root(rx,v)) =
+  Relative_trace_var.pp formatter rx;
+  Format.pp_print_string formatter " ↦ ";
+  Abstract_value_pp_brief.pp formatter v
 ;;
 
 let show_abstract_store_root = pp_to_string pp_abstract_store_root;;
@@ -126,25 +158,17 @@ end;;
 type abstract_store =
   { abstract_store_root : abstract_store_root
   ; raw_abstract_store : raw_abstract_store
-  ; historical_trace : Relative_trace.t option
   }
 [@@deriving eq, ord, to_yojson]
 ;;
 
 let pp_abstract_store formatter store =
-  let pp_historical_trace formatter trace_opt =
-    match trace_opt with
-    | None -> Format.pp_print_string formatter "?"
-    | Some trace -> Relative_trace.pp formatter trace
-  in
-  pp_triple
+  pp_tuple
     pp_abstract_store_root
     Raw_abstract_store.pp
-    pp_historical_trace
     formatter
     ( store.abstract_store_root
     , store.raw_abstract_store
-    , store.historical_trace
     )
 ;;
 
@@ -168,18 +192,25 @@ struct
   include Yojson_utils.Set_to_yojson(S)(Abstract_store);;
 end;;
 
-let store_read (s : abstract_store) : abstract_value =
-  match s.abstract_store_root with
-  | Variable_store_root rx ->
-    Relative_trace_var_map.find rx s.raw_abstract_store
-  | Value_store_root v ->
-    v
+let is_partial_trace (t : Relative_trace.t) =
+  let Trace(state,_) = t in
+  state = Partial_trace
 ;;
 
-let store_is_variable_root (s : abstract_store) : bool =
-  match s.abstract_store_root with
-  | Variable_store_root _ -> true
-  | Value_store_root _ -> false
+let destruct_relative_trace_var (rx : Relative_trace_var.t)
+  : abstract_var * Relative_trace.t =
+  let Relative_trace_var(rx,t) = rx in (rx,t)
+;;
+
+let store_read (s : abstract_store) : abstract_value =
+  let Abstract_store_root(_,v) = s.abstract_store_root in
+  v
+;;
+
+let store_is_unique_root (s : abstract_store) : bool =
+  let Abstract_store_root(rx,_) = s.abstract_store_root in
+  let Relative_trace_var(_,Trace(state,_)) = rx in
+  state = Full_trace
 ;;
 
 let stores_have_same_root (s1 : abstract_store) (s2 : abstract_store) : bool =
@@ -188,7 +219,7 @@ let stores_have_same_root (s1 : abstract_store) (s2 : abstract_store) : bool =
 
 let store_enum (s : abstract_store)
   : (Relative_trace_var.t * abstract_value) Enum.t =
-  Relative_trace_var_map.enum s.raw_abstract_store
+  Relative_trace_var_to_abstract_value_multimap.enum s.raw_abstract_store
 ;;
 
 module Ops =
@@ -202,38 +233,39 @@ struct
   module type Sig =
   sig
     module Exception : sig
-      (** An exception raised by trace concatenation operations when a trace would
-          generate an impossible stack operation sequence. *)
+      (** An exception raised by trace concatenation operations when a trace
+          would generate an impossible stack operation sequence. *)
       exception Invalid_trace_concatenation;;
 
-      (** Suffixes a part onto an existing trace.
-          If the trace grows too long, [None] is returned.  If the trace is
+      (** Suffixes a part onto an existing trace.  If the resulting trace is
           invalid, the [Invalid_trace_concatenation] exception is raised. *)
       val trace_suffix :
-        Relative_trace.t option -> Relative_trace_part.t ->
-        Relative_trace.t option
+        Relative_trace.t -> Relative_trace_part.t -> Relative_trace.t
 
-      (** Concatenates two traces.
-          If the trace grows too long, [None] is returned.  If the trace is
-          invalid, the [Invalid_trace_concatenation] exception is raised. *)
+      (** Concatenates two traces.  If the resulting trace is invalid, the
+          [Invalid_trace_concatenation] exception is raised. *)
       val trace_concat :
-        Relative_trace.t option -> Relative_trace.t option ->
-        Relative_trace.t option
+        Relative_trace.t -> Relative_trace.t -> Relative_trace.t
 
-      (** Suffixes a trace part onto a relative trace variable.
-          If the trace grows too long, [None] is returned.  If the trace is
-          invalid, the [Invalid_trace_concatenation] exception is raised. *)
+      (** Suffixes a trace part onto a relative trace variable.  If the
+          resulting trace is invalid, the [Invalid_trace_concatenation]
+          exception is raised. *)
       val relative_trace_var_suffix :
-        Relative_trace_var.t -> Relative_trace_part.t ->
-        Relative_trace_var.t option
+        Relative_trace_var.t -> Relative_trace_part.t -> Relative_trace_var.t
+
+      (** Suffixes a trace part onto a raw store mapping.  If the resulting
+          is invalid, the [Invalid_trace_concatenation] exception is raised. *)
+      val raw_store_mapping_suffix :
+        Relative_trace_var.t * abstract_value -> Relative_trace_part.t ->
+        Relative_trace_var.t * abstract_value
 
       (** Suffixes a trace part onto a raw store.  If the trace is invalid, the
-                [Invalid_trace_concatenation] exception is raised. *)
+          [Invalid_trace_concatenation] exception is raised. *)
       val raw_store_suffix :
         Raw_abstract_store.t -> Relative_trace_part.t -> Raw_abstract_store.t
 
       (** Suffixes a trace part onto a store.  If the trace is invalid, the
-                [Invalid_trace_concatenation] exception is raised. *)
+          [Invalid_trace_concatenation] exception is raised. *)
       val store_suffix_trace_part :
         Abstract_store.t -> Relative_trace_part.t -> Abstract_store.t
 
@@ -262,7 +294,7 @@ struct
       Raw_abstract_store.t -> Raw_abstract_store.t -> bool
 
     (** Joins two raw stores.  If the stores contain inconsistent mappings,
-                    [None] is returned. *)
+                [None] is returned. *)
     val raw_store_join :
       Raw_abstract_store.t -> Raw_abstract_store.t ->
       Raw_abstract_store.t option
@@ -277,6 +309,7 @@ struct
     val serial_store_join :
       Abstract_store.t -> Abstract_store.t -> Abstract_store.t option
 
+    (** Creates a singleton store. *)
     val store_singleton : abstract_var -> abstract_value -> Abstract_store.t
   end;;
 
@@ -288,107 +321,126 @@ struct
     struct
       exception Invalid_trace_concatenation;;
 
-      let trace_suffix
-          (trace_opt : Relative_trace.t option)
-          (part : relative_trace_part)
-        : Relative_trace.t option =
-        match trace_opt with
-        | None -> None
-        | Some trace ->
+      let trim_to_length (trace : Relative_trace.t) : Relative_trace.t =
+        let Trace(_,parts) = trace in
+        let num_parts = Relative_trace_deque.size parts in
+        if num_parts > S.maximum_trace_length + 1 then
+          raise (Utils.Invariant_failure(
+              Printf.sprintf
+                "Trace grew to size %d when maximum was %d"
+                (Relative_trace_deque.size parts)
+                (S.maximum_trace_length)
+            ))
+        else if num_parts > S.maximum_trace_length then
+          let (_,parts') = Option.get @@ Relative_trace_deque.front parts in
+          Trace(Partial_trace, parts')
+        else
+          trace
+      ;;
+
+      let trace_suffix (trace : Relative_trace.t) (part : relative_trace_part)
+        : Relative_trace.t =
+        let (Trace(state, parts)) = trace in
+        match Relative_trace_deque.rear parts with
+        | None ->
+          (* Empty trace. *)
+          if S.maximum_trace_length > 0
+          then Trace(state, Relative_trace_deque.singleton part)
+          else Trace(Partial_trace, Relative_trace_deque.empty)
+        | Some (parts', part') ->
           begin
-            match Relative_trace.rear trace with
-            | None ->
-              (* Empty trace. *)
-              if S.maximum_trace_length > 0
-              then Some (Relative_trace.singleton part)
-              else None
-            | Some (trace', part') ->
-              begin
-                match part', part with
-                | Trace_enter c1, Trace_exit c2 ->
-                  if equal_abstract_clause c1 c2
-                  then
-                    (* In this case the two trace actions have cancelled each
-                       other out and we can drop them. *)
-                    Some trace'
-                  else
-                    (* In this case, the two trace actions are incompatible!  This
-                       stack operation sequence cannot exist and any operation
-                       dependent upon it should halt. *)
-                    raise Invalid_trace_concatenation
-                | _ ->
-                  if Relative_trace.size trace >= S.maximum_trace_length
-                  then None
-                  else Some (Relative_trace.snoc trace part)
-              end
+            match part', part with
+            | Trace_enter c1, Trace_exit c2 ->
+              if equal_abstract_clause c1 c2
+              then
+                (* In this case the two trace actions have cancelled each
+                   other out and we can drop them. *)
+                Trace(state, parts')
+              else
+                (* In this case, the two trace actions are incompatible!  This
+                   stack operation sequence cannot exist and any operation
+                   dependent upon it should halt. *)
+                raise Invalid_trace_concatenation
+            | _ ->
+              let t = Trace(state, Relative_trace_deque.snoc parts part) in
+              trim_to_length t
           end
       ;;
 
-      let trace_concat
-          (trace_opt : Relative_trace.t option)
-          (suffix_opt : Relative_trace.t option)
-        : Relative_trace.t option =
-        match trace_opt, suffix_opt with
-        | None,None | None,Some _ | Some _,None ->
-          None
-        | Some _, Some suffix ->
-          Relative_trace.enum suffix
-          |> Enum.fold trace_suffix trace_opt
+      let trace_concat (trace1 : Relative_trace.t) (trace2 : Relative_trace.t)
+        : Relative_trace.t =
+        let Trace(state2,parts2) = trace2 in
+        match state2 with
+        | Partial_trace ->
+          trace2
+        | Full_trace ->
+          parts2
+          |> Relative_trace_deque.enum
+          |> Enum.fold trace_suffix trace1
+      ;;
+
+      type 'a relative_trace_mapper =
+        (Relative_trace.t -> Relative_trace.t) -> 'a -> 'a
+      ;;
+
+      let relative_trace_var_trace_op :
+        Relative_trace_var.t relative_trace_mapper =
+        fun f rx ->
+          let Relative_trace_var(x,trace) = rx in
+          let trace' = f trace in
+          Relative_trace_var(x,trace')
+      ;;
+
+      let raw_store_mapping_trace_op :
+        (Relative_trace_var.t * abstract_value) relative_trace_mapper =
+        fun f (rx,v) -> (relative_trace_var_trace_op f rx, v)
+      ;;
+
+      let raw_store_trace_op : raw_abstract_store relative_trace_mapper =
+        fun f rs ->
+          rs
+          |> Relative_trace_var_to_abstract_value_multimap.enum
+          |> Enum.map (raw_store_mapping_trace_op f)
+          |> Relative_trace_var_to_abstract_value_multimap.of_enum
+      ;;
+
+      let store_trace_op : abstract_store relative_trace_mapper =
+        fun f s ->
+          let raw_abstract_store' = raw_store_trace_op f s.raw_abstract_store in
+          let Abstract_store_root(rx,v) = s.abstract_store_root in
+          let (rx',v') = raw_store_mapping_trace_op f (rx,v) in
+          let abstract_store_root' = Abstract_store_root(rx',v') in
+          { abstract_store_root = abstract_store_root'
+          ; raw_abstract_store = raw_abstract_store'
+          }
       ;;
 
       let relative_trace_var_suffix
-          (rx : relative_trace_var)
-          (part : relative_trace_part)
-        : relative_trace_var option =
-        let Relative_trace_var(x,trace) = rx in
-        match trace_suffix (Some trace) part with
-        | None -> None
-        | Some trace' -> Some (Relative_trace_var(x,trace'))
+          (rx : Relative_trace_var.t)
+          (part : Relative_trace_part.t)
+        : Relative_trace_var.t =
+        relative_trace_var_trace_op (flip trace_suffix part) rx
+      ;;
+
+      let raw_store_mapping_suffix
+          (m : Relative_trace_var.t * abstract_value)
+          (part : Relative_trace_part.t)
+        : Relative_trace_var.t * abstract_value =
+        raw_store_mapping_trace_op (flip trace_suffix part) m
       ;;
 
       let raw_store_suffix
           (rs : raw_abstract_store)
           (part : relative_trace_part)
         : raw_abstract_store =
-        rs
-        |> Relative_trace_var_map.enum
-        |> Enum.filter_map
-          (fun (rx,v) ->
-             match relative_trace_var_suffix rx part with
-             | None -> None
-             | Some rx' -> Some (rx',v)
-          )
-        |> Relative_trace_var_map.of_enum
+        raw_store_trace_op (flip trace_suffix part) rs
       ;;
 
       let store_suffix_trace_part
           (s : abstract_store)
           (part : relative_trace_part)
         : abstract_store =
-        let answer =
-          let raw_abstract_store' = raw_store_suffix s.raw_abstract_store part in
-          let historical_trace' = trace_suffix s.historical_trace part in
-          let abstract_store_root' =
-            match s.abstract_store_root with
-            | Value_store_root _ -> s.abstract_store_root
-            | Variable_store_root rx ->
-              (* If the root was a variable, then we extend that variable.  If this
-                 extension truncates the variable, then we look up the *old* variable
-                 in the *old* store and replace it with the corresponding value
-                 root. *)
-              begin
-                match relative_trace_var_suffix rx part with
-                | Some rx' -> Variable_store_root rx'
-                | None ->
-                  let v = Relative_trace_var_map.find rx s.raw_abstract_store in
-                  Value_store_root v
-              end
-          in
-          { abstract_store_root = abstract_store_root'
-          ; raw_abstract_store = raw_abstract_store'
-          ; historical_trace = historical_trace'
-          }
-        in
+        let answer = store_trace_op (flip trace_suffix part) s in
         lazy_logger `trace (fun () ->
             Printf.sprintf "Store suffix:\n  %s ⋉ %s = %s\n"
               (Abstract_store.show s) (Relative_trace_part.show part)
@@ -401,9 +453,7 @@ struct
           (s : abstract_store)
           (trace : Relative_trace.t)
         : abstract_store =
-        trace
-        |> Relative_trace.enum
-        |> Enum.fold store_suffix_trace_part s
+        store_trace_op (flip trace_concat trace) s
       ;;
     end;;
 
@@ -425,22 +475,28 @@ struct
         (trace1 : Relative_trace.t)
         (trace2 : Relative_trace.t)
       : bool =
-      match Deque.rear trace1, Deque.rear trace2 with
-      | None, _
-      | _, None ->
-        (* One of them was empty, so we can't be inconsistent. *)
-        true
-      | Some(trace1', part1), Some(trace2', part2) ->
-        match part1, part2 with
-        | Trace_enter c1, Trace_enter c2 ->
-          equal_abstract_clause c1 c2 && trace_consistent trace1' trace2'
-        | Trace_enter _, Trace_exit _
-        | Trace_exit _, Trace_enter _
-        | Trace_exit _, Trace_exit _ ->
-          (* One of them didn't have an enter component.  Applying an enter
-             component is like popping from the hypothetical call stack and so
-             is the only case when non-matching call sites might matter. *)
+      let Trace(_,parts1) = trace1 in
+      let Trace(_,parts2) = trace2 in
+      let rec trace_consistent_by_parts parts1 parts2 =
+        match Deque.rear parts1, Deque.rear parts2 with
+        | None, _
+        | _, None ->
+          (* One of them was empty, so we can't be inconsistent. *)
           true
+        | Some(parts1', part1), Some(parts2', part2) ->
+          match part1, part2 with
+          | Trace_enter c1, Trace_enter c2 ->
+            equal_abstract_clause c1 c2 &&
+            trace_consistent_by_parts parts1' parts2'
+          | Trace_enter _, Trace_exit _
+          | Trace_exit _, Trace_enter _
+          | Trace_exit _, Trace_exit _ ->
+            (* One of them didn't have an enter component.  Applying an enter
+               component is like popping from the hypothetical call stack and so
+               is the only case when non-matching call sites might matter. *)
+            true
+      in
+      trace_consistent_by_parts parts1 parts2
     ;;
 
     let rec trace_consistent_stores
@@ -448,8 +504,8 @@ struct
         (rs2 : raw_abstract_store)
       : bool =
       Enum.cartesian_product
-        (Relative_trace_var_map.keys rs1)
-        (Relative_trace_var_map.keys rs2)
+        (Relative_trace_var_to_abstract_value_multimap.keys rs1)
+        (Relative_trace_var_to_abstract_value_multimap.keys rs2)
       |> Enum.for_all
         (fun (rv1,rv2) ->
            let Relative_trace_var(_,trace1) = rv1 in
@@ -462,23 +518,47 @@ struct
         (rs1 : raw_abstract_store)
         (rs2 : raw_abstract_store)
       : raw_abstract_store option =
-      let merge_fn _ v1o v2o =
-        match v1o,v2o with
-        | None,None -> None
-        | Some v1,None -> Some v1
-        | None,Some v2 -> Some v2
-        | Some v1,Some v2 ->
-          if equal_abstract_value v1 v2
-          then Some v1
-          else raise Merge_failure
-      in
-      try
-        if trace_consistent_stores rs1 rs2 then
-          Some (Relative_trace_var_map.merge merge_fn rs1 rs2)
-        else
-          None
-      with
-      | Merge_failure -> None
+      if trace_consistent_stores rs1 rs2 then
+        let mappings, rs' =
+          if Relative_trace_var_to_abstract_value_multimap.num_keys rs1 >
+             Relative_trace_var_to_abstract_value_multimap.num_keys rs2 then
+            (Relative_trace_var_to_abstract_value_multimap.enum_by_key rs2, rs1)
+          else
+            (Relative_trace_var_to_abstract_value_multimap.enum_by_key rs1, rs2)
+        in
+        try
+          Some(
+            mappings
+            |> Enum.fold
+              (fun acc (rx,vs) ->
+                 let (Relative_trace_var(_,Trace(state,_))) = rx in
+                 let acc' =
+                   Relative_trace_var_to_abstract_value_multimap.S.enum vs
+                   |> Enum.fold (fun a e ->
+                       Relative_trace_var_to_abstract_value_multimap.add rx e a)
+                     acc
+                 in
+                 begin
+                   if state = Full_trace then
+                     (* We'd best have only one mapping!  We know each of the
+                        raw stores only has one mapping for each full trace by
+                        induction, but we need to freak out here if they're
+                        different. *)
+                     let vs' =
+                       Relative_trace_var_to_abstract_value_multimap.find
+                         rx acc'
+                     in
+                     if Enum.count vs' > 1 then
+                       raise Merge_failure
+                 end;
+                 acc'
+              )
+              rs'
+          )
+        with
+        | Merge_failure -> None
+      else
+        None
     ;;
 
     let parallel_store_join
@@ -501,17 +581,12 @@ struct
     let serial_store_join
         (s1 : abstract_store) (s2 : abstract_store) : abstract_store option =
       let open Option.Monad in
-      let zero () = None in
       let answer =
-        match s2.historical_trace with
-        | None ->
-          return { abstract_store_root = Value_store_root (store_read s1)
-                 ; raw_abstract_store = s2.raw_abstract_store
-                 ; historical_trace = None
-                 }
-        | Some historical_trace ->
-          let%orzero Some s1' = store_suffix_trace s1 historical_trace in
-          parallel_store_join s1' s2
+        let Abstract_store_root(Relative_trace_var(_,trace),_) =
+          s2.abstract_store_root
+        in
+        let%bind s1' = store_suffix_trace s1 trace in
+        parallel_store_join s1' s2
       in
       lazy_logger `trace (fun () ->
           Printf.sprintf "Serial store join:\n  %s ↫ %s = %s\n"
@@ -526,9 +601,9 @@ struct
     let store_singleton (x : abstract_var) (v : abstract_value)
       : abstract_store =
       let rx = Relative_trace_var(x, Relative_trace.empty) in
-      { abstract_store_root = Variable_store_root rx
-      ; raw_abstract_store = Relative_trace_var_map.singleton rx v
-      ; historical_trace = Some Relative_trace.empty
+      { abstract_store_root = Abstract_store_root(rx,v)
+      ; raw_abstract_store =
+          Relative_trace_var_to_abstract_value_multimap.singleton rx v
       }
     ;;
   end;;
