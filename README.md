@@ -30,7 +30,7 @@ The subsections below walk through these processes.
 
 2. Install the dependencies:
 
-        opam install oasis batteries menhir ounit ppx_deriving ocaml-monadic monadlib
+        opam install oasis batteries menhir ounit ppx_deriving ppx_deriving_yojson ocaml-monadic monadlib
 
    If your shell hashes binary locations, you may need to clear your hashes now.
    (In bash, `hash -r` does this.)
