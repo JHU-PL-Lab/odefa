@@ -33,7 +33,7 @@ struct
   let to_yojson = relative_trace_part_to_yojson;;
 end;;
 
-module Relative_trace_deque = Ddpa_deque.Make(Relative_trace_part);;
+module Relative_trace_deque = Decorated_deque.Make(Relative_trace_part);;
 
 type trace_state =
   | Full_trace

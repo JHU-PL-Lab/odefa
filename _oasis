@@ -166,8 +166,8 @@ Library "ddpa-analysis_types"
   Modules:
     Ddpa_abstract_ast,
     Ddpa_abstract_stores,
-    Ddpa_deque,
-    Ddpa_graph
+    Ddpa_graph,
+    Decorated_deque
   BuildDepends:
     batteries,
     jhupllib,
