@@ -33,7 +33,7 @@ struct
   let to_yojson = relative_trace_part_to_yojson;;
 end;;
 
-module Relative_trace_deque = Decorated_deque.Make(Relative_trace_part);;
+module Relative_trace_part_deque = Decorated_deque.Make(Relative_trace_part);;
 
 type trace_state =
   | Full_trace
@@ -42,7 +42,7 @@ type trace_state =
 ;;
 
 type trace =
-  | Trace of trace_state * Relative_trace_deque.t
+  | Trace of trace_state * Relative_trace_part_deque.t
 [@@deriving eq, ord, to_yojson]
 ;;
 
@@ -55,12 +55,12 @@ struct
     let (Trace(state,parts)) = t in
     Format.pp_print_string fmt (if state = Partial_trace then "(" else "[");
     pp_concat_sep "" pp_relative_trace_part fmt @@
-    Relative_trace_deque.enum parts;
+    Relative_trace_part_deque.enum parts;
     Format.pp_print_string fmt "]";
   ;;
   let show = pp_to_string pp;;
   let to_yojson = trace_to_yojson;;
-  let empty = Trace(Full_trace, Relative_trace_deque.empty);;
+  let empty = Trace(Full_trace, Relative_trace_part_deque.empty);;
 end;;
 
 type relative_trace_var =
@@ -110,7 +110,8 @@ struct
   module Impl = Multimap.Make(Relative_trace_var)(Abstract_value_pp_brief);;
   include Impl;;
   include Multimap_pp.Make(Impl)(Relative_trace_var)(Abstract_value_pp_brief);;
-  include Multimap_to_yojson.Make(Impl)(Relative_trace_var)(Abstract_value_pp_brief);;
+  include Multimap_to_yojson.Make(Impl)(Relative_trace_var)(
+      Abstract_value_pp_brief);;
 end;;
 
 type raw_abstract_store =
@@ -323,16 +324,18 @@ struct
 
       let trim_to_length (trace : Relative_trace.t) : Relative_trace.t =
         let Trace(_,parts) = trace in
-        let num_parts = Relative_trace_deque.size parts in
+        let num_parts = Relative_trace_part_deque.size parts in
         if num_parts > S.maximum_trace_length + 1 then
           raise (Utils.Invariant_failure(
               Printf.sprintf
                 "Trace grew to size %d when maximum was %d"
-                (Relative_trace_deque.size parts)
+                (Relative_trace_part_deque.size parts)
                 (S.maximum_trace_length)
             ))
         else if num_parts > S.maximum_trace_length then
-          let (_,parts') = Option.get @@ Relative_trace_deque.front parts in
+          let (_,parts') =
+            Option.get @@ Relative_trace_part_deque.front parts
+          in
           Trace(Partial_trace, parts')
         else
           trace
@@ -341,12 +344,12 @@ struct
       let trace_suffix (trace : Relative_trace.t) (part : relative_trace_part)
         : Relative_trace.t =
         let (Trace(state, parts)) = trace in
-        match Relative_trace_deque.rear parts with
+        match Relative_trace_part_deque.rear parts with
         | None ->
           (* Empty trace. *)
           if S.maximum_trace_length > 0
-          then Trace(state, Relative_trace_deque.singleton part)
-          else Trace(Partial_trace, Relative_trace_deque.empty)
+          then Trace(state, Relative_trace_part_deque.singleton part)
+          else Trace(Partial_trace, Relative_trace_part_deque.empty)
         | Some (parts', part') ->
           begin
             match part', part with
@@ -362,7 +365,7 @@ struct
                    dependent upon it should halt. *)
                 raise Invalid_trace_concatenation
             | _ ->
-              let t = Trace(state, Relative_trace_deque.snoc parts part) in
+              let t = Trace(state, Relative_trace_part_deque.snoc parts part) in
               trim_to_length t
           end
       ;;
@@ -375,7 +378,7 @@ struct
           trace2
         | Full_trace ->
           parts2
-          |> Relative_trace_deque.enum
+          |> Relative_trace_part_deque.enum
           |> Enum.fold trace_suffix trace1
       ;;
 
