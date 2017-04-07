@@ -26,6 +26,7 @@ struct
            Batteries.Deque.enum x)
   ;;
 
+  let append = Batteries.Deque.append;;
   let cons = Batteries.Deque.cons;;
   let empty = Batteries.Deque.empty;;
   let enum = Batteries.Deque.enum;;

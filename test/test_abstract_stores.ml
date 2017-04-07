@@ -5,7 +5,6 @@ open OUnit2;;
 open Core_ast;;
 open Ddpa_abstract_ast;;
 open Ddpa_abstract_stores;;
-open Pp_utils;;
 
 module Delta1StoreOps = Ops.Make(
   struct
@@ -27,20 +26,13 @@ let test_serial_join_with_imprecise =
       |> Option.get
     in
     let s3 = Option.get @@ Delta1StoreOps.serial_store_join s1 s2 in
-    assert_equal ~printer:(pp_to_string pp_abstract_value)
+    assert_equal ~printer:(Pp_utils.pp_to_string pp_abstract_value)
       (Abs_value_bool true) (store_read s3);
-    store_enum s3
-    |> Enum.iter
-      (fun (rx,v) ->
-         let (_,t) = destruct_relative_trace_var rx in
-         if is_partial_trace t then
-           ()
-         else
-           assert_failure @@
-           Printf.sprintf "Expected partial trace in every mapping but found %s"
-             ((pp_to_string @@ pp_tuple Relative_trace_var.pp pp_abstract_value)
-                (rx,v))
-      )
+    assert_equal
+      ~printer:(Pp_utils.pp_to_string @@ Pp_utils.pp_list @@
+                Pp_utils.pp_tuple Relative_trace_var.pp pp_abstract_value)
+      []
+      (List.of_enum @@ store_enum s3)
 ;;
 
 let tests =
