@@ -269,9 +269,9 @@ struct
         (* Conditional Top: Non-Subject Variable Negative *)
         begin
           let%orzero Enter_clause(x',x1,c) = acl1 in
-          let%orzero Abs_clause(_,Abs_conditional_body(x1_,p,f1,_)) = c in
+          let%orzero Abs_clause(_,Abs_conditional_body(x1_,p,_,f2)) = c in
           [%guard equal_abstract_var x1 x1_];
-          let Abs_function_value(xf,_) = f1 in
+          let Abs_function_value(xf,_) = f2 in
           [%guard equal_abstract_var x' xf];
           dynpop
             (Conditional_top_nonsubject_variable_negative(x',x1,acl1,p))
