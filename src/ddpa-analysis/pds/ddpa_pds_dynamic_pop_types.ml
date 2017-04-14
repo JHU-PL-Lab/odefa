@@ -90,6 +90,14 @@ struct
        variable is not equal to the first argument, this action will add stack
        elements suitable for a non-local lookup.  The second argument is the
        call site from which the function was invoked. *)
+    | Conditional_top_nonsubject_variable_positive of abstract_var * abstract_var * abstract_clause * pattern
+    (* The Conditional Top: Non-Subject Variable Positive rule.  If the variable
+       currently under lookup is neither of the provided variables, then the
+       lookup is permitted to proceed through the wiring node. *)
+    | Conditional_top_nonsubject_variable_negative of abstract_var * abstract_var * abstract_clause * pattern
+    (* The Conditional Top: Non-Subject Variable Negative rule.  If the variable
+       currently under lookup is neither of the provided variables, then the
+       lookup is permitted to proceed through the wiring node. *)
     | Conditional_top_nonsubject_variable of abstract_var * abstract_var
     (* The Conditional Top: Non-Subject Variable rule.  If the variable
        currently under lookup is neither of the provided variables, then the

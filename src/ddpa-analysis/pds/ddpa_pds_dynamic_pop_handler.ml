@@ -144,11 +144,28 @@ struct
              ; Push (Capture (Struct.Bounded_capture_size.of_int 3))
              ; Push (Lookup_var x2'')
              ]
-    | Conditional_top_nonsubject_variable(x',x1) ->
+    | Conditional_top_nonsubject_variable_positive(x',x1,acl1,p) ->
       let%orzero Lookup_var x = element in
       [%guard not @@ equal_abstract_var x x'];
       [%guard not @@ equal_abstract_var x x1];
-      return [ Push element ]
+      return [ Push Parallel_join
+             ; Push element
+             ; Push (Jump acl1)
+             ; Push (Capture (Struct.Bounded_capture_size.of_int 3))
+             ; Push (Continuation_matches p)
+             ; Push (Lookup_var x1)
+           ]
+    | Conditional_top_nonsubject_variable_negative(x',x1,acl1,p) ->
+      let%orzero Lookup_var x = element in
+      [%guard not @@ equal_abstract_var x x'];
+      [%guard not @@ equal_abstract_var x x1];
+      return [ Push Parallel_join
+             ; Push element
+             ; Push (Jump acl1)
+             ; Push (Capture (Struct.Bounded_capture_size.of_int 3))
+             ; Push (Continuation_antimatches p)
+             ; Push (Lookup_var x1)
+           ]
     | Record_projection_stop_1_of_2 ->
       let%orzero Continuation_store s = element in
       return [ Pop_dynamic_targeted (Record_projection_stop_2_of_2 s) ]
