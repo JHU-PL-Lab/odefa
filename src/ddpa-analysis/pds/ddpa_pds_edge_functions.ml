@@ -155,12 +155,16 @@ struct
         (* Function Top: Parameter Variable *)
         begin
           let%orzero Enter_clause(x,x',c) = acl1 in
-          let%orzero Abs_clause(_,Abs_appl_body(_,x0')) = c in
+          let%orzero Abs_clause(_,Abs_appl_body(x2'',x0')) = c in
           [%guard equal_abstract_var x' x0'];
           static
             [ Pop(Lookup_var x)
             ; Push(Trace_concat(Trace_enter c))
+            ; Push Parallel_join
             ; Push(Lookup_var x')
+            ; Push (Jump acl1)
+            ; Push (Capture(Struct.Bounded_capture_size.of_int 3))
+            ; Push(Lookup_var x2'')
             ]
             (Program_point_state acl1)
         end
@@ -203,7 +207,7 @@ struct
           let%orzero Abs_clause(_,Abs_appl_body(_,x3'')) = c in
           [%guard equal_abstract_var x' x3''];
           dynpop
-            (Function_top_nonlocal_variable(x'',c))
+            (Function_top_nonlocal_variable(x'',c,acl1))
             (Program_point_state acl1)
         end
         ;
