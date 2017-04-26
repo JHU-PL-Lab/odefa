@@ -1,0 +1,14 @@
+# EXPECT-WELL-FORMED
+# EXPECT-EVALUATE
+# EXPECT-MAX-STACK-DELTA-SIZE 1
+# EXPECT-ANALYSIS-LOOKUP-FROM-END z {int}
+# EXPECT-ANALYSIS-NO-INCONSISTENCIES
+
+zero = 0;
+f = fun a -> ( r = 4 );
+g = fun b -> ( s = "s" );
+c = fun h -> ( t = h zero );
+x = c f;
+y = c g;
+z = x;
+
