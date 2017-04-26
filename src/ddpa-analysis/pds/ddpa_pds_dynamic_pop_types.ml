@@ -86,7 +86,7 @@ struct
        the Real_flow_huh symbol has been removed from the stack.  This step pops
        the store and verifies that we are looking for the correct variable to
        enter the function. *)
-    | Function_top_nonlocal_variable of abstract_var * abstract_clause
+    | Function_top_nonlocal_variable of abstract_var * abstract_clause * annotated_clause
     (* The Function Top: Non-Local variable rule.  As long as the current lookup
        variable is not equal to the first argument, this action will add stack
        elements suitable for a non-local lookup.  The second argument is the

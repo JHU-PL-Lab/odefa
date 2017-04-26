@@ -133,16 +133,20 @@ struct
              ; Push (Trace_concat (Trace_exit c))
              ; Push (Lookup_var x')
              ]
-    | Function_top_nonlocal_variable(x'',c) ->
+    | Function_top_nonlocal_variable(x'',c,acl1) ->
       let%orzero Lookup_var x = element in
       [%guard not @@ equal_abstract_var x x'' ];
-      let%orzero Abs_clause(_,Abs_appl_body(x2'',_)) = c in
+      let%orzero Abs_clause(_,Abs_appl_body(x2'',x')) = c in
       return [ Push (Trace_concat (Trace_enter c))
+             ; Push Parallel_join
              ; Push Serial_join
              ; Push (Lookup_var x)
              ; Push Rewind
              ; Push (Capture (Struct.Bounded_capture_size.of_int 3))
              ; Push (Lookup_var x2'')
+             ; Push (Jump acl1)
+             ; Push (Capture (Struct.Bounded_capture_size.of_int 7))
+             ; Push (Lookup_var x')
              ]
     | Conditional_top_nonsubject_variable_positive(x',x1,acl1,p) ->
       let%orzero Lookup_var x = element in
