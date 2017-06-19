@@ -29,6 +29,7 @@ module List = BatList;;
 %token KEYWORD_AND
 %token KEYWORD_OR
 %token KEYWORD_NOT
+%token KEYWORD_COIN_FLIP
 %token KEYWORD_STRING
 %token KEYWORD_ANY
 %token UNDERSCORE
@@ -112,6 +113,8 @@ clause_body:
       { Binary_operation_body($1,Binary_operator_index,$3) }
   | KEYWORD_NOT variable
       { Unary_operation_body(Unary_operator_bool_not,$2) }
+  | KEYWORD_COIN_FLIP variable
+      { Unary_operation_body(Unary_operator_bool_coin_flip,$2) }
   ;
 
 value:

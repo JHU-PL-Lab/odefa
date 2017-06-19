@@ -267,6 +267,8 @@ let rec evaluate env lastvar cls =
             match op,v1 with
             | (Unary_operator_bool_not,Value_bool(b1)) ->
               Value_bool (not b1)
+            | (Unary_operator_bool_coin_flip,_) ->
+              Value_bool (Random.bool ())
             | op,v1 ->
               raise @@ Evaluation_failure(
                 Printf.sprintf "Cannot complete unary operation: %s (%s)"

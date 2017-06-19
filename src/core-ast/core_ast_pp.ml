@@ -54,6 +54,7 @@ let pp_unary_operator formatter unop =
   let s =
     match unop with
     | Unary_operator_bool_not -> "not"
+    | Unary_operator_bool_coin_flip -> "coin_flip"
   in
   Format.pp_print_string formatter s
 ;;

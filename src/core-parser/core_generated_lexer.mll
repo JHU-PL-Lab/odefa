@@ -49,6 +49,7 @@ rule token = parse
   | "and"                            { KEYWORD_AND }
   | "or"                             { KEYWORD_OR }
   | "not"                            { KEYWORD_NOT }
+  | "coin_flip"                      { KEYWORD_COIN_FLIP }
   | "any"                            { KEYWORD_ANY }
   | "_"                              { UNDERSCORE }
   | "string"                         { KEYWORD_STRING }

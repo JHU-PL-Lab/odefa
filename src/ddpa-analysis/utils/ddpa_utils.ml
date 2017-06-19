@@ -310,5 +310,7 @@ let abstract_unary_operation
   match unop,arg with
   | Unary_operator_bool_not, Abs_value_bool b ->
     singleton @@ Abs_value_bool(not b)
+  | Unary_operator_bool_coin_flip, _ ->
+    Some (List.enum [Abs_value_bool(true); Abs_value_bool(false)])
   | _ -> None
 ;;

@@ -80,6 +80,7 @@ struct
       begin
         match (op, store_read store) with
         | (Unary_operator_bool_not, Abs_value_bool _) -> zero ()
+        | (Unary_operator_bool_coin_flip, _) -> zero ()
         | _ -> return @@ Invalid_unary_operation(x_clause, op, x, store)
       end
 end;;

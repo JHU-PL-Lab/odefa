@@ -112,12 +112,14 @@ let binary_operator_to_yojson op = `String (show_binary_operator op);;
 
 type unary_operator =
   | Unary_operator_bool_not
+  | Unary_operator_bool_coin_flip
 [@@deriving eq, ord]
 ;;
 
 let show_unary_operator op =
   match op with
   | Unary_operator_bool_not ->  "not"
+  | Unary_operator_bool_coin_flip ->  "coin_flip"
 ;;
 
 let pp_unary_operator formatter op =
