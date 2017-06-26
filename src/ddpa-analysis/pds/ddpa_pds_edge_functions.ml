@@ -99,6 +99,11 @@ struct
           dynpop Store_serial_join_1_of_3 @@ Program_point_state acl0
         end
         ;
+        (* Store Alias *)
+        begin
+          dynpop Store_alias_1_of_3 @@ Program_point_state acl0
+        end
+        ;
         (* ********** Variable Search ********** *)
         (* Value Discovery *)
         begin
@@ -159,12 +164,16 @@ struct
           [%guard equal_abstract_var x' x0'];
           static
             [ Pop(Lookup_var x)
+            ; Push(Alias(x))
             ; Push(Trace_concat(Trace_enter c))
             ; Push Parallel_join
             ; Push(Lookup_var x')
             ; Push (Jump acl1)
             ; Push (Capture(Struct.Bounded_capture_size.of_int 3))
             ; Push(Lookup_var x2'')
+            ; Push (Jump acl1)
+            ; Push (Capture(Struct.Bounded_capture_size.of_int 8))
+            ; Push(Lookup_var x')
             ]
             (Program_point_state acl1)
         end

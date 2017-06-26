@@ -95,6 +95,21 @@ struct
       let%orzero Some s' = Store_ops.serial_store_join s1 s2 in
       let s'w = share_escort s1w s' in
       return [ Push(Continuation_store s'w) ]
+    | Store_alias_1_of_3 ->
+      let%orzero Continuation_store s = element in
+      return [ Pop_dynamic_targeted(Store_alias_2_of_3 s) ]
+    | Store_alias_2_of_3 s ->
+      let%orzero Alias x = element in
+      return [ Pop_dynamic_targeted(Store_alias_3_of_3 (s, x)) ]
+    | Store_alias_3_of_3 (s1w, x) ->
+      let%orzero Continuation_store s2w = element in
+      let s1 = element_of_escorted_witness s1w in
+      let s2 = element_of_escorted_witness s2w in
+      let%orzero Some s' =
+        Store_ops.parallel_store_join s1 (Store_ops.store_singleton x (store_read s2))
+      in
+      let s'w = share_escort s1w s' in
+      return [ Push(Continuation_store s'w) ]
     | Stateless_clause_skip_1_of_2 x' ->
       let%orzero Lookup_var x = element in
       [%guard not @@ equal_abstract_var x x'];
