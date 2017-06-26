@@ -99,9 +99,9 @@ struct
           dynpop Store_serial_join_1_of_3 @@ Program_point_state acl0
         end
         ;
-        (* Store Alias *)
+        (* Store Bind *)
         begin
-          dynpop Store_alias_1_of_3 @@ Program_point_state acl0
+          dynpop Store_bind_1_of_2 @@ Program_point_state acl0
         end
         ;
         (* ********** Variable Search ********** *)
@@ -128,6 +128,7 @@ struct
           in
           static
             [ Pop(Lookup_var x)
+            ; Push(Bind x)
             ; Push(Lookup_var x')
             ]
             (Program_point_state acl1)
@@ -164,16 +165,13 @@ struct
           [%guard equal_abstract_var x' x0'];
           static
             [ Pop(Lookup_var x)
-            ; Push(Alias(x))
+            ; Push(Bind x)
             ; Push(Trace_concat(Trace_enter c))
             ; Push Parallel_join
             ; Push(Lookup_var x')
             ; Push (Jump acl1)
             ; Push (Capture(Struct.Bounded_capture_size.of_int 3))
             ; Push(Lookup_var x2'')
-            ; Push (Jump acl1)
-            ; Push (Capture(Struct.Bounded_capture_size.of_int 8))
-            ; Push(Lookup_var x')
             ]
             (Program_point_state acl1)
         end
@@ -231,12 +229,14 @@ struct
           alternatives
             [ static
                 [ Pop (Lookup_var x')
+                ; Push (Bind x')
                 ; Push (Continuation_matches p)
                 ; Push (Lookup_var x1)
                 ]
                 (Program_point_state acl1)
             ; static
                 [ Pop (Lookup_var x1)
+                ; Push (Bind x')
                 ; Push (Continuation_matches p)
                 ; Push (Lookup_var x1)
                 ]
@@ -254,12 +254,14 @@ struct
           alternatives
             [ static
                 [ Pop (Lookup_var x')
+                ; Push (Bind x')
                 ; Push (Continuation_antimatches p)
                 ; Push (Lookup_var x1)
                 ]
                 (Program_point_state acl1)
             ; static
                 [ Pop (Lookup_var x1)
+                ; Push (Bind x')
                 ; Push (Continuation_antimatches p)
                 ; Push (Lookup_var x1)
                 ]
@@ -302,9 +304,10 @@ struct
           static
             [ Pop (Lookup_var x)
             ; Push Parallel_join
+            ; Push (Bind x)
             ; Push (Lookup_var x')
             ; Push (Jump acl1)
-            ; Push (Capture (Struct.Bounded_capture_size.of_int 3))
+            ; Push (Capture (Struct.Bounded_capture_size.of_int 4))
             ; Push (Continuation_matches p)
             ; Push (Lookup_var x1)
             ]
@@ -322,9 +325,10 @@ struct
           static
             [ Pop (Lookup_var x)
             ; Push Parallel_join
+            ; Push (Bind x)
             ; Push (Lookup_var x')
             ; Push (Jump acl1)
-            ; Push (Capture (Struct.Bounded_capture_size.of_int 3))
+            ; Push (Capture (Struct.Bounded_capture_size.of_int 4))
             ; Push (Continuation_antimatches p)
             ; Push (Lookup_var x1)
             ]
@@ -339,6 +343,7 @@ struct
           in
           static
             [ Pop (Lookup_var x)
+            ; Push (Bind x)
             ; Push (Project l)
             ; Push (Lookup_var x')
             ]
@@ -679,6 +684,7 @@ struct
           in
           static
             [ Pop (Lookup_var x1)
+            ; Push (Bind x1)
             ; Push Binary_operation
             ; Push (Jump acl0)
             ; Push (Capture (Struct.Bounded_capture_size.of_int 2))
@@ -711,6 +717,7 @@ struct
           in
           static
             [ Pop (Lookup_var x1)
+            ; Push (Bind x1)
             ; Push Unary_operation
             ; Push (Jump acl0)
             ; Push (Capture (Struct.Bounded_capture_size.of_int 2))

@@ -54,19 +54,13 @@ struct
     (* The third part of the Store Serial Join rule.  This part pops the
        second operand, performs the serial join, and pushes the resulting
        store. *)
-    | Store_alias_1_of_3
-    (* The first part of the Store Alias rule, which pops the first
+    | Store_bind_1_of_2
+    (* The first part of the Store Bind rule, which pops the first
        operand from the stack. *)
-    | Store_alias_2_of_3 of
+    | Store_bind_2_of_2 of
         Abstract_store_witness_registry.escorted_witness
-    (* The second part of the Store Alias rule, which pops the operator
-       from the stack.  The argument is the first operator. *)
-    | Store_alias_3_of_3 of
-        Abstract_store_witness_registry.escorted_witness *
-        abstract_var
-    (* The third part of the Store Alias rule.  This part pops the
-       second operand, performs the alias, and pushes the resulting
-       store. *)
+    (* The second part of the Store Bind rule.  This part performs the bind, and
+       pushes the resulting store. *)
     | Stateless_clause_skip_1_of_2 of abstract_var
     (* The first part of the Stateless Clause Skip rule.  If the top stack
        element is a lookup for a variable other than the one captured here, that
