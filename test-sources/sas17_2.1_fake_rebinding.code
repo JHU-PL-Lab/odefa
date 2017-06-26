@@ -1,17 +1,17 @@
 # EXPECT-WELL-FORMED
 # EXPECT-EVALUATE
 # EXPECT-MAX-STACK-DELTA-SIZE 0
-# EXPECT-ANALYSIS-LOOKUP-FROM-END compose_same_negate_argument {true}
+# EXPECT-ANALYSIS-LOOKUP-FROM-END compose_same_negate_applied {true}
 # EXPECT-ANALYSIS-NO-INCONSISTENCIES
 
 # From ``CFA2: Pushdown Flow Analysis for Higher-Order Languages''
 # (define (compose-same f x) (f (f x)))
 
-compose_same = fun f -> (
-  compose_same_partial = fun x -> (
-    compose_same_partial_partial_application = f x;
-    compose_same_partial_return = f compose_same_partial_partial_application;
-  );
+compose_same = fun compose_same_arguments -> (
+  f = compose_same_arguments.f;
+  x = compose_same_arguments.x;
+  compose_same_partial_application = f x;
+  compose_same_return = f compose_same_partial_application;
 );
 
 identity = fun identity_argument -> (
@@ -22,10 +22,10 @@ negate = fun negate_argument -> (
   negate_return = not negate_argument;
 );
 
-compose_same_identity = compose_same identity;
-compose_same_negate = compose_same negate;
-
 argument = true;
 
-compose_same_identity_argument = compose_same_identity argument;
-compose_same_negate_argument = compose_same_negate argument;
+compose_same_identity_arguments = {f = identity, x = argument};
+compose_same_negate_arguments = {f = negate, x = argument};
+
+compose_same_identity_applied = compose_same compose_same_identity_arguments;
+compose_same_negate_applied = compose_same compose_same_negate_arguments;
