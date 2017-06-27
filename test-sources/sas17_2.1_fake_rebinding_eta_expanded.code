@@ -1,6 +1,6 @@
 # EXPECT-WELL-FORMED
 # EXPECT-EVALUATE
-# EXPECT-MAX-STACK-DELTA-SIZE 0
+# EXPECT-MAX-STACK-DELTA-SIZE 1
 # EXPECT-ANALYSIS-LOOKUP-FROM-END compose_same_negate_applied {true}
 # EXPECT-ANALYSIS-NO-INCONSISTENCIES
 
@@ -15,11 +15,17 @@ compose_same = fun compose_same_arguments -> (
 );
 
 identity = fun identity_argument -> (
-  identity_return = identity_argument;
+  identity_eta = fun identity_eta_argument -> (
+    identity_return_eta = identity_argument;
+  );
+  identity_return = identity_eta identity_argument;
 );
 
 negate = fun negate_argument -> (
-  negate_return = not negate_argument;
+  negate_eta = fun negate_eta_argument -> (
+    negate_return_eta = not negate_argument;
+  );
+  negate_return = negate_eta negate_argument;
 );
 
 argument = true;
