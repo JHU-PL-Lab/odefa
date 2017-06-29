@@ -420,6 +420,7 @@ struct
              ; Push (Side_effect_lookup_var x)
              ; Push (Jump acl1)
              ; Push (Capture (Struct.Bounded_capture_size.of_int 6))
+             ; Push (Bind x)
              ; Push (Continuation_matches p)
              ; Push (Lookup_var x2'')
              ]
@@ -437,6 +438,7 @@ struct
              ; Push (Side_effect_lookup_var x)
              ; Push (Jump acl1)
              ; Push (Capture (Struct.Bounded_capture_size.of_int 6))
+             ; Push (Bind x)
              ; Push (Continuation_antimatches p)
              ; Push (Lookup_var x2'')
              ]
@@ -489,6 +491,7 @@ struct
              ; Push (Side_effect_lookup_var x)
              ; Push (Jump acl1)
              ; Push (Capture (Struct.Bounded_capture_size.of_int 4))
+             ; Push (Bind x)
              ; Push (Continuation_matches p)
              ; Push (Lookup_var x2'')
              ]
@@ -501,6 +504,7 @@ struct
              ; Push (Side_effect_lookup_var x)
              ; Push (Jump acl1)
              ; Push (Capture (Struct.Bounded_capture_size.of_int 4))
+             ; Push (Bind x)
              ; Push (Continuation_antimatches p)
              ; Push (Lookup_var x2'')
              ]

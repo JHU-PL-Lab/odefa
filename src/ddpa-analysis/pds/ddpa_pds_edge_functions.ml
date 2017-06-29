@@ -405,6 +405,7 @@ struct
           in
           static
             [ Pop (Lookup_var x)
+            ; Push (Bind x)
             ; Push Deref
             ; Push (Lookup_var x')
             ]
