@@ -12,7 +12,7 @@ open Ddpa_abstract_stores;;
 open Ddpa_analysis_logging;;
 open Ddpa_graph;;
 open Ddpa_utils;;
-open Nondeterminism;;
+open Eager_nondeterminism;;
 open Pp_utils;;
 
 let logger = Logger_utils.make_logger "Ddpa_analysis";;

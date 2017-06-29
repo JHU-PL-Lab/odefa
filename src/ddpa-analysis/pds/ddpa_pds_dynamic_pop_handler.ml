@@ -5,7 +5,7 @@ open Core_ast;;
 open Ddpa_abstract_ast;;
 open Ddpa_abstract_stores;;
 open Ddpa_utils;;
-open Nondeterminism;;
+open Eager_nondeterminism;;
 open Pds_reachability_types_stack;;
 
 let logger = Logger_utils.make_logger "Ddpa_pds_dynamic_pop_handler";;

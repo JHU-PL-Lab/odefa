@@ -24,16 +24,6 @@ struct
   let to_yojson = abstract_value_to_yojson;;
 end;;
 
-module Abstract_clause_pp_brief : Decorated_type with type t = abstract_clause =
-struct
-  type t = abstract_clause;;
-  let compare = compare_abstract_clause;;
-  let equal = equal_abstract_clause;;
-  let pp = pp_abstract_clause_unique_info;;
-  let show = pp_to_string pp;;
-  let to_yojson = abstract_clause_to_yojson;;
-end;;
-
 type relative_trace_part =
   | Trace_enter of abstract_clause
   | Trace_exit of abstract_clause
