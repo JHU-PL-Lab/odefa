@@ -1,0 +1,10 @@
+# EXPECT-WELL-FORMED
+# EXPECT-EVALUATE
+# EXPECT-MAX-STACK-DELTA-SIZE 0
+# EXPECT-ANALYSIS-LOOKUP-FROM-END r {{}}
+# EXPECT-ANALYSIS-NO-INCONSISTENCIES
+
+a = {};
+r = a ~ _
+    ? fun b -> ( c = 2; )
+    : fun d -> ( e = 1; );
