@@ -210,6 +210,8 @@ struct
       let%bind immediate_match =
         begin
           match p with
+          | Any_pattern ->
+            return true
           | Record_pattern r when Ident_map.is_empty r ->
             begin
               match store_read s with
