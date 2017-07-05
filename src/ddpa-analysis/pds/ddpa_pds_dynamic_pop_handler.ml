@@ -95,17 +95,6 @@ struct
       let%orzero Some s' = Store_ops.serial_store_join s1 s2 in
       let s'w = share_escort s1w s' in
       return [ Push(Continuation_store s'w) ]
-    | Store_bind_1_of_2 ->
-      let%orzero Continuation_store s = element in
-      return [ Pop_dynamic_targeted(Store_bind_2_of_2 s) ]
-    | Store_bind_2_of_2 sw ->
-      let s = element_of_escorted_witness sw in
-      let%orzero Bind x = element in
-      let%orzero Some s' =
-        Store_ops.parallel_store_join s (Store_ops.store_singleton x (store_read s))
-      in
-      let s'w = share_escort sw s' in
-      return [ Push(Continuation_store s'w) ]
     | Stateless_clause_skip_1_of_2 x' ->
       let%orzero Lookup_var x = element in
       [%guard not @@ equal_abstract_var x x'];
@@ -139,7 +128,6 @@ struct
       let Abs_expr cls = e in
       [%guard equal_abstract_var x' (rv @@ cls)];
       return [ Pop (Lookup_var x)
-             ; Push(Bind x)
              ; Push (Continuation_store sw)
              ; Push Parallel_join
              ; Push (Trace_concat (Trace_exit c))
@@ -168,7 +156,6 @@ struct
              ; Push element
              ; Push (Jump acl1)
              ; Push (Capture (Struct.Bounded_capture_size.of_int 3))
-             ; Push (Bind x')
              ; Push (Continuation_matches p)
              ; Push (Lookup_var x1)
            ]
@@ -180,7 +167,6 @@ struct
              ; Push element
              ; Push (Jump acl1)
              ; Push (Capture (Struct.Bounded_capture_size.of_int 3))
-             ; Push (Bind x')
              ; Push (Continuation_antimatches p)
              ; Push (Lookup_var x1)
            ]
@@ -422,7 +408,6 @@ struct
              ; Push (Side_effect_lookup_var x)
              ; Push (Jump acl1)
              ; Push (Capture (Struct.Bounded_capture_size.of_int 6))
-             ; Push (Bind x)
              ; Push (Continuation_matches p)
              ; Push (Lookup_var x2'')
              ]
@@ -440,7 +425,6 @@ struct
              ; Push (Side_effect_lookup_var x)
              ; Push (Jump acl1)
              ; Push (Capture (Struct.Bounded_capture_size.of_int 6))
-             ; Push (Bind x)
              ; Push (Continuation_antimatches p)
              ; Push (Lookup_var x2'')
              ]
@@ -493,7 +477,6 @@ struct
              ; Push (Side_effect_lookup_var x)
              ; Push (Jump acl1)
              ; Push (Capture (Struct.Bounded_capture_size.of_int 4))
-             ; Push (Bind x)
              ; Push (Continuation_matches p)
              ; Push (Lookup_var x2'')
              ]
@@ -506,7 +489,6 @@ struct
              ; Push (Side_effect_lookup_var x)
              ; Push (Jump acl1)
              ; Push (Capture (Struct.Bounded_capture_size.of_int 4))
-             ; Push (Bind x)
              ; Push (Continuation_antimatches p)
              ; Push (Lookup_var x2'')
              ]

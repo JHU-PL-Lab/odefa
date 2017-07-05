@@ -60,7 +60,6 @@ struct
     | Parallel_join
     | Serial_join
     | Trace_concat of Relative_trace_part.t
-    | Bind of abstract_var
     | Continuation_matches of pattern
     | Continuation_antimatches of pattern
     | Side_effect_search_start of annotated_clause

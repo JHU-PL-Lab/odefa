@@ -4,11 +4,8 @@
 # EXPECT-ANALYSIS-LOOKUP-FROM-END main_result {true}
 # EXPECT-ANALYSIS-NO-INCONSISTENCIES
 
-id = fun i -> (ir = i;);
-aa = false;
-a = id aa;
-ba = true;
-b = id ba;
+zero = 0;
+b = zero == zero;
 
 x = b ~ true ?
 fun x_b_true -> (
