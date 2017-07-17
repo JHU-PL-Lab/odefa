@@ -195,13 +195,13 @@ struct
       in
       let%bind immediate_match =
         begin
-          match p with
-          | Any_pattern ->
-            return true
-          | Record_pattern r when Ident_map.is_empty r ->
+          match store_read s with
+          | Abs_value_record _ ->
             begin
-              match store_read s with
-              | Abs_value_record _ -> return true
+              match p with
+              | Any_pattern -> return true
+              | Record_pattern r when Ident_map.is_empty r -> return true
+              | Record_pattern _ -> zero ()
               | _ -> return false
             end
           | _ ->
