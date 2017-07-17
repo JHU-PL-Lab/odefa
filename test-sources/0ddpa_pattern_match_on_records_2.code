@@ -1,0 +1,49 @@
+# EXPECT-WELL-FORMED
+# EXPECT-EVALUATE
+# EXPECT-ANALYSIS-NO-INCONSISTENCIES
+# EXPECT-ANALYSIS-LOOKUP-FROM-END r_r {true}
+# EXPECT-ANALYSIS-LOOKUP-FROM-END r_t {false}
+# EXPECT-ANALYSIS-LOOKUP-FROM-END r_f {false}
+# EXPECT-ANALYSIS-LOOKUP-FROM-END r_s {false}
+# EXPECT-ANALYSIS-LOOKUP-FROM-END r_ref {false}
+
+r = {};
+r_r = r ~ {}
+	? fun rt -> (
+		r_rt = true;
+	)
+	: fun rf -> (
+		r_rf = false;
+	);
+
+r_t = r ~ true
+	? fun rtt -> (
+		r_rtt = true;
+	)
+	: fun rtf -> (
+		r_rtf = false;
+	);
+	
+r_f = r ~ false
+	? fun rft -> (
+		r_rft = true;
+	)
+	: fun rff -> (
+		r_rff = false;
+	);
+	
+r_s = r ~ string
+	? fun rst -> (
+		r_rst = true;
+	)
+	: fun rsf -> (
+		r_rsf = false;
+	);
+	
+r_ref = r ~ ref
+	? fun rrt -> (
+		r_rrt = true;
+	)
+	: fun rrf -> (
+		r_rrf = false;
+	);
