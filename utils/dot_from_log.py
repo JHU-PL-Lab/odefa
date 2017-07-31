@@ -284,7 +284,7 @@ def abbrv_clause(clause):
     elif clause[0] == "End_clause":
         return "end(%s)" % clause[1]
     elif clause[0] == "Enter_clause" or clause[0] == "Exit_clause":
-        form = "+" if clause[0] == "Enter_caluse" else "-"
+        form = "+" if clause[0] == "Enter_clause" else "-"
         return "%s=%s@%s%s" % (clause[1], clause[2], form, clause[3][1])
     else:
         raise InvariantFailure("Unrecognized clause for abbreviation: %s" %
