@@ -5,7 +5,7 @@ open Core_ast;;
 open Ddpa_abstract_ast;;
 open Ddpa_abstract_stores;;
 open Ddpa_utils;;
-open Nondeterminism;;
+open Eager_nondeterminism;;
 open Pds_reachability_types_stack;;
 
 let logger = Logger_utils.make_logger "Ddpa_pds_dynamic_pop_handler";;
@@ -195,11 +195,13 @@ struct
       in
       let%bind immediate_match =
         begin
-          match p with
-          | Record_pattern r when Ident_map.is_empty r ->
+          match store_read s with
+          | Abs_value_record _ ->
             begin
-              match store_read s with
-              | Abs_value_record _ -> return true
+              match p with
+              | Any_pattern -> return true
+              | Record_pattern r when Ident_map.is_empty r -> return true
+              | Record_pattern _ -> zero ()
               | _ -> return false
             end
           | _ ->

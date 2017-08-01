@@ -1,5 +1,6 @@
 open Batteries;;
 open Jhupllib;;
+
 open Core_ast;;
 open Core_toploop_analysis_types;;
 open Core_toploop_ddpa_wrapper_types;;
@@ -14,7 +15,7 @@ struct
   module DDPA_wrapper = DDPA_wrapper;;
 
   let find_errors analysis =
-    let open Nondeterminism.Nondeterminism_monad in
+    let open Eager_nondeterminism.Nondeterminism_monad in
     enum @@
     let%bind acl =
       analysis

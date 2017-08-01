@@ -5,7 +5,7 @@ open Core_ast;;
 open Core_ast_pp;;
 open Ddpa_abstract_ast;;
 open Ddpa_graph;;
-open Nondeterminism;;
+open Eager_nondeterminism;;
 
 exception Non_record_projection of string;;
 

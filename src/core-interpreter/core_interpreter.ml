@@ -281,6 +281,7 @@ let rec evaluate env lastvar cls =
 ;;
 
 let eval (Expr(cls)) =
+  Random.self_init ();
   let env = Environment.create(20) in
   let repl_fn = repl_fn_for cls (Freshening_stack []) Var_set.empty in
   let cls' = List.map (var_replace_clause repl_fn) cls in

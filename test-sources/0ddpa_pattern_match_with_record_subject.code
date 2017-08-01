@@ -1,0 +1,13 @@
+# EXPECT-WELL-FORMED
+# EXPECT-EVALUATE
+# EXPECT-ANALYSIS-NO-INCONSISTENCIES
+# EXPECT-ANALYSIS-LOOKUP-FROM-END s {true}
+
+x = {};
+s = x ~ int
+    ? fun xt -> (
+        xtr = 0;
+    )
+    : fun xf -> (
+        xft = true;
+    );
