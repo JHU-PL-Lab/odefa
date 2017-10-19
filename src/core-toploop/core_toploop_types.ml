@@ -13,7 +13,7 @@ open Ddpa_abstract_stores;;
 (** Represents the result of evaluating an expression.  This data type also
     captures exceptional cases and toploop configuration properties. *)
 type evaluation_result =
-  | Evaluation_completed of var * evaluation_environment
+  | Evaluation_completed of value
   (** The case in which evaluation was successful. *)
 
   | Evaluation_failure of string

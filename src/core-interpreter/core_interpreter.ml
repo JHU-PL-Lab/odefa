@@ -4,6 +4,9 @@ open Jhupllib;;
 open Core_ast;;
 open Core_ast_pp;;
 open Pp_utils;;
+open Unbounded_context_stack;;
+open Lookup_stack;;
+open Wddpac_graph;;
 
 let lazy_logger = Logger_utils.make_lazy_logger "Interpreter";;
 
@@ -16,274 +19,267 @@ let show_evaluation_environment = pp_to_string pp_evaluation_environment;;
 
 exception Evaluation_failure of string;;
 
-let lookup env x =
-  if Environment.mem env x then
-    Environment.find env x
-  else
-    raise (
-      Evaluation_failure (
-        Printf.sprintf "cannot find variable %s in environment %s."
-          (show_var x) (show_evaluation_environment env)
-      )
+let rv body =
+  match body with
+  | [] -> raise @@ Utils.Invariant_failure "empty function body provided to rv"
+  | _ -> let Clause(x,_) = List.last body in x
+;;
+
+(**
+   Adds a set of edges to the DDPA graph.  This implicitly adds the vertices
+   involved in those edges.  Note that this does not affect the end-of-block
+   map.
+*)
+let add_edges edges_in graph =
+  let edges =
+    edges_in
+    |> Enum.filter
+      (fun edge -> not @@ Wddpac_graph.has_edge edge graph)
+  in
+  if Enum.is_empty edges then graph else
+    
+    (* ***
+       Add the edge to the DDPA graph.
+    *)
+    let ddpa_graph' =
+      Enum.clone edges
+      |> Enum.fold (flip Wddpac_graph.add_edge) graph
+    in
+    ddpa_graph'
+;;
+
+let initialize_graph cls = 
+  (* Create empty graph *)
+  let empty_graph = Wddpac_graph.empty in
+
+  (* Create beginning of graph from cls *)
+  let rx = rv cls in
+  let acls =
+      List.enum cls
+      |> Enum.map (fun x -> Unannotated_clause x)
+      |> Enum.append (Enum.singleton (Start_clause rx))
+      |> flip Enum.append (Enum.singleton (End_clause rx))
+    in 
+  let rec mk_edges acls' =
+      match Enum.get acls' with
+      | None -> []
+      | Some acl1 ->
+        match Enum.peek acls' with
+        | None -> []
+        | Some acl2 ->
+          Wddpac_edge(acl1,acl2) :: mk_edges acls'
+    in
+  let edges = List.enum @@ mk_edges acls in 
+  (* Add edges *)
+  (add_edges edges empty_graph, (Start_clause(rx)))
+;;
+
+let wire site_cl func x1 x2 graph =
+  let site_acl = Unannotated_clause(site_cl) in
+  let Function_value(x0, Expr(body)) = func in
+  let wire_in_acl = Enter_clause(x0,x1,site_cl) in
+  let start_acl = Start_clause (rv body) in
+  let end_acl = End_clause (rv body) in
+  let wire_out_acl = Exit_clause(x2,rv body,site_cl) in
+  let pred_edges =
+    Wddpac_graph.preds site_acl graph
+    |> Enum.map (fun acl' -> Wddpac_edge(acl',wire_in_acl))
+  in
+  let succ_edges =
+    Wddpac_graph.succs site_acl graph
+    |> Enum.map (fun acl' -> Wddpac_edge(wire_out_acl,acl'))
+  in
+  let inner_edges =
+    List.enum body
+    |> Enum.map (fun cl -> Unannotated_clause(cl))
+    |> Enum.append (Enum.singleton start_acl)
+    |> Enum.append (Enum.singleton wire_in_acl)
+    |> flip Enum.append (Enum.singleton end_acl)
+    |> flip Enum.append (Enum.singleton wire_out_acl)
+    |> Utils.pairwise_enum_fold
+      (fun acl1 acl2 -> Wddpac_edge(acl1,acl2))
+  in
+  (Enum.append pred_edges @@ Enum.append inner_edges succ_edges, start_acl)
+;;
+
+
+let rec lookup graph var node lookup_stack context_stack = 
+  (* recurisvely lookup, utilize context_stack for alignment *)
+  (* Context stack isn't mutable, thank god *)
+  let preds = Wddpac_graph.preds node graph in
+  print_endline ("Var " ^ (show_var var));
+  match node with
+  | Unannotated_clause(Clause(x, cl)) -> 
+    if x <> var then (
+      print_string "Skip";
+      traverse_predecessors preds graph var lookup_stack context_stack
     )
-;;
+    else
+      begin
+        match cl with
+        | Var_body(x') -> 
+          print_string "Alias"; 
+          traverse_predecessors preds graph x' lookup_stack context_stack
+        | Value_body(Value_function(_) as v) -> 
+          let popped_val = Lookup_Stack.get_top lookup_stack in 
+          begin
+            match popped_val with
+            | None -> 
+              print_string "Value Discovery";
+              Some(v)
+            | Some(v) -> 
+              print_string "Value Discard";
+              traverse_predecessors preds graph v (Lookup_Stack.pop lookup_stack) context_stack
+          end
+        | Appl_body(_, _) -> 
+          print_string "Incorrect Appl Search";
+          None
+        | _ -> raise @@ Utils.Invariant_failure "Usage of not implemented clause"
+      end
 
-(* FIXME: this functionality is duplicated in ast_wellformedness.
-   (Needs fixed upstream.) *)
-let bound_vars_of_expr (Expr(cls)) =
-  cls
-  |> List.map (fun (Clause(x, _)) -> x)
-  |> Var_set.of_list
-;;
-
-let rec var_replace_expr fn (Expr(cls)) =
-  Expr(List.map (var_replace_clause fn) cls)
-
-and var_replace_clause fn (Clause(x, b)) =
-  Clause(fn x, var_replace_clause_body fn b)
-
-and var_replace_clause_body fn r =
-  match r with
-  | Value_body(v) -> Value_body(var_replace_value fn v)
-  | Var_body(x) -> Var_body(fn x)
-  | Appl_body(x1, x2) -> Appl_body(fn x1, fn x2)
-  | Conditional_body(x,p,f1,f2) ->
-    Conditional_body(fn x, p, var_replace_function_value fn f1,
-                     var_replace_function_value fn f2)
-  | Projection_body(x,i) -> Projection_body(fn x, i)
-  | Deref_body(x) -> Deref_body(fn x)
-  | Update_body(x1,x2) -> Update_body(fn x1, fn x2)
-  | Binary_operation_body(x1,op,x2) -> Binary_operation_body(fn x1, op, fn x2)
-  | Unary_operation_body(op,x1) -> Unary_operation_body(op, fn x1)
-
-and var_replace_value fn v =
-  match v with
-  | Value_record(Record_value(es)) ->
-    Value_record(Record_value(Ident_map.map fn es))
-  | Value_function(f) -> Value_function(var_replace_function_value fn f)
-  | Value_ref(Ref_value(x)) -> Value_ref(Ref_value(fn x))
-  | Value_int n -> Value_int n
-  | Value_bool b -> Value_bool b
-  | Value_string s -> Value_string s
-
-and var_replace_function_value fn (Function_value(x, e)) =
-  Function_value(fn x, var_replace_expr fn e)
-
-let freshening_stack_from_var x =
-  let Var(appl_i, appl_fso) = x in
-  (* The freshening stack of a call site at top level is always
-     present. *)
-  let Freshening_stack idents = Option.get appl_fso in
-  Freshening_stack (appl_i :: idents)
-;;
-
-let repl_fn_for clauses freshening_stack extra_bound =
-  let bound_variables =
-    (* FIXME: this functionality is duplicated above in bound_vars_of_expr; this
-       needs to be fixed upstream. *)
-    clauses
-    |> List.map (fun (Clause(x,_)) -> x)
-    |> Var_set.of_list
-    |> Var_set.union extra_bound
-  in
-  let repl_fn (Var(i, _) as x) =
-    if Var_set.mem x bound_variables
-    then Var(i, Some freshening_stack)
-    else x
-  in
-  repl_fn
-;;
-
-let fresh_wire (Function_value(param_x, Expr(body))) arg_x call_site_x =
-  (* Build the variable freshening function. *)
-  let freshening_stack = freshening_stack_from_var call_site_x in
-  let repl_fn =
-    repl_fn_for body freshening_stack @@ Var_set.singleton param_x in
-  (* Create the freshened, wired body. *)
-  let freshened_body = List.map (var_replace_clause repl_fn) body in
-  let head_clause = Clause(repl_fn param_x, Var_body(arg_x)) in
-  let Clause(last_var,_) = List.last freshened_body in
-  let tail_clause = Clause(call_site_x, Var_body(last_var)) in
-  [head_clause] @ freshened_body @ [tail_clause]
-;;
-
-let rec matches env x p =
-  let v = lookup env x in
-  match v,p with
-  | _,Any_pattern -> true
-  | Value_record(Record_value(els)),Record_pattern(els') ->
-    els'
-    |> Ident_map.enum
-    |> Enum.for_all
-      (fun (i,p') ->
-         try
-           matches env (Ident_map.find i els) p'
-         with
-         | Not_found -> false
+  | Enter_clause(x, x', (Clause(_, cl) as c)) -> 
+    if Unbounded_Stack.is_top c context_stack then 
+      if x = var then (
+        print_string "Function enter parameter, pop from context";
+        traverse_predecessors preds graph x' lookup_stack (Unbounded_Stack.pop context_stack)
       )
-  | Value_function(Function_value(_)),Fun_pattern
-  | Value_ref(Ref_value(_)),Ref_pattern
-  | Value_int _,Int_pattern
-  | Value_string _,String_pattern ->
-    true
-  | Value_bool actual_boolean,Bool_pattern pattern_boolean ->
-    actual_boolean = pattern_boolean
-  | _ -> false
+      else 
+        begin
+          match cl with 
+          | Appl_body(xf, _) -> 
+            print_string "Function enter non-local, push to lookup and pop from context";
+            traverse_predecessors preds graph xf (Lookup_Stack.push x lookup_stack) (Unbounded_Stack.pop context_stack)
+          | _ -> raise @@ Utils.Invariant_failure "Invalid clause in enter_clause"
+        end
+    else (
+      print_string "Misaligned Enter Clause"; 
+      None
+    )
+
+  | Exit_clause(x, _, (Clause(_, cl) as c)) -> 
+    if x = var then 
+    begin
+      print_string "Function exit";
+      match cl with 
+      | Appl_body(xf, _) -> 
+        print_string "Lookup function definition";
+        let fn = lookup graph xf (Unannotated_clause(c)) Lookup_Stack.empty context_stack in 
+        begin
+          match fn with
+        | Some(Value_function(Function_value(_, Expr(e)))) -> 
+          print_string "Get return value";
+          let x' = rv e in 
+          print_string "Continue to traverse, pop from context stack";
+          traverse_predecessors preds graph x' lookup_stack (Unbounded_Stack.push c context_stack)
+        | _ -> raise @@ Utils.Invariant_failure "Found no or incorrect definitions for function"
+        end
+      | _ -> raise @@ Utils.Invariant_failure "Invalid clause in Exit_clause"
+    end
+    else (
+      print_string "Skip case in exit clause";
+      None
+    )
+
+  | Start_clause(_) -> 
+    traverse_predecessors preds graph var lookup_stack context_stack
+  | End_clause(_) -> 
+    traverse_predecessors preds graph var lookup_stack context_stack
+
+and traverse_predecessors preds graph var lookup_stack context_stack = 
+  let possible_graphs =  preds 
+    |> Enum.map (fun pred -> lookup graph var pred lookup_stack context_stack)
+    |> Enum.filter (fun (fn) -> 
+        begin 
+          match fn with
+          | None -> false
+          | Some(_) -> true
+        end
+      )
+  in 
+    if (Enum.count possible_graphs <> 1) then raise @@ Utils.Invariant_failure "Found multiple values for variable" 
+    else List.hd (List.of_enum possible_graphs)
 ;;
 
-let rec evaluate env lastvar cls =
-  lazy_logger `debug (fun () ->
-      Format.asprintf
-        "\nEnvironment: @[%a@]\nLast var:    @[%a@]\nClauses:     @[%a@]\n"
-        pp_evaluation_environment env
-        (Pp_utils.pp_option pp_var) lastvar
-        pp_expr (Expr(cls)));
-  flush stdout;
-  match cls with
-  | [] ->
+let rec create_graph graph node context_stack = 
+  let succs = Wddpac_graph.succs node graph in
+  match node with
+  | Unannotated_clause(Clause(x1, cl) as sitecl) -> 
     begin
-      match lastvar with
-      | Some(x) -> (x, env)
-      | None ->
-        (* TODO: different exception? *)
-        raise (Failure "evaluation of empty expression!")
+      match cl with
+      | Var_body(_) -> 
+        print_string "Var body"; 
+        traverse_succesors succs graph context_stack
+      | Value_body(Value_function(_)) -> 
+        print_string "Value body"; 
+        traverse_succesors succs graph context_stack
+      | Appl_body(x2, x3) -> 
+        print_string "Appl body";
+        let lookup_stack = Lookup_Stack.empty in
+        print_string "Lookup fn";
+        let fn = lookup graph x2 node lookup_stack context_stack in 
+        print_string "Lookup v";
+        let v = lookup graph x3 node lookup_stack context_stack in 
+        (* get edges and start_clause edge from wiring in f *)
+        begin 
+          match fn, v with 
+          | _, None -> raise @@ Utils.Invariant_failure "Could not find definition of value"
+          | Some(Value_function(Function_value(_) as fn)), _ -> 
+            print_string "wire in clause";
+            let edges, start_clause = wire sitecl fn x3 x1 graph in
+            (* call add_edges on the edges, call traverse on enter_clause and push to context_stack *)
+            print_string "Continue after adding edges and updating stack";
+            create_graph ( (add_edges edges graph)) start_clause (Unbounded_Stack.push sitecl context_stack)
+          | _, _ -> raise @@ Utils.Invariant_failure "Incorrect type of function"
+        end
+      | _ -> raise @@ Utils.Invariant_failure "Usage of not implemented clause"
     end
-  | (Clause(x, b)):: t ->
-    begin
-      match b with
-      | Value_body(v) ->
-        Environment.add env x v;
-        evaluate env (Some x) t
-      | Var_body(x') ->
-        let v = lookup env x' in
-        Environment.add env x v;
-        evaluate env (Some x) t
-      | Appl_body(x', x'') ->
-        begin
-          match lookup env x' with
-          | Value_function(f) ->
-            evaluate env (Some x) @@ fresh_wire f x'' x @ t
-          | r -> raise (Evaluation_failure
-                          (Printf.sprintf
-                             "cannot apply %s as it contains non-function %s"
-                             (show_var x') (show_value r)))
-        end
-      | Conditional_body(x',p,f1,f2) ->
-        let f_target = if matches env x' p then f1 else f2 in
-        evaluate env (Some x) @@ fresh_wire f_target x' x @ t
-      | Projection_body(x', i) ->
-        begin
-          match lookup env x' with
-          | Value_record(Record_value(els)) as r ->
-            begin
-              try
-                let x'' = Ident_map.find i els in
-                let v = lookup env x'' in
-                Environment.add env x v;
-                evaluate env (Some x) t
-              with
-              | Not_found ->
-                raise @@ Evaluation_failure(
-                  Printf.sprintf "cannot project %s from %s: not present"
-                    (show_ident i) (show_value r))
-            end
-          | v ->
-            raise @@ Evaluation_failure(
-              Printf.sprintf "cannot project %s from non-record value %s"
-                (show_ident i) (show_value v))
-        end
-      | Deref_body(x') ->
-        let v = lookup env x' in
-        begin
-          match v with
-          | Value_ref(Ref_value(x'')) ->
-            let v' = lookup env x'' in
-            Environment.add env x v';
-            evaluate env (Some x) t
-          | _ -> raise @@ Evaluation_failure(
-              Printf.sprintf "cannot dereference %s as it contains non-reference %s"
-                (show_var x') (show_value v))
-        end
-      | Update_body(x', x'') ->
-        let v = lookup env x' in
-        let v' = lookup env x'' in
-        begin
-          match v with
-          | Value_ref(Ref_value(x'')) ->
-            Environment.replace env x'' v';
-            evaluate env (Some x)
-              ((Clause(x,
-                       Value_body(Value_record(Record_value(Ident_map.empty)))))::t)
-          | _ -> raise @@ Evaluation_failure(
-              Printf.sprintf "cannot update %s as it contains non-reference %s"
-                (show_var x') (show_value v))
-        end
-      | Binary_operation_body(x1,op,x2) ->
-        let v1 = lookup env x1 in
-        let v2 = lookup env x2 in
-        let result =
-          begin
-            match v1,op,v2 with
-            | (Value_int(n1),Binary_operator_plus,Value_int(n2)) ->
-              Value_int(n1+n2)
-            | (Value_int(n1),Binary_operator_int_minus,Value_int(n2)) ->
-              Value_int(n1-n2)
-            | (Value_int(n1),Binary_operator_int_less_than,Value_int(n2)) ->
-              Value_bool (n1 < n2)
-            | ( Value_int(n1)
-              , Binary_operator_int_less_than_or_equal_to
-              , Value_int(n2)
-              ) ->
-              Value_bool (n1 <= n2)
-            | (Value_int(n1),Binary_operator_equal_to,Value_int(n2)) ->
-              Value_bool (n1 = n2)
-            | (Value_bool(b1),Binary_operator_equal_to,Value_bool(b2)) ->
-              Value_bool (b1 = b2)
-            | (Value_bool(b1),Binary_operator_bool_and,Value_bool(b2)) ->
-              Value_bool (b1 && b2)
-            | (Value_bool(b1),Binary_operator_bool_or,Value_bool(b2)) ->
-              Value_bool (b1 || b2)
-            | (Value_string(s1),Binary_operator_plus,Value_string(s2)) ->
-              Value_string(s1 ^ s2)
-            | (Value_string(s1),Binary_operator_equal_to,Value_string(s2)) ->
-              Value_bool(s1 = s2)
-            | (Value_string(s),Binary_operator_index,Value_int(i)) ->
-              if i < String.length(s) then
-                Value_string (String.make 1 (String.get s i))
-              else
-                Value_string ""
-            | v1,op,v2 ->
-              raise @@ Evaluation_failure(
-                Printf.sprintf "Cannot complete binary operation: (%s) %s (%s)"
-                  (show_value v1) (show_binary_operator op) (show_value v2))
-          end
-        in
-        Environment.add env x result;
-        evaluate env (Some x) t
-      | Unary_operation_body(op,x1) ->
-        let v1 = lookup env x1 in
-        let result =
-          begin
-            match op,v1 with
-            | (Unary_operator_bool_not,Value_bool(b1)) ->
-              Value_bool (not b1)
-            | (Unary_operator_bool_coin_flip,_) ->
-              Value_bool (Random.bool ())
-            | op,v1 ->
-              raise @@ Evaluation_failure(
-                Printf.sprintf "Cannot complete unary operation: %s (%s)"
-                  (show_unary_operator op) (show_value v1))
-          end
-        in
-        Environment.add env x result;
-        evaluate env (Some x) t
-    end
+
+  | Enter_clause(_, _, _) -> 
+    print_string "Enter clause wrong";
+    (graph, false)
+  | Exit_clause(_, _, c) -> 
+    if Unbounded_Stack.is_top c context_stack then (
+      print_string "Exit clause";
+      traverse_succesors succs graph (Unbounded_Stack.pop context_stack)
+    )
+    else (
+      print_string "Exit_clause wrong";
+      (graph, false)
+    )
+
+  | Start_clause(_) -> 
+    print_string "Start_clause";
+    traverse_succesors succs graph context_stack
+  | End_clause(_) -> 
+    print_string "End_clause";
+    if Enum.is_empty succs && Unbounded_Stack.is_empty context_stack 
+      then (
+        print_string "No successors and stack empty";
+        (graph, true)
+      )
+    else (
+      print_string "Continue through successors";
+      traverse_succesors succs graph context_stack
+    )
+
+and traverse_succesors succs graph context_stack = 
+  let possible_graphs =  succs 
+    |> Enum.map (fun succ -> create_graph graph succ context_stack)
+    |> Enum.filter (fun (_, valid) -> valid)
+  in 
+    if (Enum.count possible_graphs <> 1) then raise @@ Utils.Invariant_failure "invalid graph at the end" 
+    else List.hd (List.of_enum possible_graphs)
 ;;
+
 
 let eval (Expr(cls)) =
-  Random.self_init ();
-  let env = Environment.create(20) in
-  let repl_fn = repl_fn_for cls (Freshening_stack []) Var_set.empty in
-  let cls' = List.map (var_replace_clause repl_fn) cls in
-  evaluate env None cls'
+  let context_stack = Unbounded_Stack.empty in
+  let lookup_stack = Lookup_Stack.empty in
+  let initial_graph, initial_node = initialize_graph cls in 
+  let complete_graph, valid = create_graph initial_graph initial_node context_stack in
+  if not valid then raise @@ Utils.Invariant_failure "invalid graph at the end" else
+  let v = lookup complete_graph (rv cls) (End_clause(rv cls)) lookup_stack context_stack in 
+  match v with
+  | None -> raise @@ Utils.Invariant_failure "Unable to evaluate" 
+  | Some(v) -> v
 ;;

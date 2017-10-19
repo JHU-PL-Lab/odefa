@@ -77,7 +77,7 @@ With the above configuration, it is now possible to build Odefa.
 
 5. Interact with the toploop (sample programs can be found at `test-sources/`):
 
-        ./toploop.native
+        ./core_toploop_main.native
 
 6. Run the tests:
 

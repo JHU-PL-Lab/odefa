@@ -302,9 +302,10 @@ let do_evaluation callbacks conf e =
   else
     begin
       try
-        let v, env = Core_interpreter.eval e in
-        callbacks.cb_evaluation_result v env;
-        Core_toploop_types.Evaluation_completed(v,env)
+        let v = Core_interpreter.eval e in
+        print_endline (show_value v);
+        (* callbacks.cb_evaluation_result v env; *)
+        Core_toploop_types.Evaluation_completed(v)
       with
       | Core_interpreter.Evaluation_failure s ->
         Core_toploop_types.Evaluation_failure s
