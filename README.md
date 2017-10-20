@@ -86,6 +86,12 @@ With the above configuration, it is now possible to build Odefa.
 5. Interact with the toploop (sample programs can be found at `test-sources/`):
 
         ./toploop.native
+        
+   Note that for Windows systems, the path to the toploop is the following after building:
+        
+        odefa-master\_build\src\core-toploop-main\core_toploop_main.native
+   
+   The file can be moved to the main directory without consequence.
 
 6. Run the tests:
 
