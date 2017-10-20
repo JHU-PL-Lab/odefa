@@ -27,6 +27,14 @@ The subsections below walk through these processes.
         opam update
         opam upgrade
         opam switch 4.02.3  # this may take a while
+        
+   If you are using Windows, you can install [OCaml for Windows][ocaml-for-windows].
+   This installs a Cygwin shell with OCaml and OPAM preinstalled.
+   The switch line will need to be changed to the following:
+   
+        opam switch 4.02.3+mingw64 # or opam switch 4.02.3+mingw32 depending on system
+        
+   You may need to restart Cygwin after the switch step.
 
 2. Install the dependencies:
 
@@ -144,3 +152,4 @@ The Johns Hopkins University
 [opam]: https://opam.ocaml.org/
 [docker]: https://www.docker.com/
 [docker-compose]: https://docs.docker.com/compose/
+[ocaml-for-windows]: http://fdopen.github.io/opam-repository-mingw/installation/
