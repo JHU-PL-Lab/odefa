@@ -1,0 +1,30 @@
+two = fun f -> (p = fun x -> (z = f x; a = f z; ););
+add = fun m -> 
+        (b = fun n -> 
+            (c = fun g -> 
+                (d = fun y -> (
+                    e = n g;
+                    h = e y;
+                    j = m g;
+                    k = j h;
+                    );
+                );
+            );
+        );
+zero = fun q -> 
+            (r = fun s -> (
+                t = s;
+            );
+        );
+succ = fun n_succ -> 
+            (one_succ = fun f_succ -> 
+                (two_succ = fun x_succ -> (
+                    three_succ = n_succ f_succ; 
+                    four_succ = three_succ x_succ;
+                );
+            );
+        );
+add_two = add two;
+add_two_two = add_two two;
+add_two_two_succ = add_two_two succ;
+add_two_two_succ_zero = add_two_two_succ zero;;

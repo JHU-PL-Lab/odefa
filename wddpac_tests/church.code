@@ -1,0 +1,15 @@
+two = fun f -> (p = fun x -> (z = f x; a = f z; ));
+add = fun m -> 
+        (b = fun n -> 
+            (c = fun g -> 
+                (d = fun y -> (
+                    e = n g;
+                    h = e y;
+                    j = m g;
+                    k = j h;
+                    )
+                )
+            )
+        );
+add_two = add two;
+add_two_two = add_two two;;

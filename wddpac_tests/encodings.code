@@ -1,0 +1,205 @@
+true_l = fun a_true -> (
+            c_true = fun b_true -> (
+                d_true = a_true;
+            )
+        );
+
+false_l = fun a_false -> (
+            c_false = fun b_false -> (
+                d_false = b_false;
+            )
+        );
+
+not_l = fun p_not -> (
+            a_not = p_not false_l;
+            b_not = a_not true_l;
+        );
+
+and_l = fun a_and -> (
+            c_and = fun b_and -> (
+                d_and = a_and b_and;
+                e_and = d_and false_l;
+            )
+        );
+
+or_l = fun a_or -> (
+            c_or = fun b_or -> (
+                d_or = a_or true_l;
+                e_or = d_or b_or;
+            )
+        );
+
+xor_l = fun a_xor -> (
+            c_xor = fun b_xor -> (
+                b_false_xor = b_xor false_l;
+                b_false_true_xor = b_false_xor true_l;
+                d_xor = a_xor b_false_true_xor;
+                e_xor = d_xor b_xor;
+            )
+        );
+
+if_l = fun conditional_if -> (
+            a_if = fun expr1_if -> (
+                b_if = fun expr2_if -> (
+                    c_if = conditional_if expr1_if;
+                    d_if = c_if expr2_if;
+                )
+            )
+        );
+
+zero_l = fun q_zero -> 
+            (r_zero = fun s_zero -> (
+                t_zero = s_zero;
+            );
+        );
+
+succ_l = fun n_succ -> 
+            (one_succ = fun f_succ -> 
+                (two_succ = fun x_succ -> (
+                    three_succ = n_succ f_succ; 
+                    four_succ = three_succ x_succ;
+                );
+            );
+        );
+
+one_l = succ_l zero_l;
+two_l = succ_l one_l;
+twice_l = succ_l one_l;
+four_l = twice_l two_l;
+
+add_l = fun m_add -> (
+            b_add = fun n_add -> (
+                c_add = m_add succ_l;
+                d_add = c_add n_add;
+            );
+        );
+
+mul_l = fun m_mul -> (
+            b_mul = fun n_mul -> (
+                c_mul = m_mul add_l;
+                d_mul = c_mul zero_l;
+            );
+        );
+
+
+exp1_l = fun m_exp1 -> (
+            b_exp1 = fun n_exp1 -> (
+                c_exp1 = m_exp1 mul_l;
+                d_exp1 = n_exp1 one_l;
+            );
+        );
+
+exp2_l = fun m_exp2 -> (
+            b_exp2 = fun n_exp2 -> (
+                c_exp2 = n_exp2 m_exp2;
+            );
+        );
+
+pred_l = fun n_pred -> (
+            a_pred = fun f_pred -> (
+                b_pred = fun x_pred -> (
+                    fn2_pred = fun g_pred -> (
+                        a_fn2_pred = fun h_pred -> (
+                            b_fn2_pred = g_pred f_pred;
+                            c_fn2_pred = h_pred b_fn2_pred;
+                        )
+                    );
+                    fn3_pred = fun u_pred -> (
+                                res_fn3_pred = x_pred;
+                            );
+                    fn4_pred = fun v_pred -> (
+                            res_fn4_pred = v_pred;
+                    );
+                    d_pred = n_pred fn2_pred;
+                    e_pred = d_pred fn3_pred;
+                    final_pred = e_pred fn4_pred;
+                )
+            )
+        );
+
+sub_l = fun m_sub -> (
+            b_sub = fun n_sub -> (
+                c_sub = n_sub pred_l;
+                d_sub = c_sub m_sub;
+            );
+        );
+
+is_zero_l = fun n_is_zero -> (
+                ret_false_is_zero = fun x_is_zero -> (
+                    res_x_is_zero = false_l;
+                );
+                a_is_zero = n_is_zero ret_false_is_zero;
+                b_is_zero = a_is_zero true_l;
+            );
+
+leq_l = fun m_leq -> (
+            a_leq = fun n_leq -> (
+                sub1_leq = sub_l m_leq;
+                sub2_leq = sub1_leq n_leq;
+                res_leq = is_zero_l sub2_leq;
+            )
+        );
+
+equal_l = fun m_equal -> (
+            a_equal = fun n_equal -> (
+                b_equal = leq_l m_equal;
+                c_equal = b_equal n_equal;
+                d_equal = leq_l n_equal;
+                f_equal = d_equal m_equal;
+                g_and_equal = and_l c_equal;
+                h_and_equal = g_and_equal f_equal;
+            );
+        );
+
+pair_l = fun x_pair -> (
+            a_pair = fun y_pair -> (
+                b_pair = fun p_pair -> (
+                    c_pair = p_pair x_pair;
+                    d_pair = c_pair y_pair;
+                )
+            )
+        );
+
+first_l = fun p_first -> (
+            res_first = p_first true_l;
+        );
+
+second_l = fun p_second -> (
+            res_second = p_second false_l;
+        );
+
+nil_l = false_l;
+tail_l = second_l;
+head_l = first_l;
+cons_l = pair_l;
+is_nil_l = fun l_is_nil -> (
+            a_is_nil = fun h_is_nil -> (
+                b_is_nil = fun t_is_nil -> (
+                    c_is_nil = fun d_is_nil -> (
+                        res_fn_is_nil = false_l;
+                    )
+                )
+            );
+            sub_calc_is_nil = l_is_nil a_is_nil;
+            res_is_nil = sub_calc_is_nil true_l;
+        );
+
+fib_a_l = fun fib_fib -> (
+        a_fib = fun n_fib -> (
+            condition_a_fib = leq_l n_fib;
+            condition_fib = condition_a_fib one_l;
+            true_fib = one_l;
+            n_minus_one_fib = pred_l n_fib;
+            n_minus_two_fib = pred_l n_minus_one_fib;
+            term1_fib = fib_fib n_minus_one_fib;
+            term2_fib = fib_fib n_minus_two_fib;
+            false_a_fib = add_l term1_fib;
+            false_fib = false_a_fib term2_fib;
+            result_a_fib = if_l condition_fib;
+            result_b_fib = result_a_fib true_fib;
+            result_fib = result_b_fib false_fib;
+        )
+    );
+
+fib_l = fib_a_l fib_a_l;;
+
