@@ -201,5 +201,7 @@ fib_a_l = fun fib_fib -> (
         )
     );
 
-fib_l = fib_a_l fib_a_l;;
+fib_l = fib_a_l fib_a_l;
+
+result = fib_l four_l;;
 

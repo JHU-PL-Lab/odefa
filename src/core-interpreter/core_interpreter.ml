@@ -6,7 +6,7 @@ open Core_ast_pp;;
 open Pp_utils;;
 open Unbounded_context_stack;;
 open Lookup_stack;;
-open Wddpac_graph2;;
+open Wddpac_graph;;
 
 let lazy_logger = Logger_utils.make_lazy_logger "Interpreter";;
 
@@ -34,7 +34,7 @@ let add_edges edges_in graph =
   let edges =
     edges_in
     |> Enum.filter
-      (fun (Wddpac_edge(edge1, edge2)) -> not ((Wddpac_graph2.has_succ edge1 graph) && (Wddpac_graph2.has_pred edge2 graph)))
+      (fun (Wddpac_edge(edge1, edge2)) -> not ((Wddpac_graph.has_succ edge1 graph) && (Wddpac_graph.has_pred edge2 graph)))
   in
   if Enum.is_empty edges then graph else
     (* ***
@@ -42,14 +42,14 @@ let add_edges edges_in graph =
     *)
     let ddpa_graph' =
       Enum.clone edges
-      |> Enum.fold (flip Wddpac_graph2.add_edge) graph
+      |> Enum.fold (flip Wddpac_graph.add_edge) graph
     in
     ddpa_graph'
 ;;
 
 let initialize_graph cls = 
   (* Create empty graph *)
-  let empty_graph = Wddpac_graph2.empty in
+  let empty_graph = Wddpac_graph.empty in
 
   (* Create beginning of graph from cls *)
   let rx = rv cls in
@@ -69,16 +69,16 @@ let wire site_cl func x1 x2 graph =
   let Function_value(x0, Expr(body)) = func in
   let wire_in_acl = Enter_clause(x0,x1,site_cl) in
   let start_acl = Start_clause(Some(x0)) in
-  if Wddpac_graph2.has_succ wire_in_acl graph then (
-      print_endline "Wire in acl already exists";
+  if Wddpac_graph.has_succ wire_in_acl graph then (
+      (* print_endline "Wire in acl already exists"; *)
       (List.enum [], start_acl)
     )
   else 
     let end_acl = End_clause (rv body) in
     let wire_out_acl = Exit_clause(x2,rv body,site_cl) in
-    let pred_acl = Wddpac_graph2.direct_pred site_acl graph
+    let pred_acl = Wddpac_graph.direct_pred site_acl graph
     in
-    let succ_acl = Wddpac_graph2.direct_succ site_acl graph
+    let succ_acl = Wddpac_graph.direct_succ site_acl graph
     in
     let edges =
       List.enum body
@@ -97,42 +97,41 @@ let wire site_cl func x1 x2 graph =
 
 let rec lookup graph var node lookup_stack context_stack = 
 
-  let pred_option = Wddpac_graph2.direct_pred_option node graph in
-  print_endline ("Var " ^ (show_var var));
+  let pred_option = Wddpac_graph.direct_pred_option node graph in
+  (* print_endline ("Var " ^ (show_var var)); *)
   match node, pred_option with
   
   | Unannotated_clause(Clause(x, cl) as c), Some(pred) -> 
-    print_endline "Unannotated_clause";
+    (* print_endline "Unannotated_clause"; *)
     if x <> var then (
-      print_endline "Skip";
+      (* print_endline "Skip"; *)
       lookup graph var pred lookup_stack context_stack
     )
     else
-      (* print_endline "Not skip"; *)
       begin
         match cl with
         | Var_body(x') -> 
-          print_endline "Alias"; 
+          (* print_endline "Alias";  *)
           lookup graph x' pred lookup_stack context_stack
         | Value_body(Value_function(_) as v) -> 
           let popped_val = Lookup_Stack.top lookup_stack in 
           begin
             match popped_val with
             | None -> 
-              print_endline "Value Discovery";
+              (* print_endline "Value Discovery"; *)
               v
             | Some(x1) -> 
-              print_endline "Value Discard";
+              (* print_endline "Value Discard"; *)
               lookup graph x1 pred (Lookup_Stack.pop lookup_stack) context_stack
           end
         | Appl_body(xf, _) -> 
-          print_endline "Lookup function";
+          (* print_endline "Lookup function"; *)
           let fn = lookup graph xf pred Lookup_Stack.empty context_stack in
           begin
             match fn with
             | Value_function(Function_value(_, Expr(e))) ->
                 let x' = rv e in 
-                print_endline "Lookup given function and return value";
+                (* print_endline "Lookup given function and return value"; *)
                 lookup graph var (Exit_clause(x, x', c)) lookup_stack context_stack
             | _ -> raise @@ Utils.Invariant_failure "Found incorrect definitions for function"
           end
@@ -140,69 +139,69 @@ let rec lookup graph var node lookup_stack context_stack =
       end
 
   | Enter_clause(x, x', (Clause(_, cl))), Some(pred) -> 
-    print_endline "enter_clause ";
+    (* print_endline "enter_clause "; *)
       if x = var then (
-        print_endline "Function enter parameter, pop from context";
+        (* print_endline "Function enter parameter, pop from context"; *)
         lookup graph x' pred lookup_stack (Unbounded_Stack.pop context_stack)
       )
       else 
         begin
           match cl with 
           | Appl_body(xf, _) -> 
-            print_endline "Function enter non-local, push to lookup and pop from context";
+            (* print_endline "Function enter non-local, push to lookup and pop from context"; *)
             lookup graph xf pred (Lookup_Stack.push var lookup_stack) (Unbounded_Stack.pop context_stack)
           | _ -> raise @@ Utils.Invariant_failure "Invalid clause in enter_clause"
         end
 
   | Exit_clause(_, x', c), Some(pred) -> 
-    print_endline "Exit_clause ";
+    (* print_endline "Exit_clause "; *)
     lookup graph x' pred lookup_stack (Unbounded_Stack.push c context_stack)
   | Exit_clause(_, _, _), None -> 
-    print_endline "Exit_clause None";
+    (* print_endline "Exit_clause None"; *)
     raise @@ Utils.Invariant_failure "Found no definitions for variable"
   | Start_clause(None), None -> 
-    print_endline "Start_clause None ";
+    (* print_endline "Start_clause None "; *)
     raise @@ Utils.Invariant_failure "Found no definitions for variable"
     
   | Start_clause(Some(x0)), None ->
-    print_endline "Start_clause Some ";
+    (* print_endline "Start_clause Some "; *)
     begin
       match Unbounded_Stack.top context_stack with
       | Some(Clause(_,Appl_body(_,xv)) as c) -> lookup graph var (Enter_clause(x0,xv,c)) lookup_stack context_stack
       | _ -> raise @@ Utils.Invariant_failure "Incorrect context stack"
     end
   | End_clause(_), Some(pred) -> 
-    print_endline "End_clause";  
+    (* print_endline "End_clause";   *)
     lookup graph var pred lookup_stack context_stack 
   | _, _ -> raise @@ Utils.Invariant_failure "Could not find valid predecessor node"
 
 ;;
 
 let rec create_graph graph node context_stack = 
-  let succ_option = Wddpac_graph2.direct_succ_option node graph in
+  let succ_option = Wddpac_graph.direct_succ_option node graph in
   match node, succ_option with
   | Unannotated_clause(Clause(x1, cl) as sitecl), Some(succ) -> 
     begin
       match cl with
       | Var_body(_) -> 
-        print_endline "Var body";
+        (* print_endline "Var body"; *)
         create_graph graph succ context_stack
       | Value_body(Value_function(_)) -> 
-        print_endline "Value body";
+        (* print_endline "Value body"; *)
         create_graph graph succ context_stack
       | Appl_body(x2, x3) -> 
-        print_endline "Appl body";
-        print_endline "Lookup fn";
-        print_endline (show_clause sitecl);
+        (* print_endline "Appl body"; *)
+        (* print_endline "Lookup fn"; *)
+        (* print_endline (show_clause sitecl); *)
         let fn = lookup graph x2 node Lookup_Stack.empty context_stack in 
-        print_endline "Lookup v";
+        (* print_endline "Lookup v"; *)
         let _ = lookup graph x3 node Lookup_Stack.empty context_stack in 
-        print_endline "wire in clause";
+        (* print_endline "wire in clause"; *)
         begin
           match fn with
           | Value_function(Function_value(_) as fn) ->  
             let edges, start_clause = wire sitecl fn x3 x1 graph in
-            print_endline "Continue after adding edges and updating stack";
+            (* print_endline "Continue after adding edges and updating stack"; *)
             create_graph ( (add_edges edges graph)) start_clause (Unbounded_Stack.push sitecl context_stack)
           | _ -> raise @@ Utils.Invariant_failure "First parameter is application is not a function"
         end
@@ -212,21 +211,21 @@ let rec create_graph graph node context_stack =
   | Enter_clause(_, _, _), _ -> 
     raise @@ Utils.Invariant_failure "Enter clause reached while creating graph"
   | Exit_clause(_, _, _), Some(succ) ->
-    print_endline "Exit_clause";
+    (* print_endline "Exit_clause"; *)
     create_graph graph succ (Unbounded_Stack.pop context_stack)
   | Start_clause(_), Some(succ) -> 
-    print_endline "Start_clause";
+    (* print_endline "Start_clause"; *)
     create_graph graph succ context_stack
   | End_clause(x'), None -> 
-    print_endline "End_clause";
+    (* print_endline "End_clause"; *)
     begin
       match Unbounded_Stack.top context_stack with
       | None -> (
-        print_endline "No successors and stack empty";
+        (* print_endline "No successors and stack empty"; *)
         graph
       ) 
       | Some(Clause(x, _) as c) -> (
-        print_endline "Continue through successors";
+        (* print_endline "Continue through successors"; *)
         create_graph graph (Exit_clause(x, x', c)) context_stack
       )
     end
