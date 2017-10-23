@@ -29,7 +29,7 @@ struct
     | None -> true
     | Some(c',_) -> c = c'
   ;;
-  let get_top x =
+  let top x =
     match Deque.front x with
     | None -> None
     | Some(c,_) -> Some(c)
