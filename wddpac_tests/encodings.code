@@ -43,6 +43,7 @@ if_l = fun conditional_if -> (
                 b_if = fun expr2_if -> (
                     c_if = conditional_if expr1_if;
                     d_if = c_if expr2_if;
+                    e_if = d_if true_l;
                 )
             )
         );
@@ -58,34 +59,43 @@ succ_l = fun n_succ ->
                 (two_succ = fun x_succ -> (
                     three_succ = n_succ f_succ; 
                     four_succ = three_succ x_succ;
+                    five_succ = f_succ four_succ;
                 );
             );
         );
 
 one_l = succ_l zero_l;
 two_l = succ_l one_l;
-twice_l = succ_l one_l;
-four_l = twice_l two_l;
+three_l = succ_l two_l;
+four_l = succ_l three_l;
+five_l = succ_l four_l;
+six_l = succ_l five_l;
+seven_l = succ_l six_l;
+eight_l = succ_l seven_l;
+nine_l = succ_l eight_l;
+ten_l = succ_l nine_l;
 
 add_l = fun m_add -> (
             b_add = fun n_add -> (
-                c_add = m_add succ_l;
-                d_add = c_add n_add;
+                c_add = n_add succ_l;
+                d_add = c_add m_add;
             );
         );
 
 mul_l = fun m_mul -> (
             b_mul = fun n_mul -> (
-                c_mul = m_mul add_l;
+                f_mul = add_l n_mul;
+                c_mul = m_mul f_mul;
                 d_mul = c_mul zero_l;
             );
         );
 
 
-exp1_l = fun m_exp1 -> (
-            b_exp1 = fun n_exp1 -> (
-                c_exp1 = m_exp1 mul_l;
-                d_exp1 = n_exp1 one_l;
+exp1_l = fun m_exp -> (
+            b_exp = fun n_exp -> (
+                f_exp = mul_l n_exp;
+                c_exp = m_exp f_exp;
+                d_exp = c_exp one_l;
             );
         );
 
@@ -186,22 +196,29 @@ is_nil_l = fun l_is_nil -> (
 
 fib_a_l = fun fib_fib -> (
         a_fib = fun n_fib -> (
+            rec_fib_fib = fib_fib fib_fib;
             condition_a_fib = leq_l n_fib;
             condition_fib = condition_a_fib one_l;
             true_fib = one_l;
             n_minus_one_fib = pred_l n_fib;
             n_minus_two_fib = pred_l n_minus_one_fib;
-            term1_fib = fib_fib n_minus_one_fib;
-            term2_fib = fib_fib n_minus_two_fib;
+            term1_fib = rec_fib_fib n_minus_one_fib;
+            term2_fib = rec_fib_fib n_minus_two_fib;
             false_a_fib = add_l term1_fib;
             false_fib = false_a_fib term2_fib;
+            freeze_true_fib = fun dummy_freeze_true_fib -> (
+                return_freeze_true_fib = true_fib;
+            );
+            freeze_false_fib = fun dummy_freeze_false_fib -> (
+                return_freeze_false_fib = false_fib;
+            );
             result_a_fib = if_l condition_fib;
-            result_b_fib = result_a_fib true_fib;
-            result_fib = result_b_fib false_fib;
+            result_b_fib = result_a_fib freeze_true_fib;
+            result_fib = result_b_fib freeze_false_fib;
         )
     );
 
 fib_l = fib_a_l fib_a_l;
 
-result = fib_l four_l;;
+result = fib_l ten_l;;
 
