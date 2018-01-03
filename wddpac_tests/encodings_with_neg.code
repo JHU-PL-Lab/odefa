@@ -195,29 +195,151 @@ is_nil_l = fun l_is_nil -> (
         );
 
 fib_a_l = fun fib_fib -> (
-    a_fib = fun n_fib -> (
-        rec_fib_fib = fib_fib fib_fib;
-        condition_a_fib = leq_l n_fib;
-        condition_fib = condition_a_fib one_l;
-        true_fib = one_l;
-        n_minus_one_fib = pred_l n_fib;
-        n_minus_two_fib = pred_l n_minus_one_fib;
-        term1_fib = rec_fib_fib n_minus_one_fib;
-        term2_fib = rec_fib_fib n_minus_two_fib;
-        false_a_fib = add_l term1_fib;
-        false_fib = false_a_fib term2_fib;
-        freeze_true_fib = fun dummy_freeze_true_fib -> (
-            return_freeze_true_fib = true_fib;
-        );
-        freeze_false_fib = fun dummy_freeze_false_fib -> (
-            return_freeze_false_fib = false_fib;
-        );
-        result_a_fib = if_l condition_fib;
-        result_b_fib = result_a_fib freeze_true_fib;
-        result_fib = result_b_fib freeze_false_fib;
-    )
-);
+        a_fib = fun n_fib -> (
+            rec_fib_fib = fib_fib fib_fib;
+            condition_a_fib = leq_l n_fib;
+            condition_fib = condition_a_fib one_l;
+            true_fib = one_l;
+            n_minus_one_fib = pred_l n_fib;
+            n_minus_two_fib = pred_l n_minus_one_fib;
+            term1_fib = rec_fib_fib n_minus_one_fib;
+            term2_fib = rec_fib_fib n_minus_two_fib;
+            false_a_fib = add_l term1_fib;
+            false_fib = false_a_fib term2_fib;
+            freeze_true_fib = fun dummy_freeze_true_fib -> (
+                return_freeze_true_fib = true_fib;
+            );
+            freeze_false_fib = fun dummy_freeze_false_fib -> (
+                return_freeze_false_fib = false_fib;
+            );
+            result_a_fib = if_l condition_fib;
+            result_b_fib = result_a_fib freeze_true_fib;
+            result_fib = result_b_fib freeze_false_fib;
+        )
+    );
 
 fib_l = fib_a_l fib_a_l;
 
-result = fib_l two_l;;
+result = fib_l ten_l;
+
+convert_pos_l = fun n_convert_pos_l ->  (
+    tmp_result_convert_pos_l = pair_l n_convert_pos_l;
+    result_convert_pos_l = tmp_result_convert_pos_l zero_l;
+);
+
+convert_neg_l = fun n_convert_neg_l ->  (
+    tmp_result_convert_neg_l = pair_l zero_l;
+    result_convert_neg_l = tmp_result_convert_neg_l n_convert_neg_l;
+);
+
+
+add_int_l = fun m_add_int -> (
+    b_add_int = fun n_add_int -> (
+        first_m_add_int = first_l m_add_int;
+        second_m_add_int = second_l m_add_int;
+        first_n_add_int = first_l n_add_int;
+        second_n_add_int = second_l n_add_int;
+        tmp_first_val_add_int = add_l first_m_add_int;
+        first_val_add_int = tmp_first_val_add_int first_n_add_int;
+        tmp_second_val_add_int = add_l second_m_add_int;
+        second_val_add_int = tmp_second_val_add_int second_n_add_int;
+        tmp_result_add_int = pair_l first_val_add_int;
+        result_add_int = tmp_result_add_int second_val_add_int; 
+    );
+);
+
+
+neg_int_l = fun m_neg_int -> (
+    first_m_neg_int = first_l m_neg_int;
+    second_m_neg_int = second_l m_neg_int;
+    tmp_result_neg_int = pair_l second_m_neg_int;
+    result_neg_int = tmp_result_neg_int first_m_neg_int;
+);
+
+sub_int_l = fun m_sub_int -> (
+    b_sub_int = fun n_sub_int -> (
+        neg_n_sub_int = neg_int_l n_sub_int;
+        tmp_result_sub_int = add_int_l m_sub_int;
+        result_sub_int = tmp_result_sub_int neg_n_sub_int;
+    );
+);
+
+zero_int_l = convert_pos_l zero_l;
+
+succ_int_l = fun m_succ_int -> (
+    first_m_succ_int = first_l m_succ_int;
+    second_m_succ_int = second_l m_succ_int;
+    tmp_first_m_succ_int = succ_l first_m_succ_int;
+    tmp_result_succ_int = pair_l tmp_first_m_succ_int;
+    result_succ_int = tmp_result_succ_int second_m_succ_int;
+);
+
+one_int_l = succ_int_l zero_int_l;
+
+pred_int_l = fun m_pred_int -> (
+    tmp_result_pred_int = sub_int_l m_pred_int;
+    result_pred_int = tmp_result_pred_int one_int_l;
+);
+
+leq_int_l = fun m_leq_int -> (
+    b_leq_int = fun n_leq_int -> (
+        first_m_leq_int = first_l m_leq_int;
+        second_m_leq_int = second_l m_leq_int;
+        first_n_leq_int = first_l n_leq_int;
+        second_n_leq_int = second_l n_leq_int;
+        tmp_first_add_leq_int = add_l first_m_leq_int;
+        first_add_leq_int = tmp_first_add_leq_int second_n_leq_int;
+
+        tmp_second_add_leq_int = add_l first_n_leq_int;
+        second_add_leq_int = tmp_second_add_leq_int second_m_leq_int;
+
+        tmp_result_leq_int = leq_l first_add_leq_int;
+        result_leq_int = tmp_result_leq_int second_add_leq_int;
+    );
+);
+
+fib_a_int_l = fun fib_fib_int -> (
+    a_fib_int = fun n_fib_int -> (
+        rec_fib_fib_int = fib_fib_int fib_fib_int;
+        condition_a_fib_int = leq_int_l n_fib_int;
+        condition_fib_int = condition_a_fib_int one_int_l;
+        true_fib_int = one_int_l;
+        n_minus_one_fib_int = pred_int_l n_fib_int;
+        n_minus_two_fib_int = pred_int_l n_minus_one_fib_int;
+        term1_fib_int = rec_fib_fib_int n_minus_one_fib_int;
+        term2_fib_int = rec_fib_fib_int n_minus_two_fib_int;
+        false_a_fib_int = add_int_l term1_fib_int;
+
+
+        false_fib_int = false_a_fib_int term2_fib_int;
+
+
+
+        freeze_true_fib_int = fun dummy_freeze_true_fib_int -> (
+            return_freeze_true_fib_int = true_fib_int;
+        );
+        freeze_false_fib_int = fun dummy_freeze_false_fib_int -> (
+            return_freeze_false_fib_int = false_fib_int;
+        );
+        result_a_fib_int = if_l condition_fib_int;
+        result_b_fib_int = result_a_fib_int freeze_true_fib_int;
+        result_fib_int = result_b_fib_int freeze_false_fib_int;
+    )
+);
+
+fib_int_l = fib_a_int_l fib_a_int_l;
+
+two_int_l = succ_int_l one_int_l;
+three_int_l = succ_int_l two_int_l;
+four_int_l = succ_int_l three_int_l;
+five_int_l = succ_int_l four_int_l;
+six_int_l = succ_int_l five_int_l;
+seven_int_l = succ_int_l six_int_l;
+eight_int_l = succ_int_l seven_int_l;
+nine_int_l = succ_int_l eight_int_l;
+ten_int_l = succ_int_l nine_int_l;
+
+
+tmp_real_result = fib_int_l ten_int_l;
+tmp_real_result2 = leq_int_l tmp_real_result;
+real_result = tmp_real_result2 ten_int_l;;

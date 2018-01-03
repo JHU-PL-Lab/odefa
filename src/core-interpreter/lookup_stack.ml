@@ -41,7 +41,7 @@ struct
     | Some(c,_) -> Some(c)
   ;;
   let pp formatter x =
-    pp_concat_sep_delim "" "|?" "|" pp_clause formatter @@
+    pp_concat_sep_delim "" "|?" "|" pp_var formatter @@
     Deque.enum x
   ;;
   let show = pp_to_string pp;;
