@@ -96,154 +96,110 @@ let wire site_cl func x1 x2 graph =
 ;;
 
 let rec lookup graph var node lookup_stack context_stack lookup_table = 
-  
-    begin
-    let pred_option = Wddpac_graph.direct_pred_option node graph in
-      match node, pred_option with
-      
-      | Unannotated_clause(Clause(x, cl) as c), Some(pred) -> 
-        if x <> var then (
-          lookup graph var pred lookup_stack context_stack lookup_table
-        )
-        else
+  match (Cache_lookups.lookupInTable lookup_table var context_stack), (Lookup_Stack.top lookup_stack) with
+    | Some(Clause(_,Value_body(v)) as c,context_stack), None -> (v,c,context_stack)
+    | Some(cl,context_stack), Some(l) -> 
+      lookup graph l (Unannotated_clause(cl)) (Lookup_Stack.pop lookup_stack) context_stack lookup_table
+    | _, _ ->
+      begin
+        let (v,c,c_stack) = 
           begin
-            match cl with
-            | Var_body(x') -> 
-              (* print_endline "Alias";  *)
-              begin
-                match (Cache_lookups.lookupInTable lookup_table x' context_stack), (Lookup_Stack.top lookup_stack) with
-                | Some(Clause(_,Value_body(v)) as c,context_stack), None -> (v,c,context_stack)
-                | Some(cl,context_stack), Some(l) -> 
-                  lookup graph l (Unannotated_clause(cl)) (Lookup_Stack.pop lookup_stack) context_stack lookup_table
-                | _, _ ->
-                  let (res,c,c_stack) = lookup graph x' pred lookup_stack context_stack lookup_table in 
-                  begin
-                    match res, (Lookup_Stack.is_empty lookup_stack)  with
-                    | Value_function(_), true -> 
-                        Cache_lookups.add lookup_table x' context_stack c c_stack;
-                        (res, c, c_stack)
-                    | _, _ -> (res, c, c_stack)
-                  end
-              end
-              
-            | Value_body(Value_function(_) as v) -> 
-              let popped_val = Lookup_Stack.top lookup_stack in 
-              begin
-                match popped_val with
-                | None -> 
-                  (* print_endline "Value Discovery"; *)
-                  Cache_lookups.add lookup_table var context_stack c context_stack;
-                  (v, c, context_stack)
-                | Some(x1) -> 
-                  (* print_endline "Value Discard"; *)
-                  Cache_lookups.add lookup_table var context_stack c context_stack;
-                  begin
-                    match (Cache_lookups.lookupInTable lookup_table x1 context_stack), (Lookup_Stack.top (Lookup_Stack.pop lookup_stack)) with
-                    | Some(Clause(_,Value_body(v)) as c,c_stack), None -> (v,c,c_stack)
-                    | Some(cl,context_stack), Some(l) -> 
-                        lookup graph l (Unannotated_clause(cl)) (Lookup_Stack.pop (Lookup_Stack.pop lookup_stack)) context_stack lookup_table
-                    | _, _ -> 
-                    (
-                    let (res,c,c_stack) = lookup graph x1 pred (Lookup_Stack.pop lookup_stack) context_stack lookup_table in 
-                      begin
-                        match res, (Lookup_Stack.is_empty (Lookup_Stack.pop lookup_stack))  with
-                        | Value_function(_), true -> Cache_lookups.add lookup_table x1 context_stack c c_stack; (res,c,c_stack)
-                        | _, _ -> (res,c,c_stack)
-                      end
-                    )
-                  end
-              end
-            | Appl_body(xf, xv) -> 
-              (* print_endline "Lookup function"; *)
-              let (fn, cfn, cfn_stack) = begin
-                    match (Cache_lookups.lookupInTable lookup_table xf context_stack) with
-                    | Some(Clause(_,Value_body(v)) as c,c_stack) -> (v,c,c_stack)
-                    | _ -> lookup graph xf pred Lookup_Stack.empty context_stack lookup_table
-                  end in
-
-             (*  let (_, cv, cv_stack) = begin
-                    match (Cache_lookups.lookupInTable lookup_table xv context_stack)with
-                    | Some(Clause(_,Value_body(v)) as c,c_stack) -> (v,c,c_stack)
-                    | _ -> lookup graph xv pred Lookup_Stack.empty context_stack lookup_table
-                  end in *)
-              begin
-                match fn with
-                | Value_function(Function_value(_, Expr(_)) as fn) ->
-                    let edges, exit_clause = wire c fn xv x graph in
-
-                    Cache_lookups.add lookup_table xf context_stack cfn cfn_stack;
-                    (* Cache_lookups.add lookup_table xv context_stack cv cv_stack; *)
-
-                    let (res,c,c_stack) = lookup (add_edges edges graph) var exit_clause lookup_stack context_stack lookup_table in
+          let pred_option = Wddpac_graph.direct_pred_option node graph in
+            match node, pred_option with
+            
+            | Unannotated_clause(Clause(x, cl) as c), Some(pred) -> 
+              if x <> var then (
+                lookup graph var pred lookup_stack context_stack lookup_table
+              )
+              else
+                begin
+                  match cl with
+                  | Var_body(x') -> 
+                    (* print_endline "Alias";  *)
+                    lookup graph x' pred lookup_stack context_stack lookup_table
+                    
+                  | Value_body(Value_function(_) as v) -> 
+                    let popped_val = Lookup_Stack.top lookup_stack in 
                     begin
-                      match res, (Lookup_Stack.is_empty lookup_stack)  with
-                      | Value_function(_), true -> Cache_lookups.add lookup_table var context_stack c c_stack; (res,c,c_stack)
-                      | _, _ -> (res,c,c_stack)
+                      match popped_val with
+                      | None -> 
+                        (* print_endline "Value Discovery"; *)
+                        (v, c, context_stack)
+                      | Some(x1) -> 
+                        (* print_endline "Value Discard"; *)
+                        Cache_lookups.add lookup_table var context_stack c context_stack;
+                        lookup graph x1 pred (Lookup_Stack.pop lookup_stack) context_stack lookup_table
                     end
-                | _ -> raise @@ Utils.Invariant_failure "Found incorrect definitions for function"
-              end
-            | _ -> raise @@ Utils.Invariant_failure "Usage of not implemented clause"
-          end
+                  | Appl_body(xf, xv) -> 
+                    (* print_endline "Lookup function"; *)
+                    let (fn, cfn, cfn_stack) = begin
+                      match (Cache_lookups.lookupInTable lookup_table xf context_stack) with
+                      | Some(Clause(_,Value_body(v)) as c,c_stack) -> (v,c,c_stack)
+                      | _ -> lookup graph xf pred Lookup_Stack.empty context_stack lookup_table
+                    end in
 
-      | Enter_clause(x, x', (Clause(_, cl))), Some(pred) -> 
-          if x = var then (
-            (* print_endline "Function enter parameter"; *)
-            begin
-              match (Cache_lookups.lookupInTable lookup_table x' (Unbounded_Stack.pop context_stack)), (Lookup_Stack.top lookup_stack) with
-              | Some(Clause(_,Value_body(v)) as c,context_stack), None -> (v,c,context_stack)
-              | Some(cl,context_stack), Some(l) -> 
-                lookup graph l (Unannotated_clause(cl)) (Lookup_Stack.pop lookup_stack) context_stack lookup_table
-              | _, _ ->
-              (* This lookup_stack might need a pop *)
-                let (res,c,c_stack) = lookup graph x' pred lookup_stack (Unbounded_Stack.pop context_stack) lookup_table in
+                    (* let (_, cv, cv_stack) = begin
+                      match (Cache_lookups.lookupInTable lookup_table xv context_stack)with
+                      | Some(Clause(_,Value_body(v)) as c,c_stack) -> (v,c,c_stack)
+                      | _ -> lookup graph xv pred Lookup_Stack.empty context_stack lookup_table
+                    end in *)
+
+                    begin
+                      match fn with
+                      | Value_function(Function_value(_, Expr(_)) as fn) ->
+                          let edges, exit_clause = wire c fn xv x graph in
+
+                          Cache_lookups.add lookup_table xf context_stack cfn cfn_stack;
+                          (* Cache_lookups.add lookup_table xv context_stack cv cv_stack; *)
+
+                          lookup (add_edges edges graph) var exit_clause lookup_stack context_stack lookup_table
+
+                      | _ -> raise @@ Utils.Invariant_failure "Found incorrect definitions for function"
+                    end
+                  | _ -> raise @@ Utils.Invariant_failure "Usage of not implemented clause"
+                end
+
+            | Enter_clause(x, x', (Clause(_, cl))), Some(pred) -> 
+                if x = var then (
+                  (* print_endline "Function enter parameter"; *)
+                  lookup graph x' pred lookup_stack (Unbounded_Stack.pop context_stack) lookup_table
+                )
+                else 
                   begin
-                    match res, (Lookup_Stack.is_empty lookup_stack)  with
-                    | Value_function(_), true -> Cache_lookups.add lookup_table x' (Unbounded_Stack.pop context_stack) c c_stack; (res,c,c_stack)
-                    | _, _ -> (res,c,c_stack)
+                    match cl with 
+                    | Appl_body(xf, _) -> 
+                      (* print_endline "Function enter non-local"; *)
+                      lookup graph xf pred (Lookup_Stack.push var lookup_stack) (Unbounded_Stack.pop context_stack) lookup_table
+                    | _ -> raise @@ Utils.Invariant_failure "Invalid clause in enter_clause"
                   end
-                (* lookup graph x' pred lookup_stack (Unbounded_Stack.pop context_stack) lookup_table *)
-            end
-          )
-          else 
-            begin
-              match cl with 
-              | Appl_body(xf, _) -> 
-                (* print_endline "Function enter non-local"; *)
-                lookup graph xf pred (Lookup_Stack.push var lookup_stack) (Unbounded_Stack.pop context_stack) lookup_table
-              | _ -> raise @@ Utils.Invariant_failure "Invalid clause in enter_clause"
-            end
 
-      | Exit_clause(_, x', c), Some(pred) -> 
-        (* print_endline "Function Exit "; *)
-        begin
-          match (Cache_lookups.lookupInTable lookup_table x' (Unbounded_Stack.push c context_stack)), (Lookup_Stack.top lookup_stack) with
-          | Some(Clause(_,Value_body(v)) as c,context_stack), None -> (v,c,context_stack)
-          | Some(cl,context_stack), Some(l) -> 
-            lookup graph l (Unannotated_clause(cl)) (Lookup_Stack.pop lookup_stack) context_stack lookup_table
+            | Exit_clause(_, x', c), Some(pred) -> 
+              (* print_endline "Function Exit "; *)
+              lookup graph x' pred lookup_stack (Unbounded_Stack.push c context_stack) lookup_table
 
-          | _, _ -> 
-            let (res,res_c,c_stack) = lookup graph x' pred lookup_stack (Unbounded_Stack.push c context_stack) lookup_table in
+            | Exit_clause(_,_,_), None -> 
+              raise @@ Utils.Invariant_failure ("Found no definitions for variable from exit clause " )
+            | Start_clause(None), None -> 
+              raise @@ Utils.Invariant_failure ("Found no definitions for variable " ^ (show_var var) ^ " at start clause"^ " " ^ (Unbounded_Stack.show context_stack ))
+              
+            | Start_clause(Some(x0)), None ->
               begin
-                match res, (Lookup_Stack.is_empty lookup_stack)  with
-                | Value_function(_), true -> Cache_lookups.add lookup_table x' (Unbounded_Stack.push c context_stack) res_c c_stack; (res,res_c,c_stack)
-                | _, _ -> (res,res_c,c_stack)
+                match Unbounded_Stack.top context_stack with
+                | Some(Clause(_,Appl_body(_,xv)) as c) -> lookup graph var (Enter_clause(x0,xv,c)) lookup_stack context_stack lookup_table
+                | _ -> raise @@ Utils.Invariant_failure "Incorrect context stack"
               end
-        end
-      | Exit_clause(_,_,_), None -> 
-        raise @@ Utils.Invariant_failure ("Found no definitions for variable from exit clause " )
-      | Start_clause(None), None -> 
-        raise @@ Utils.Invariant_failure ("Found no definitions for variable " ^ (show_var var) ^ " at start clause"^ " " ^ (Unbounded_Stack.show context_stack ))
-        
-      | Start_clause(Some(x0)), None ->
-        begin
-          match Unbounded_Stack.top context_stack with
-          | Some(Clause(_,Appl_body(_,xv)) as c) -> lookup graph var (Enter_clause(x0,xv,c)) lookup_stack context_stack lookup_table
-          | _ -> raise @@ Utils.Invariant_failure "Incorrect context stack"
-        end
-      | End_clause(_), Some(pred) -> 
-        lookup graph var pred lookup_stack context_stack lookup_table
-      | _, _ -> raise @@ Utils.Invariant_failure "Could not find valid predecessor node"
-    end
+            | End_clause(_), Some(pred) -> 
+              lookup graph var pred lookup_stack context_stack lookup_table
+            | _, _ -> raise @@ Utils.Invariant_failure "Could not find valid predecessor node"
+          end in 
+
+          begin
+            match (Lookup_Stack.is_empty lookup_stack) with
+            | true -> Cache_lookups.add lookup_table var context_stack c c_stack
+            | _ -> ()
+          end;
+          (v,c, c_stack)
+        end 
 ;;
 
 let rec substitute cl cl2 graph context_stack lookup_table env = 
