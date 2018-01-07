@@ -132,17 +132,8 @@ let rec lookup graph var node lookup_stack context_stack lookup_table =
                     end
                   | Appl_body(xf, xv) -> 
                     (* print_endline "Lookup function"; *)
-                    let (fn, cfn, cfn_stack) = begin
-                      match (Cache_lookups.lookupInTable lookup_table xf context_stack) with
-                      | Some(Clause(_,Value_body(v)) as c,c_stack) -> (v,c,c_stack)
-                      | _ -> lookup graph xf pred Lookup_Stack.empty context_stack lookup_table
-                    end in
-
-                    (* let (_, cv, cv_stack) = begin
-                      match (Cache_lookups.lookupInTable lookup_table xv context_stack)with
-                      | Some(Clause(_,Value_body(v)) as c,c_stack) -> (v,c,c_stack)
-                      | _ -> lookup graph xv pred Lookup_Stack.empty context_stack lookup_table
-                    end in *)
+                    let (fn, cfn, cfn_stack) = lookup graph xf pred Lookup_Stack.empty context_stack lookup_table in
+                    (* let (_, cv, cv_stack) = lookup graph xv pred Lookup_Stack.empty context_stack lookup_table in *)
 
                     begin
                       match fn with
@@ -193,11 +184,11 @@ let rec lookup graph var node lookup_stack context_stack lookup_table =
             | _, _ -> raise @@ Utils.Invariant_failure "Could not find valid predecessor node"
           end in 
 
-          begin
+          (* begin
             match (Lookup_Stack.is_empty lookup_stack) with
             | true -> Cache_lookups.add lookup_table var context_stack c c_stack
             | _ -> ()
-          end;
+          end; *)
           (v,c, c_stack)
         end 
 ;;
