@@ -249,6 +249,10 @@ let rec lookup graph var node lookup_stack context_stack lookup_table =
 
 let rec substitute cl cl2 graph context_stack lookup_table env = 
   match cl2 with 
+
+  | Clause(_, Value_body(Value_int(_)))
+  | Clause(_, Value_body(Value_bool(_))) ->
+    ()
   | Clause(x, Value_body(Value_function(Function_value(x', Expr(e))))) ->
       Environment.add env x "0";
       Environment.add env x' "0";
@@ -263,11 +267,22 @@ let rec substitute cl cl2 graph context_stack lookup_table env =
       |> fun _ -> ()
       ;
       ()
-  | Clause(_, Var_body(x)) -> if Environment.mem env x then () else (
+
+  | Clause(_, Unary_operation_body(_,x))
+  | Clause(_, Var_body(x)) -> 
+      if Environment.mem env x then () else (
         lookup graph x (Unannotated_clause(cl)) (Lookup_Stack.empty) context_stack lookup_table
         |> fun _ -> ()
       )
-
+  | Clause(_, Binary_operation_body(x1,_,x2)) -> 
+      if Environment.mem env x1 then () else (
+        lookup graph x1 (Unannotated_clause(cl)) (Lookup_Stack.empty) context_stack lookup_table
+        |> fun _ -> ()
+      );
+      if Environment.mem env x2 then () else (
+        lookup graph x2 (Unannotated_clause(cl)) (Lookup_Stack.empty) context_stack lookup_table
+        |> fun _ -> ()
+      )
   | Clause(_, Appl_body(x, x')) ->
       let appl_vars = x :: x' :: [] in 
       List.enum appl_vars
@@ -278,6 +293,13 @@ let rec substitute cl cl2 graph context_stack lookup_table env =
           substitute cl cl graph context_stack lookup_table (Environment.create 0) )
       |> List.of_enum
       |> fun _ -> ()
+  | Clause(x, Conditional_body(xc,_,f1,f2)) -> 
+      if Environment.mem env xc then () else (
+        lookup graph xc (Unannotated_clause(cl)) (Lookup_Stack.empty) context_stack lookup_table
+        |> fun _ -> ()
+      );
+      substitute cl (Clause(x, Value_body(Value_function(f1)))) graph context_stack lookup_table env;
+      substitute cl (Clause(x, Value_body(Value_function(f2)))) graph context_stack lookup_table env
   | _ -> ()
 ;;
 
@@ -287,7 +309,7 @@ let eval (Expr(cls)) =
   let initial_graph, final_node = initialize_graph cls in 
   let lookup_table = Cache_lookups.empty in
   let (v, cl, context_stack) = lookup initial_graph (rv cls) final_node lookup_stack context_stack lookup_table in
-  print_endline (show_clause cl);
+  (* print_endline (show_clause cl); *)
   substitute cl cl initial_graph context_stack lookup_table (Environment.create 0);
   print_endline "";
   v
