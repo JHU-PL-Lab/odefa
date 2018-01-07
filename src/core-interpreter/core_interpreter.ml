@@ -7,7 +7,6 @@ open Pp_utils;;
 open Unbounded_context_stack;;
 open Lookup_stack;;
 open Wddpac_graph;;
-(* open Cache_lookups;; *)
 
 let lazy_logger = Logger_utils.make_lazy_logger "Interpreter";;
 

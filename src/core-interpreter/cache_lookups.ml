@@ -1,15 +1,11 @@
 (**
-   A module defining data structures and basic operations to form a DDPA graph.
+   A module defining data structures and basic operations to cache lookups.
 *)
 
 open Batteries;;
-(* open Jhupllib;; *)
-
 open Core_ast;;
-(* open Pp_utils;; *)
 
 open Unbounded_context_stack;;
-
 
 (*
   Creating the graph data type inside of a module.  This allows us to keep the
@@ -39,23 +35,20 @@ struct
   let hash = Hashtbl.hash
 end;;
 
-(* TODO: improve the performance of this implementation! *)
 module Lookup_Table_impl : Lookup_Table_Sig =
 struct
 
   module Lookup_tbl = Hashtbl.Make(Var_Context)
 
-  type lookup_table = Table of (clause * clause dq) Lookup_tbl.t ;;(* [@@deriving to_yojson];; *)
+  type lookup_table = Table of (clause * clause dq) Lookup_tbl.t ;;
 
   let empty = Table(Lookup_tbl.create 10);;
 
   let add (Table(t)) v c cl context_stack = 
     (* Lookup_tbl.remove t (v,c); *)
      Lookup_tbl.add t (v,c) (cl, context_stack);;
-  (* let add (Table(_)) _ _ _ _ = ();; *)
 
   let lookupInTable (Table(t)) v c = Lookup_tbl.find_option t (v,c);; 
-  (* let lookupInTable (Table(_)) _ _ = None;; *)
 
 end;;
 

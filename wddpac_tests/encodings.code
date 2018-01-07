@@ -74,6 +74,7 @@ seven_l = succ_l six_l;
 eight_l = succ_l seven_l;
 nine_l = succ_l eight_l;
 ten_l = succ_l nine_l;
+eleven_l = succ_l ten_l;
 
 add_l = fun m_add -> (
             b_add = fun n_add -> (
@@ -220,4 +221,4 @@ fib_a_l = fun fib_fib -> (
 
 fib_l = fib_a_l fib_a_l;
 
-result = fib_l two_l;;
+result = fib_l ten_l;;

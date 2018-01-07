@@ -3,11 +3,8 @@
 *)
 
 open Batteries;;
-(* open Jhupllib;; *)
 
 open Core_ast;;
-(* open Pp_utils;; *)
-
 
 type annotated_clause =
   | Unannotated_clause of clause
@@ -28,22 +25,12 @@ type wddpac_edge =
   [@@deriving ord, to_yojson]
 ;;
 
-(* module Wddpac_edge =
-struct
-  type t = wddpac_edge
-  let compare = compare_wddpac_edge
-  (* let pp = pp_wddpac_edge *)
-  (* let to_yojson = wddpac_edge_to_yojson *)
-end;; *)
-
 module Annotated_Clause = 
 struct
   type t = annotated_clause
   let equal = equal_annotated_clause
   let hash = Hashtbl.hash
 end;;
-
-
 
 (*
   Creating the graph data type inside of a module.  This allows us to keep the
@@ -76,7 +63,6 @@ sig
 
 end;;
 
-(* TODO: improve the performance of this implementation! *)
 module Graph_impl : Graph_sig =
 struct
 
