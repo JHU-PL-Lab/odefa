@@ -31,20 +31,11 @@ let rv body =
    map.
 *)
 let add_edges edges_in graph =
-  let edges =
-    edges_in
-    |> Enum.filter
-      (fun (Wddpac_edge(edge1, edge2)) -> not ((Wddpac_graph.has_succ edge1 graph) && (Wddpac_graph.has_pred edge2 graph)))
+  let ddpa_graph' =
+    Enum.clone edges_in
+    |> Enum.fold (flip Wddpac_graph.add_edge) graph
   in
-  if Enum.is_empty edges then graph else
-    (* ***
-       Add the edges to the DDPA graph.
-    *)
-    let ddpa_graph' =
-      Enum.clone edges
-      |> Enum.fold (flip Wddpac_graph.add_edge) graph
-    in
-    ddpa_graph'
+  ddpa_graph'
 ;;
 
 let initialize_graph cls = 
@@ -64,20 +55,19 @@ let initialize_graph cls =
   (add_edges edges empty_graph, (End_clause rx))
 ;;
 
+(* TODO: Maybe this can be 'simplified' *)
 let wire site_cl func x1 x2 graph =
   let site_acl = Unannotated_clause(site_cl) in
   let Function_value(x0, Expr(body)) = func in
   let wire_in_acl = Enter_clause(x0,x1,site_cl) in
   let wire_out_acl = Exit_clause(x2,rv body,site_cl) in
-  if Wddpac_graph.has_succ wire_in_acl graph then (
+  if Wddpac_graph.has_edge wire_in_acl graph then (
       (List.enum [], wire_out_acl)
     )
   else 
     let start_acl = Start_clause(Some(x0)) in
     let end_acl = End_clause (rv body) in
-    let pred_acl = Wddpac_graph.direct_pred site_acl graph
-    in
-    let succ_acl = Wddpac_graph.direct_succ site_acl graph
+    let pred_acl = Wddpac_graph.get_neighbor site_acl graph
     in
     let edges =
       List.enum body
@@ -87,7 +77,6 @@ let wire site_cl func x1 x2 graph =
       |> Enum.append (Enum.singleton pred_acl)
       |> flip Enum.append (Enum.singleton end_acl)
       |> flip Enum.append (Enum.singleton wire_out_acl)
-      |> flip Enum.append (Enum.singleton succ_acl)
       |> Utils.pairwise_enum_fold
         (fun acl1 acl2 -> Wddpac_edge(acl1,acl2))
     in
@@ -103,7 +92,7 @@ let rec lookup graph var node lookup_stack context_stack lookup_table =
       begin
         let (v,c,c_stack) = 
           begin
-          let pred_option = Wddpac_graph.direct_pred_option node graph in
+          let pred_option = Wddpac_graph.get_neighbor_option node graph in
             match node, pred_option with
             
             | Unannotated_clause(Clause(x, cl) as c), Some(pred) -> 
