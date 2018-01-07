@@ -117,7 +117,7 @@ let rec lookup graph var node lookup_stack context_stack lookup_table =
                     (* print_endline "Alias";  *)
                     lookup graph x' pred lookup_stack context_stack lookup_table
                     
-                  | Value_body(Value_function(_) as v) -> 
+                  | Value_body(Value_function(_) as v) | Value_body(Value_int(_) as v) | Value_body(Value_bool(_) as v) -> 
                     let popped_val = Lookup_Stack.top lookup_stack in 
                     begin
                       match popped_val with
@@ -145,6 +145,27 @@ let rec lookup graph var node lookup_stack context_stack lookup_table =
                           lookup (add_edges edges graph) var exit_clause lookup_stack context_stack lookup_table
 
                       | _ -> raise @@ Utils.Invariant_failure "Found incorrect definitions for function"
+                    end
+                  | Binary_operation_body(x1,op,x2) ->
+                    let (v1, _, _) = lookup graph x1 pred Lookup_Stack.empty context_stack lookup_table in 
+                    let (v2, _, _) = lookup graph x2 pred Lookup_Stack.empty context_stack lookup_table in 
+                    begin
+                      match v1, op, v2 with
+                      | Value_int(n1), Binary_operator_plus, Value_int(n2) -> (Value_int(n1 + n2), c, context_stack)
+                      | Value_int(n1), Binary_operator_int_minus, Value_int(n2) -> (Value_int(n1 - n2), c, context_stack)
+                      | Value_int(n1), Binary_operator_equal_to, Value_int(n2) -> (Value_bool(n1 = n2), c, context_stack)
+                      | Value_bool(b1), Binary_operator_bool_and, Value_bool(b2) -> (Value_bool(b1 && b2), c, context_stack)
+                      | Value_bool(b1), Binary_operator_bool_or, Value_bool(b2) -> (Value_bool(b1 || b2), c, context_stack)
+                      | _,_,_ -> 
+                       raise @@ Evaluation_failure "Incorrect binary operation"
+                    end
+                  | Unary_operation_body(op,x1) ->
+                    let (v1, _, _) = lookup graph x1 pred Lookup_Stack.empty context_stack lookup_table in 
+                    begin
+                      match op, v1 with
+                      | Unary_operator_bool_not, Value_bool(b1) -> (Value_bool(not b1), c, context_stack)
+                      | _,_ -> 
+                       raise @@ Evaluation_failure "Incorrect unary operation"
                     end
                   | _ -> raise @@ Utils.Invariant_failure "Usage of not implemented clause"
                 end
