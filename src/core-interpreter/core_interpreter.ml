@@ -94,6 +94,29 @@ let wire site_cl func x1 x2 graph =
     (edges, wire_out_acl)
 ;;
 
+let rec matches v p =
+  match v,p with
+  | _,Any_pattern -> true
+  (* | Value_record(Record_value(els)),Record_pattern(els') ->
+    els'
+    |> Ident_map.enum
+    |> Enum.for_all
+      (fun (i,p') ->
+         try
+           matches env (Ident_map.find i els) p'
+         with
+         | Not_found -> false
+      ) *)
+  | Value_function(Function_value(_)),Fun_pattern
+  (* | Value_ref(Ref_value(_)),Ref_pattern *)
+  (* | Value_string _,String_pattern *)
+  | Value_int _,Int_pattern ->
+    true
+  | Value_bool actual_boolean,Bool_pattern pattern_boolean ->
+    actual_boolean = pattern_boolean
+  | _ -> false
+;;
+
 let rec lookup graph var node lookup_stack context_stack lookup_table = 
   match (Cache_lookups.lookupInTable lookup_table var context_stack), (Lookup_Stack.top lookup_stack) with
     | Some(Clause(_,Value_body(v)) as c,context_stack), None -> (v,c,context_stack)
@@ -146,6 +169,14 @@ let rec lookup graph var node lookup_stack context_stack lookup_table =
 
                       | _ -> raise @@ Utils.Invariant_failure "Found incorrect definitions for function"
                     end
+                  | Conditional_body(xc,p,f1,f2) ->
+                      let (v, _, _) = lookup graph xc pred Lookup_Stack.empty context_stack lookup_table in
+                      if matches v p then 
+                        let edges, exit_clause = wire c f1 xc x graph in 
+                        lookup (add_edges edges graph) var exit_clause lookup_stack context_stack lookup_table
+                      else 
+                        let edges, exit_clause = wire c f2 xc x graph in 
+                        lookup (add_edges edges graph) var exit_clause lookup_stack context_stack lookup_table
                   | Binary_operation_body(x1,op,x2) ->
                     let (v1, _, _) = lookup graph x1 pred Lookup_Stack.empty context_stack lookup_table in 
                     let (v2, _, _) = lookup graph x2 pred Lookup_Stack.empty context_stack lookup_table in 
@@ -181,6 +212,8 @@ let rec lookup graph var node lookup_stack context_stack lookup_table =
                     | Appl_body(xf, _) -> 
                       (* print_endline "Function enter non-local"; *)
                       lookup graph xf pred (Lookup_Stack.push var lookup_stack) (Unbounded_Stack.pop context_stack) lookup_table
+                    | Conditional_body(_,_,_,_) ->
+                      lookup graph var pred lookup_stack (Unbounded_Stack.pop context_stack) lookup_table
                     | _ -> raise @@ Utils.Invariant_failure "Invalid clause in enter_clause"
                   end
 
@@ -196,7 +229,8 @@ let rec lookup graph var node lookup_stack context_stack lookup_table =
             | Start_clause(Some(x0)), None ->
               begin
                 match Unbounded_Stack.top context_stack with
-                | Some(Clause(_,Appl_body(_,xv)) as c) -> lookup graph var (Enter_clause(x0,xv,c)) lookup_stack context_stack lookup_table
+                | Some(Clause(_,Appl_body(_,x)) as c) | Some(Clause(_,Conditional_body(x,_,_,_)) as c) -> 
+                  lookup graph var (Enter_clause(x0,x,c)) lookup_stack context_stack lookup_table
                 | _ -> raise @@ Utils.Invariant_failure "Incorrect context stack"
               end
             | End_clause(_), Some(pred) -> 
