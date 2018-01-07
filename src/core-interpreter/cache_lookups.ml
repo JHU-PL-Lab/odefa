@@ -18,9 +18,9 @@ sig
 
   val empty : lookup_table
 
-  val lookupInTable: lookup_table -> var -> clause dq -> (clause * clause dq) option
+  val lookupInTable: lookup_table -> var -> (clause * var option) dq -> (clause * (clause * var option) dq) option
 
-  val add : lookup_table -> var -> clause dq -> clause -> clause dq -> unit
+  val add : lookup_table -> var -> (clause * var option) dq -> clause -> (clause * var option) dq -> unit
 
 end;;
 
@@ -30,7 +30,7 @@ let equal_var_context (x_var, x_clause_dq) (y_var, y_clause_dq) =
 
 module Var_Context = 
 struct
-  type t = var * clause dq
+  type t = var * (clause * var option) dq
   let equal = equal_var_context
   let hash = Hashtbl.hash
 end;;
@@ -40,7 +40,7 @@ struct
 
   module Lookup_tbl = Hashtbl.Make(Var_Context)
 
-  type lookup_table = Table of (clause * clause dq) Lookup_tbl.t ;;
+  type lookup_table = Table of (clause * (clause * var option) dq) Lookup_tbl.t ;;
 
   let empty = Table(Lookup_tbl.create 10);;
 
