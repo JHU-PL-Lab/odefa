@@ -1,8 +1,6 @@
 open Batteries;;
 open Jhupllib;;
 
-(* open Ddpa_abstract_ast;; *)
-(* open Ddpa_context_stack;; *)
 open Pp_utils;;
 open Core_ast;;
 open Core_ast_pp;;
@@ -41,12 +39,8 @@ struct
     | Some(c,_) -> Some(c)
   ;;
   let pp formatter x =
-    pp_concat_sep_delim "" "|?" "|" pp_clause formatter @@
+    pp_concat_sep_delim "" "|?" "|" pp_var formatter @@
     Deque.enum x
   ;;
   let show = pp_to_string pp;;
-  (* let to_yojson _ = *)
-    (* `List [] *)
-  (* ;; *)
-  (* let name = "context_stack";; *)
 end;;

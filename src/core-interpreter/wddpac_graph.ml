@@ -3,11 +3,8 @@
 *)
 
 open Batteries;;
-(* open Jhupllib;; *)
 
 open Core_ast;;
-(* open Pp_utils;; *)
-
 
 type annotated_clause =
   | Unannotated_clause of clause
@@ -28,22 +25,12 @@ type wddpac_edge =
   [@@deriving ord, to_yojson]
 ;;
 
-(* module Wddpac_edge =
-struct
-  type t = wddpac_edge
-  let compare = compare_wddpac_edge
-  (* let pp = pp_wddpac_edge *)
-  (* let to_yojson = wddpac_edge_to_yojson *)
-end;; *)
-
 module Annotated_Clause = 
 struct
   type t = annotated_clause
   let equal = equal_annotated_clause
   let hash = Hashtbl.hash
 end;;
-
-
 
 (*
   Creating the graph data type inside of a module.  This allows us to keep the
@@ -56,70 +43,45 @@ sig
 
   val empty : wddpac_graph
 
-  val add_succ : wddpac_edge -> wddpac_graph -> unit
-
   val add_pred : wddpac_edge -> wddpac_graph -> unit
 
   val add_edge : wddpac_edge -> wddpac_graph -> wddpac_graph
 
-  val has_succ : annotated_clause -> wddpac_graph -> bool
+  val has_edge : annotated_clause -> wddpac_graph -> bool
 
-  val has_pred : annotated_clause -> wddpac_graph -> bool
+  val get_neighbor : annotated_clause -> wddpac_graph -> annotated_clause
 
-  val direct_pred : annotated_clause -> wddpac_graph -> annotated_clause
-
-  val direct_pred_option : annotated_clause -> wddpac_graph -> annotated_clause option
-
-  val direct_succ : annotated_clause -> wddpac_graph -> annotated_clause
-
-  val direct_succ_option : annotated_clause -> wddpac_graph -> annotated_clause option
+  val get_neighbor_option : annotated_clause -> wddpac_graph -> annotated_clause option
 
 end;;
 
-(* TODO: improve the performance of this implementation! *)
 module Graph_impl : Graph_sig =
 struct
 
   module Wddpac_edge_tbl = Hashtbl.Make(Annotated_Clause)
 
-  type wddpac_graph = Graph of annotated_clause Wddpac_edge_tbl.t * annotated_clause Wddpac_edge_tbl.t;;(* [@@deriving to_yojson];; *)
+  type wddpac_graph = Graph of annotated_clause Wddpac_edge_tbl.t;;
 
-  let empty = Graph(Wddpac_edge_tbl.create 10, Wddpac_edge_tbl.create 10);;
+  let empty = Graph(Wddpac_edge_tbl.create 10);;
 
-  let add_succ (Wddpac_edge(edge1,edge2)) (Graph(_,s)) =
-    match edge1, edge2 with
-    | End_clause(_), _ -> ()
-    | _, Enter_clause(_,_,_) -> ()
-    | _, _ -> Wddpac_edge_tbl.add s edge1 edge2;;
-
-  let add_pred (Wddpac_edge(edge1,edge2)) (Graph(p,_)) = 
+  let add_pred (Wddpac_edge(edge1,edge2)) (Graph(g)) = 
     match edge1, edge2 with
     | _, Start_clause(_) -> ()
     | Exit_clause(_,_,_), _ -> ()
-    | _,_ -> Wddpac_edge_tbl.add p edge2 edge1;;
+    | _,_ -> Wddpac_edge_tbl.add g edge2 edge1;;
 
-  let add_edge edge g = 
-    add_succ edge g;
+  let add_edge edge g =
     add_pred edge g;
     g;;
 
-  let has_succ edge (Graph(_,s)) = 
-    match edge with
-    | End_clause(_) -> true
-    | _ -> Wddpac_edge_tbl.mem s edge;; 
-
-  let has_pred edge (Graph(p,_)) = 
+  let has_edge edge (Graph(g)) = 
     match edge with
     | Start_clause(_) -> true
-    | _ -> Wddpac_edge_tbl.mem p edge;; 
+    | _ -> Wddpac_edge_tbl.mem g edge;; 
 
-  let direct_succ edge (Graph(_,s)) = Wddpac_edge_tbl.find s edge;; 
+  let get_neighbor edge (Graph(g)) = Wddpac_edge_tbl.find g edge;; 
 
-  let direct_pred edge (Graph(p,_)) = Wddpac_edge_tbl.find p edge;; 
-
-  let direct_succ_option edge (Graph(_,s)) = Wddpac_edge_tbl.find_option s edge;; 
-
-  let direct_pred_option edge (Graph(p,_)) = Wddpac_edge_tbl.find_option p edge;; 
+  let get_neighbor_option edge (Graph(g)) = Wddpac_edge_tbl.find_option g edge;; 
 
 end;;
 
