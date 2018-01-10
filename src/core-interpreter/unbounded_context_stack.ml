@@ -7,10 +7,16 @@ open Core_ast_pp;;
 
 type 'a dq = 'a Deque.dq;;
 
+type context_var =
+  | Context_var of clause * var option * int
+  [@@deriving ord, eq, to_yojson]
+;;
+
+
 module Unbounded_Stack  =
 
 struct
-  type t = (clause * var option) dq;;
+  type t = context_var dq;;
   let equal x y = compare x y == 0;;
   let compare x y = Enum.compare compare (Deque.enum x) (Deque.enum y);;
   let empty = Deque.empty;;
@@ -40,11 +46,6 @@ struct
   let pp formatter x =
     pp_concat_sep_delim "" "|?" "|" pp_clause formatter @@
     Deque.enum x
-  ;;
-  let top_context x =
-    match Deque.front x with
-    | None -> None
-    | Some((_, ctx), _) -> ctx
   ;;
   let show = pp_to_string pp;;
 end;;
