@@ -94,13 +94,20 @@ let rec lookup graph var (ctx, index) lookup_stack context_stack lookup_table =
   (* Align *)
   let (node, i) = begin
     let Graph_node(n, c, i) = Wddpac_graph.lookup var graph in
-    if c = ctx && i <= index then (n, i)
+    if c = None || (c = ctx && i <= index) then (n, i)
     else (Start_clause(ctx), 0)
   end in
 
   (* Process Graph Node *)
   begin
     let (v,c,c_stack) = 
+      (* match (Cache_lookups.lookupInTable lookup_table var context_stack), (Lookup_Stack.top lookup_stack) with
+      | Some(v), None -> 
+        v
+      | Some(_, (ctx,i),context_stack), Some(l) -> 
+        lookup graph l (ctx,i) (Lookup_Stack.pop lookup_stack) context_stack lookup_table
+      | _, _ -> *)
+        (* lookup graph xf (ctx, i) (Lookup_Stack.push var lookup_stack) popped_context_stack lookup_table *)
       begin
         match node with
         
@@ -136,10 +143,10 @@ let rec lookup graph var (ctx, index) lookup_stack context_stack lookup_table =
 
                 begin
                   match fn with
-                  | Value_function(Function_value(_, Expr(_)) as fn) ->
-                      let graph, rx, ctx2, size = wire fn graph in
+                  | Value_function(Function_value(_, Expr(_)) as fn2) ->
+                      let graph, rx, ctx2, size = wire fn2 graph in
 
-                      Cache_lookups.add lookup_table xf context_stack cfn cfn_stack;
+                      Cache_lookups.add lookup_table xf context_stack fn cfn cfn_stack;
                       (* Cache_lookups.add lookup_table xv context_stack cv cv_stack; *)
 
                       (* print_endline "Exit clause"; *)
@@ -193,10 +200,11 @@ let rec lookup graph var (ctx, index) lookup_stack context_stack lookup_table =
                 else (
                   (* print_endline "Non local lookup"; *)
                   match (Cache_lookups.lookupInTable lookup_table xf popped_context_stack) with
-                  | Some((ctx,i),context_stack) -> 
+                  | Some(_, (ctx,i),context_stack) -> 
                     lookup graph var (ctx,i) lookup_stack context_stack lookup_table
                   | _ ->
                     lookup graph xf (ctx, i) (Lookup_Stack.push var lookup_stack) popped_context_stack lookup_table
+                  (* lookup graph xf (ctx, i) (Lookup_Stack.push var lookup_stack) popped_context_stack lookup_table *)
                 )
               end
             | Some(Context_var((Clause(_,Conditional_body(xc, _, _, _))), ctx, i)) -> 
@@ -221,48 +229,51 @@ let rec lookup graph var (ctx, index) lookup_stack context_stack lookup_table =
 
 let rec substitute v cl graph context_stack lookup_table env = 
   match v with
-  | Value_function(Function_value(x', Expr(e))) ->
-    Environment.add env x' "0";
-    List.enum e
-      |> Enum.map (fun (Clause(x, _)) -> Environment.add env x "0")
-      |> List.of_enum
-      |> fun _ -> ()
-      ;
-    List.enum e
-      |> Enum.map (fun c -> substitute_clause c cl graph context_stack lookup_table env)
-      |> List.of_enum
-      |> fun _ -> ()
-      ;
-    ()
-  | Value_int(_)
-  | Value_bool(_) ->
-    ()
-  | _ -> ()
-and substitute_clause cl cl2 graph context_stack lookup_table env =
-  match cl with 
-  | Clause(_, Value_body(v)) ->
-    substitute v cl2 graph context_stack lookup_table env
-  | Clause(_, Unary_operation_body(_,x))
-  | Clause(_, Var_body(x)) -> 
-    process_vars (x :: []) cl2 graph context_stack lookup_table env
-  | Clause(_, Binary_operation_body(x,_,x'))
-  | Clause(_, Appl_body(x, x')) ->
-    process_vars (x :: x' :: []) cl2 graph context_stack lookup_table env
-  | Clause(_, Conditional_body(xc,_,f1,f2)) -> 
-    process_vars (xc :: []) cl2 graph context_stack lookup_table env;
-    substitute (Value_function(f1)) cl2 graph context_stack lookup_table env;
-    substitute (Value_function(f2)) cl2 graph context_stack lookup_table env
-  | _ -> ()
+  | Value_function(Function_value(x, Expr(e))) ->
+    Environment.add env x "0";
+    Value_function(Function_value(x, Expr(substitute_expr e cl graph context_stack lookup_table env)))
+  | _ -> v
+and substitute_expr e cl graph context_stack lookup_table env =
+  match e with 
+  | Clause(x, Value_body(v)) :: tl ->
+
+    let v = substitute v cl graph context_stack lookup_table env in
+    Environment.add env x "0";
+    Clause(x, Value_body(v)) :: substitute_expr tl cl graph context_stack lookup_table env
+
+  | (Clause(x, Unary_operation_body(_,x')) as hd) :: tl
+  | (Clause(x, Var_body(x')) as hd) :: tl -> 
+
+      let assignments = process_vars (x' :: []) cl graph context_stack lookup_table env in
+      Environment.add env x "0";
+      (assignments @ [hd]) @ substitute_expr tl cl graph context_stack lookup_table env
+  | (Clause(x, Binary_operation_body(x',_,x'')) as hd) :: tl 
+  | (Clause(x, Appl_body(x', x'')) as hd) :: tl ->
+
+      let assignments = process_vars (x' :: x'' :: [])  cl graph context_stack lookup_table env in
+      Environment.add env x "0";
+      (assignments @ [hd]) @ substitute_expr tl cl graph context_stack lookup_table env
+   
+  | Clause(x, Conditional_body(x',op,f1,f2)) :: tl -> 
+    let assignments = process_vars (x' :: []) cl graph context_stack lookup_table env in
+    let f1 = substitute (Value_function(f1)) cl graph context_stack lookup_table env in
+    let f2 = substitute (Value_function(f2)) cl graph context_stack lookup_table env in 
+    Environment.add env x "0";
+    begin
+      match f1,f2 with
+      | Value_function(f1), Value_function(f2) ->
+        (assignments @ ([Clause(x, Conditional_body(x',op,f1,f2))])) @ substitute_expr tl cl graph context_stack lookup_table env
+      | _, _ -> raise @@ Utils.Invariant_failure "Incorrect substitution of function" 
+    end
+  | _ -> []
 and process_vars vars cl graph context_stack lookup_table env = 
   List.enum vars
   |> Enum.filter (fun x -> not (Environment.mem env x))
   |> Enum.map (fun x -> 
       let (v, cl, context_stack) = lookup graph x cl (Lookup_Stack.empty) context_stack lookup_table in
-      print_endline (show_var x ^ " := " ^ show_value v);
       Environment.add env x "0";
-      substitute v cl graph context_stack lookup_table (Environment.create 10) )
+      Clause(x, Value_body(substitute v cl graph context_stack lookup_table (Environment.create 10))))
   |> List.of_enum
-  |> fun _ -> ()
 ;;
 
 let eval (Expr(cls)) =
@@ -271,7 +282,5 @@ let eval (Expr(cls)) =
   let lookup_table = Cache_lookups.empty in
   let initial_graph, rx, index = initialize_graph cls in 
   let (v, cl, context_stack) = lookup initial_graph rx (None, index) lookup_stack context_stack lookup_table in
-  print_endline (show_value v);
-  substitute v cl initial_graph context_stack lookup_table (Environment.create 10);
-  v
+  substitute v cl initial_graph context_stack lookup_table (Environment.create 10)
 ;;

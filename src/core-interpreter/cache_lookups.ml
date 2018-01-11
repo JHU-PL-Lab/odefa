@@ -18,9 +18,9 @@ sig
 
   val empty : lookup_table
 
-  val lookupInTable: lookup_table -> var -> context_var dq -> ((var option * int) * context_var dq) option
+  val lookupInTable: lookup_table -> var -> context_var dq ->  (value * (var option * int) * context_var dq) option
 
-  val add : lookup_table -> var -> context_var dq -> (var option * int) -> context_var dq -> unit
+  val add : lookup_table -> var -> context_var dq -> value -> (var option * int) -> context_var dq -> unit
 
 end;;
 
@@ -40,13 +40,13 @@ struct
 
   module Lookup_tbl = Hashtbl.Make(Var_Context)
 
-  type lookup_table = Table of ((var option * int) * context_var dq) Lookup_tbl.t ;;
+  type lookup_table = Table of (value * (var option * int) * context_var dq) Lookup_tbl.t ;;
 
   let empty = Table(Lookup_tbl.create 10);;
 
-  let add (Table(t)) v c cl context_stack = 
+  let add (Table(t)) v c value_l cl context_stack = 
     (* Lookup_tbl.remove t (v,c); *)
-     Lookup_tbl.add t (v,c) (cl, context_stack);;
+     Lookup_tbl.add t (v,c) (value_l, cl, context_stack);;
 
   let lookupInTable (Table(t)) v c = Lookup_tbl.find_option t (v,c);; 
 
