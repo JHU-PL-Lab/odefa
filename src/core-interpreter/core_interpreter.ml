@@ -89,143 +89,101 @@ let rec matches v p =
   | _ -> false
 ;;
 
+let rec lookup_ctx context_stack (ctx, index) (c,i) =
+  if (c = ctx && i <= index) then (i, context_stack)
+  else
+    begin
+      match Unbounded_Stack.top context_stack with
+      | Some(Appl_context_var(_, _, (ctx,index), context_stack)) -> 
+        lookup_ctx context_stack (ctx, index) (c,i)
+      | Some(Cond_context_var(_, (ctx, index))) -> 
+        lookup_ctx (Unbounded_Stack.pop context_stack) (ctx,index) (c,i)  
+      | _ -> raise @@ Utils.Invariant_failure "Incorrect context stack2"
+    end
+;;
+
 let rec lookup graph var (ctx, index) context_stack = 
-  
   (* Align *)
-  let (node, i) = begin
+  let (node, ctx, (i, context_stack)) = begin
     let Graph_node(n, c, i) = Wddpac_graph.lookup var graph in
-    if c = None || (c = ctx && i <= index) then (n, i)
-    else (Start_clause(ctx), 0)
+    (n, c, lookup_ctx context_stack (ctx, index) (c,i))
   end in
 
   (* Process Graph Node *)
   begin
-    let (v,c,c_stack) = 
-      (* match (Cache_lookups.lookupInTable lookup_table var context_stack), (Lookup_Stack.top lookup_stack) with
-      | Some(v), None -> 
-        v
-      | Some(_, (ctx,i),context_stack), Some(l) -> 
-        lookup graph l (ctx,i) (Lookup_Stack.pop lookup_stack) context_stack lookup_table
-      | _, _ -> *)
-        (* lookup graph xf (ctx, i) (Lookup_Stack.push var lookup_stack) popped_context_stack lookup_table *)
-      begin
-        match node with
-        
-        | Unannotated_clause(Clause(x, cl) as c) -> 
-          if x <> var then (
-            raise @@ Utils.Invariant_failure ("Found no definitions for variable from exit clause 1" )
-          )
-          else
+    match node with
+    
+    | Unannotated_clause(Clause(x, cl) as c) -> 
+      if x <> var then (
+        raise @@ Utils.Invariant_failure ("Found no definitions for variable from exit clause 1" )
+      )
+      else
+        begin
+          match cl with
+          | Var_body(x') -> 
+            (* print_endline "Alias";  *)
+            lookup graph x' (ctx, i) context_stack
+            
+          | Value_body(Value_function(_) as v) 
+          | Value_body(Value_int(_) as v) 
+          | Value_body(Value_bool(_) as v) -> 
+
+            (v, (ctx, i), context_stack)
+
+          | Appl_body(xf, _) -> 
+            (* print_endline "Lookup function"; *)
+            let (fn, cfn, cfn_stack) = lookup graph xf (ctx, i) context_stack in
+
             begin
-              match cl with
-              | Var_body(x') -> 
-                (* print_endline "Alias";  *)
-                lookup graph x' (ctx, i) context_stack
-                
-              | Value_body(Value_function(_) as v) 
-              | Value_body(Value_int(_) as v) 
-              | Value_body(Value_bool(_) as v) -> 
-                (* let popped_val = Lookup_Stack.top lookup_stack in 
-                begin
-                  match popped_val with
-                  | None -> 
-                    (* print_endline "Value Discovery"; *)
-                    (v, (ctx, i), context_stack)
-                  | Some(x1) -> 
-                    (* print_endline "Value Discard"; *)
-                    lookup graph x1 (ctx, i) (Lookup_Stack.pop lookup_stack) context_stack lookup_table
-                end *)
-                (v, (ctx, i), context_stack)
+              match fn with
+              | Value_function(Function_value(_, Expr(_)) as fn2) ->
+                  let graph, rx, ctx2, size = wire fn2 graph in
 
-              | Appl_body(xf, _) -> 
-                (* print_endline "Lookup function"; *)
-                let (fn, cfn, cfn_stack) = lookup graph xf (ctx, i) context_stack in
-                (* let (_, cv, cv_stack) = lookup graph xv ctx Lookup_Stack.empty context_stack lookup_table in *)
+                  lookup graph rx (Some(ctx2), size) (Unbounded_Stack.push (Appl_context_var(c, (ctx, i), cfn, cfn_stack)) context_stack)
 
-                begin
-                  match fn with
-                  | Value_function(Function_value(_, Expr(_)) as fn2) ->
-                      let graph, rx, ctx2, size = wire fn2 graph in
-
-                      (* Cache_lookups.add lookup_table xf context_stack fn cfn cfn_stack; *)
-                      (* Cache_lookups.add lookup_table xv context_stack cv cv_stack; *)
-
-                      (* print_endline "Exit clause"; *)
-                      lookup graph rx (Some(ctx2), size) (Unbounded_Stack.push (Appl_context_var(c, (ctx, i), cfn, cfn_stack)) context_stack)
-
-                  | _ -> raise @@ Utils.Invariant_failure "Found incorrect definitions for function 2"
-                end
-              | Conditional_body(xc,p,f1,f2) ->
-                let (v, _, _) = lookup graph xc (ctx, i) context_stack in
-                let f = if matches v p then f1 else f2 in
-                let graph, rx, ctx2, size = wire f graph in
-                lookup graph rx (Some(ctx2), size) (Unbounded_Stack.push (Cond_context_var(c, (ctx, i))) context_stack)
-              | Binary_operation_body(x1,op,x2) ->
-                let (v1, _, _) = lookup graph x1 (ctx, i) context_stack in 
-                let (v2, _, _) = lookup graph x2 (ctx, i) context_stack in 
-                begin
-                  match v1, op, v2 with
-                  | Value_int(n1), Binary_operator_plus, Value_int(n2) -> (Value_int(n1 + n2), (ctx, i), context_stack)
-                  | Value_int(n1), Binary_operator_int_minus, Value_int(n2) -> (Value_int(n1 - n2), (ctx, i), context_stack)
-                  | Value_int(n1), Binary_operator_equal_to, Value_int(n2) -> (Value_bool(n1 = n2), (ctx, i), context_stack)
-                  | Value_bool(b1), Binary_operator_bool_and, Value_bool(b2) -> (Value_bool(b1 && b2), (ctx, i), context_stack)
-                  | Value_bool(b1), Binary_operator_bool_or, Value_bool(b2) -> (Value_bool(b1 || b2), (ctx, i), context_stack)
-                  | _,_,_ -> 
-                   raise @@ Evaluation_failure "Incorrect binary operation"
-                end
-              | Unary_operation_body(op,x1) ->
-                let (v1, _, _) = lookup graph x1 (ctx, i) context_stack in 
-                begin
-                  match op, v1 with
-                  | Unary_operator_bool_not, Value_bool(b1) -> (Value_bool(not b1), (ctx, i), context_stack)
-                  | _,_ -> 
-                   raise @@ Evaluation_failure "Incorrect unary operation"
-                end
-
-              | _ -> raise @@ Utils.Invariant_failure "Usage of not implemented clause"
+              | _ -> raise @@ Utils.Invariant_failure "Found incorrect definitions for function 2"
             end
-        | Start_clause(None) -> 
-          raise @@ Utils.Invariant_failure ("Found no definitions for variable 4")
-        | Start_clause(Some(x0)) ->
-          (* print_endline "Start Clause"; *)
-          begin
-            match Unbounded_Stack.top context_stack with
-            | Some(Appl_context_var((Clause(_,Appl_body(_ ,xv))), (ctx, i), (ctx2,i2), context_stack2)) -> 
-              begin
-                let popped_context_stack = Unbounded_Stack.pop context_stack in
+          | Conditional_body(xc,p,f1,f2) ->
+            let (v, _, _) = lookup graph xc (ctx, i) context_stack in
+            let f = if matches v p then f1 else f2 in
+            let graph, rx, ctx2, size = wire f graph in
+            lookup graph rx (Some(ctx2), size) (Unbounded_Stack.push (Cond_context_var(c, (ctx, i))) context_stack)
+          | Binary_operation_body(x1,op,x2) ->
+            let (v1, _, _) = lookup graph x1 (ctx, i) context_stack in 
+            let (v2, _, _) = lookup graph x2 (ctx, i) context_stack in 
+            begin
+              match v1, op, v2 with
+              | Value_int(n1), Binary_operator_plus, Value_int(n2) -> (Value_int(n1 + n2), (ctx, i), context_stack)
+              | Value_int(n1), Binary_operator_int_minus, Value_int(n2) -> (Value_int(n1 - n2), (ctx, i), context_stack)
+              | Value_int(n1), Binary_operator_equal_to, Value_int(n2) -> (Value_bool(n1 = n2), (ctx, i), context_stack)
+              | Value_bool(b1), Binary_operator_bool_and, Value_bool(b2) -> (Value_bool(b1 && b2), (ctx, i), context_stack)
+              | Value_bool(b1), Binary_operator_bool_or, Value_bool(b2) -> (Value_bool(b1 || b2), (ctx, i), context_stack)
+              | _,_,_ -> 
+               raise @@ Evaluation_failure "Incorrect binary operation"
+            end
+          | Unary_operation_body(op,x1) ->
+            let (v1, _, _) = lookup graph x1 (ctx, i) context_stack in 
+            begin
+              match op, v1 with
+              | Unary_operator_bool_not, Value_bool(b1) -> (Value_bool(not b1), (ctx, i), context_stack)
+              | _,_ -> 
+               raise @@ Evaluation_failure "Incorrect unary operation"
+            end
 
-                if x0 = var then (
-                  (* print_endline "Function enter parameter"; *)
-                  lookup graph xv (ctx, i) popped_context_stack
-                )
-                else (
-                  (* print_endline "Non local lookup"; *)
-                  lookup graph var (ctx2,i2) context_stack2
-                 (*  match (Cache_lookups.lookupInTable lookup_table xf popped_context_stack) with
-                  | Some(_, (ctx,i),context_stack) -> 
-                    lookup graph var (ctx,i) lookup_stack context_stack lookup_table
-                  | _ ->
-                    lookup graph xf (ctx, i) (Lookup_Stack.push var lookup_stack) popped_context_stack lookup_table *)
-                  (* lookup graph xf (ctx, i) (Lookup_Stack.push var lookup_stack) popped_context_stack lookup_table *)
-                )
-              end
-            | Some(Cond_context_var((Clause(_,Conditional_body(xc, _, _, _))), (ctx, i))) -> 
-              begin
-                let popped_context_stack = Unbounded_Stack.pop context_stack in
-
-                if x0 = var then (
-                  (* print_endline "Function enter parameter"; *)
-                  lookup graph xc (ctx, i) popped_context_stack
-                )
-                else (
-                  (* print_endline "Non local lookup"; *)
-                  lookup graph var (ctx,i) popped_context_stack
-                )
-              end
-            | _ -> raise @@ Utils.Invariant_failure "Incorrect context stack"
-          end
-      end in 
-    (v,c, c_stack)
+          | _ -> raise @@ Utils.Invariant_failure "Usage of not implemented clause"
+        end
+    | Start_clause(None) -> 
+      raise @@ Utils.Invariant_failure ("Found no definitions for variable 4")
+    | Start_clause(Some(_)) ->
+      (* print_endline "Start Clause"; *)
+      begin
+        match Unbounded_Stack.top context_stack with
+        | Some(Appl_context_var((Clause(_,Appl_body(_ ,xv))), (ctx, i), _, _)) ->  
+          lookup graph xv (ctx, i) (Unbounded_Stack.pop context_stack)
+        | Some(Cond_context_var((Clause(_,Conditional_body(xc, _, _, _))), (ctx, i))) -> 
+          lookup graph xc (ctx, i) (Unbounded_Stack.pop context_stack)
+        | _ -> raise @@ Utils.Invariant_failure "Incorrect context stack"
+      end
   end 
 ;;
 
@@ -280,8 +238,6 @@ and process_vars vars cl graph context_stack env =
 
 let eval (Expr(cls)) =
   let context_stack = Unbounded_Stack.empty in
-  (* let lookup_stack = Lookup_Stack.empty in *)
-  (* let lookup_table = Cache_lookups.empty in *)
   let initial_graph, rx, index = initialize_graph cls in 
   let (v, cl, context_stack) = lookup initial_graph rx (None, index) context_stack in
   substitute v cl initial_graph context_stack (Environment.create 10)
