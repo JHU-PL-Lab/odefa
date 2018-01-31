@@ -13,7 +13,7 @@ type annotated_clause =
 ;;
 
 type graph_node =
-  | Graph_node of annotated_clause * var option * int
+  | Graph_node of annotated_clause * (var option * int)
   [@@deriving ord, eq, to_yojson]
 ;;
 
@@ -54,7 +54,7 @@ struct
   let empty = Graph(Wddpac_edge_tbl.create 10);;
 
   let add_edge (v, cl, context, i) (Graph(g)) = 
-    Wddpac_edge_tbl.add g v (Graph_node(cl, context, i));
+    Wddpac_edge_tbl.add g v (Graph_node(cl, (context, i)));
     Graph(g)
   ;;
 
