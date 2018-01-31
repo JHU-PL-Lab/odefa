@@ -90,7 +90,7 @@ let rec matches v p =
 ;;
 
 let rec lookup_ctx context_stack (ctx, index) (c,i) =
-  if (c = ctx && i <= index) then ((ctx, i), context_stack)
+  if (c = ctx && i <= index) then context_stack
   else
     begin
       match Unbounded_Stack.top context_stack with
@@ -102,12 +102,10 @@ let rec lookup_ctx context_stack (ctx, index) (c,i) =
     end
 ;;
 
-let rec lookup graph var loc context_stack = 
+let rec lookup graph var curr_loc context_stack = 
   (* Align *)
-  let (node, (loc, context_stack)) = begin
-    let Graph_node(n, node_loc) = Wddpac_graph.lookup var graph in
-    (n, lookup_ctx context_stack loc node_loc)
-  end in
+  let Graph_node(node, loc) = Wddpac_graph.lookup var graph in
+  let context_stack = lookup_ctx context_stack curr_loc loc in
 
   (* Process Graph Node *)
   begin
@@ -179,10 +177,9 @@ let rec lookup graph var loc context_stack =
       (* print_endline "Start Clause"; *)
       begin
         match Unbounded_Stack.top context_stack with
-        | Some(Appl_context_var(xv, loc, _, _)) ->  
-          lookup graph xv loc (Unbounded_Stack.pop context_stack)
-        | Some(Cond_context_var(xc, loc)) -> 
-          lookup graph xc loc (Unbounded_Stack.pop context_stack)
+        | Some(Appl_context_var(var, loc, _, _))
+        | Some(Cond_context_var(var, loc)) -> 
+          lookup graph var loc (Unbounded_Stack.pop context_stack)
         | _ -> raise @@ Utils.Invariant_failure "Incorrect context stack"
       end
   end 
