@@ -2,8 +2,6 @@ open Batteries;;
 open Jhupllib;;
 
 open Core_ast;;
-open Core_ast_pp;;
-open Pp_utils;;
 
 open Unbounded_context_stack;;
 open Wddpac_graph;;
@@ -13,9 +11,6 @@ let lazy_logger = Logger_utils.make_lazy_logger "Interpreter";;
 module Environment = Var_hashtbl;;
 
 type evaluation_environment = string Environment.t;;
-
-let pp_evaluation_environment = pp_map pp_var pp_value Environment.enum;;
-let show_evaluation_environment = pp_to_string pp_evaluation_environment;;
 
 exception Evaluation_failure of string;;
 
