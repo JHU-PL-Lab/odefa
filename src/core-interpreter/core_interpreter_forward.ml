@@ -13,6 +13,8 @@ type environment_value =
   | Environ_int of int
   | Environ_bool of bool
   | Environ_function of function_value * (environment_value Environment.t)
+  | Environ_string of string
+  | Environ_record of record_value * (environment_value Environment.t)
 ;;
 
 exception Evaluation_failure of string;;
@@ -20,20 +22,20 @@ exception Evaluation_failure of string;;
 let rec matches v p =
   match v,p with
   | _,Any_pattern -> true
-  (* | Value_record(Record_value(els)),Record_pattern(els') ->
+  | Environ_record(Record_value(els), env),Record_pattern(els') ->
     els'
     |> Ident_map.enum
     |> Enum.for_all
       (fun (i,p') ->
          try
-           matches env (Ident_map.find i els) p'
+           matches (Environment.find (Ident_map.find i els) env) p'
          with
          | Not_found -> false
-      ) *)
+      )
   | Environ_function(_,_),Fun_pattern
-  (* | Value_ref(Ref_value(_)),Ref_pattern *)
-  | Environ_int(_),Int_pattern ->
-  (* | Value_string _,String_pattern -> *)
+  (* | Environ_ref(Ref_value(_)),Ref_pattern *)
+  | Environ_int(_),Int_pattern
+  | Environ_string _,String_pattern ->
     true
   | Environ_bool actual_boolean,Bool_pattern pattern_boolean ->
     actual_boolean = pattern_boolean
@@ -45,6 +47,8 @@ let get_value environ_value =
   | Environ_int(v) -> Value_int(v)
   | Environ_bool(v) -> Value_bool(v)
   | Environ_function(v,_) -> Value_function(v)
+  | Environ_string(v) -> Value_string(v)
+  | Environ_record(v, _) -> Value_record(v)
 ;;
 
 let rv body =
@@ -66,6 +70,12 @@ let rec evaluate env cls =
         evaluate (Environment.add x (Environ_bool(v)) env) t
       | Value_body(Value_function(v)) ->
         evaluate (Environment.add x (Environ_function(v,env)) env) t
+      | Value_body(Value_string(v)) ->
+        evaluate (Environment.add x (Environ_string(v)) env) t
+      | Value_body(Value_record(v)) ->
+        evaluate (Environment.add x (Environ_record(v,env)) env) t
+      (* | Value_body(Value_ref(v)) -> *)
+        (* evaluate (Environment.add x (Environ_ref(v, env)) env) t *)
       | Var_body(x') ->
         let v = Environment.find x' env in
         evaluate (Environment.add x v env) t
@@ -87,7 +97,26 @@ let rec evaluate env cls =
         let Function_value(x'',Expr(cls2)) = if matches v p then f1 else f2 in
         let env2 = evaluate (Environment.add x'' v env) cls2 in
         evaluate (Environment.add x (Environment.find (rv cls2) env2) env) t
-      
+      | Projection_body(x', i) ->
+        begin
+          match Environment.find x' env with
+          | Environ_record(Record_value(els), env2) as r ->
+            begin
+              try
+                let x'' = Ident_map.find i els in
+                let v = Environment.find x'' env2 in
+                evaluate (Environment.add x v env) t
+              with
+              | Not_found ->
+                raise @@ Evaluation_failure(
+                  Printf.sprintf "cannot project %s from %s: not present"
+                    (show_ident i) (show_value (get_value r)))
+            end
+          | v ->
+            raise @@ Evaluation_failure(
+              Printf.sprintf "cannot project %s from non-record value %s"
+                (show_ident i) (show_value (get_value v)))
+        end
       | Binary_operation_body(x1,op,x2) ->
         let v1 = Environment.find x1 env in
         let v2 = Environment.find x2 env in
@@ -113,6 +142,15 @@ let rec evaluate env cls =
               Environ_bool (b1 && b2)
             | (Environ_bool(b1),Binary_operator_bool_or,Environ_bool(b2)) ->
               Environ_bool (b1 || b2)
+            | (Environ_string(s1),Binary_operator_plus,Environ_string(s2)) ->
+              Environ_string(s1 ^ s2)
+            | (Environ_string(s1),Binary_operator_equal_to,Environ_string(s2)) ->
+              Environ_bool(s1 = s2)
+            | (Environ_string(s),Binary_operator_index,Environ_int(i)) ->
+              if i < String.length(s) then
+                Environ_string (String.make 1 (String.get s i))
+              else
+                Environ_string ""
             | v1,op,v2 ->
               raise @@ Evaluation_failure(
                 Printf.sprintf "Cannot complete binary operation: (%s) %s (%s)"
@@ -146,7 +184,18 @@ let rec subsitute_value environ_value =
   | Environ_int(v) -> Value_int(v)
   | Environ_bool(v) -> Value_bool(v)
   | Environ_function(v,env) -> substitute (Value_function(v)) (Local_list.create 10) env
-
+  | Environ_string(v) -> Value_string(v)
+  | Environ_record(Record_value(els) as v, env) ->
+   (* TODO: replace variables in record *)
+    els
+      |> Ident_map.enum
+      |> Enum.map
+        (fun (i,v) ->
+           (i, subsitute_value (Environment.find v env))
+        )
+      |> Ident_map.of_enum
+      |> fun _ -> ();
+    Value_record(v)
 and substitute v env env2 = 
   match v with
   | Value_function(Function_value(x, Expr(e))) ->
