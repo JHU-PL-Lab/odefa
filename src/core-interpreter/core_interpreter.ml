@@ -63,12 +63,12 @@ let rec matches v p =
          with
          | Not_found -> false
       ) *)
-  | Value_function(Function_value(_)),Fun_pattern
-  | Value_ref(Ref_value(_)),Ref_pattern
-  | Value_string _,String_pattern
-  | Value_int _,Int_pattern ->
+  | Return_function(_),Fun_pattern
+  (* | Value_ref(Ref_value(_)),Ref_pattern *)
+  (* | Value_string _,String_pattern *)
+  | Return_int _,Int_pattern ->
     true
-  | Value_bool actual_boolean,Bool_pattern pattern_boolean ->
+  | Return_bool actual_boolean,Bool_pattern pattern_boolean ->
     actual_boolean = pattern_boolean
   | _ -> false
 ;;
@@ -106,19 +106,22 @@ let rec lookup graph var curr_loc context_stack =
             (* print_endline "Alias";  *)
             lookup graph x' loc context_stack
             
-          | Value_body(Value_function(_) as v) 
-          | Value_body(Value_int(_) as v) 
-          | Value_body(Value_bool(_) as v) -> 
-
-            (v, loc, context_stack)
-
+          | Value_body(Value_function(v)) ->
+            Return_function(v, loc, context_stack)
+          | Value_body(Value_int(v)) ->
+            Return_int(v)
+          | Value_body(Value_bool(v)) -> 
+            Return_bool(v)
           | Appl_body(xf, xv) -> 
             (* print_endline "Lookup function"; *)
-            let (fn, cfn, cfn_stack) = lookup graph xf loc context_stack in
+            (* let (fn, cfn, cfn_stack) = lookup graph xf loc context_stack in *)
+            let fn = lookup graph xf loc context_stack in
 
             begin
               match fn with
-              | Value_function(Function_value(fn_ctx, Expr(cls))) ->
+              | Return_function(Function_value(fn_ctx, Expr(cls)), cfn, cfn_stack) ->
+              (* | Value_function(Function_value(fn_ctx, Expr(cls))) -> *)
+
                   let size = List.length cls in 
                   let rx = rv cls in
 
@@ -127,30 +130,30 @@ let rec lookup graph var curr_loc context_stack =
               | _ -> raise @@ Utils.Invariant_failure "Found incorrect definitions for function 2"
             end
           | Conditional_body(xc,p,f1,f2) ->
-            let (v, _, _) = lookup graph xc loc context_stack in
+            let v = lookup graph xc loc context_stack in
             let Function_value(fn_ctx, Expr(cls)) = if matches v p then f1 else f2 in
             let size = List.length cls in 
             let rx = rv cls in
             lookup graph rx (Some(fn_ctx), size) (Unbounded_Stack.push (Cond_context_var(xc, loc)) context_stack)
 
           | Binary_operation_body(x1,op,x2) ->
-            let (v1, _, _) = lookup graph x1 loc context_stack in 
-            let (v2, _, _) = lookup graph x2 loc context_stack in 
+            let v1 = lookup graph x1 loc context_stack in 
+            let v2 = lookup graph x2 loc context_stack in 
             begin
               match v1, op, v2 with
-              | Value_int(n1), Binary_operator_plus, Value_int(n2) -> (Value_int(n1 + n2), loc, context_stack)
-              | Value_int(n1), Binary_operator_int_minus, Value_int(n2) -> (Value_int(n1 - n2), loc, context_stack)
-              | Value_int(n1), Binary_operator_equal_to, Value_int(n2) -> (Value_bool(n1 = n2), loc, context_stack)
-              | Value_bool(b1), Binary_operator_bool_and, Value_bool(b2) -> (Value_bool(b1 && b2), loc, context_stack)
-              | Value_bool(b1), Binary_operator_bool_or, Value_bool(b2) -> (Value_bool(b1 || b2), loc, context_stack)
+              | Return_int(n1), Binary_operator_plus, Return_int(n2) -> Return_int(n1 + n2)
+              | Return_int(n1), Binary_operator_int_minus, Return_int(n2) -> Return_int(n1 - n2)
+              | Return_int(n1), Binary_operator_equal_to, Return_int(n2) -> Return_bool(n1 = n2)
+              | Return_bool(b1), Binary_operator_bool_and, Return_bool(b2) -> Return_bool(b1 && b2)
+              | Return_bool(b1), Binary_operator_bool_or, Return_bool(b2) -> Return_bool(b1 || b2)
               | _,_,_ -> 
                raise @@ Evaluation_failure "Incorrect binary operation"
             end
           | Unary_operation_body(op,x1) ->
-            let (v1, _, _) = lookup graph x1 loc context_stack in 
+            let v1 = lookup graph x1 loc context_stack in 
             begin
               match op, v1 with
-              | Unary_operator_bool_not, Value_bool(b1) -> (Value_bool(not b1), loc, context_stack)
+              | Unary_operator_bool_not, Return_bool(b1) -> Return_bool(not b1)
               | _,_ -> 
                raise @@ Evaluation_failure "Incorrect unary operation"
             end
@@ -171,7 +174,13 @@ let rec lookup graph var curr_loc context_stack =
   end 
 ;;
 
-let rec substitute v cl graph context_stack env = 
+let rec substitute_return v graph env = 
+  match v with
+  | Return_bool(v) -> Value_bool(v)
+  | Return_int(v) -> Value_int(v)
+  | Return_function(v, cl, context_stack) -> substitute (Value_function(v)) cl graph context_stack env
+
+and substitute v cl graph context_stack env = 
   match v with
   | Value_function(Function_value(x, Expr(e))) ->
     Environment.add env x "0";
@@ -214,17 +223,22 @@ and process_vars vars cl graph context_stack env =
   List.enum vars
   |> Enum.filter (fun x -> not (Environment.mem env x))
   |> Enum.map (fun x -> 
-      let (v, cl, context_stack) = lookup graph x cl context_stack in
+      (* let (v, cl, context_stack) = lookup graph x cl context_stack in *)
+      let v = lookup graph x cl context_stack in
+      (* substitute_return  *)
       Environment.add env x "0";
-      Clause(x, Value_body(substitute v cl graph context_stack (Environment.create 10))))
+      (* Clause(x, Value_body(substitute v cl graph context_stack (Environment.create 10)))) *)
+      Clause(x, Value_body(substitute_return v graph (Environment.create 10))))
   |> List.of_enum
 ;;
 
 let eval (Expr(cls)) =
   let context_stack = Unbounded_Stack.empty in
-  let initial_graph = Wddpac_graph.empty in 
-  let index = initialize_graph cls initial_graph None 1 in 
+  let graph = Wddpac_graph.empty in 
+  let index = initialize_graph cls graph None 1 in 
   let rx = rv cls in
-  let (v, cl, context_stack) = lookup initial_graph rx (None, index) context_stack in
-  substitute v cl initial_graph context_stack (Environment.create 10)
+  (* let (v, cl, context_stack) = lookup initial_graph rx (None, index) context_stack in *)
+  let v = lookup graph rx (None, index) context_stack in
+  substitute_return v graph (Environment.create 10)
+  (* substitute v cl initial_graph context_stack (Environment.create 10) *)
 ;;

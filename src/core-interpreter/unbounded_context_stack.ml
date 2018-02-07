@@ -7,6 +7,10 @@ type 'a dq = 'a Deque.dq;;
 type context_var =
   | Appl_context_var of var * (var option * int) * (var option * int) * context_var dq
   | Cond_context_var of var * (var option * int)
+and return_type = 
+  | Return_int of int
+  | Return_bool of bool
+  | Return_function of function_value * (var option * int) * context_var dq
 ;;
 
 module Unbounded_Stack  =
