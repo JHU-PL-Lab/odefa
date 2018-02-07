@@ -20,45 +20,34 @@ let rv body =
   | _ -> let Clause(x,_) = List.last body in x
 ;;
 
-(**
-   Adds a set of edges to the DDPA graph.  This implicitly adds the vertices
-   involved in those edges.  Note that this does not affect the end-of-block
-   map.
-*)
-let add_edges edges_in graph =
-  let ddpa_graph' =
-    Enum.clone edges_in
-    |> Enum.fold (flip Wddpac_graph.add_edge) graph
-  in
-  ddpa_graph'
-;;
+let rec initialize_graph cls graph ctx idx = 
+  match cls with
+  | [] -> idx
+  | (Clause(x, cl2) as cl) :: tl ->
+    begin
+      match cl2 with
+      | Value_body(Value_function(Function_value(x', Expr(e)))) -> 
 
-let initialize_graph cls = 
-  (* Create empty graph *)
-  let empty_graph = Wddpac_graph.empty in
-  let size = List.length cls in
-  (* Create beginning of graph from cls *)
-  let rx = rv cls in
-  let edges =
-      List.enum cls
-      |> Enum.mapi (fun i -> fun (Clause(v, _) as cl) -> (v, Unannotated_clause(cl), None, i+1))
-    in 
-  (add_edges edges empty_graph, rx, size)
-;;
+        Wddpac_graph.add_edge (x', Start_clause(Some(x')), Some(x'), 0) graph;
+        let _ = initialize_graph e graph (Some(x')) 1 in
 
-let wire func graph =
-  let Function_value(x0, Expr(cls)) = func in
-  let size = List.length cls in
-  if Wddpac_graph.has_context x0 graph then (
-    (graph, rv cls, x0, size)
-  )
-  else 
-    let edges =
-        List.enum cls
-        |> Enum.mapi (fun i -> fun (Clause(v, _) as cl) -> (v, Unannotated_clause(cl), Some(x0), i+1 ))
-        |> Enum.append (Enum.singleton (x0, Start_clause(Some(x0)), Some(x0), 0))
-      in 
-    (add_edges edges graph, rv cls, x0, size)
+        Wddpac_graph.add_edge (x, Unannotated_clause(cl), ctx, idx) graph;
+        initialize_graph tl graph ctx (idx + 1);
+      | Conditional_body(_,_,Function_value(x1, Expr(e1)),Function_value(x2, Expr(e2))) ->
+
+        Wddpac_graph.add_edge (x1, Start_clause(Some(x1)), Some(x1), 0) graph;
+        let _ = initialize_graph e1 graph (Some(x1)) 1 in
+
+        Wddpac_graph.add_edge (x2, Start_clause(Some(x2)), Some(x2), 0) graph;
+        let _ = initialize_graph e2 graph (Some(x2)) 1 in
+
+        Wddpac_graph.add_edge (x, Unannotated_clause(cl), ctx, idx) graph;
+
+        initialize_graph tl graph ctx (idx + 1);
+      | _ -> 
+        Wddpac_graph.add_edge (x, Unannotated_clause(cl), ctx, idx) graph;
+        initialize_graph tl graph ctx (idx + 1);
+    end
 ;;
 
 let rec matches v p =
@@ -129,8 +118,9 @@ let rec lookup graph var curr_loc context_stack =
 
             begin
               match fn with
-              | Value_function(Function_value(_, _) as fn2) ->
-                  let graph, rx, fn_ctx, size = wire fn2 graph in
+              | Value_function(Function_value(fn_ctx, Expr(cls))) ->
+                  let size = List.length cls in 
+                  let rx = rv cls in
 
                   lookup graph rx (Some(fn_ctx), size) (Unbounded_Stack.push (Appl_context_var(xv, loc, cfn, cfn_stack)) context_stack)
 
@@ -138,8 +128,9 @@ let rec lookup graph var curr_loc context_stack =
             end
           | Conditional_body(xc,p,f1,f2) ->
             let (v, _, _) = lookup graph xc loc context_stack in
-            let f = if matches v p then f1 else f2 in
-            let graph, rx, fn_ctx, size = wire f graph in
+            let Function_value(fn_ctx, Expr(cls)) = if matches v p then f1 else f2 in
+            let size = List.length cls in 
+            let rx = rv cls in
             lookup graph rx (Some(fn_ctx), size) (Unbounded_Stack.push (Cond_context_var(xc, loc)) context_stack)
 
           | Binary_operation_body(x1,op,x2) ->
@@ -231,7 +222,9 @@ and process_vars vars cl graph context_stack env =
 
 let eval (Expr(cls)) =
   let context_stack = Unbounded_Stack.empty in
-  let initial_graph, rx, index = initialize_graph cls in 
+  let initial_graph = Wddpac_graph.empty in 
+  let index = initialize_graph cls initial_graph None 1 in 
+  let rx = rv cls in
   let (v, cl, context_stack) = lookup initial_graph rx (None, index) context_stack in
   substitute v cl initial_graph context_stack (Environment.create 10)
 ;;
