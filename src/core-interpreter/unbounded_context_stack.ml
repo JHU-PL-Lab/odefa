@@ -5,8 +5,8 @@ open Core_ast;;
 type 'a dq = 'a Deque.dq;;
 
 type context_var =
-  | Appl_context_var of var * (var option * int) * (var option * int) * context_var dq
-  | Cond_context_var of var * (var option * int)
+  | Appl_context_var of (var option * int) * return_type
+  | Cond_context_var of (var option * int) * return_type
 and return_type = 
   | Return_int of int
   | Return_bool of bool

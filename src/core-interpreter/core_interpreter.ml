@@ -2,6 +2,7 @@ open Batteries;;
 open Jhupllib;;
 
 open Core_ast;;
+(* open Core_ast_pp;; *)
 
 open Unbounded_context_stack;;
 open Wddpac_graph;;
@@ -73,14 +74,15 @@ let rec matches v p =
   | _ -> false
 ;;
 
-let rec lookup_ctx context_stack (ctx, index) (c,i) =
-  if (c = ctx && i <= index) then context_stack
+let rec lookup_ctx context_stack (ctx, _) (c,i) =
+
+  if (c = ctx) then context_stack
   else
     begin
       match Unbounded_Stack.top context_stack with
-      | Some(Appl_context_var(_, _, loc, context_stack)) -> 
-        lookup_ctx context_stack loc (c,i)
-      | Some(Cond_context_var(_, loc)) -> 
+      | Some(Appl_context_var(loc, _)) ->
+        lookup_ctx (Unbounded_Stack.pop context_stack) loc (c,i)
+      | Some(Cond_context_var(loc, _)) -> 
         lookup_ctx (Unbounded_Stack.pop context_stack) loc (c,i)  
       | _ -> raise @@ Utils.Invariant_failure "Incorrect context stack2"
     end
@@ -88,6 +90,7 @@ let rec lookup_ctx context_stack (ctx, index) (c,i) =
 
 let rec lookup graph var curr_loc context_stack = 
   (* Align *)
+  (* print_endline (show_var var); *)
   let Graph_node(node, loc) = Wddpac_graph.lookup var graph in
   let context_stack = lookup_ctx context_stack curr_loc loc in
 
@@ -113,19 +116,19 @@ let rec lookup graph var curr_loc context_stack =
           | Value_body(Value_bool(v)) -> 
             Return_bool(v)
           | Appl_body(xf, xv) -> 
+
             (* print_endline "Lookup function"; *)
-            (* let (fn, cfn, cfn_stack) = lookup graph xf loc context_stack in *)
             let fn = lookup graph xf loc context_stack in
+            let v = lookup graph xv loc context_stack in
 
             begin
               match fn with
               | Return_function(Function_value(fn_ctx, Expr(cls)), cfn, cfn_stack) ->
-              (* | Value_function(Function_value(fn_ctx, Expr(cls))) -> *)
 
                   let size = List.length cls in 
                   let rx = rv cls in
-
-                  lookup graph rx (Some(fn_ctx), size) (Unbounded_Stack.push (Appl_context_var(xv, loc, cfn, cfn_stack)) context_stack)
+                  let context = Appl_context_var(cfn, v) in
+                  lookup graph rx (Some(fn_ctx), size) (Unbounded_Stack.push context cfn_stack)
 
               | _ -> raise @@ Utils.Invariant_failure "Found incorrect definitions for function 2"
             end
@@ -134,7 +137,8 @@ let rec lookup graph var curr_loc context_stack =
             let Function_value(fn_ctx, Expr(cls)) = if matches v p then f1 else f2 in
             let size = List.length cls in 
             let rx = rv cls in
-            lookup graph rx (Some(fn_ctx), size) (Unbounded_Stack.push (Cond_context_var(xc, loc)) context_stack)
+            let context = Cond_context_var(loc, v) in
+            lookup graph rx (Some(fn_ctx), size) (Unbounded_Stack.push context context_stack)
 
           | Binary_operation_body(x1,op,x2) ->
             let v1 = lookup graph x1 loc context_stack in 
@@ -166,9 +170,9 @@ let rec lookup graph var curr_loc context_stack =
       (* print_endline "Start Clause"; *)
       begin
         match Unbounded_Stack.top context_stack with
-        | Some(Appl_context_var(var, loc, _, _))
-        | Some(Cond_context_var(var, loc)) -> 
-          lookup graph var loc (Unbounded_Stack.pop context_stack)
+        | Some(Appl_context_var(_, v))
+        | Some(Cond_context_var(_, v)) -> 
+          v
         | _ -> raise @@ Utils.Invariant_failure "Incorrect context stack"
       end
   end 
@@ -223,11 +227,8 @@ and process_vars vars cl graph context_stack env =
   List.enum vars
   |> Enum.filter (fun x -> not (Environment.mem env x))
   |> Enum.map (fun x -> 
-      (* let (v, cl, context_stack) = lookup graph x cl context_stack in *)
       let v = lookup graph x cl context_stack in
-      (* substitute_return  *)
       Environment.add env x "0";
-      (* Clause(x, Value_body(substitute v cl graph context_stack (Environment.create 10)))) *)
       Clause(x, Value_body(substitute_return v graph (Environment.create 10))))
   |> List.of_enum
 ;;
@@ -237,8 +238,6 @@ let eval (Expr(cls)) =
   let graph = Wddpac_graph.empty in 
   let index = initialize_graph cls graph None 1 in 
   let rx = rv cls in
-  (* let (v, cl, context_stack) = lookup initial_graph rx (None, index) context_stack in *)
   let v = lookup graph rx (None, index) context_stack in
   substitute_return v graph (Environment.create 10)
-  (* substitute v cl initial_graph context_stack (Environment.create 10) *)
 ;;
