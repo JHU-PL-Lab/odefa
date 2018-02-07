@@ -51,8 +51,8 @@ let stdout_errors_callback errors =
   flush stdout
 ;;
 
-let stdout_evaluation_result_callback v env =
-  print_endline (show_var v ^ " where " ^ show_evaluation_environment env ^ "\n");
+let stdout_evaluation_result_callback v _ =
+  print_endline (show_var v ^ "\n");
   flush stdout
 ;;
 
