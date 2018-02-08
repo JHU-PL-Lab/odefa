@@ -5,12 +5,12 @@ open Core_ast;;
 type 'a dq = 'a Deque.dq;;
 
 type context_var =
-  | Appl_context_var of (var option * int) * return_type
-  | Cond_context_var of (var option * int) * return_type
+  | Appl_context_var of var option * return_type
+  | Cond_context_var of var option * return_type
 and return_type = 
   | Return_int of int
   | Return_bool of bool
-  | Return_function of function_value * (var option * int) * context_var dq
+  | Return_function of function_value * var option * context_var dq
 ;;
 
 module Unbounded_Stack  =
@@ -43,9 +43,9 @@ struct
     | None -> true
     | Some(_,_) -> false
   ;;
-  (* let pp formatter x =
-    pp_concat_sep_delim "" "|?" "|" pp_clause formatter @@
-    Deque.enum x
-  ;; *)
+  (* let pp formatter x = *)
+    (* pp_concat_sep_delim "" "|?" "|" pp_clause formatter @@ *)
+    (* Deque.enum x *)
+  (* ;; *)
   (* let show = pp_to_string pp;; *)
 end;;
