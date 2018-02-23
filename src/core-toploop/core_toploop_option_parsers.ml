@@ -225,3 +225,23 @@ let disable_analysis_option =
 let report_sizes_option =
   BatOptParse.StdOpt.store_true ()
 ;;
+
+let wddpac_interpreter_option =
+  BatOptParse.StdOpt.store_true ()
+;;
+
+let python_compiler_option =
+  BatOptParse.StdOpt.store_true ()
+;;
+
+let forward_interpreter_option =
+  BatOptParse.StdOpt.store_true ()
+;;
+
+let call_by_need_option =
+  BatOptParse.StdOpt.store_true ()
+;;
+
+let wddpac_interpreter_map_option =
+  BatOptParse.StdOpt.store_true ()
+;;

@@ -1,0 +1,34 @@
+
+main = fun result_main_input -> (
+
+    nineteen_l = 28;
+    four_l = 4;
+
+    fib_a_l = fun fib_fib -> (
+        a_fib = fun n_fib -> (
+            rec_fib_fib = fib_fib fib_fib;
+            zero_l = 0;
+            is_zero_fib = n_fib == zero_l;
+            result_fib = is_zero_fib ~ true ? fun n_is_zero -> ( one_la = 1; result_is_zero_fib = one_la )
+                : fun n_not_is_zero -> (
+                    one_lb = 1;
+                    is_one_fib = n_fib == one_lb;
+                    result_not_zero_fib = is_one_fib ~ true ? fun n_is_one -> (one_lc = 1;  result_is_one_fib = one_lc )
+                        : fun n_fib_false -> (
+                            one_l = 1;
+                            n_minus_one_fib = n_fib - one_l;
+                            two_l = 2;
+                            n_minus_two_fib = n_minus_one_fib - one_l;
+                            term1_fib = rec_fib_fib n_minus_one_fib;
+                            term2_fib = rec_fib_fib n_minus_two_fib;
+                            false_fib = term1_fib + term2_fib;
+                        );
+                );
+        )
+    );
+    fib_l = fib_a_l fib_a_l;
+
+    main_result = fib_l nineteen_l;
+);
+
+result = main main;;

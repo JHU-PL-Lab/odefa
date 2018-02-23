@@ -15,6 +15,11 @@ type configuration =
   ; topconf_disable_inconsistency_check : bool
   ; topconf_disable_analysis : bool
   ; topconf_report_sizes : bool
+  ; topconf_wddpac_interpreter : bool
+  ; topconf_forward_interpreter : bool
+  ; topconf_python_compiler : bool
+  ; topconf_call_by_need : bool
+  ; topconf_wddpac_interpreter_map : bool
   }
 ;;
 
@@ -52,6 +57,17 @@ let add_core_toploop_option_parsers parser=
   (* Add ability to report sizes of generated graphs. *)
   BatOptParse.OptParser.add parser ~long_name:"report-sizes"
     report_sizes_option;
+
+  BatOptParse.OptParser.add parser ~long_name:"wddpac-interpreter"
+    ~short_name:'W' wddpac_interpreter_option;
+  BatOptParse.OptParser.add parser ~long_name:"python-compiler"
+    ~short_name:'P' python_compiler_option;
+  BatOptParse.OptParser.add parser ~long_name:"forward-interpreter"
+    ~short_name:'F' forward_interpreter_option;
+  BatOptParse.OptParser.add parser ~long_name:"call-by-need"
+    ~short_name:'N' call_by_need_option;
+  BatOptParse.OptParser.add parser ~long_name:"wddpac-interpreter-map"
+    ~short_name:'M' wddpac_interpreter_map_option;
 ;;
 
 let read_parsed_core_toploop_configuration () =
@@ -76,5 +92,15 @@ let read_parsed_core_toploop_configuration () =
       disable_analysis_option.BatOptParse.Opt.option_get ()
   ; topconf_report_sizes = Option.get @@
       report_sizes_option.BatOptParse.Opt.option_get ()
+  ; topconf_wddpac_interpreter = Option.get @@
+      wddpac_interpreter_option.BatOptParse.Opt.option_get ()
+  ; topconf_forward_interpreter = Option.get @@
+      forward_interpreter_option.BatOptParse.Opt.option_get ()
+  ; topconf_python_compiler = Option.get @@
+      python_compiler_option.BatOptParse.Opt.option_get ()
+  ; topconf_call_by_need  = Option.get @@
+      call_by_need_option.BatOptParse.Opt.option_get ()
+  ; topconf_wddpac_interpreter_map = Option.get @@
+      wddpac_interpreter_map_option.BatOptParse.Opt.option_get ()
   }
 ;;

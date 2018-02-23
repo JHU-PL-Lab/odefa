@@ -360,6 +360,11 @@ let make_test filename expectations =
                 | _ -> false)
         ; topconf_disable_analysis = false
         ; topconf_report_sizes = false
+        ; topconf_wddpac_interpreter = false
+        ; topconf_forward_interpreter = false
+        ; topconf_python_compiler = false
+        ; topconf_call_by_need = false
+        ; topconf_wddpac_interpreter_map = false
         }
       in
       lazy_logger `trace (fun () ->
