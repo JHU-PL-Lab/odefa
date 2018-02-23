@@ -51,8 +51,8 @@ let stdout_errors_callback errors =
   flush stdout
 ;;
 
-let stdout_evaluation_result_callback v _ =
-  print_endline (show_var v ^ "\n");
+let stdout_evaluation_result_callback v env =
+  print_endline (show_var v ^ " where " ^ show_evaluation_environment env ^ "\n");
   flush stdout
 ;;
 
@@ -302,10 +302,15 @@ let do_evaluation callbacks conf e =
   else
     begin
       try
-        let v = Core_interpreter.eval e in
-        print_endline (show_value v);
-        (* callbacks.cb_evaluation_result v env; *)
-        Core_toploop_types.Evaluation_completed(v)
+        let v, env =
+          if conf.topconf_wddpac_interpreter_map then             Core_interpreter_wddpac_map.eval e (conf.topconf_call_by_need)
+          else if conf.topconf_wddpac_interpreter then Core_interpreter_wddpac.eval e (conf.topconf_call_by_need)
+          else if conf.topconf_forward_interpreter then Core_interpreter_forward.eval e
+          else if conf.topconf_python_compiler then Core_interpreter_python.eval e
+          else Core_interpreter.eval e
+        in
+        callbacks.cb_evaluation_result v env;
+        Core_toploop_types.Evaluation_completed(v, env)
       with
       | Core_interpreter.Evaluation_failure s ->
         Core_toploop_types.Evaluation_failure s

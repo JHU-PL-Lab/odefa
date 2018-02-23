@@ -9,7 +9,7 @@ let lazy_logger = Logger_utils.make_lazy_logger "Interpreter";;
 module Environment = Map.Make(Var);;
 module Local_list = Var_hashtbl;;
 
-type environment_value = 
+type environment_value =
   | Environ_int of int
   | Environ_bool of bool
   | Environ_function of function_value * (environment_value Environment.t)
@@ -42,7 +42,7 @@ let rec matches v p =
   | _ -> false
 ;;
 
-let get_value environ_value = 
+let get_value environ_value =
   match environ_value with
   | Environ_int(v) -> Value_int(v)
   | Environ_bool(v) -> Value_bool(v)
@@ -174,12 +174,12 @@ let rec evaluate env cls =
           end
         in
         evaluate (Environment.add x result env) t
-      | _ -> 
+      | _ ->
         raise @@ Evaluation_failure "Unimplemented features"
     end
 ;;
 
-let rec subsitute_value environ_value = 
+let rec subsitute_value environ_value =
   match environ_value with
   | Environ_int(v) -> Value_int(v)
   | Environ_bool(v) -> Value_bool(v)
@@ -196,14 +196,14 @@ let rec subsitute_value environ_value =
       |> Ident_map.of_enum
       |> fun _ -> ();
     Value_record(v)
-and substitute v env env2 = 
+and substitute v env env2 =
   match v with
   | Value_function(Function_value(x, Expr(e))) ->
     Local_list.add env x "0";
     Value_function(Function_value(x, Expr(substitute_expr e env env2)))
   | _ -> v
 and substitute_expr e env env2 =
-  match e with 
+  match e with
   | Clause(x, Value_body(v)) :: tl ->
 
     let v = substitute v env env2 in
@@ -211,42 +211,48 @@ and substitute_expr e env env2 =
     Clause(x, Value_body(v)) :: substitute_expr tl env env2
 
   | (Clause(x, Unary_operation_body(_,x')) as hd) :: tl
-  | (Clause(x, Var_body(x')) as hd) :: tl -> 
+  | (Clause(x, Var_body(x')) as hd) :: tl ->
 
       let assignments = process_vars (x' :: []) env env2 in
       Local_list.add env x "0";
       (assignments @ [hd]) @ substitute_expr tl env env2
-  | (Clause(x, Binary_operation_body(x',_,x'')) as hd) :: tl 
+  | (Clause(x, Binary_operation_body(x',_,x'')) as hd) :: tl
   | (Clause(x, Appl_body(x', x'')) as hd) :: tl ->
 
       let assignments = process_vars (x' :: x'' :: []) env env2 in
       Local_list.add env x "0";
       (assignments @ [hd]) @ substitute_expr tl env env2
-   
-  | Clause(x, Conditional_body(x',op,f1,f2)) :: tl -> 
+
+  | Clause(x, Conditional_body(x',op,f1,f2)) :: tl ->
     let assignments = process_vars (x' :: []) env env2  in
     let f1 = substitute (Value_function(f1)) env env2  in
-    let f2 = substitute (Value_function(f2)) env env2  in 
+    let f2 = substitute (Value_function(f2)) env env2  in
     Local_list.add env x "0";
     begin
       match f1,f2 with
       | Value_function(f1), Value_function(f2) ->
-        (assignments @ ([Clause(x, Conditional_body(x',op,f1,f2))])) @ substitute_expr tl env env2 
-      | _, _ -> raise @@ Utils.Invariant_failure "Incorrect substitution of function" 
+        (assignments @ ([Clause(x, Conditional_body(x',op,f1,f2))])) @ substitute_expr tl env env2
+      | _, _ -> raise @@ Utils.Invariant_failure "Incorrect substitution of function"
     end
   | _ -> []
-and process_vars vars env env2 = 
+and process_vars vars env env2 =
   List.enum vars
   |> Enum.filter (fun x -> not (Local_list.mem env x))
-  |> Enum.map (fun x -> 
+  |> Enum.map (fun x ->
       let environ_value = Environment.find x env2 in
       Local_list.add env x "0";
       Clause(x, Value_body(subsitute_value environ_value)))
   |> List.of_enum
 ;;
 
-let eval (Expr(cls)) =
+let eval (Expr(cls)) : Core_ast.var * value Core_interpreter.Environment.t =
   Random.self_init ();
-  let env = evaluate (Environment.empty) cls in 
-  subsitute_value (Environment.find (rv cls) env)
+  let env = evaluate (Environment.empty) cls in
+  let v = subsitute_value (Environment.find (rv cls) env) in
+
+  (* HACK: This is only here to get the types right to work with the original
+  interpreter *)
+  let env = Core_interpreter.Environment.create 10 in
+  Core_interpreter.Environment.add env (rv cls) v;
+  (rv cls), env
 ;;
