@@ -11,6 +11,7 @@ module Local_list = Var_hashtbl;;
 
 type environment_value =
   | Environ_int of int
+  | Environ_uint of int
   | Environ_bool of bool
   | Environ_function of function_value * (environment_value Environment.t)
   | Environ_string of string
@@ -32,9 +33,10 @@ let rec matches v p =
          with
          | Not_found -> false
       )
-  | Environ_function(_,_),Fun_pattern
   (* | Environ_ref(Ref_value(_)),Ref_pattern *)
+  | Environ_function(_,_),Fun_pattern
   | Environ_int(_),Int_pattern
+  | Environ_uint(_),UInt_pattern
   | Environ_string _,String_pattern ->
     true
   | Environ_bool actual_boolean,Bool_pattern pattern_boolean ->
@@ -45,6 +47,7 @@ let rec matches v p =
 let get_value environ_value =
   match environ_value with
   | Environ_int(v) -> Value_int(v)
+  | Environ_uint(v) -> Value_uint(v)
   | Environ_bool(v) -> Value_bool(v)
   | Environ_function(v,_) -> Value_function(v)
   | Environ_string(v) -> Value_string(v)
@@ -72,6 +75,8 @@ let rec evaluate env cls =
         evaluate (Environment.add x (Environ_function(v,env)) env) t
       | Value_body(Value_string(v)) ->
         evaluate (Environment.add x (Environ_string(v)) env) t
+      | Value_body(Value_uint(v)) ->
+        if v >= 0 then evaluate (Environment.add x (Environ_uint(v)) env) t else raise @@ Utils.Invariant_failure "Unsigned int cannot be negative"
       | Value_body(Value_record(v)) ->
         evaluate (Environment.add x (Environ_record(v,env)) env) t
       (* | Value_body(Value_ref(v)) -> *)
@@ -125,15 +130,25 @@ let rec evaluate env cls =
             match v1,op,v2 with
             | (Environ_int(n1),Binary_operator_plus,Environ_int(n2)) ->
               Environ_int(n1+n2)
+            | (Environ_uint(n1),Binary_operator_uint_plus,Environ_uint(n2)) ->
+              Environ_uint(n1+n2)
             | (Environ_int(n1),Binary_operator_int_minus,Environ_int(n2)) ->
               Environ_int(n1-n2)
+            | (Environ_uint(n1),Binary_operator_uint_minus,Environ_uint(n2)) ->
+              if n1 - n2 <= 0 then Environ_uint(0) else Environ_uint(n1-n2)
+            | (Environ_uint(n1),Binary_operator_uint_less_than,Environ_uint(n2))
             | (Environ_int(n1),Binary_operator_int_less_than,Environ_int(n2)) ->
               Environ_bool (n1 < n2)
+            | ( Environ_uint(n1)
+              , Binary_operator_uint_less_than_or_equal_to
+              , Environ_uint(n2)
+              )
             | ( Environ_int(n1)
               , Binary_operator_int_less_than_or_equal_to
               , Environ_int(n2)
               ) ->
               Environ_bool (n1 <= n2)
+            | (Environ_uint(n1),Binary_operator_uint_equal_to,Environ_uint(n2))
             | (Environ_int(n1),Binary_operator_equal_to,Environ_int(n2)) ->
               Environ_bool (n1 = n2)
             | (Environ_bool(b1),Binary_operator_equal_to,Environ_bool(b2)) ->
@@ -182,6 +197,7 @@ let rec evaluate env cls =
 let rec subsitute_value environ_value =
   match environ_value with
   | Environ_int(v) -> Value_int(v)
+  | Environ_uint(v) -> Value_uint(v)
   | Environ_bool(v) -> Value_bool(v)
   | Environ_function(v,env) -> substitute (Value_function(v)) (Local_list.create 10) env
   | Environ_string(v) -> Value_string(v)

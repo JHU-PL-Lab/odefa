@@ -82,10 +82,15 @@ module Var_hashtbl = Hashtbl.Make(Var);;
 
 type binary_operator =
   | Binary_operator_plus
+  | Binary_operator_uint_plus
   | Binary_operator_int_minus
+  | Binary_operator_uint_minus
   | Binary_operator_int_less_than
+  | Binary_operator_uint_less_than
   | Binary_operator_int_less_than_or_equal_to
+  | Binary_operator_uint_less_than_or_equal_to
   | Binary_operator_equal_to
+  | Binary_operator_uint_equal_to
   | Binary_operator_bool_and
   | Binary_operator_bool_or
   | Binary_operator_index
@@ -95,10 +100,15 @@ type binary_operator =
 let show_binary_operator op =
   match op with
   | Binary_operator_plus -> "+"
+  | Binary_operator_uint_plus -> "+."
   | Binary_operator_int_minus -> "-"
+  | Binary_operator_uint_minus -> "-."
   | Binary_operator_int_less_than -> "<"
+  | Binary_operator_uint_less_than -> "<."
   | Binary_operator_int_less_than_or_equal_to -> "<="
+  | Binary_operator_uint_less_than_or_equal_to -> "<=."
   | Binary_operator_equal_to -> "=="
+  | Binary_operator_uint_equal_to -> "==."
   | Binary_operator_bool_and -> "and"
   | Binary_operator_bool_or -> "or"
   | Binary_operator_index -> "@"
@@ -149,6 +159,7 @@ and value =
   | Value_function of function_value
   | Value_ref of ref_value
   | Value_int of int
+  | Value_uint of int
   | Value_bool of bool
   | Value_string of string
 [@@deriving eq, ord, to_yojson]
@@ -180,6 +191,7 @@ and pattern =
   | Fun_pattern
   | Ref_pattern
   | Int_pattern
+  | UInt_pattern
   | Bool_pattern of bool
   | String_pattern
   | Any_pattern

@@ -301,19 +301,21 @@ let do_evaluation callbacks conf e =
     end
   else
     begin
-      try
+      (* try *)
         let v, env =
-          if conf.topconf_wddpac_interpreter_map then             Core_interpreter_wddpac_map.eval e (conf.topconf_call_by_need)
-          else if conf.topconf_wddpac_interpreter then Core_interpreter_wddpac.eval e (conf.topconf_call_by_need)
+          (* if conf.topconf_wddpac_interpreter_map then             Core_interpreter_wddpac_map.eval e (conf.topconf_call_by_need) *)
+          (* else  *)
+          if conf.topconf_wddpac_interpreter then Core_interpreter_wddpac.eval e (conf.topconf_call_by_need)
           else if conf.topconf_forward_interpreter then Core_interpreter_forward.eval e
           else if conf.topconf_python_compiler then Core_interpreter_python.eval e
-          else Core_interpreter.eval e
+          else
+            Core_interpreter.eval e
         in
         callbacks.cb_evaluation_result v env;
         Core_toploop_types.Evaluation_completed(v, env)
-      with
-      | Core_interpreter.Evaluation_failure s ->
-        Core_toploop_types.Evaluation_failure s
+      (* with *)
+      (* | Core_interpreter.Evaluation_failure s -> *)
+        (* Core_toploop_types.Evaluation_failure s *)
     end
 ;;
 

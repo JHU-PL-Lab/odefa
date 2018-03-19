@@ -31,6 +31,7 @@ let rec print_pattern x p =
   match p with
   | Fun_pattern ->
     print_string ("if type(" ^ x ^ ") == types.FunctionType:" )
+  | UInt_pattern
   | Int_pattern ->
     print_string ("if type(" ^ x ^ ") == int:" )
   | Bool_pattern pattern_boolean ->
@@ -52,6 +53,7 @@ let rec convert_to_python cls num_tabs =
     print_tabs num_tabs;
     begin
       match cl with
+      | Value_body(Value_uint(v))
       | Value_body(Value_int(v)) ->
         print_string (x ^ " = ");
         print_int v
@@ -75,9 +77,16 @@ let rec convert_to_python cls num_tabs =
       | Binary_operation_body(Var(Ident(x1),_),op,Var(Ident(x2),_)) ->
         begin
           match op with
+          | Binary_operator_uint_plus
           | Binary_operator_plus -> print_string (x ^ " = (" ^ x1 ^ " + " ^ x2 ^ ")")
+          | Binary_operator_uint_minus
           | Binary_operator_int_minus -> print_string (x ^ " = (" ^ x1 ^ " - " ^ x2 ^ ")")
+          | Binary_operator_uint_equal_to
           | Binary_operator_equal_to -> print_string (x ^ " = (" ^ x1 ^ " == " ^ x2 ^ ")")
+          | Binary_operator_uint_less_than
+          | Binary_operator_int_less_than -> print_string (x ^ " = (" ^ x1 ^ " < " ^ x2 ^ ")")
+          | Binary_operator_uint_less_than_or_equal_to
+          | Binary_operator_int_less_than_or_equal_to -> print_string (x ^ " = (" ^ x1 ^ " <= " ^ x2 ^ ")")
           | Binary_operator_bool_and -> print_string (x ^ " = (" ^ x1 ^ " and " ^ x2 ^ ")")
           | Binary_operator_bool_or -> print_string (x ^ " = (" ^ x1 ^ " or " ^ x2 ^ ")")
           | _ ->
