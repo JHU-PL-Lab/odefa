@@ -301,7 +301,7 @@ let do_evaluation callbacks conf e =
     end
   else
     begin
-      (* try *)
+      try
         let v, env =
           if conf.topconf_forward_interpreter then Core_interpreter_forward.eval e
           else if conf.topconf_python_compiler then Core_interpreter_python.eval e
@@ -326,9 +326,9 @@ let do_evaluation callbacks conf e =
         in
         callbacks.cb_evaluation_result v env;
         Core_toploop_types.Evaluation_completed(v, env)
-      (* with *)
-      (* | Core_interpreter.Evaluation_failure s -> *)
-        (* Core_toploop_types.Evaluation_failure s *)
+      with
+      | Core_interpreter.Evaluation_failure s ->
+        Core_toploop_types.Evaluation_failure s
     end
 ;;
 

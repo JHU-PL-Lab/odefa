@@ -11,7 +11,6 @@ type annotated_clause =
   | Conditional_clause of var * pattern * var * var * var * var
   | Function of var * var * value
   | Start_clause of var option
-  (* | Uint_clause of uint_clause *)
 and uint_clause =
   | X_add
   | M_add
