@@ -338,8 +338,7 @@ seven_int_l = succ_int_l six_int_l;
 eight_int_l = succ_int_l seven_int_l;
 nine_int_l = succ_int_l eight_int_l;
 ten_int_l = succ_int_l nine_int_l;
+eleven_int_l = succ_int_l ten_int_l;
+twelve_int_l = succ_int_l eleven_int_l;
 
-
-tmp_real_result = fib_int_l ten_int_l;
-tmp_real_result2 = leq_int_l tmp_real_result;
-real_result = tmp_real_result2 ten_int_l;;
+tmp_real_result = fib_int_l twelve_int_l;;

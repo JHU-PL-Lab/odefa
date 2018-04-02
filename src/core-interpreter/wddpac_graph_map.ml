@@ -11,6 +11,10 @@ type annotated_clause =
   | Conditional_clause of var * pattern * var * var * var * var
   | Function of var * var * value
   | Start_clause of var option
+and uint_clause =
+  | X_add
+  | M_add
+  | N_add
   [@@deriving ord, eq, to_yojson]
 ;;
 

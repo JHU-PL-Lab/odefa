@@ -10,6 +10,7 @@ and by_need_type =
   | Context_var_table of var * context_var
 and return_type =
   | Return_int of int
+  | Return_uint of int
   | Return_bool of bool
   | Return_function of var * var * value * context_var
 ;;

@@ -303,11 +303,26 @@ let do_evaluation callbacks conf e =
     begin
       try
         let v, env =
-          if conf.topconf_wddpac_interpreter_map then             Core_interpreter_wddpac_map.eval e (conf.topconf_call_by_need)
-          else if conf.topconf_wddpac_interpreter then Core_interpreter_wddpac.eval e (conf.topconf_call_by_need)
-          else if conf.topconf_forward_interpreter then Core_interpreter_forward.eval e
+          if conf.topconf_forward_interpreter then Core_interpreter_forward.eval e
           else if conf.topconf_python_compiler then Core_interpreter_python.eval e
-          else Core_interpreter.eval e
+          else if conf.topconf_church_uint then
+            (* if conf.topconf_wddpac_interpreter_map then             Core_interpreter_wddpac_map_church.eval e (conf.topconf_call_by_need) *)
+            (* else  *)
+            if conf.topconf_wddpac_interpreter then
+              Core_interpreter_wddpac_church.eval e (conf.topconf_call_by_need)
+            else
+              raise @@ Utils.Invariant_failure "No church encoding of non-context stack implementation of wddpac"
+              (* Core_interpreter.eval e *)
+          else if conf.topconf_my_uint then
+            if conf.topconf_wddpac_interpreter_map then             Core_interpreter_wddpac_map_my_uint.eval e (conf.topconf_call_by_need)
+            else if conf.topconf_wddpac_interpreter then Core_interpreter_wddpac_map_my_uint.eval e (conf.topconf_call_by_need)
+            else
+              raise @@ Utils.Invariant_failure "My uint implementation only for wddpac interpreters"
+          else
+            if conf.topconf_wddpac_interpreter_map then             Core_interpreter_wddpac_map.eval e (conf.topconf_call_by_need)
+            else if conf.topconf_wddpac_interpreter then Core_interpreter_wddpac.eval e (conf.topconf_call_by_need)
+            else
+              Core_interpreter.eval e
         in
         callbacks.cb_evaluation_result v env;
         Core_toploop_types.Evaluation_completed(v, env)

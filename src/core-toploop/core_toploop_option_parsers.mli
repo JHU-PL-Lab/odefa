@@ -75,3 +75,7 @@ val forward_interpreter_option : bool BatOptParse.Opt.t
 val call_by_need_option : bool BatOptParse.Opt.t
 
 val wddpac_interpreter_map_option : bool BatOptParse.Opt.t
+
+val church_uint_option : bool BatOptParse.Opt.t
+
+val my_uint_option : bool BatOptParse.Opt.t

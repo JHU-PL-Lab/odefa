@@ -63,6 +63,8 @@ and var_replace_value fn v =
   | Value_function(f) -> Value_function(var_replace_function_value fn f)
   | Value_ref(Ref_value(x)) -> Value_ref(Ref_value(fn x))
   | Value_int n -> Value_int n
+  | Value_uint n ->
+    if n >= 0 then Value_uint n else raise @@ Utils.Invariant_failure "Unsigned int cannot be negative"
   | Value_bool b -> Value_bool b
   | Value_string s -> Value_string s
 
@@ -124,6 +126,7 @@ let rec matches env x p =
   | Value_function(Function_value(_)),Fun_pattern
   | Value_ref(Ref_value(_)),Ref_pattern
   | Value_int _,Int_pattern
+  | Value_uint _,UInt_pattern
   | Value_string _,String_pattern ->
     true
   | Value_bool actual_boolean,Bool_pattern pattern_boolean ->
@@ -226,15 +229,25 @@ let rec evaluate env lastvar cls =
             match v1,op,v2 with
             | (Value_int(n1),Binary_operator_plus,Value_int(n2)) ->
               Value_int(n1+n2)
+            | (Value_uint(n1),Binary_operator_uint_plus,Value_uint(n2)) ->
+              Value_uint(n1+n2)
             | (Value_int(n1),Binary_operator_int_minus,Value_int(n2)) ->
               Value_int(n1-n2)
+            | (Value_uint(n1),Binary_operator_uint_minus,Value_uint(n2)) ->
+              if n1 - n2 <= 0 then Value_uint(0) else Value_uint(n1-n2)
+            | (Value_uint(n1),Binary_operator_uint_less_than,Value_uint(n2))
             | (Value_int(n1),Binary_operator_int_less_than,Value_int(n2)) ->
               Value_bool (n1 < n2)
+            | ( Value_uint(n1)
+              , Binary_operator_uint_less_than_or_equal_to
+              , Value_uint(n2)
+              )
             | ( Value_int(n1)
               , Binary_operator_int_less_than_or_equal_to
               , Value_int(n2)
               ) ->
               Value_bool (n1 <= n2)
+            | (Value_uint(n1),Binary_operator_uint_equal_to,Value_uint(n2))
             | (Value_int(n1),Binary_operator_equal_to,Value_int(n2)) ->
               Value_bool (n1 = n2)
             | (Value_bool(b1),Binary_operator_equal_to,Value_bool(b2)) ->

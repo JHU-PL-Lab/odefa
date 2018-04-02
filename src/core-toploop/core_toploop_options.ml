@@ -20,6 +20,8 @@ type configuration =
   ; topconf_python_compiler : bool
   ; topconf_call_by_need : bool
   ; topconf_wddpac_interpreter_map : bool
+  ; topconf_church_uint : bool
+  ; topconf_my_uint : bool
   }
 ;;
 
@@ -68,6 +70,10 @@ let add_core_toploop_option_parsers parser=
     ~short_name:'N' call_by_need_option;
   BatOptParse.OptParser.add parser ~long_name:"wddpac-interpreter-map"
     ~short_name:'M' wddpac_interpreter_map_option;
+  BatOptParse.OptParser.add parser ~long_name:"church-uint"
+    ~short_name:'C' church_uint_option;
+  BatOptParse.OptParser.add parser ~long_name:"my-uint"
+    ~short_name:'U' my_uint_option;
 ;;
 
 let read_parsed_core_toploop_configuration () =
@@ -102,5 +108,9 @@ let read_parsed_core_toploop_configuration () =
       call_by_need_option.BatOptParse.Opt.option_get ()
   ; topconf_wddpac_interpreter_map = Option.get @@
       wddpac_interpreter_map_option.BatOptParse.Opt.option_get ()
+  ; topconf_church_uint = Option.get @@
+      church_uint_option.BatOptParse.Opt.option_get ()
+  ; topconf_my_uint = Option.get @@
+      my_uint_option.BatOptParse.Opt.option_get ()
   }
 ;;

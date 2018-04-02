@@ -6,6 +6,7 @@ module List = BatList;;
 %token <string> IDENTIFIER
 %token <int> INT_LITERAL
 %token <string> STRING_LITERAL
+%token UINT_LITERAL
 %token EOF
 %token OPEN_BRACE
 %token CLOSE_BRACE
@@ -23,6 +24,7 @@ module List = BatList;;
 %token DOT
 %token KEYWORD_FUN
 %token KEYWORD_INT
+%token KEYWORD_UINT
 %token KEYWORD_REF
 %token KEYWORD_TRUE
 %token KEYWORD_FALSE
@@ -34,10 +36,15 @@ module List = BatList;;
 %token KEYWORD_ANY
 %token UNDERSCORE
 %token BINOP_PLUS
+%token BINOP_PLUS_UINT
 %token BINOP_MINUS
+%token BINOP_MINUS_UINT
 %token BINOP_LESS
+%token BINOP_LESS_UINT
 %token BINOP_LESS_EQUAL
+%token BINOP_LESS_EQUAL_UINT
 %token BINOP_EQUAL
+%token BINOP_EQUAL_UINT
 %token BINOP_AT
 %token DOUBLE_SEMICOLON
 
@@ -97,14 +104,24 @@ clause_body:
       { Update_body($1,$3) }
   | variable BINOP_PLUS variable
       { Binary_operation_body($1,Binary_operator_plus,$3) }
+  | variable BINOP_PLUS_UINT variable
+      { Binary_operation_body($1,Binary_operator_uint_plus,$3) }
   | variable BINOP_MINUS variable
       { Binary_operation_body($1,Binary_operator_int_minus,$3) }
+  | variable BINOP_MINUS_UINT variable
+      { Binary_operation_body($1,Binary_operator_uint_minus,$3) }
   | variable BINOP_LESS variable
       { Binary_operation_body($1,Binary_operator_int_less_than,$3) }
+  | variable BINOP_LESS_UINT variable
+      { Binary_operation_body($1,Binary_operator_uint_less_than,$3) }
   | variable BINOP_LESS_EQUAL variable
       { Binary_operation_body($1,Binary_operator_int_less_than_or_equal_to,$3) }
+  | variable BINOP_LESS_EQUAL_UINT variable
+  { Binary_operation_body($1,Binary_operator_uint_less_than_or_equal_to,$3) }
   | variable BINOP_EQUAL variable
       { Binary_operation_body($1,Binary_operator_equal_to,$3) }
+  | variable BINOP_EQUAL_UINT variable
+      { Binary_operation_body($1,Binary_operator_uint_equal_to,$3) }
   | variable KEYWORD_AND variable
       { Binary_operation_body($1,Binary_operator_bool_and,$3) }
   | variable KEYWORD_OR variable
@@ -126,6 +143,8 @@ value:
       { Value_ref($1) }
   | int_value
       { Value_int($1) }
+  | uint_value
+      { Value_uint($1) }
   | string_value
       { Value_string($1) }
   | bool_value
@@ -152,6 +171,12 @@ function_value:
 ref_value:
   | KEYWORD_REF variable
       { Ref_value($2) }
+  ;
+
+
+uint_value:
+  | INT_LITERAL UINT_LITERAL
+      { $1 }
   ;
 
 int_value:
@@ -182,6 +207,8 @@ pattern:
       { Int_pattern }
   | bool_pattern
       { Bool_pattern($1) }
+  | KEYWORD_UINT
+      { UInt_pattern }
   | KEYWORD_STRING
       { String_pattern }
   | KEYWORD_ANY
