@@ -1,0 +1,27 @@
+zero_l = 0u;
+one_l = 1u;
+two_l = 2u;
+fib_int_value_minus_one = 2u;
+fib_int_value = fib_int_value_minus_one +. one_l;
+
+fib_a_l = fun fib_fib -> (
+    result_fib_fib = fun n_fib -> (
+
+      is_zero_fib = n_fib ==. fib_int_value;
+      is_one_fib = n_fib ==. fib_int_value_minus_one;
+
+      condition_fib = is_zero_fib or is_one_fib;
+      condition_fib2 = fib_int_value_minus_one <=. n_fib;
+      result_fib = condition_fib2 ~ true ? fun n_is_zero -> ( result_is_zero_fib = one_l )
+          : fun n_fib_false -> (
+              n_minus_one_fib = n_fib +. one_l;
+              n_minus_two_fib = n_fib +. two_l;
+              rec_fib_l = fib_fib fib_fib;
+              term1_fib = rec_fib_l n_minus_one_fib;
+              term2_fib = rec_fib_l n_minus_two_fib;
+              false_fib = term1_fib +. term2_fib;
+          );
+  );
+);
+fib_l = fib_a_l fib_a_l;
+result = fib_l zero_l;
