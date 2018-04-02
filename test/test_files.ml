@@ -365,6 +365,8 @@ let make_test filename expectations =
         ; topconf_python_compiler = false
         ; topconf_call_by_need = false
         ; topconf_wddpac_interpreter_map = false
+        ; topconf_church_uint = false
+        ; topconf_my_uint = false
         }
       in
       lazy_logger `trace (fun () ->

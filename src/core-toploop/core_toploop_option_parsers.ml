@@ -245,3 +245,11 @@ let call_by_need_option =
 let wddpac_interpreter_map_option =
   BatOptParse.StdOpt.store_true ()
 ;;
+
+let church_uint_option =
+  BatOptParse.StdOpt.store_true ()
+;;
+
+let my_uint_option =
+  BatOptParse.StdOpt.store_true ()
+;;
