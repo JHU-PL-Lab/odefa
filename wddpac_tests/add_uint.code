@@ -1,0 +1,11 @@
+zero_l = 0u;
+one_l = 1u;
+two_l = 2u;
+a = zero_l +. one_l;
+result_tmp = a +. two_l;
+true_l = fun a_true -> (
+            res_a = a_true +. two_l;
+            res_b = a_true +. one_l;
+            res = res_a +. res_b;
+        );
+result = true_l result_tmp;;
