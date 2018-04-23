@@ -363,9 +363,13 @@ and compare_vars graph call_by_need local_var1 curr_frame1 uint_val1 local_val1 
 
   | false, false ->
 
+    if uint_val1 < uint_val2 then (
       let (uint_val1, curr_frame1, local_var1, local_val1, comp_stack1) = continue_uint graph call_by_need local_var1 curr_frame1 uint_val1 local_val1 comp_stack1 in
+      compare_vars graph call_by_need local_var1 curr_frame1 uint_val1 local_val1 comp_stack1 local_var2 curr_frame2 uint_val2 local_val2 comp_stack2
+    ) else (
       let (uint_val2, curr_frame2, local_var2, local_val2, comp_stack2) = continue_uint graph call_by_need local_var2 curr_frame2 uint_val2 local_val2 comp_stack2 in
       compare_vars graph call_by_need local_var1 curr_frame1 uint_val1 local_val1 comp_stack1 local_var2 curr_frame2 uint_val2 local_val2 comp_stack2
+    )
 
 and continue_uint graph call_by_need local_var curr_frame uint_val local_val comp_stack =
   match curr_frame with

@@ -263,7 +263,10 @@ and compare_vars v1 x1 v2 x2 graph call_by_need =
     if v1 > v2 then 1 else (compare_vars (v1+v3) (lookup_uint graph X_add ctx_stack call_by_need) v2 x2  graph call_by_need)
 
   | Return_uint(v3, ctx_stack1), Return_uint(v4, ctx_stack2) ->
-    (compare_vars (v1+v3) (lookup_uint graph X_add ctx_stack1 call_by_need) (v2+v4) (lookup_uint graph X_add ctx_stack2 call_by_need)  graph call_by_need)
+    if v1 < v2 then
+      (compare_vars (v1+v3) (lookup_uint graph X_add ctx_stack1 call_by_need) v2 x2  graph call_by_need)
+    else
+      (compare_vars v1 x1 (v2 + v4) (lookup_uint graph X_add ctx_stack2 call_by_need) graph call_by_need)
   | _, _ -> raise @@ Evaluation_failure "Error in compare vars"
 
 and local_lookup graph var context_stack call_by_need =
