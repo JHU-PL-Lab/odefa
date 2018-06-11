@@ -1,3 +1,12 @@
+# Todo
+1. Add interpreter support for extended grammar
+  * Input
+  * Formulae/predicates
+  * Iota dictionary
+2. Extend interpreter to keep track of formulae
+3. Make bare-bones, really simple examples
+4. Implement support for simplest rules and work up to the more subtle, complex rules.
+
 # wDDPAc interpreters
 The directory contains several wDDPAc interpreters which are outlined in the paper [Practical Implementation of wDDPAc](report.pdf). All definition numbers refer to the above paper.
 
