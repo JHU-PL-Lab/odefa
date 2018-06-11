@@ -315,7 +315,7 @@ let do_evaluation callbacks conf e =
               (* Core_interpreter.eval e *)
           else if conf.topconf_my_uint then
             if conf.topconf_wddpac_interpreter_map then Core_interpreter_wddpac_map_my_uint.eval e (conf.topconf_call_by_need)
-            else if conf.topconf_wddpac_interpreter then Core_interpreter_wddpac_my_uint.eval e (conf.topconf_call_by_need)
+            else if conf.topconf_wddpac_interpreter then Core_interpreter_wddpac_map_my_uint.eval e (conf.topconf_call_by_need)
             else
               raise @@ Utils.Invariant_failure "My uint implementation only for wddpac interpreters"
           else
