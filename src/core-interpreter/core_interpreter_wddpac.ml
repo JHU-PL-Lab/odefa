@@ -19,6 +19,7 @@ let rv body =
   | _ -> let Clause(x,_) = List.last body in x
 ;;
 
+(* pretty sure cfg construction is the same *)
 let rec initialize_graph cls graph ctx =
   match cls with
   | [] -> ()
@@ -244,6 +245,7 @@ let rec lookup graph var context_stack call_by_need =
               | _,_ ->
                raise @@ Evaluation_failure "Incorrect unary operation"
             end
+          | Input -> failwith "Input"
           | _ -> raise @@ Utils.Invariant_failure "Usage of not implemented clause"
         end
     | Start_clause(None) ->

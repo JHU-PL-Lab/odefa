@@ -55,6 +55,7 @@ and var_replace_clause_body fn r =
   | Update_body(x1,x2) -> Update_body(fn x1, fn x2)
   | Binary_operation_body(x1,op,x2) -> Binary_operation_body(fn x1, op, fn x2)
   | Unary_operation_body(op,x1) -> Unary_operation_body(op, fn x1)
+  | Input -> failwith "Input"
 
 and var_replace_value fn v =
   match v with
@@ -290,6 +291,7 @@ let rec evaluate env lastvar cls =
         in
         Environment.add env x result;
         evaluate env (Some x) t
+      | Input -> failwith "Input"
     end
 ;;
 

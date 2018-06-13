@@ -1,20 +1,20 @@
 open Batteries;;
 open Jhupllib;;
 
-open Core_ast;;
+(* open Core_ast;; *)
 open Core_ast_pp;;
 open Core_ast_wellformedness;;
 open Core_interpreter;;
-open Core_toploop_option_parsers;;
+(* open Core_toploop_option_parsers;; *)
 open Core_toploop_options;;
 open Core_toploop_types;;
-open Core_toploop_utils;;
-open Ddpa_abstract_ast;;
+(* open Core_toploop_utils;; *)
+(* open Ddpa_abstract_ast;; *)
 open Ddpa_abstract_stores;;
-open Ddpa_analysis_logging;;
-open Ddpa_graph;;
+(* open Ddpa_analysis_logging;; *)
+(* open Ddpa_graph;; *)
 
-exception Invalid_variable_analysis of string;;
+(* exception Invalid_variable_analysis of string;; *)
 
 let stdout_illformednesses_callback ills =
   print_string "Provided expression is ill-formed:\n";
@@ -104,6 +104,7 @@ let stdout_callbacks =
   }
 ;;
 
+(*
 let do_analysis_steps callbacks conf e =
   (* If no one wants an analysis, don't waste the effort. *)
   if conf.topconf_disable_inconsistency_check &&
@@ -291,6 +292,7 @@ let do_analysis_steps callbacks conf e =
            (analyses, errors)
         )
 ;;
+*)
 
 let do_evaluation callbacks conf e =
   if conf.topconf_disable_evaluation
@@ -302,8 +304,8 @@ let do_evaluation callbacks conf e =
   else
     begin
       try
-        let v, env =
-          if conf.topconf_forward_interpreter then Core_interpreter_forward.eval e
+        let v, env = Core_interpreter_wddpac.eval e (conf.topconf_call_by_need)
+          (* if conf.topconf_forward_interpreter then Core_interpreter_forward.eval e
           else if conf.topconf_python_compiler then Core_interpreter_python.eval e
           else if conf.topconf_church_uint then
             (* if conf.topconf_wddpac_interpreter_map then Core_interpreter_wddpac_map_church.eval e (conf.topconf_call_by_need) *)
@@ -322,7 +324,7 @@ let do_evaluation callbacks conf e =
             if conf.topconf_wddpac_interpreter_map then Core_interpreter_wddpac_map.eval e (conf.topconf_call_by_need)
             else if conf.topconf_wddpac_interpreter then Core_interpreter_wddpac.eval e (conf.topconf_call_by_need)
             else
-              Core_interpreter.eval e
+              Core_interpreter.eval e *)
         in
         callbacks.cb_evaluation_result v env;
         Core_toploop_types.Evaluation_completed(v, env)
@@ -341,17 +343,17 @@ let handle_expression
     check_wellformed_expr e;
     (* Step 2: perform analyses.  This covers both variable analyses and
        error checking. *)
-    let analyses, errors = do_analysis_steps callbacks conf e in
+    (* let analyses, errors = do_analysis_steps callbacks conf e in *)
     (* Step 3: perform evaluation. *)
-    let evaluation_result =
-      if errors = []
+    let evaluation_result = do_evaluation callbacks conf e
+      (* if errors = []
       then do_evaluation callbacks conf e
-      else Evaluation_invalidated
+      else Evaluation_invalidated *)
     in
     (* Generate answer. *)
     { illformednesses = []
-    ; analyses = analyses
-    ; errors = errors
+    ; analyses = [] (* placeholders *)
+      ; errors = []
     ; evaluation_result = evaluation_result
     }
   with
