@@ -104,7 +104,7 @@ let use_occurrences expression =
         Var_set.of_list [left_operand; right_operand]
       | Unary_operation_body (_, operand) ->
         Var_set.singleton operand
-      | Input -> failwith "Input"
+      | Input -> Var_set.empty (* TODO: verify this is correct *)
   )
   |> List.fold_left Var_set.union Var_set.empty
 ;;

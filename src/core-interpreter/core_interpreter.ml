@@ -55,7 +55,7 @@ and var_replace_clause_body fn r =
   | Update_body(x1,x2) -> Update_body(fn x1, fn x2)
   | Binary_operation_body(x1,op,x2) -> Binary_operation_body(fn x1, op, fn x2)
   | Unary_operation_body(op,x1) -> Unary_operation_body(op, fn x1)
-  | Input -> failwith "Input"
+  | Input -> failwith "Input in core"
 
 and var_replace_value fn v =
   match v with
@@ -291,12 +291,13 @@ let rec evaluate env lastvar cls =
         in
         Environment.add env x result;
         evaluate env (Some x) t
-      | Input -> failwith "Input"
+      | Input -> failwith "Input core"
     end
 ;;
 
 let eval (Expr(cls)) =
   Random.self_init ();
+  print_endline "This should not be printed";
   let env = Environment.create(20) in
   let repl_fn = repl_fn_for cls (Freshening_stack []) Var_set.empty in
   let cls' = List.map (var_replace_clause repl_fn) cls in

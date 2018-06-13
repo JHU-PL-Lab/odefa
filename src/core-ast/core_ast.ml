@@ -175,7 +175,7 @@ and clause_body =
   | Update_body of var * var
   | Binary_operation_body of var * binary_operator * var
   | Unary_operation_body of unary_operator * var
-  | Input
+  | Input 
 [@@deriving eq, ord, to_yojson]
 
 (** A type to represent clauses. *)

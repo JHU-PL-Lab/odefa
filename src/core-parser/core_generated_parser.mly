@@ -34,6 +34,7 @@ module List = BatList;;
 %token KEYWORD_COIN_FLIP
 %token KEYWORD_STRING
 %token KEYWORD_ANY
+%token KEYWORD_INPUT
 %token UNDERSCORE
 %token BINOP_PLUS
 %token BINOP_PLUS_UINT
@@ -132,6 +133,8 @@ clause_body:
       { Unary_operation_body(Unary_operator_bool_not,$2) }
   | KEYWORD_COIN_FLIP variable
       { Unary_operation_body(Unary_operator_bool_coin_flip,$2) }
+  | KEYWORD_INPUT
+      { Input } (* I think this is right but not sure *)
   ;
 
 value:

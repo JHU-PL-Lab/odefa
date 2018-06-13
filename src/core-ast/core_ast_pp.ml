@@ -110,7 +110,7 @@ and pp_clause_body formatter b =
       pp_var x1 pp_binary_operator op pp_var x2
   | Unary_operation_body(op,x1) ->
     Format.fprintf formatter "%a %a" pp_unary_operator op pp_var x1
-  | Input -> failwith "Input"
+  | Input -> failwith "Input pp"
 
 and pp_clause formatter c =
   match c with

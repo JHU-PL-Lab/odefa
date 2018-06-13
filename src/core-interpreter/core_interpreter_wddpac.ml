@@ -79,7 +79,7 @@ let rec align_ctx loc context_stack =
   | None -> if None = loc then context_stack else raise @@ Utils.Invariant_failure ("Align ctx error in context stack" )
 
 
-let rec lookup graph var context_stack call_by_need =
+let rec lookup graph var context_stack call_by_need : Unbounded_context_stack.return_type =
   (* Align *)
   let Graph_node(node, loc) = Wddpac_graph.lookup var graph in
 
@@ -245,7 +245,7 @@ let rec lookup graph var context_stack call_by_need =
               | _,_ ->
                raise @@ Evaluation_failure "Incorrect unary operation"
             end
-          | Input -> failwith "Input"
+          | Input -> failwith "TODO: implement rule that includes mapping"
           | _ -> raise @@ Utils.Invariant_failure "Usage of not implemented clause"
         end
     | Start_clause(None) ->
