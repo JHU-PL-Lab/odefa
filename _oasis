@@ -176,23 +176,3 @@ Executable "core_toploop"
     odefa.core-ast,
     odefa.core-parser,
     odefa.core-toploop
-
-Executable "test"
-  Path: test/
-  MainIs: test.ml
-  CompiledObject: native
-  BuildDepends:
-    batteries,
-    jhupllib,
-    ocaml-monadic,
-    oUnit,
-    pds-reachability,
-    ppx_deriving.std,
-    odefa.core-interpreter,
-    odefa.core-parser,
-    odefa.core-toploop,
-    odefa.ddpa-analysis,
-    odefa.utils
-
-Test test
-  Command: $test
