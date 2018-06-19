@@ -304,7 +304,7 @@ let do_evaluation callbacks conf e =
   else
     begin
       try
-        let v, env = Core_interpreter_wddpac.eval e (conf.topconf_call_by_need)
+        let v, env = Core_interpreter_wddpac.eval e
           (* if conf.topconf_forward_interpreter then Core_interpreter_forward.eval e
           else if conf.topconf_python_compiler then Core_interpreter_python.eval e
           else if conf.topconf_church_uint then

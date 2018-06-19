@@ -127,7 +127,6 @@ and lift_value v =
   | Value_int _ -> Abs_value_int
   | Value_bool b -> Abs_value_bool b
   | Value_string _ -> Abs_value_string
-  | _ -> raise @@ Utils.Invariant_failure "Unsigned int not implemented"
 
 and lift_var (Var(i,_)) =
   Abs_var i

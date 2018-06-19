@@ -14,3 +14,8 @@ through the program stack.
 currently reading through lookup match case Start_clause and encountered lookup_ctx.
 
 not sure what call by need means - but its always been false so far.
+
+currently lookup stack is done in the program stack. we are passing around the
+current variable to lookup as a parameter in these function calls
+I need to sort of append another piece of information, the formula
+so i guess that's another parameter 

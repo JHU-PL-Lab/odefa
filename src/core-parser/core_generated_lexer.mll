@@ -41,11 +41,9 @@ rule token = parse
   | "."                              { DOT }
   | "<-"                             { LEFT_ARROW }
   | "!"                              { BANG }
-  | "u"                              { UINT_LITERAL }
   | "fun"                            { KEYWORD_FUN }
   | "ref"                            { KEYWORD_REF }
   | "int"                            { KEYWORD_INT }
-  | "uint"                           { KEYWORD_UINT }
   | "true"                           { KEYWORD_TRUE }
   | "false"                          { KEYWORD_FALSE }
   | "and"                            { KEYWORD_AND }
@@ -59,15 +57,10 @@ rule token = parse
   | "-"? digit+ as n                 { INT_LITERAL (int_of_string n) }
   | "\"" (string_contents as s) "\"" { STRING_LITERAL s }
   | "+"                              { BINOP_PLUS }
-  | "+."                             { BINOP_PLUS_UINT }
   | "-"                              { BINOP_MINUS }
-  | "-."                             { BINOP_MINUS_UINT }
   | "<"                              { BINOP_LESS }
-  | "<."                             { BINOP_LESS_UINT }
   | "<="                             { BINOP_LESS_EQUAL }
-  | "<=."                            { BINOP_LESS_EQUAL_UINT }
   | "=="                             { BINOP_EQUAL }
-  | "==."                            { BINOP_EQUAL_UINT }
   | "@"                              { BINOP_AT }
   | ident_start ident_cont* as s     { IDENTIFIER s }
   | ";;"                             { DOUBLE_SEMICOLON }

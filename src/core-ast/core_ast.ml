@@ -82,15 +82,10 @@ module Var_hashtbl = Hashtbl.Make(Var);;
 
 type binary_operator =
   | Binary_operator_plus
-  | Binary_operator_uint_plus
   | Binary_operator_int_minus
-  | Binary_operator_uint_minus
   | Binary_operator_int_less_than
-  | Binary_operator_uint_less_than
   | Binary_operator_int_less_than_or_equal_to
-  | Binary_operator_uint_less_than_or_equal_to
   | Binary_operator_equal_to
-  | Binary_operator_uint_equal_to
   | Binary_operator_bool_and
   | Binary_operator_bool_or
   | Binary_operator_index
@@ -100,15 +95,10 @@ type binary_operator =
 let show_binary_operator op =
   match op with
   | Binary_operator_plus -> "+"
-  | Binary_operator_uint_plus -> "+."
   | Binary_operator_int_minus -> "-"
-  | Binary_operator_uint_minus -> "-."
   | Binary_operator_int_less_than -> "<"
-  | Binary_operator_uint_less_than -> "<."
   | Binary_operator_int_less_than_or_equal_to -> "<="
-  | Binary_operator_uint_less_than_or_equal_to -> "<=."
   | Binary_operator_equal_to -> "=="
-  | Binary_operator_uint_equal_to -> "==."
   | Binary_operator_bool_and -> "and"
   | Binary_operator_bool_or -> "or"
   | Binary_operator_index -> "@"
@@ -145,28 +135,27 @@ type record_value =
 
 (** A type to express function values. *)
 and function_value =
-    | Function_value of var * expr
+  | Function_value of var * expr
 [@@deriving eq, ord, to_yojson]
 
 (** A type to express reference values. *)
 and ref_value =
-    | Ref_value of var
+  | Ref_value of var
 [@@deriving eq, ord, to_yojson]
 
 (** A type to represent values. *)
 and value =
-    | Value_record of record_value
+  | Value_record of record_value
   | Value_function of function_value
   | Value_ref of ref_value
   | Value_int of int
-  | Value_uint of int
   | Value_bool of bool
   | Value_string of string
 [@@deriving eq, ord, to_yojson]
 
 (** A type to represent the bodies of clauses. *)
 and clause_body =
-    | Value_body of value
+  | Value_body of value
   | Var_body of var
   | Appl_body of var * var
   | Conditional_body of var * pattern * function_value * function_value
@@ -180,7 +169,7 @@ and clause_body =
 
 (** A type to represent clauses. *)
 and clause =
-    | Clause of var * clause_body
+  | Clause of var * clause_body
 [@@deriving eq, ord, to_yojson]
 
 (** A type to represent expressions. *)
@@ -188,7 +177,7 @@ and expr = Expr of clause list [@@deriving eq, ord, to_yojson]
 
 (** A type representing conditional patterns. *)
 and pattern =
-    | Record_pattern of pattern Ident_map.t
+  | Record_pattern of pattern Ident_map.t
   | Fun_pattern
   | Ref_pattern
   | Int_pattern
@@ -207,10 +196,10 @@ and pattern =
    substitute vars in formula method
 *)
 type formula =
-  | Binary_formula of formula * formula
-  | Unary_Formula of formula
+  | Binary_formula of formula * binary_operator * formula
+  | Negated_formula of formula
   | Value_formula of value
-  | Ident_formula of ident
+  | Var_formula of var
 ;;
 
 

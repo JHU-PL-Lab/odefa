@@ -44,11 +44,6 @@ let rec initialize_graph cls graph ctx =
 
         Wddpac_graph.add_edge (x, Conditional_clause(xc,p,x1,rv e1, x2, rv e2), ctx) graph;
         initialize_graph tl graph ctx
-      | Value_body(Value_uint(v)) ->
-        if v >= 0 then (
-        Wddpac_graph.add_edge (x, Unannotated_clause(cl), ctx) graph;
-        initialize_graph tl graph ctx)
-        else raise @@ Utils.Invariant_failure "Unsigned int cannot be negative"
       | _ ->
         Wddpac_graph.add_edge (x, Unannotated_clause(cl), ctx) graph;
         initialize_graph tl graph ctx
@@ -59,7 +54,6 @@ let rec matches v p =
   match v,p with
   | _,Any_pattern -> true
   | Return_function _,Fun_pattern
-  | Return_uint _,UInt_pattern
   | Return_int _,Int_pattern ->
     true
   | Return_bool actual_boolean,Bool_pattern pattern_boolean ->
@@ -77,9 +71,80 @@ let rec align_ctx loc context_stack =
   match Unbounded_Stack.top context_stack with
   | Some(v,_) -> if Some(v) = loc then context_stack else align_ctx loc (Unbounded_Stack.pop context_stack)
   | None -> if None = loc then context_stack else raise @@ Utils.Invariant_failure ("Align ctx error in context stack" )
+;;
 
+let rec substitute_formula formula x x': formula =
+  match formula with
+  | Binary_formula(f1, op, f2) -> Binary_formula(substitute_formula f1 x x', op, substitute_formula f2 x x')
+  | Negated_formula(f1) -> Negated_formula(substitute_formula f1 x x')
+  | Value_formula(v) ->
+    begin
+      match v with
+      | Value_string(s) ->
+        begin
+          match x with
+          | Var(i, _) ->
+            begin
+              match i with
+              | Ident(s') ->
+                if s = s' then
+                  begin
+                    match x' with
+                    | Var(i',_) ->
+                      begin
+                        match i' with
+                        | Ident(s'') ->
+                          Value_formula(Value_string(s''))
+                      end
+                  end
+                else
+                  Value_formula(v)
+            end
+        end
+      | _ ->
+        Value_formula(v)
+    end
+  | Var_formula(v) ->
+    if v = x then
+      Var_formula(x')
+    else
+      Var_formula(v)
+;;
 
-let rec lookup graph var formula context_stack call_by_need : Unbounded_context_stack.return_type =
+let rec string_of_formula formula : string =
+  match formula with
+  | Binary_formula(f1, _, f2) -> string_of_formula f1 ^ string_of_formula f2
+  | Negated_formula(f1) -> string_of_formula f1
+  | Value_formula(v) -> "var formula of " ^
+                        (match v with
+                         | Value_record(_) -> "record"
+                         | Value_function(_) -> "f"
+                         | Value_ref(_) -> "ref"
+                         | Value_int(i) -> string_of_int i
+                         | Value_bool(b) -> string_of_bool b
+                         | Value_string(s) -> s)
+  | Var_formula(_) -> "df"
+;;
+
+(* need method that checks if the formula is satisfiable (not technical, but in this context)
+   kind of hard because I really want to evaluate the formula but there are both
+   ints and bools in the intermediate steps of the evaluation. need to bundle ints
+   and bools in one type so the return type is okay *)
+let rec check_formula formula : bool =
+  match formula with
+  | Binary_formula(_,_,_) -> true
+  | Negated_formula(_) -> true
+  | Value_formula(v) ->
+    begin
+      match v with
+      | Value_int(_) -> true
+      | Value_bool(_) -> true
+      | _ -> failwith "not supported"
+    end
+  | Var_formula(_) -> failwith "not sure what to do here: return var or fail?"
+;;
+
+let rec lookup graph var formula context_stack : Unbounded_context_stack.return_type =
   (* Align *)
   let Graph_node(node, loc) = Wddpac_graph.lookup var graph in
 
@@ -97,173 +162,121 @@ let rec lookup graph var formula context_stack call_by_need : Unbounded_context_
           | Var_body(x') ->
             (* print_endline "Alias";  *)
             (* TODO: substitute var in formula  *)
-            lookup graph x' formula context_stack call_by_need
+            (* let new_formula = (substitute_formula formula x x') in
+               print_endline (string_of_formula new_formula); *)
+            lookup graph x' (substitute_formula formula x x') context_stack
 
           | Value_body(Value_int(v)) ->
             Return_int(v)
-          | Value_body(Value_uint(v)) ->
-            Return_uint(v)
           | Value_body(Value_bool(v)) ->
             Return_bool(v)
           | Appl_body(xf, xv) ->
             (* print_endline "Lookup function"; *)
             (* TODO: no change to formula? *)
-            let fn = lookup graph xf formula context_stack call_by_need in
+            let fn = lookup graph xf formula context_stack in
 
             begin
               match fn with
               | Return_function(fn_ctx, rx, _, cfn_stack) ->
                 (* TODO: check *)
-                  if call_by_need then lookup graph rx formula (Unbounded_Stack.push (fn_ctx, (ref (Context_var_table(xv, context_stack)))) cfn_stack) call_by_need
-                  else (
-                    (* TODO: check both *)
-                    let v = lookup graph xv formula context_stack call_by_need in
-                    lookup graph rx formula (Unbounded_Stack.push (fn_ctx, (ref (Return_type(v)))) cfn_stack) call_by_need
-                  )
+                (* if call_by_need then lookup graph rx formula (Unbounded_Stack.push (fn_ctx, (ref (Context_var_table(xv, context_stack)))) cfn_stack) call_by_need *)
+                (* else ( *)
+                (* TODO: check both *)
+                let v = lookup graph xv formula context_stack in
+                lookup graph rx formula (Unbounded_Stack.push (fn_ctx, (ref (Return_type(v)))) cfn_stack)
+              (* ) *)
               | _ -> raise @@ Utils.Invariant_failure "Found incorrect definitions for function 2"
             end
           | Binary_operation_body(x1,Binary_operator_plus,x2) ->
             (* TODO: check *)
-            let v1 = lookup graph x1 formula context_stack call_by_need in
-            let v2 = lookup graph x2 formula context_stack call_by_need in
+            let v1 = lookup graph x1 formula context_stack in
+            let v2 = lookup graph x2 formula context_stack in
             begin
               match v1, v2 with
               | Return_int(n1), Return_int(n2) -> Return_int(n1 + n2)
               | _,_ ->
-               raise @@ Evaluation_failure "Can only add integers"
-            end
-          | Binary_operation_body(x1,Binary_operator_uint_plus,x2) ->
-            (* TODO: check *)
-            let v1 = lookup graph x1 formula context_stack call_by_need in
-            let v2 = lookup graph x2 formula context_stack call_by_need in
-            begin
-              match v1, v2 with
-              | Return_uint(n1), Return_uint(n2) -> Return_uint(n1 + n2)
-              | _,_ ->
-               raise @@ Evaluation_failure "Can only add integers"
+                raise @@ Evaluation_failure "Can only add integers"
             end
           | Binary_operation_body(x1,Binary_operator_int_minus,x2) ->
             (* TODO: check *)
-            let v1 = lookup graph x1 formula context_stack call_by_need in
-            let v2 = lookup graph x2 formula context_stack call_by_need in
+            let v1 = lookup graph x1 formula context_stack in
+            let v2 = lookup graph x2 formula context_stack in
             begin
               match v1, v2 with
               | Return_int(n1), Return_int(n2) -> Return_int(n1 - n2)
               | _,_ ->
-               raise @@ Evaluation_failure "Can only subtract integers"
-            end
-          | Binary_operation_body(x1,Binary_operator_uint_minus,x2) ->
-            (* TODO: check *)
-            let v1 = lookup graph x1 formula context_stack call_by_need in
-            let v2 = lookup graph x2 formula context_stack call_by_need in
-            begin
-              match v1, v2 with
-              | Return_uint(n1), Return_uint(n2) ->
-                if n1 - n2 < 0 then Return_uint(0) else Return_uint(n1 - n2)
-              | _,_ ->
-               raise @@ Evaluation_failure "Can only subtract integers"
+                raise @@ Evaluation_failure "Can only subtract integers"
             end
           | Binary_operation_body(x1,Binary_operator_equal_to,x2) ->
             (* TODO: check *)
-            let v1 = lookup graph x1 formula context_stack call_by_need in
-            let v2 = lookup graph x2 formula context_stack call_by_need in
+            let v1 = lookup graph x1 formula context_stack in
+            let v2 = lookup graph x2 formula context_stack in
             begin
               match v1, v2 with
               | Return_int(n1), Return_int(n2) -> Return_bool(n1 == n2)
               | _,_ ->
-               raise @@ Evaluation_failure "Can only equate integers"
-            end
-          | Binary_operation_body(x1,Binary_operator_uint_equal_to,x2) ->
-            (* TODO: check *)
-            let v1 = lookup graph x1 formula context_stack call_by_need in
-            let v2 = lookup graph x2 formula context_stack call_by_need in
-            begin
-              match v1, v2 with
-              | Return_uint(n1), Return_uint(n2) -> Return_bool(n1 == n2)
-              | _,_ ->
-               raise @@ Evaluation_failure "Can only equate integers"
+                raise @@ Evaluation_failure "Can only equate integers"
             end
           | Binary_operation_body(x1,Binary_operator_int_less_than,x2) ->
             (* TODO: check *)
-            let v1 = lookup graph x1 formula context_stack call_by_need in
-            let v2 = lookup graph x2 formula context_stack call_by_need in
+            let v1 = lookup graph x1 formula context_stack in
+            let v2 = lookup graph x2 formula context_stack in
             begin
               match v1, v2 with
               | Return_int(n1), Return_int(n2) -> Return_bool(n1 < n2)
               | _,_ ->
-               raise @@ Evaluation_failure "Can only compare less than on integers"
+                raise @@ Evaluation_failure "Can only compare less than on integers"
             end
-          | Binary_operation_body(x1,Binary_operator_uint_less_than,x2) ->
-            (* TODO: check *)
-            let v1 = lookup graph x1 formula context_stack call_by_need in
-            let v2 = lookup graph x2 formula context_stack call_by_need in
-            begin
-              match v1, v2 with
-              | Return_uint(n1), Return_uint(n2) -> Return_bool(n1 < n2)
-              | _,_ ->
-               raise @@ Evaluation_failure "Can only compare less than on integers"
-            end
-
           | Binary_operation_body(x1, Binary_operator_int_less_than_or_equal_to, x2) ->
             (* TODO: check *)
-            let v1 = lookup graph x1 formula context_stack call_by_need in
-            let v2 = lookup graph x2 formula context_stack call_by_need in
+            let v1 = lookup graph x1 formula context_stack in
+            let v2 = lookup graph x2 formula context_stack in
             begin
               match v1, v2 with
               | Return_int(n1), Return_int(n2) -> Return_bool(n1 <= n2)
               | _,_ ->
-               raise @@ Evaluation_failure "Can only compare less than or equal to on integers"
-            end
-          | Binary_operation_body(x1, Binary_operator_uint_less_than_or_equal_to, x2) ->
-            (* TODO: check *)
-            let v1 = lookup graph x1 formula context_stack call_by_need in
-            let v2 = lookup graph x2 formula context_stack call_by_need in
-            begin
-              match v1, v2 with
-              | Return_uint(n1), Return_uint(n2) -> Return_bool(n1 <= n2)
-              | _,_ ->
-               raise @@ Evaluation_failure "Can only compare less than or equal to on integers"
+                raise @@ Evaluation_failure "Can only compare less than or equal to on integers"
             end
           | Binary_operation_body(x1,Binary_operator_bool_and,x2) ->
             begin
               (* TODO: check *)
-              match lookup graph x1 formula context_stack call_by_need with
+              match lookup graph x1 formula context_stack with
               | Return_bool(b) ->
                 if not b then Return_bool(false) else
                   begin
                     (* TODO: check *)
-                    match lookup graph x2 formula context_stack call_by_need with
+                    match lookup graph x2 formula context_stack with
                     | Return_bool(b) -> Return_bool(b)
                     | _ ->
-                     raise @@ Evaluation_failure "Can only and booleans"
+                      raise @@ Evaluation_failure "Can only and booleans"
                   end
               | _ ->
-               raise @@ Evaluation_failure "Can only and booleans"
+                raise @@ Evaluation_failure "Can only and booleans"
             end
           | Binary_operation_body(x1,Binary_operator_bool_or,x2) ->
             begin
               (* TODO: check *)
-              match lookup graph x1 formula context_stack call_by_need with
+              match lookup graph x1 formula context_stack with
               | Return_bool(b) ->
                 if b then Return_bool(true) else
                   begin
                     (* TODO: check *)
-                    match lookup graph x2 formula context_stack call_by_need with
+                    match lookup graph x2 formula context_stack with
                     | Return_bool(b) -> Return_bool(b)
                     | _ ->
-                     raise @@ Evaluation_failure "Can only or booleans"
+                      raise @@ Evaluation_failure "Can only or booleans"
                   end
               | _ ->
-               raise @@ Evaluation_failure "Can only or booleans"
+                raise @@ Evaluation_failure "Can only or booleans"
             end
           | Unary_operation_body(op,x1) ->
             (* TODO: check *)
-            let v1 = lookup graph x1 formula context_stack call_by_need in
+            let v1 = lookup graph x1 formula context_stack in
             begin
               match op, v1 with
               | Unary_operator_bool_not, Return_bool(b1) -> Return_bool(not b1)
               | _,_ ->
-               raise @@ Evaluation_failure "Incorrect unary operation"
+                raise @@ Evaluation_failure "Incorrect unary operation"
             end
           | Input -> failwith "TODO: implement rule that includes mapping" (* only place where iota changes *)
           | _ -> raise @@ Utils.Invariant_failure "Usage of not implemented clause"
@@ -278,7 +291,7 @@ let rec lookup graph var formula context_stack call_by_need : Unbounded_context_
         | Return_type(v) -> v
         | Context_var_table(xv, ctx_stack) ->
           (* TODO: check *)
-          let v = lookup graph xv formula ctx_stack call_by_need in
+          let v = lookup graph xv formula ctx_stack in
           x := Return_type(v);
           v
       end
@@ -287,71 +300,70 @@ let rec lookup graph var formula context_stack call_by_need : Unbounded_context_
       Return_function(x0, rx, f, context_stack)
     | Conditional_clause(xc, p, x1,rx1,x2,rx2) ->
       (* TODO: check *)
-      let v = lookup graph xc formula context_stack call_by_need in
+      let v = lookup graph xc formula context_stack in
       let fn_ctx, rx = if matches v p then (x1,rx1) else (x2,rx2) in
       (* TODO: check *)
-      lookup graph rx formula (Unbounded_Stack.push (fn_ctx, (ref (Return_type(v)))) context_stack) call_by_need
+      lookup graph rx formula (Unbounded_Stack.push (fn_ctx, (ref (Return_type(v)))) context_stack)
   end
 ;;
 
-let rec substitute_return v graph env call_by_need =
+let rec substitute_return v graph env =
   match v with
   | Return_bool(v) -> Value_bool(v)
   | Return_int(v) -> Value_int(v)
-  | Return_uint(v) -> Value_uint(v)
-  | Return_function(_, _,f, context_stack) -> substitute f graph context_stack env call_by_need
-and substitute v graph context_stack env call_by_need =
+  | Return_function(_, _,f, context_stack) -> substitute f graph context_stack env
+and substitute v graph context_stack env =
   match v with
   | Value_function(Function_value(x, Expr(e))) ->
     Var_hashtbl.add env x "0";
-    Value_function(Function_value(x, Expr(substitute_expr e graph context_stack env call_by_need)))
+    Value_function(Function_value(x, Expr(substitute_expr e graph context_stack env)))
   | _ -> v
-and substitute_expr e graph context_stack env call_by_need =
+and substitute_expr e graph context_stack env =
   match e with
   | Clause(x, Value_body(v)) :: tl ->
 
-    let v = substitute v graph context_stack env call_by_need in
+    let v = substitute v graph context_stack env in
     Var_hashtbl.add env x "0";
-    Clause(x, Value_body(v)) :: substitute_expr tl graph context_stack env call_by_need
+    Clause(x, Value_body(v)) :: substitute_expr tl graph context_stack env
 
   | (Clause(x, Unary_operation_body(_,x')) as hd) :: tl
   | (Clause(x, Var_body(x')) as hd) :: tl ->
 
-      let assignments = process_vars (x' :: []) graph context_stack env call_by_need in
-      Var_hashtbl.add env x "0";
-      (assignments @ [hd]) @ substitute_expr tl graph context_stack env call_by_need
+    let assignments = process_vars (x' :: []) graph context_stack env in
+    Var_hashtbl.add env x "0";
+    (assignments @ [hd]) @ substitute_expr tl graph context_stack env
   | (Clause(x, Binary_operation_body(x',_,x'')) as hd) :: tl
   | (Clause(x, Appl_body(x', x'')) as hd) :: tl ->
 
-      let assignments = process_vars (x' :: x'' :: []) graph context_stack env call_by_need in
-      Var_hashtbl.add env x "0";
-      (assignments @ [hd]) @ substitute_expr tl graph context_stack env call_by_need
+    let assignments = process_vars (x' :: x'' :: []) graph context_stack env in
+    Var_hashtbl.add env x "0";
+    (assignments @ [hd]) @ substitute_expr tl graph context_stack env
 
   | Clause(x, Conditional_body(x',op,f1,f2)) :: tl ->
-    let assignments = process_vars (x' :: []) graph context_stack env call_by_need in
-    let f1 = substitute (Value_function(f1)) graph context_stack env call_by_need in
-    let f2 = substitute (Value_function(f2)) graph context_stack env call_by_need in
+    let assignments = process_vars (x' :: []) graph context_stack env in
+    let f1 = substitute (Value_function(f1)) graph context_stack env in
+    let f2 = substitute (Value_function(f2)) graph context_stack env in
     Var_hashtbl.add env x "0";
     begin
       match f1,f2 with
       | Value_function(f1), Value_function(f2) ->
-        (assignments @ ([Clause(x, Conditional_body(x',op,f1,f2))])) @ substitute_expr tl graph context_stack env call_by_need
+        (assignments @ ([Clause(x, Conditional_body(x',op,f1,f2))])) @ substitute_expr tl graph context_stack env
       | _, _ -> raise @@ Utils.Invariant_failure "Incorrect substitution of function"
     end
   | _ -> []
-and process_vars vars graph context_stack env call_by_need =
+and process_vars vars graph context_stack env =
   List.enum vars
   |> Enum.filter (fun x -> not (Var_hashtbl.mem env x))
   |> Enum.map (fun x ->
       (* TODO: fix *)
       let temp_formula = Value_formula(Value_bool(true)) in
-      let v = lookup graph x temp_formula context_stack call_by_need in
+      let v = lookup graph x temp_formula context_stack in
       Var_hashtbl.add env x "0";
-      Clause(x, Value_body(substitute_return v graph (Var_hashtbl.create 10) call_by_need)))
+      Clause(x, Value_body(substitute_return v graph (Var_hashtbl.create 10))))
   |> List.of_enum
 ;;
 
-let eval (Expr(cls)) call_by_need : Core_ast.var * value Core_interpreter.Environment.t =
+let eval (Expr(cls)) : Core_ast.var * value Core_interpreter.Environment.t =
   let context_stack = Unbounded_Stack.empty in
   let graph = Wddpac_graph.empty in
   initialize_graph cls graph None;
@@ -359,8 +371,8 @@ let eval (Expr(cls)) call_by_need : Core_ast.var * value Core_interpreter.Enviro
   (* is it always the case that the formula for the v will always be true?
      think so *)
   let true_formula = Value_formula(Value_bool(true)) in
-  let v = lookup graph rx true_formula context_stack call_by_need in
-  let v = substitute_return v graph (Var_hashtbl.create 10) call_by_need in
+  let v = lookup graph rx true_formula context_stack in
+  let v = substitute_return v graph (Var_hashtbl.create 10) in
   let env = Core_interpreter.Environment.create 10 in
   Core_interpreter.Environment.add env (rv cls) v;
   (rv cls), env

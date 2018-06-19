@@ -38,15 +38,10 @@ let pp_binary_operator formatter binop =
   let s =
     match binop with
     | Binary_operator_plus -> "+"
-    | Binary_operator_uint_plus -> "+."
     | Binary_operator_int_minus -> "-"
-    | Binary_operator_uint_minus -> "-."
     | Binary_operator_int_less_than -> "<"
-    | Binary_operator_uint_less_than -> "<."
     | Binary_operator_int_less_than_or_equal_to -> "<="
-    | Binary_operator_uint_less_than_or_equal_to -> "<=."
     | Binary_operator_equal_to -> "=="
-    | Binary_operator_uint_equal_to -> "==."
     | Binary_operator_bool_and -> "and"
     | Binary_operator_bool_or -> "or"
     | Binary_operator_index -> "@"
@@ -87,7 +82,6 @@ and pp_value formatter v =
   | Value_function(f) -> pp_function_value formatter f
   | Value_ref(r) -> pp_ref_value formatter r
   | Value_int(n) -> Format.pp_print_int formatter n
-  | Value_uint(n) -> Format.pp_print_int formatter n
   | Value_bool(b) -> Format.pp_print_bool formatter b
   | Value_string(s) -> Format.fprintf formatter "\"%s\"" s
 
