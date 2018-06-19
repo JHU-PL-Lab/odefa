@@ -175,7 +175,7 @@ and clause_body =
   | Update_body of var * var
   | Binary_operation_body of var * binary_operator * var
   | Unary_operation_body of unary_operator * var
-  | Input 
+  | Input
 [@@deriving eq, ord, to_yojson]
 
 (** A type to represent clauses. *)
@@ -198,6 +198,21 @@ and pattern =
   | Any_pattern
 [@@deriving eq, ord, yojson]
 ;;
+
+(* formula type that will be passed along as a parameter in lookup
+   couple things I'm thinking of:
+   what values to I need?
+   method to check if its valid
+   pretty sure don't need a map to associate x with formula
+   substitute vars in formula method
+*)
+type formula =
+  | Binary_formula of formula * formula
+  | Unary_Formula of formula
+  | Value_formula of value
+  | Ident_formula of ident
+;;
+
 
 module Value =
 struct
