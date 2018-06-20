@@ -1,5 +1,6 @@
 open Batteries;;
 open Jhupllib;;
+open Hashtbl;;
 
 open Core_ast;;
 (* open Core_ast_pp;; *)
@@ -73,14 +74,26 @@ let rec align_ctx loc context_stack =
   | None -> if None = loc then context_stack else raise @@ Utils.Invariant_failure ("Align ctx error in context stack" )
 ;;
 
-let rec substitute_formula formula x x': formula =
+let rec substitute_formula_var formula x (x':var) : formula =
   match formula with
-  | Binary_formula(f1, op, f2) -> Binary_formula(substitute_formula f1 x x', op, substitute_formula f2 x x')
-  | Negated_formula(f1) -> Negated_formula(substitute_formula f1 x x')
+  | Binary_formula(f1, op, f2) -> Binary_formula(substitute_formula_var f1 x x', op, substitute_formula_var f2 x x')
+  | Negated_formula(f1) -> Negated_formula(substitute_formula_var f1 x x')
   | Value_formula(v) -> Value_formula(v)
   | Var_formula(v) ->
     if v = x then
       Var_formula(x')
+    else
+      Var_formula(v)
+;;
+
+let rec substitute_formula_value formula x (v1:value) : formula =
+  match formula with
+  | Binary_formula(f1, op, f2) -> Binary_formula(substitute_formula_value f1 x v1, op, substitute_formula_value f2 x v1)
+  | Negated_formula(f1) -> Negated_formula(substitute_formula_value f1 x v1)
+  | Value_formula(v) -> Value_formula(v)
+  | Var_formula(v) ->
+    if v = x then
+      Value_formula(v1)
     else
       Var_formula(v)
 ;;
@@ -217,7 +230,7 @@ let rec check_formula formula : int_or_bool =
   | Var_formula(_) -> failwith "not sure what to do here: return var or fail? (x > 5 or fail?)"
 ;;
 
-let rec lookup graph var formula context_stack : Unbounded_context_stack.return_type =
+let rec lookup graph var formula context_stack iota : Unbounded_context_stack.return_type =
   (* Align *)
   let Graph_node(node, loc) = Wddpac_graph.lookup var graph in
 
@@ -237,7 +250,7 @@ let rec lookup graph var formula context_stack : Unbounded_context_stack.return_
             (* TODO: substitute var in formula  *)
             (* let new_formula = (substitute_formula formula x x') in
                print_endline (string_of_formula new_formula); *)
-            lookup graph x' (substitute_formula formula x x') context_stack
+            lookup graph x' (substitute_formula_var formula x x') context_stack iota
 
           | Value_body(Value_int(v)) ->
             Return_int(v)
@@ -246,7 +259,7 @@ let rec lookup graph var formula context_stack : Unbounded_context_stack.return_
           | Appl_body(xf, xv) ->
             (* print_endline "Lookup function"; *)
             (* TODO: no change to formula? *)
-            let fn = lookup graph xf formula context_stack in
+            let fn = lookup graph xf formula context_stack iota in
 
             begin
               match fn with
@@ -255,8 +268,8 @@ let rec lookup graph var formula context_stack : Unbounded_context_stack.return_
                 (* if call_by_need then lookup graph rx formula (Unbounded_Stack.push (fn_ctx, (ref (Context_var_table(xv, context_stack)))) cfn_stack) call_by_need *)
                 (* else ( *)
                 (* TODO: check both *)
-                let v = lookup graph xv formula context_stack in
-                lookup graph rx formula (Unbounded_Stack.push (fn_ctx, (ref (Return_type(v)))) cfn_stack)
+                let v = lookup graph xv formula context_stack iota in
+                lookup graph rx formula (Unbounded_Stack.push (fn_ctx, (ref (Return_type(v)))) cfn_stack) iota
               (* ) *)
               | _ -> raise @@ Utils.Invariant_failure "Found incorrect definitions for function 2"
             end
@@ -265,8 +278,8 @@ let rec lookup graph var formula context_stack : Unbounded_context_stack.return_
                have to make a decision about left and right rule choices.
                probably going to have to implement one all the time first.
             *)
-            let v1 = lookup graph x1 formula context_stack in
-            let v2 = lookup graph x2 formula context_stack in
+            let v1 = lookup graph x1 formula context_stack iota in
+            let v2 = lookup graph x2 formula context_stack iota in
             begin
               match v1, v2 with
               | Return_int(n1), Return_int(n2) -> Return_int(n1 + n2)
@@ -275,8 +288,8 @@ let rec lookup graph var formula context_stack : Unbounded_context_stack.return_
             end
           | Binary_operation_body(x1,Binary_operator_int_minus,x2) ->
             (* TODO: check *)
-            let v1 = lookup graph x1 formula context_stack in
-            let v2 = lookup graph x2 formula context_stack in
+            let v1 = lookup graph x1 formula context_stack iota in
+            let v2 = lookup graph x2 formula context_stack iota in
             begin
               match v1, v2 with
               | Return_int(n1), Return_int(n2) -> Return_int(n1 - n2)
@@ -285,8 +298,8 @@ let rec lookup graph var formula context_stack : Unbounded_context_stack.return_
             end
           | Binary_operation_body(x1,Binary_operator_equal_to,x2) ->
             (* TODO: check *)
-            let v1 = lookup graph x1 formula context_stack in
-            let v2 = lookup graph x2 formula context_stack in
+            let v1 = lookup graph x1 formula context_stack iota in
+            let v2 = lookup graph x2 formula context_stack iota in
             begin
               match v1, v2 with
               | Return_int(n1), Return_int(n2) -> Return_bool(n1 == n2)
@@ -295,8 +308,8 @@ let rec lookup graph var formula context_stack : Unbounded_context_stack.return_
             end
           | Binary_operation_body(x1,Binary_operator_int_less_than,x2) ->
             (* TODO: check *)
-            let v1 = lookup graph x1 formula context_stack in
-            let v2 = lookup graph x2 formula context_stack in
+            let v1 = lookup graph x1 formula context_stack iota in
+            let v2 = lookup graph x2 formula context_stack iota in
             begin
               match v1, v2 with
               | Return_int(n1), Return_int(n2) -> Return_bool(n1 < n2)
@@ -305,8 +318,8 @@ let rec lookup graph var formula context_stack : Unbounded_context_stack.return_
             end
           | Binary_operation_body(x1, Binary_operator_int_less_than_or_equal_to, x2) ->
             (* TODO: check *)
-            let v1 = lookup graph x1 formula context_stack in
-            let v2 = lookup graph x2 formula context_stack in
+            let v1 = lookup graph x1 formula context_stack iota in
+            let v2 = lookup graph x2 formula context_stack iota in
             begin
               match v1, v2 with
               | Return_int(n1), Return_int(n2) -> Return_bool(n1 <= n2)
@@ -316,12 +329,12 @@ let rec lookup graph var formula context_stack : Unbounded_context_stack.return_
           | Binary_operation_body(x1,Binary_operator_bool_and,x2) ->
             begin
               (* TODO: check *)
-              match lookup graph x1 formula context_stack with
+              match lookup graph x1 formula context_stack iota with
               | Return_bool(b) ->
                 if not b then Return_bool(false) else
                   begin
                     (* TODO: check *)
-                    match lookup graph x2 formula context_stack with
+                    match lookup graph x2 formula context_stack iota with
                     | Return_bool(b) -> Return_bool(b)
                     | _ ->
                       raise @@ Evaluation_failure "Can only and booleans"
@@ -332,12 +345,12 @@ let rec lookup graph var formula context_stack : Unbounded_context_stack.return_
           | Binary_operation_body(x1,Binary_operator_bool_or,x2) ->
             begin
               (* TODO: check *)
-              match lookup graph x1 formula context_stack with
+              match lookup graph x1 formula context_stack iota with
               | Return_bool(b) ->
                 if b then Return_bool(true) else
                   begin
                     (* TODO: check *)
-                    match lookup graph x2 formula context_stack with
+                    match lookup graph x2 formula context_stack iota with
                     | Return_bool(b) -> Return_bool(b)
                     | _ ->
                       raise @@ Evaluation_failure "Can only or booleans"
@@ -347,14 +360,33 @@ let rec lookup graph var formula context_stack : Unbounded_context_stack.return_
             end
           | Unary_operation_body(op,x1) ->
             (* TODO: check *)
-            let v1 = lookup graph x1 formula context_stack in
+            let v1 = lookup graph x1 formula context_stack iota in
             begin
               match op, v1 with
               | Unary_operator_bool_not, Return_bool(b1) -> Return_bool(not b1)
               | _,_ ->
                 raise @@ Evaluation_failure "Incorrect unary operation"
             end
-          | Input -> failwith "TODO: implement rule that includes mapping" (* only place where iota changes *)
+          | Input ->
+            (* for now iota maps everything to 1
+               check to see if iota has mapping for cur var (x) *)
+            (
+              try
+                let v = find iota x in
+                match check_formula (substitute_formula_value formula x v) with
+                | Int(_) -> Return_int(1) (* for now is always 1 *)
+                | Bool(b) -> if b then Return_bool(b) else failwith "I don't know what to do here"
+              with
+              | Not_found ->
+                let v = Value_int(1) in
+                add iota x v;
+                begin
+                  match check_formula (substitute_formula_value formula x v) with
+                  | Int(_) -> Return_int(1)
+                  | Bool(b) -> if b then Return_bool(b) else failwith "I don't know what to do here"
+                end
+              | _ -> failwith "not handled"
+            )
           | _ -> raise @@ Utils.Invariant_failure "Usage of not implemented clause"
         end
     | Start_clause(None) ->
@@ -367,7 +399,7 @@ let rec lookup graph var formula context_stack : Unbounded_context_stack.return_
         | Return_type(v) -> v
         | Context_var_table(xv, ctx_stack) ->
           (* TODO: check *)
-          let v = lookup graph xv formula ctx_stack in
+          let v = lookup graph xv formula ctx_stack iota in
           x := Return_type(v);
           v
       end
@@ -376,10 +408,10 @@ let rec lookup graph var formula context_stack : Unbounded_context_stack.return_
       Return_function(x0, rx, f, context_stack)
     | Conditional_clause(xc, p, x1,rx1,x2,rx2) ->
       (* TODO: not correct *)
-      let v = lookup graph xc formula context_stack in
+      let v = lookup graph xc formula context_stack iota in
       let fn_ctx, rx = if matches v p then (x1,rx1) else (x2,rx2) in
       (* TODO: check *)
-      lookup graph rx formula (Unbounded_Stack.push (fn_ctx, (ref (Return_type(v)))) context_stack)
+      lookup graph rx formula (Unbounded_Stack.push (fn_ctx, (ref (Return_type(v)))) context_stack) iota
   end
 ;;
 
@@ -431,9 +463,10 @@ and process_vars vars graph context_stack env =
   List.enum vars
   |> Enum.filter (fun x -> not (Var_hashtbl.mem env x))
   |> Enum.map (fun x ->
-      (* TODO: fix *)
+      (* TODO: fix next two lines *)
       let temp_formula = Value_formula(Value_bool(true)) in
-      let v = lookup graph x temp_formula context_stack in
+      let temp_iota = create 10 in
+      let v = lookup graph x temp_formula context_stack temp_iota in
       Var_hashtbl.add env x "0";
       Clause(x, Value_body(substitute_return v graph (Var_hashtbl.create 10))))
   |> List.of_enum
@@ -447,7 +480,8 @@ let eval (Expr(cls)) : Core_ast.var * value Core_interpreter.Environment.t =
   (* is it always the case that the formula for the v will always be true?
      think so *)
   let true_formula = Value_formula(Value_bool(true)) in
-  let v = lookup graph rx true_formula context_stack in
+  let iota = create 10 in
+  let v = lookup graph rx true_formula context_stack iota in
   let v = substitute_return v graph (Var_hashtbl.create 10) in
   let env = Core_interpreter.Environment.create 10 in
   Core_interpreter.Environment.add env (rv cls) v;

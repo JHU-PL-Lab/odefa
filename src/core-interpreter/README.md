@@ -8,6 +8,6 @@
 3. Make bare-bones, really simple examples
 4. Implement support for simplest rules and work up to the more subtle, complex rules.
 
-currently trying to figure out how to implement the iota dictionary passing and Formulae
-was trying to go down rules one by one
-Not sure how to evaluate formula
+wrote substitution methods - one for vars and another for values
+wrote check_formula. have not thoroughly tested any methods above
+took a first stab at the input case in lookup. right now always returns true. 
