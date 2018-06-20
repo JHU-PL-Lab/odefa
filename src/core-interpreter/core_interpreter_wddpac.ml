@@ -77,33 +77,7 @@ let rec substitute_formula formula x x': formula =
   match formula with
   | Binary_formula(f1, op, f2) -> Binary_formula(substitute_formula f1 x x', op, substitute_formula f2 x x')
   | Negated_formula(f1) -> Negated_formula(substitute_formula f1 x x')
-  | Value_formula(v) ->
-    begin
-      match v with
-      | Value_string(s) ->
-        begin
-          match x with
-          | Var(i, _) ->
-            begin
-              match i with
-              | Ident(s') ->
-                if s = s' then
-                  begin
-                    match x' with
-                    | Var(i',_) ->
-                      begin
-                        match i' with
-                        | Ident(s'') ->
-                          Value_formula(Value_string(s''))
-                      end
-                  end
-                else
-                  Value_formula(v)
-            end
-        end
-      | _ ->
-        Value_formula(v)
-    end
+  | Value_formula(v) -> Value_formula(v)
   | Var_formula(v) ->
     if v = x then
       Var_formula(x')
@@ -122,26 +96,125 @@ let rec string_of_formula formula : string =
                          | Value_ref(_) -> "ref"
                          | Value_int(i) -> string_of_int i
                          | Value_bool(b) -> string_of_bool b
-                         | Value_string(s) -> s)
+                        )
   | Var_formula(_) -> "df"
 ;;
+
+type int_or_bool = Int of int | Bool of bool;;
 
 (* need method that checks if the formula is satisfiable (not technical, but in this context)
    kind of hard because I really want to evaluate the formula but there are both
    ints and bools in the intermediate steps of the evaluation. need to bundle ints
-   and bools in one type so the return type is okay *)
-let rec check_formula formula : bool =
+   and bools in one type so the return type is okay. check outside this method for whether or not
+   the formula is ok
+*)
+let rec check_formula formula : int_or_bool =
   match formula with
-  | Binary_formula(_,_,_) -> true
-  | Negated_formula(_) -> true
+  | Binary_formula(f1,op,f2) ->
+    let r1 = check_formula f1 in
+    let r2 = check_formula f2 in
+    begin
+      match op with
+      | Binary_operator_plus ->
+        begin
+          match r1 with
+          | Int(i1) ->
+            begin
+              match r2 with
+              | Int(i2) -> Int(i1+i2)
+              | Bool(_) -> Bool(false)
+            end
+          | Bool(_) ->
+            Bool(false)
+        end
+      | Binary_operator_int_minus ->
+        begin
+          match r1 with
+          | Int(i1) ->
+            begin
+              match r2 with
+              | Int(i2) -> Int(i1-i2)
+              | Bool(_) -> Bool(false)
+            end
+          | Bool(_) ->
+            Bool(false)
+        end
+      | Binary_operator_int_less_than ->
+        begin
+          match r1 with
+          | Int(i1) ->
+            begin
+              match r2 with
+              | Int(i2) -> Bool(i1 < i2)
+              | Bool(_) -> Bool(false)
+            end
+          | Bool(_) ->
+            Bool(false)
+        end
+      | Binary_operator_int_less_than_or_equal_to ->
+        begin
+          match r1 with
+          | Int(i1) ->
+            begin
+              match r2 with
+              | Int(i2) -> Bool(i1 <= i2)
+              | Bool(_) -> Bool(false)
+            end
+          | Bool(_) ->
+            Bool(false)
+        end
+      | Binary_operator_equal_to ->
+        begin
+          match r1 with
+          | Int(i1) ->
+            begin
+              match r2 with
+              | Int(i2) -> Bool(i1 = i2)
+              | Bool(_) -> Bool(false)
+            end
+          | Bool(b1) ->
+            begin
+              match r2 with
+              | Int(_) -> Bool(false)
+              | Bool(b2) -> Bool(b1 = b2)
+            end
+        end
+      | Binary_operator_bool_and ->
+        begin
+          match r1 with
+          | Int(_) ->
+            Bool(false)
+          | Bool(b1) ->
+            begin
+              match r2 with
+              | Int(_) -> Bool(false)
+              | Bool(b2) -> Bool(b1 && b2)
+            end
+        end
+      | Binary_operator_bool_or ->
+        begin
+          match r1 with
+          | Int(_) ->
+            Bool(false)
+          | Bool(b1) ->
+            begin
+              match r2 with
+              | Int(_) -> Bool(false)
+              | Bool(b2) -> Bool(b1 || b2)
+            end
+        end
+      | Binary_operator_index ->
+        Bool(false)
+    end
+  | Negated_formula(_) -> Bool(true)
   | Value_formula(v) ->
     begin
       match v with
-      | Value_int(_) -> true
-      | Value_bool(_) -> true
+      | Value_int(i) -> Int(i)
+      | Value_bool(b) -> Bool(b)
       | _ -> failwith "not supported"
     end
-  | Var_formula(_) -> failwith "not sure what to do here: return var or fail?"
+  | Var_formula(_) -> failwith "not sure what to do here: return var or fail? (x > 5 or fail?)"
 ;;
 
 let rec lookup graph var formula context_stack : Unbounded_context_stack.return_type =
@@ -188,7 +261,10 @@ let rec lookup graph var formula context_stack : Unbounded_context_stack.return_
               | _ -> raise @@ Utils.Invariant_failure "Found incorrect definitions for function 2"
             end
           | Binary_operation_body(x1,Binary_operator_plus,x2) ->
-            (* TODO: check *)
+            (* TODO: All the binary ops are not correct
+               have to make a decision about left and right rule choices.
+               probably going to have to implement one all the time first.
+            *)
             let v1 = lookup graph x1 formula context_stack in
             let v2 = lookup graph x2 formula context_stack in
             begin
@@ -299,7 +375,7 @@ let rec lookup graph var formula context_stack : Unbounded_context_stack.return_
       let context_stack = align_ctx loc context_stack in
       Return_function(x0, rx, f, context_stack)
     | Conditional_clause(xc, p, x1,rx1,x2,rx2) ->
-      (* TODO: check *)
+      (* TODO: not correct *)
       let v = lookup graph xc formula context_stack in
       let fn_ctx, rx = if matches v p then (x1,rx1) else (x2,rx2) in
       (* TODO: check *)

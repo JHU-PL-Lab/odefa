@@ -83,7 +83,7 @@ and pp_value formatter v =
   | Value_ref(r) -> pp_ref_value formatter r
   | Value_int(n) -> Format.pp_print_int formatter n
   | Value_bool(b) -> Format.pp_print_bool formatter b
-  | Value_string(s) -> Format.fprintf formatter "\"%s\"" s
+  (* | Value_string(s) -> Format.fprintf formatter "\"%s\"" s *)
 
 and pp_clause_body formatter b =
   match b with

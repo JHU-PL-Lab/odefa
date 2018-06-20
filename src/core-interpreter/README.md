@@ -9,13 +9,5 @@
 4. Implement support for simplest rules and work up to the more subtle, complex rules.
 
 currently trying to figure out how to implement the iota dictionary passing and Formulae
-not sure but I think only context stack is passed and the lookup stack is kept
-through the program stack.
-currently reading through lookup match case Start_clause and encountered lookup_ctx.
-
-not sure what call by need means - but its always been false so far.
-
-currently lookup stack is done in the program stack. we are passing around the
-current variable to lookup as a parameter in these function calls
-I need to sort of append another piece of information, the formula
-so i guess that's another parameter 
+was trying to go down rules one by one
+Not sure how to evaluate formula

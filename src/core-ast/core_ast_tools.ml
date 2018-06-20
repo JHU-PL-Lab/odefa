@@ -83,8 +83,8 @@ let use_occurrences expression =
             Var_set.singleton variable
           | Value_function _
           | Value_int _
-          | Value_bool _
-          | Value_string _ ->
+          | Value_bool _ ->
+          (* | Value_string _ -> *)
             Var_set.empty
         end
       | Var_body variable ->

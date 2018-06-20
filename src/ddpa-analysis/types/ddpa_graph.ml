@@ -126,7 +126,7 @@ and lift_value v =
   | Value_ref r -> Abs_value_ref (lift_ref_value r)
   | Value_int _ -> Abs_value_int
   | Value_bool b -> Abs_value_bool b
-  | Value_string _ -> Abs_value_string
+  (* | Value_string _ -> Abs_value_string *)
 
 and lift_var (Var(i,_)) =
   Abs_var i

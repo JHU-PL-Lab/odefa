@@ -129,8 +129,8 @@ value:
       { Value_ref($1) }
   | int_value
       { Value_int($1) }
-  | string_value
-      { Value_string($1) }
+  /* | string_value
+      { Value_string($1) } */
   | bool_value
       { Value_bool($1) }
   ;

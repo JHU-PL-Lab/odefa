@@ -150,7 +150,7 @@ and value =
   | Value_ref of ref_value
   | Value_int of int
   | Value_bool of bool
-  | Value_string of string
+  (* | Value_string of string *)
 [@@deriving eq, ord, to_yojson]
 
 (** A type to represent the bodies of clauses. *)
