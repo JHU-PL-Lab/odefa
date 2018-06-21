@@ -10,4 +10,20 @@
 
 wrote substitution methods - one for vars and another for values
 wrote check_formula. have not thoroughly tested any methods above
-took a first stab at the input case in lookup. right now always returns true. 
+took a first stab at the input case in lookup. right now always returns true.
+
+it is true that formula should not have vars in it when we try to satisfy it (should be substituted)
+
+so instead of using non local rules, look through context stack until you find your answer
+
+one thing I don't understand is it feels like we add all edges regardless even though
+the current rule that I am looking at talks about
+
+think rx is return variable. rule 6 in 2.3 application - a feature is that we resume
+lookup
+
+
+
+new approach
+make new implementation that is comlpetely naive and super close to actual spec
+start with graph 

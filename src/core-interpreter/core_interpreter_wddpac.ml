@@ -100,17 +100,44 @@ let rec substitute_formula_value formula x (v1:value) : formula =
 
 let rec string_of_formula formula : string =
   match formula with
-  | Binary_formula(f1, _, f2) -> string_of_formula f1 ^ string_of_formula f2
-  | Negated_formula(f1) -> string_of_formula f1
-  | Value_formula(v) -> "var formula of " ^
+  | Binary_formula(f1, op, f2) ->
+    begin
+      match op with
+      | Binary_operator_plus ->
+        string_of_formula f1 ^ " + " ^ string_of_formula f2
+      | Binary_operator_int_minus ->
+        string_of_formula f1 ^ " - " ^ string_of_formula f2
+      | Binary_operator_int_less_than ->
+        string_of_formula f1 ^ " < " ^ string_of_formula f2
+      | Binary_operator_int_less_than_or_equal_to ->
+        string_of_formula f1 ^ " <= " ^ string_of_formula f2
+      | Binary_operator_equal_to ->
+        string_of_formula f1 ^ " == " ^ string_of_formula f2
+      | Binary_operator_bool_and ->
+        string_of_formula f1 ^ " && " ^ string_of_formula f2
+      | Binary_operator_bool_or ->
+        string_of_formula f1 ^ " || " ^ string_of_formula f2
+      | Binary_operator_index ->
+        string_of_formula f1 ^ " . " ^ string_of_formula f2
+    end
+  | Negated_formula(f1) -> "not " ^ string_of_formula f1
+  | Value_formula(v) -> "value " ^
                         (match v with
                          | Value_record(_) -> "record"
-                         | Value_function(_) -> "f"
+                         | Value_function(_) -> "function"
                          | Value_ref(_) -> "ref"
                          | Value_int(i) -> string_of_int i
                          | Value_bool(b) -> string_of_bool b
                         )
-  | Var_formula(_) -> "df"
+  | Var_formula(var) ->
+    begin
+      match var with
+      | Var(i, _) ->
+        begin
+          match i with
+          | Ident(s) -> "variable " ^ s
+        end
+    end
 ;;
 
 type int_or_bool = Int of int | Bool of bool;;
@@ -219,7 +246,13 @@ let rec check_formula formula : int_or_bool =
       | Binary_operator_index ->
         Bool(false)
     end
-  | Negated_formula(_) -> Bool(true)
+  | Negated_formula(f1) ->
+    let r1 = check_formula f1 in
+    begin
+      match r1 with
+      | Int(_) -> Bool(false)
+      | Bool(b) -> Bool(not b)
+    end
   | Value_formula(v) ->
     begin
       match v with
@@ -227,7 +260,7 @@ let rec check_formula formula : int_or_bool =
       | Value_bool(b) -> Bool(b)
       | _ -> failwith "not supported"
     end
-  | Var_formula(_) -> failwith "not sure what to do here: return var or fail? (x > 5 or fail?)"
+  | Var_formula(_) -> failwith "never should have happened"
 ;;
 
 let rec lookup graph var formula context_stack iota : Unbounded_context_stack.return_type =
@@ -246,17 +279,23 @@ let rec lookup graph var formula context_stack iota : Unbounded_context_stack.re
         begin
           match cl with
           | Var_body(x') ->
-            (* print_endline "Alias";  *)
-            (* TODO: substitute var in formula  *)
-            (* let new_formula = (substitute_formula formula x x') in
-               print_endline (string_of_formula new_formula); *)
             lookup graph x' (substitute_formula_var formula x x') context_stack iota
-
           | Value_body(Value_int(v)) ->
-            Return_int(v)
+            begin
+              match check_formula formula with
+              | Int(_) -> Return_int(v)
+              | Bool(b) -> if b then Return_int(v) else raise @@ Utils.Invariant_failure ("Dead end, not proper way to deal with it")
+            end
           | Value_body(Value_bool(v)) ->
-            Return_bool(v)
+            begin
+              match check_formula formula with
+              | Int(_) -> Return_bool(v)
+              | Bool(b) -> if b then Return_bool(v) else raise @@ Utils.Invariant_failure ("Dead end, not proper way to deal with it")
+            end
           | Appl_body(xf, xv) ->
+            (* pretty sure this is rule 5 in section 2.4 but it doesn't seem to line up with scott's rules that
+               well. will probably have to divide this up
+            *)
             (* print_endline "Lookup function"; *)
             (* TODO: no change to formula? *)
             let fn = lookup graph xf formula context_stack iota in
@@ -375,7 +414,7 @@ let rec lookup graph var formula context_stack iota : Unbounded_context_stack.re
                 let v = find iota x in
                 match check_formula (substitute_formula_value formula x v) with
                 | Int(_) -> Return_int(1) (* for now is always 1 *)
-                | Bool(b) -> if b then Return_bool(b) else failwith "I don't know what to do here"
+                | Bool(b) -> if b then Return_int(1) else failwith "I don't know what to do here" (* this is when formula is not satisfied *)
               with
               | Not_found ->
                 let v = Value_int(1) in
@@ -383,9 +422,9 @@ let rec lookup graph var formula context_stack iota : Unbounded_context_stack.re
                 begin
                   match check_formula (substitute_formula_value formula x v) with
                   | Int(_) -> Return_int(1)
-                  | Bool(b) -> if b then Return_bool(b) else failwith "I don't know what to do here"
+                  | Bool(b) -> if b then Return_int(1) else failwith "I don't know what to do here" (* might make another return type *)
                 end
-              | _ -> failwith "not handled"
+              | _ -> failwith "unhandled exception when looking up iota mapping"
             )
           | _ -> raise @@ Utils.Invariant_failure "Usage of not implemented clause"
         end
@@ -480,7 +519,7 @@ let eval (Expr(cls)) : Core_ast.var * value Core_interpreter.Environment.t =
   (* is it always the case that the formula for the v will always be true?
      think so *)
   let true_formula = Value_formula(Value_bool(true)) in
-  let iota = create 10 in
+  let iota = Hashtbl.create 10 in
   let v = lookup graph rx true_formula context_stack iota in
   let v = substitute_return v graph (Var_hashtbl.create 10) in
   let env = Core_interpreter.Environment.create 10 in
