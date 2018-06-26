@@ -46,19 +46,20 @@ let stdout_callbacks =
 ;;
 
 let do_evaluation callbacks conf e =
-  if conf.topconf_wddpac_interpreter then
-    failwith "just here to keep conf from beign unused"
-  else
-    begin
-      try
-        let v,env = Core_interpreter_wddpac.eval e
-        in
-        callbacks.cb_evaluation_result v env;
-        Core_toploop_types.Evaluation_completed(v,env)
-      with
-      | Core_interpreter.Evaluation_failure s ->
-        Core_toploop_types.Evaluation_failure s
-    end
+  let v, env =
+    if conf.topconf_wddpac_interpreter then
+      Core_interpreter_wddpac.eval e
+    else
+      Core_interpreter_wddpac_naive_2.eval e
+  in
+  begin
+    try
+      callbacks.cb_evaluation_result v env;
+      Core_toploop_types.Evaluation_completed(v,env)
+    with
+    | Core_interpreter.Evaluation_failure s ->
+      Core_toploop_types.Evaluation_failure s
+  end
 ;;
 
 let handle_expression

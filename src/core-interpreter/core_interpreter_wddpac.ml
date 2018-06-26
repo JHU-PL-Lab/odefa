@@ -520,9 +520,9 @@ let eval (Expr(cls)) : Core_ast.var * value Core_interpreter.Environment.t =
      think so *)
   let true_formula = Value_formula(Value_bool(true)) in
   let iota = Hashtbl.create 10 in
-  let v = lookup graph rx true_formula context_stack iota in
-  let v = substitute_return v graph (Var_hashtbl.create 10) in
-  let env = Core_interpreter.Environment.create 10 in
+  let v:Unbounded_context_stack.return_type = lookup graph rx true_formula context_stack iota in
+  let v:Core_ast.value = substitute_return v graph (Var_hashtbl.create 10) in
+  let env = Core_interpreter.Environment.create 10 in (* var -> value *)
   Core_interpreter.Environment.add env (rv cls) v;
   (rv cls), env
 ;;

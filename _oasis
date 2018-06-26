@@ -72,7 +72,12 @@ Library "core-interpreter"
   FindlibParent: odefa
   Path: src/core-interpreter
   Modules:
-    Core_interpreter
+    Core_interpreter,
+    Core_interpreter_wddpac,
+    Core_interpreter_wddpac_naive,
+    Core_interpreter_wddpac_naive_2,
+    Wddpac_graph,
+    Wddpac_graph_hashtbl
   BuildDepends:
     batteries,
     jhupllib,

@@ -241,7 +241,7 @@ let rec evaluate env lastvar cls =
             | (Value_bool(b1),Binary_operator_bool_or,Value_bool(b2)) ->
               Value_bool (b1 || b2)
             (* | (Value_string(s1),Binary_operator_plus,Value_string(s2)) ->
-              Value_string(s1 ^ s2) 
+              Value_string(s1 ^ s2)
             | (Value_string(s1),Binary_operator_equal_to,Value_string(s2)) ->
               Value_bool(s1 = s2)
             | (Value_string(s),Binary_operator_index,Value_int(i)) ->
@@ -280,7 +280,6 @@ let rec evaluate env lastvar cls =
 
 let eval (Expr(cls)) =
   Random.self_init ();
-  print_endline "This should not be printed";
   let env = Environment.create(20) in
   let repl_fn = repl_fn_for cls (Freshening_stack []) Var_set.empty in
   let cls' = List.map (var_replace_clause repl_fn) cls in

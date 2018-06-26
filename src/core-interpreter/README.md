@@ -25,11 +25,9 @@ lookup
 
 
 new approach
-make new implementation that is comlpetely naive and super close to actual spec
+make new implementation that is completely naive and super close to actual spec
 start with graph
-
-Any reason why Achintya didn't use ocaml built ins?
 
 currently at initialize graph
 
-going to try to remove some dependencies in oasis now
+makign new graph - just added module 
