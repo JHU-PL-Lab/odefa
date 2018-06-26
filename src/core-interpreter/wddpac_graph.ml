@@ -93,11 +93,12 @@ struct
     |> Enum.filter (fun (Wddpac_edge(_,acl')) -> equal_annotated_clause acl acl')
   ;;
 
-  (* not sure what these two methods do. think its for pretty printing *)
+  (* returns an enumeration of other annotated_clauses that have edges to acl *)
   let preds acl g =
     edges_to acl g |> Enum.map (fun (Wddpac_edge(acl,_)) -> acl)
   ;;
 
+  (* returns an enumeration of other annotated_clauses that have edges from acl *)
   let succs acl g =
     edges_from acl g |> Enum.map (fun (Wddpac_edge(_,acl)) -> acl)
   ;;

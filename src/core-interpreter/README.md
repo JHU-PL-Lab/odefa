@@ -26,4 +26,8 @@ lookup
 
 new approach
 make new implementation that is comlpetely naive and super close to actual spec
-start with graph 
+start with graph
+
+Any reason why Achintya didn't use ocaml built ins?
+
+currently at initialize graph

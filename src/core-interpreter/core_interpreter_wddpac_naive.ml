@@ -19,6 +19,7 @@ let show_evaluation_environment = pp_to_string pp_evaluation_environment;;
 
 exception Evaluation_failure of string;;
 
+(* returns the last program point of the program *)
 let rv body =
   match body with
   | [] -> raise @@ Utils.Invariant_failure "empty function body provided to rv"
@@ -31,13 +32,13 @@ let rv body =
    map.
 *)
 let add_edges edges_in graph =
+  (* filer out edges already in the graph *)
   let edges =
     edges_in
     |> Enum.filter
       (fun edge -> not @@ Wddpac_graph.has_edge edge graph)
   in
   if Enum.is_empty edges then graph else
-
     (* ***
        Add the edge to the DDPA graph.
     *)
