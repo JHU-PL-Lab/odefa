@@ -79,92 +79,20 @@ Library "core-interpreter"
     odefa.core-ast,
     odefa.utils
 
-Library "ddpa-analysis_types"
-  FindlibName: types
-  FindlibParent: ddpa-analysis
-  Path: src/ddpa-analysis/types
-  Modules:
-    Ddpa_abstract_ast,
-    Ddpa_abstract_stores,
-    Ddpa_graph,
-    Decorated_deque
-  BuildDepends:
-    batteries,
-    jhupllib,
-    pds-reachability,
-    odefa.core-ast
-
-Library "ddpa-analysis_utils"
-  FindlibName: utils
-  FindlibParent: ddpa-analysis
-  Path: src/ddpa-analysis/utils
-  Modules:
-    Ddpa_utils
-  BuildDepends:
-    batteries,
-    jhupllib,
-    odefa.core-ast,
-    odefa.ddpa-analysis.types,
-    odefa.utils
-
-Library "ddpa-analysis_pds"
-  FindlibName: pds
-  FindlibParent: ddpa-analysis
-  Path: src/ddpa-analysis/pds
-  Modules:
-    Ddpa_pds_dynamic_pop_handler,
-    Ddpa_pds_dynamic_pop_types,
-    Ddpa_pds_edge_functions,
-    Ddpa_pds_structure_types
-  BuildDepends:
-    batteries,
-    jhupllib,
-    pds-reachability,
-    odefa.core-ast,
-    odefa.utils,
-    odefa.ddpa-analysis.types,
-    odefa.ddpa-analysis.utils
-
-Library "ddpa-analysis"
-  FindlibName: ddpa-analysis
-  FindlibParent: odefa
-  Path: src/ddpa-analysis
-  Modules:
-    Ddpa_analysis_logging,
-    Ddpa_analysis
-  BuildDepends:
-    batteries,
-    jhupllib,
-    monadlib,
-    ocaml-monadic (>= 0.3.1),
-    pds-reachability,
-    ppx_deriving.std (>= 3.2),
-    ppx_deriving_yojson,
-    odefa.core-ast,
-    odefa.ddpa-analysis.pds,
-    odefa.ddpa-analysis.types,
-    odefa.ddpa-analysis.utils
-
 Library "core-toploop"
   FindlibParent: odefa
   Path: src/core-toploop
   Modules:
     Core_toploop,
-    Core_toploop_analysis,
-    Core_toploop_analysis_types,
-    Core_toploop_ddpa_wrapper,
-    Core_toploop_ddpa_wrapper_types,
     Core_toploop_option_parsers,
     Core_toploop_options,
-    Core_toploop_types,
-    Core_toploop_utils
+    Core_toploop_types
   BuildDepends:
     batteries,
     jhupllib,
     odefa.core-ast,
     odefa.core-interpreter,
-    odefa.core-parser,
-    odefa.ddpa-analysis
+    odefa.core-parser
 
 Executable "core_toploop"
   Path: src/core-toploop-main

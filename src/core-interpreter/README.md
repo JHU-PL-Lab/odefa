@@ -31,3 +31,5 @@ start with graph
 Any reason why Achintya didn't use ocaml built ins?
 
 currently at initialize graph
+
+going to try to remove some dependencies in oasis now
