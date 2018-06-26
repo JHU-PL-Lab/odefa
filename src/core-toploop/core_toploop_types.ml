@@ -3,18 +3,15 @@
    types need not be re-declared on in an interface.
 *)
 
-open Jhupllib;;
-
 open Core_ast;;
 open Core_ast_pp;;
 open Core_interpreter;;
-open Ddpa_abstract_stores;;
 
 (** Represents the result of evaluating an expression.  This data type also
     captures exceptional cases and toploop configuration properties. *)
 type evaluation_result =
-  | Evaluation_completed of value
-  (* | Evaluation_completed of var * evaluation_environment *)
+  (* | Evaluation_completed of value *)
+  | Evaluation_completed of var * evaluation_environment
   (** The case in which evaluation was successful. *)
 
   | Evaluation_failure of string
@@ -29,35 +26,12 @@ type evaluation_result =
   [@@deriving show]
 ;;
 
-(** Represents the information produced by a variable analysis. *)
-type variable_analysis =
-  (string * string option) * Abstract_store_set.t
-;;
-let pp_variable_analysis =
-  Pp_utils.pp_tuple
-    (Pp_utils.pp_tuple
-       Format.pp_print_string
-       (Pp_utils.pp_option Format.pp_print_string))
-    Ddpa_abstract_stores.Abstract_store_set.pp
-;;
-
 (** Represents the result of processing an expression in the toploop. *)
 type result =
   {
     illformednesses : Core_ast_wellformedness.illformedness list;
     (** A set of ill-formednesses discovered in the expression.  If this set is
         non-empty, then the remaining components of the result will be empty. *)
-
-    analyses : variable_analysis list;
-    (** An association list from each requested variable analysis to the
-        possible values of that variable under those conditions.  If no
-        analyses were requested or if the expression was ill-formed, this
-        list will be empty. *)
-
-    errors : Core_toploop_analysis_types.error list;
-    (** A list of the errors discovered in the provided expression by the
-        core toploop analysis.  If no error checking was requested or if the
-        expression was ill-formed, this list will be empty. *)
 
     evaluation_result : evaluation_result
     (** The result of evaluating the provided expression.  This will be absent
@@ -72,12 +46,8 @@ type result =
     the entire result to be produced. *)
 type callbacks =
   { cb_illformednesses : Core_ast_wellformedness.illformedness list -> unit
-  ; cb_variable_analysis :
-      string -> string option -> Abstract_store_set.t -> unit
-  ; cb_errors : Core_toploop_analysis_types.error list -> unit
   ; cb_evaluation_result : var -> value Environment.t -> unit
   ; cb_evaluation_failed : string -> unit
   ; cb_evaluation_disabled : unit -> unit
-  ; cb_size_report_callback : int * int * int * int * int -> unit
   }
 ;;
