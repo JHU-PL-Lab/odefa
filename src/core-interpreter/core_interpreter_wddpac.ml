@@ -6,7 +6,7 @@ open Core_ast;;
 (* open Core_ast_pp;; *)
 
 open Unbounded_context_stack;;
-open Wddpac_graph;;
+open Wddpac_graph_hashtbl;;
 
 let lazy_logger = Logger_utils.make_lazy_logger "Interpreter";;
 
@@ -29,24 +29,24 @@ let rec initialize_graph cls graph ctx =
       match cl2 with
       | Value_body(Value_function(Function_value(x', Expr(e))) as f) ->
 
-        Wddpac_graph.add_edge (x', Start_clause(Some(x')), ctx) graph;
+        Wddpac_graph_hashtbl.add_edge (x', Start_clause(Some(x')), ctx) graph;
         initialize_graph e graph (Some(x'));
 
-        Wddpac_graph.add_edge (x, Function(x', rv e, f), ctx) graph;
+        Wddpac_graph_hashtbl.add_edge (x, Function(x', rv e, f), ctx) graph;
         initialize_graph tl graph ctx
 
       | Conditional_body(xc,p,Function_value(x1, Expr(e1)),Function_value(x2, Expr(e2))) ->
 
-        Wddpac_graph.add_edge (x1, Start_clause(Some(x1)), ctx) graph;
+        Wddpac_graph_hashtbl.add_edge (x1, Start_clause(Some(x1)), ctx) graph;
         initialize_graph e1 graph (Some(x1));
 
-        Wddpac_graph.add_edge (x2, Start_clause(Some(x2)), ctx) graph;
+        Wddpac_graph_hashtbl.add_edge (x2, Start_clause(Some(x2)), ctx) graph;
         initialize_graph e2 graph (Some(x2));
 
-        Wddpac_graph.add_edge (x, Conditional_clause(xc,p,x1,rv e1, x2, rv e2), ctx) graph;
+        Wddpac_graph_hashtbl.add_edge (x, Conditional_clause(xc,p,x1,rv e1, x2, rv e2), ctx) graph;
         initialize_graph tl graph ctx
       | _ ->
-        Wddpac_graph.add_edge (x, Unannotated_clause(cl), ctx) graph;
+        Wddpac_graph_hashtbl.add_edge (x, Unannotated_clause(cl), ctx) graph;
         initialize_graph tl graph ctx
     end
 ;;
@@ -265,7 +265,7 @@ let rec check_formula formula : int_or_bool =
 
 let rec lookup graph var formula context_stack iota : Unbounded_context_stack.return_type =
   (* Align *)
-  let Graph_node(node, loc) = Wddpac_graph.lookup var graph in
+  let Graph_node(node, loc) = Wddpac_graph_hashtbl.lookup var graph in
 
   (* Process Graph Node *)
   begin
@@ -513,7 +513,7 @@ and process_vars vars graph context_stack env =
 
 let eval (Expr(cls)) : Core_ast.var * value Core_interpreter.Environment.t =
   let context_stack = Unbounded_Stack.empty in
-  let graph = Wddpac_graph.empty in
+  let graph = Wddpac_graph_hashtbl.empty in
   initialize_graph cls graph None;
   let rx = rv cls in
   (* is it always the case that the formula for the v will always be true?

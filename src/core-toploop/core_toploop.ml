@@ -1,20 +1,13 @@
 open Batteries;;
 open Jhupllib;;
 
-(* open Core_ast;; *)
+open Core_ast;;
 open Core_ast_pp;;
 open Core_ast_wellformedness;;
 open Core_interpreter;;
-(* open Core_toploop_option_parsers;; *)
 open Core_toploop_options;;
 open Core_toploop_types;;
-(* open Core_toploop_utils;; *)
-(* open Ddpa_abstract_ast;; *)
 open Ddpa_abstract_stores;;
-(* open Ddpa_analysis_logging;; *)
-(* open Ddpa_graph;; *)
-
-(* exception Invalid_variable_analysis of string;; *)
 
 let stdout_illformednesses_callback ills =
   print_string "Provided expression is ill-formed:\n";
@@ -104,196 +97,6 @@ let stdout_callbacks =
   }
 ;;
 
-(*
-let do_analysis_steps callbacks conf e =
-  (* If no one wants an analysis, don't waste the effort. *)
-  if conf.topconf_disable_inconsistency_check &&
-     conf.topconf_analyze_vars ==
-     Analyze_no_variables &&
-     not conf.topconf_report_sizes
-  then ([], [])
-  else
-    match conf.topconf_max_stack_delta with
-    | None -> ([], []) (* Nothing can be done without a context stack. *)
-    | Some max_stack_delta ->
-      (* Define the analysis module. *)
-      let module Analysis = Ddpa_analysis.Make(
-        struct
-          let maximum_trace_length = max_stack_delta
-        end
-        )
-      in
-      (* Define the convenience wrapper. *)
-      let module DDPA_wrapper = Core_toploop_ddpa_wrapper.Make(Analysis) in
-      (* Set up the logging configuration for the analysis. *)
-      let ddpa_cfg_logging_level =
-        begin
-          match conf.topconf_ddpa_log_level with
-          | Some level -> level
-          | None -> Ddpa_analysis_logging.Log_nothing;
-        end
-      in
-      let ddpa_pdr_logging_level =
-        begin
-          match conf.topconf_pdr_log_level with
-          | Some level -> level
-          | None -> Ddpa_analysis_logging.Log_nothing;
-        end
-      in
-      let ddpa_graph_log_file_name = conf.topconf_graph_log_file_name in
-      (* Set up the DDPA logging configuration.  This includes the function
-         which will write JSON records to a file as they are reported.  For
-         cleanup, we keep the file in an option ref.
-      *)
-      let graph_log_file = ref None in
-      let ddpa_logging_config =
-        { ddpa_pdr_logging_level = ddpa_pdr_logging_level
-        ; ddpa_cfg_logging_level = ddpa_cfg_logging_level
-        ; ddpa_pdr_deltas = conf.topconf_pdr_log_deltas
-        ; ddpa_json_logger =
-            match ddpa_cfg_logging_level, ddpa_pdr_logging_level with
-            | Log_nothing, Log_nothing -> (fun _ -> ())
-            | _, _ ->
-              (fun json ->
-                 let file =
-                   begin
-                     match !graph_log_file with
-                     | None ->
-                       let file = File.open_out ddpa_graph_log_file_name in
-                       graph_log_file := Some file;
-                       IO.nwrite file "[\n";
-                       file
-                     | Some file ->
-                       IO.nwrite file "\n,\n";
-                       file
-                   end
-                 in
-                 let json_string =
-                   Yojson.Safe.pretty_to_string ~std:true json
-                 in
-                 IO.nwrite file json_string
-              )
-        }
-      in
-      (* The rest of this is wrapped in a finally so that, if a JSON graph log
-         file is created, it will be properly closed even if an exception is
-         raised.
-      *)
-      () |> finally
-        (fun () ->
-           match !graph_log_file with
-           | None -> ()
-           | Some file ->
-             IO.nwrite file "\n]\n";
-             IO.close_out file
-        )
-        (fun () ->
-           (* Create the analysis.  The wrapper performs full closure on it. *)
-           let analysis =
-             DDPA_wrapper.create_analysis
-               ~logging_config:(Some ddpa_logging_config)
-               e
-           in
-           (* We'll now define a couple of functions to perform the
-              analysis-related tasks and then call them below. *)
-           (* This function performs a simple error check. *)
-           let check_for_errors () =
-             if conf.topconf_disable_inconsistency_check
-             then []
-             else
-               let module Error_analysis =
-                 Core_toploop_analysis.Make(DDPA_wrapper)
-               in
-               let errors =
-                 List.of_enum @@ Error_analysis.find_errors analysis
-               in
-               callbacks.cb_errors errors;
-               errors
-           in
-           (* This function takes the configuration option describing the variable
-              analysis requested on the command line and standardizes the form of
-              the request. *)
-           let standardize_variable_analysis_request () =
-             match conf.topconf_analyze_vars with
-             | Analyze_no_variables -> None
-             | Analyze_toplevel_variables ->
-               Some(
-                 e
-                 |> (fun (Expr(cls)) -> cls)
-                 |> List.enum
-                 |> Enum.map lift_clause
-                 |> Enum.map
-                   (fun (Abs_clause(Abs_var(Ident i), _)) -> (i, None))
-                 |> List.of_enum
-               )
-             | Analyze_specific_variables lst -> Some lst
-           in
-           (* Given a set of variable analysis requests, this function performs
-              them. *)
-           let analyze_variable_values requests =
-             (* We'll need a mapping from variable names to clauses. *)
-             let varname_to_clause_map =
-               e
-               |> Core_ast_tools.flatten
-               |> List.map lift_clause
-               |> List.map
-                 (fun (Abs_clause(Abs_var i,_) as c) -> (i, c))
-               |> List.enum
-               |> Ident_map.of_enum
-             in
-             (* This utility function helps us use the mapping. *)
-             let lookup_clause_by_ident ident =
-               try
-                 Ident_map.find ident varname_to_clause_map
-               with
-               | Not_found -> raise @@
-                 Invalid_variable_analysis(
-                   Printf.sprintf "No such variable: %s" (show_ident ident))
-             in
-             (* Perform each of the requested analyses. *)
-             requests
-             |> List.enum
-             |> Enum.map
-               (fun (var_name,site_name_opt) ->
-                  let var_ident = Ident var_name in
-                  let lookup_var = Abs_var var_ident in
-                  let site =
-                    match site_name_opt with
-                    | None -> End_clause (lift_var @@ last_var_of e)
-                    | Some site_name ->
-                      Unannotated_clause(
-                        lookup_clause_by_ident (Ident site_name))
-                  in
-                  let values =
-                    DDPA_wrapper.values_of_variable_from
-                      lookup_var site analysis
-                  in
-                  callbacks.cb_variable_analysis
-                    var_name site_name_opt values;
-                  ((var_name,site_name_opt),values)
-               )
-             |> List.of_enum
-           in
-           (* At this point, dump the analysis to debugging if appropriate. *)
-           lazy_logger `trace
-             (fun () -> Printf.sprintf "DDPA analysis: %s"
-                 (DDPA_wrapper.show_analysis analysis));
-           (* If size reporting has been requested, do that too. *)
-           if conf.topconf_report_sizes
-           then callbacks.cb_size_report_callback @@
-             DDPA_wrapper.get_size analysis;
-           (* Now we'll call the above routines. *)
-           let errors = check_for_errors () in
-           let analyses =
-             match standardize_variable_analysis_request () with
-             | None -> []
-             | Some requests -> analyze_variable_values requests
-           in
-           (analyses, errors)
-        )
-;;
-*)
-
 let do_evaluation callbacks conf e =
   if conf.topconf_disable_evaluation
   then
@@ -304,30 +107,10 @@ let do_evaluation callbacks conf e =
   else
     begin
       try
-        let v, env = Core_interpreter_wddpac.eval e
-          (* if conf.topconf_forward_interpreter then Core_interpreter_forward.eval e
-          else if conf.topconf_python_compiler then Core_interpreter_python.eval e
-          else if conf.topconf_church_uint then
-            (* if conf.topconf_wddpac_interpreter_map then Core_interpreter_wddpac_map_church.eval e (conf.topconf_call_by_need) *)
-            (* else  *)
-            if conf.topconf_wddpac_interpreter then
-              Core_interpreter_wddpac_church.eval e (conf.topconf_call_by_need)
-            else
-              raise @@ Utils.Invariant_failure "No church encoding of non-context stack implementation of wddpac"
-              (* Core_interpreter.eval e *)
-          else if conf.topconf_my_uint then
-            if conf.topconf_wddpac_interpreter_map then Core_interpreter_wddpac_map_my_uint.eval e (conf.topconf_call_by_need)
-            else if conf.topconf_wddpac_interpreter then Core_interpreter_wddpac_map_my_uint.eval e (conf.topconf_call_by_need)
-            else
-              raise @@ Utils.Invariant_failure "My uint implementation only for wddpac interpreters"
-          else
-            if conf.topconf_wddpac_interpreter_map then Core_interpreter_wddpac_map.eval e (conf.topconf_call_by_need)
-            else if conf.topconf_wddpac_interpreter then Core_interpreter_wddpac.eval e (conf.topconf_call_by_need)
-            else
-              Core_interpreter.eval e *)
+        let v:value = Core_interpreter_wddpac_naive.eval e
         in
-        callbacks.cb_evaluation_result v env;
-        Core_toploop_types.Evaluation_completed(v, env)
+        (* callbacks.cb_evaluation_result v env; *)
+        Core_toploop_types.Evaluation_completed(v)
       with
       | Core_interpreter.Evaluation_failure s ->
         Core_toploop_types.Evaluation_failure s
@@ -341,14 +124,8 @@ let handle_expression
   try
     (* Step 1: check for inconsistencies! *)
     check_wellformed_expr e;
-    (* Step 2: perform analyses.  This covers both variable analyses and
-       error checking. *)
-    (* let analyses, errors = do_analysis_steps callbacks conf e in *)
     (* Step 3: perform evaluation. *)
     let evaluation_result = do_evaluation callbacks conf e
-      (* if errors = []
-      then do_evaluation callbacks conf e
-      else Evaluation_invalidated *)
     in
     (* Generate answer. *)
     { illformednesses = []
