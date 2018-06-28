@@ -76,8 +76,7 @@ Library "core-interpreter"
     Core_interpreter_wddpac,
     Core_interpreter_wddpac_naive,
     Core_interpreter_wddpac_naive_2,
-    Wddpac_graph,
-    Wddpac_graph_hashtbl
+    Formula
   BuildDepends:
     batteries,
     jhupllib,
