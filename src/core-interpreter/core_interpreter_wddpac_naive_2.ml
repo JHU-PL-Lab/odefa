@@ -140,26 +140,33 @@ let rec lookup lookup_stack (node:annotated_clause) context_stack graph iota: Co
                 if check_formula (substitute_value cur_formula x v) then v else failwith "I don't know what to do here" (* might make another return type *)
               | _ -> failwith "unhandled exception when looking up iota mapping"
             end
-          (* | Appl_body(xf, xn) ->
+          | Appl_body(xf, xn) ->
             (* wire in then apply rule 9 *)
 
             (* find the definition of the function *)
             let temp_stack = Stack.create () in
             Stack.push (xf, true_formula) temp_stack;
-            let Function(param, Expr(clause_list) as body) = lookup temp_stack graph context_stack graph iota in
+            (* not sure if the Unannotated_clause(cl) is correct here *)
+            (* says the type is too specific *)
+            let Function_value(param, (Expr(clause_list) as body)) = lookup temp_stack (Unannotated_clause(cl)) context_stack graph iota in
 
             (* make new nodes *)
             let a = Enter_clause(param, xn, cl) in
-            let c = Exit_clause(cur_var, rv clause_list, cl) in
+            let x' = rv clause_list in
+            let c = Exit_clause(cur_var, x', cl) in
             let b = Unannotated_clause(body) in
 
             (* wire them in *)
+            Hashtbl.add graph node c;
             Hashtbl.add graph c b;
             Hashtbl.add graph b a;
-            Hashtbl.add graph a (Hashtbl.find graph node);
+            Hashtbl.add graph a (Hashtbl.find graph a1); (* skipping over application node *)
 
             (* now do lookup *)
-            lookup lookup_stack c *)
+            let _ = Stack.pop lookup_stack in
+            Stack.push (x', (substitute_var cur_formula x x')) lookup_stack;
+            Stack.push cl context_stack;
+            lookup lookup_stack a1 context_stack graph iota
           | _ ->
             failwith "unannotated"
         end
@@ -198,7 +205,7 @@ let rec lookup lookup_stack (node:annotated_clause) context_stack graph iota: Co
 
 
 let eval (Expr(cls)) : Core_ast.var * value Core_interpreter.Environment.t =
-  let context_stack = Stack.create () in
+  let context_stack:(clause) Stack.t = Stack.create () in
   let lookup_stack:(var * formula) Stack.t = Stack.create () in
   let iota:(Core_ast.var, Core_ast.value) Hashtbl.t = Hashtbl.create 10 in
 
