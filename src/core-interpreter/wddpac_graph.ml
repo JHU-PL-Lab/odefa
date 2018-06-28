@@ -7,7 +7,7 @@
   Annotated_Clause -> the nodes/clauses that are directly behind it.
   if a << b then b maps to a
 *)
-open Batteries;;
+(* open Batteries;; *)
 (* open Hashtbl;; *)
 
 (* open Jhupllib;; *)
@@ -28,7 +28,7 @@ type annotated_clause =
 [@@deriving ord, eq, to_yojson]
 ;;
 
-module Annotated_Clause =
+(* module Annotated_Clause =
 struct
   type t = var
   let equal = equal_var
@@ -59,7 +59,7 @@ end;;
 module Graph_impl : Graph_sig =
 struct
 
-  module Edge_tbl = Hashtbl.Make(Annotated_clause)
+  module Edge_tbl = Hashtbl.Make(Annotated_Clause)
 
   type wddpac_graph = Graph of annotated_clause Edge_tbl.t;;
 
@@ -70,8 +70,8 @@ struct
   ;;
 
   let lookup var (Graph(g)) =
-    Wddpac_edge_tbl.find g var
+    Edge_tbl.find g var
   ;;
 end;;
 
-include Graph_impl;;
+include Graph_impl;; *)

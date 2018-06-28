@@ -6,7 +6,7 @@ open Core_ast_pp;;
 open Pp_utils;;
 open Unbounded_context_stack_naive;;
 open Lookup_stack;;
-open Wddpac_graph;;
+open Wddpac_graph_original;;
 
 let lazy_logger = Logger_utils.make_lazy_logger "Interpreter";;
 
@@ -36,7 +36,7 @@ let add_edges edges_in graph =
   let edges =
     edges_in
     |> Enum.filter
-      (fun edge -> not @@ Wddpac_graph.has_edge edge graph)
+      (fun edge -> not @@ Wddpac_graph_original.has_edge edge graph)
   in
   if Enum.is_empty edges then graph else
     (* ***
@@ -44,14 +44,14 @@ let add_edges edges_in graph =
     *)
     let ddpa_graph' =
       Enum.clone edges
-      |> Enum.fold (flip Wddpac_graph.add_edge) graph
+      |> Enum.fold (flip Wddpac_graph_original.add_edge) graph
     in
     ddpa_graph'
 ;;
 
 let initialize_graph cls =
   (* Create empty graph *)
-  let empty_graph = Wddpac_graph.empty in
+  let empty_graph = Wddpac_graph_original.empty in
 
   (* Create beginning of graph from cls *)
   let rx = rv cls in
@@ -83,11 +83,11 @@ let wire site_cl func x1 x2 graph =
   let end_acl = End_clause (rv body) in
   let wire_out_acl = Exit_clause(x2,rv body,site_cl) in
   let pred_edges =
-    Wddpac_graph.preds site_acl graph
+    Wddpac_graph_original.preds site_acl graph
     |> Enum.map (fun acl' -> Wddpac_edge(acl',wire_in_acl))
   in
   let succ_edges =
-    Wddpac_graph.succs site_acl graph
+    Wddpac_graph_original.succs site_acl graph
     |> Enum.map (fun acl' -> Wddpac_edge(wire_out_acl,acl'))
   in
   let inner_edges =
@@ -107,7 +107,7 @@ let wire site_cl func x1 x2 graph =
 let rec lookup graph var node lookup_stack context_stack =
   (* recurisvely lookup, utilize context_stack for alignment *)
   (* Context stack isn't mutable, thank god *)
-  let preds = Wddpac_graph.preds node graph in
+  let preds = Wddpac_graph_original.preds node graph in
   print_endline ("Var " ^ (show_var var));
   match node with
   | Unannotated_clause(Clause(x, cl)) ->
@@ -202,7 +202,7 @@ and traverse_predecessors preds graph var lookup_stack context_stack =
 ;;
 
 let rec create_graph graph node context_stack =
-  let succs = Wddpac_graph.succs node graph in
+  let succs = Wddpac_graph_original.succs node graph in
   match node with
   | Unannotated_clause(Clause(x1, cl) as sitecl) ->
     begin

@@ -1,33 +1,6 @@
 # Todo
-1. Add interpreter support for extended grammar
-  * Input
-  * Formulae/predicates
-  * Iota dictionary - maps program points (identifiers to values (start with ints))
-  * The iota dictionary will be blank at first. First implement formula tracking
-2. Extend interpreter to keep track of formulae
-3. Make bare-bones, really simple examples
-4. Implement support for simplest rules and work up to the more subtle, complex rules.
+1. Make new file from scratch
+2. Currently remembered that lookup stack needs to have ordered pairs of var * formula
 
-wrote substitution methods - one for vars and another for values
-wrote check_formula. have not thoroughly tested any methods above
-took a first stab at the input case in lookup. right now always returns true.
-
-it is true that formula should not have vars in it when we try to satisfy it (should be substituted)
-
-so instead of using non local rules, look through context stack until you find your answer
-
-one thing I don't understand is it feels like we add all edges regardless even though
-the current rule that I am looking at talks about
-
-think rx is return variable. rule 6 in 2.3 application - a feature is that we resume
-lookup
-
-
-
-new approach
-make new implementation that is completely naive and super close to actual spec
-start with graph
-
-currently at initialize graph
-
-makign new graph - just added module 
+go through example with dr scott on conditionals
+confused about the test programs: are those written in anf already?

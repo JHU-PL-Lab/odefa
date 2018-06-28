@@ -8,7 +8,6 @@
   if a << b then b maps to a
 *)
 open Batteries;;
-open Hashtbl;;
 
 (* open Jhupllib;; *)
 
