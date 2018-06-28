@@ -89,9 +89,10 @@ let rec initialize_graph (prev: annotated_clause) (cls: clause list) (graph: (an
 *)
 let rec lookup lookup_stack (node:annotated_clause) context_stack graph iota: Core_ast.value =
   let (cur_var, cur_formula) = Stack.top lookup_stack in
+  let a1 = Hashtbl.find graph node in
   print_endline ("\nCurrent lookup variable: " ^ string_of_var cur_var);
   print_endline ("Current node: " ^ string_of_annotated_clause node);
-  match node with
+  match a1 with
   | Unannotated_clause(cl) ->
     begin
       let Clause(x, body) = cl in
@@ -100,7 +101,7 @@ let rec lookup lookup_stack (node:annotated_clause) context_stack graph iota: Co
         (
           print_endline "skip";
           (* should probably add a try with here eventually *)
-          lookup lookup_stack (Hashtbl.find graph node) context_stack graph iota
+          lookup lookup_stack a1 context_stack graph iota
         )
       else
         begin
@@ -118,14 +119,14 @@ let rec lookup lookup_stack (node:annotated_clause) context_stack graph iota: Co
               (
                 print_endline "value discard";
                 let _ = Stack.pop lookup_stack in
-                lookup lookup_stack node context_stack graph iota
+                lookup lookup_stack a1 context_stack graph iota
               )
           | Var_body(v) ->
             (* rule 4: alias *)
             print_endline "alias";
             let _ = Stack.pop lookup_stack in
             Stack.push (v, (substitute_var cur_formula cur_var v)) lookup_stack;
-            lookup lookup_stack (Hashtbl.find graph node) context_stack graph iota
+            lookup lookup_stack a1 context_stack graph iota
           | Input ->
             (* rule 2: input. TODO: right now it guesses 5 for all input clauses *)
             begin
@@ -139,6 +140,26 @@ let rec lookup lookup_stack (node:annotated_clause) context_stack graph iota: Co
                 if check_formula (substitute_value cur_formula x v) then v else failwith "I don't know what to do here" (* might make another return type *)
               | _ -> failwith "unhandled exception when looking up iota mapping"
             end
+          (* | Appl_body(xf, xn) ->
+            (* wire in then apply rule 9 *)
+
+            (* find the definition of the function *)
+            let temp_stack = Stack.create () in
+            Stack.push (xf, true_formula) temp_stack;
+            let Function(param, Expr(clause_list) as body) = lookup temp_stack graph context_stack graph iota in
+
+            (* make new nodes *)
+            let a = Enter_clause(param, xn, cl) in
+            let c = Exit_clause(cur_var, rv clause_list, cl) in
+            let b = Unannotated_clause(body) in
+
+            (* wire them in *)
+            Hashtbl.add graph c b;
+            Hashtbl.add graph b a;
+            Hashtbl.add graph a (Hashtbl.find graph node);
+
+            (* now do lookup *)
+            lookup lookup_stack c *)
           | _ ->
             failwith "unannotated"
         end
@@ -156,7 +177,7 @@ let rec lookup lookup_stack (node:annotated_clause) context_stack graph iota: Co
 ;;
 
 (* and clause_body =
-    | Value_body of value
+   | Value_body of value
    | Var_body of var
    | Appl_body of var * var
    | Conditional_body of var * pattern * function_value * function_value
