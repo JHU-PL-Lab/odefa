@@ -20,3 +20,5 @@ conditional
 
 rules that are incomplete
 2
+
+goal: finish binop and all conditional rules by next week. Then start input guessing the week after.
