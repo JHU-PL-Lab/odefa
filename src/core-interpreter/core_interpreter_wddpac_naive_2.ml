@@ -55,11 +55,20 @@ let string_of_annotated_clause cl : string =
       | Appl_body(v1,v2) -> "fcn " ^ string_of_var v1 ^ " with arg " ^ string_of_var v2
       | _ -> "some other body"
     end
+  | Enter_clause(_,_,_) ->
+    "Enter clause"
+  | Exit_clause(_,_,_) ->
+    "Exit clause"
+  | Start_clause ->
+    "Start clause"
   | End_clause ->
     "End clause"
-  | _ ->
-    failwith "d"
 ;;
+
+let print_graph graph : unit =
+  Hashtbl.iter (fun x -> fun y -> print_endline ("key, value: " ^ (string_of_annotated_clause x) ^ ", " ^ (string_of_annotated_clause y))) graph
+;;
+
 
 (* returns the last program point of the program *)
 let rv (cls: clause list) : var =
@@ -82,6 +91,22 @@ let rec initialize_graph (prev: annotated_clause) (cls: clause list) (graph: (an
   | head :: tail ->
     Hashtbl.add graph prev (Unannotated_clause(head));
     initialize_graph (Unannotated_clause(head)) tail graph
+;;
+
+(*
+
+*)
+let rec wire_in_function graph body enter_node cur_node : unit =
+  match body with
+  | [] ->
+    (* wire in enter node *)
+    Hashtbl.add graph cur_node enter_node
+  | head :: tail ->
+    let b = Unannotated_clause(head) in
+
+    (* wire them in *)
+    Hashtbl.add graph cur_node b;
+    wire_in_function graph tail enter_node b
 ;;
 
 (*
@@ -141,40 +166,51 @@ let rec lookup lookup_stack (node:annotated_clause) context_stack graph iota: Co
               | _ -> failwith "unhandled exception when looking up iota mapping"
             end
           | Appl_body(xf, xn) ->
-            (* wire in then apply rule 9 *)
+            (* wire in dyanmically to set the groundwork to apply rule 9 *)
+            print_endline "appl";
 
             (* find the definition of the function *)
             let temp_stack = Stack.create () in
             Stack.push (xf, true_formula) temp_stack;
             (* not sure if the Unannotated_clause(cl) is correct here *)
-            (* says the type is too specific *)
-            let Function_value(param, (Expr(clause_list) as body)) = lookup temp_stack (Unannotated_clause(cl)) context_stack graph iota in
+            print_endline "looking for fcn\n";
+            let fcn:value = lookup temp_stack (Unannotated_clause(cl)) context_stack graph iota in
+            print_endline "found the fcn\n";
+            begin
+              match fcn with
+              | Value_function(Function_value(param, Expr(clause_list))) ->
+                (* make new nodes *)
+                let enter_node = Enter_clause(param, xn, cl) in
+                let x' = rv clause_list in
+                let exit_node = Exit_clause(cur_var, x', cl) in
+                Hashtbl.add graph node exit_node;
+                Hashtbl.add graph enter_node (Hashtbl.find graph a1); (* skipping over application node *)
 
-            (* make new nodes *)
-            let a = Enter_clause(param, xn, cl) in
-            let x' = rv clause_list in
-            let c = Exit_clause(cur_var, x', cl) in
-            let b = Unannotated_clause(body) in
+                wire_in_function graph clause_list enter_node exit_node;
+                print_graph graph;
 
-            (* wire them in *)
-            Hashtbl.add graph node c;
-            Hashtbl.add graph c b;
-            Hashtbl.add graph b a;
-            Hashtbl.add graph a (Hashtbl.find graph a1); (* skipping over application node *)
-
-            (* now do lookup *)
-            let _ = Stack.pop lookup_stack in
-            Stack.push (x', (substitute_var cur_formula x x')) lookup_stack;
-            Stack.push cl context_stack;
-            lookup lookup_stack a1 context_stack graph iota
+                (* call lookup from current node to trigger rule 9 *)
+                lookup lookup_stack node context_stack graph iota
+              | _ ->
+                failwith "fcn wasn't a function"
+            end
           | _ ->
-            failwith "unannotated"
+            failwith "unannotated_clause not implemented yet"
         end
     end
   | Enter_clause(_,_,_) ->
     failwith "enter"
-  | Exit_clause(_,_,_) ->
-    failwith "exit"
+  | Exit_clause(original_program_point, new_program_point, Clause(x, body)) ->
+    (* its kind of a consequence of the math that this always acts like an alias *)
+    begin
+      match body with
+      | Appl_body(xf, xn) ->
+        let _ = Stack.pop lookup_stack in
+        Stack.push (x', (substitute_var cur_formula x x')) lookup_stack;
+        Stack.push cl context_stack;
+      | _ ->
+        failwith "went into fcn without appl"
+    end
   | Start_clause ->
     failwith "start"
   | End_clause ->
