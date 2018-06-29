@@ -189,6 +189,11 @@ let rec lookup lookup_stack (node:annotated_clause) context_stack graph iota: Co
                 wire_in_function graph clause_list enter_node exit_node;
                 print_graph graph;
 
+                (* doing this here because we already found x' *)
+                (* let _ = Stack.pop lookup_stack in
+                   Stack.push (x', (substitute_var cur_formula x x')) lookup_stack;
+                   Stack.push cl context_stack; *)
+
                 (* call lookup from current node to trigger rule 9 *)
                 lookup lookup_stack node context_stack graph iota
               | _ ->
@@ -198,16 +203,27 @@ let rec lookup lookup_stack (node:annotated_clause) context_stack graph iota: Co
             failwith "unannotated_clause not implemented yet"
         end
     end
-  | Enter_clause(_,_,_) ->
-    failwith "enter"
-  | Exit_clause(original_program_point, new_program_point, Clause(x, body)) ->
+  | Enter_clause(param, arg, (Clause(_,_) as cl)) ->
+    (* rule 7: function enter parameter (local) *)
+    let _ = Stack.pop lookup_stack in
+    Stack.push (arg, (substitute_var cur_formula param arg)) lookup_stack;
+    let cur_context = Stack.pop context_stack in
+    begin
+      if cur_context <> cl then
+        failwith "context did not match"
+      else
+        lookup lookup_stack a1 context_stack graph iota
+    end
+  | Exit_clause(original_program_point, new_program_point, (Clause(_, body) as cl)) ->
     (* its kind of a consequence of the math that this always acts like an alias *)
+    (* rule 9: function exit. Some premises were verified in the appl case of lookup. *)
     begin
       match body with
-      | Appl_body(xf, xn) ->
+      | Appl_body(_, _) ->
         let _ = Stack.pop lookup_stack in
-        Stack.push (x', (substitute_var cur_formula x x')) lookup_stack;
+        Stack.push (new_program_point, (substitute_var cur_formula original_program_point new_program_point)) lookup_stack;
         Stack.push cl context_stack;
+        lookup lookup_stack a1 context_stack graph iota
       | _ ->
         failwith "went into fcn without appl"
     end
