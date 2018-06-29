@@ -76,6 +76,7 @@ Library "core-interpreter"
     Core_interpreter_wddpac,
     Core_interpreter_wddpac_naive,
     Core_interpreter_wddpac_naive_2,
+    Core_interpreter_utils,
     Formula
   BuildDepends:
     batteries,

@@ -3,73 +3,8 @@ open Jhupllib;;
 
 open Core_ast;;
 open Formula;;
-(* open Core_ast_pp;; *)
-(* open Pp_utils;; *)
 
-module Annotated_Clause =
-struct
-  type t = var
-  let equal = equal_var
-  let hash = Hashtbl.hash
-end;;
-
-type annotated_clause =
-  | Unannotated_clause of clause
-  | Enter_clause of var * var * clause
-  | Exit_clause of var * var * clause
-  | Start_clause
-  (** This variable is the return variable of the block that this clause
-      starts. Removed the of var for now *)
-  | End_clause
-  (** This variable is the return variable of the block that this clause
-      ends. Removed the of var for now *)
-[@@deriving ord, eq, to_yojson]
-;;
-
-let string_of_var v : string =
-  let Var(i, _) = v in
-  let Ident(s) = i in
-  s
-;;
-
-let string_of_value v : string =
-  match v with
-  | Value_int(i) ->
-    string_of_int i
-  | Value_bool(b) ->
-    if b then "true" else "false"
-  | _ ->
-    "some other value"
-;;
-
-
-let rec string_of_annotated_clause cl : string =
-  match cl with
-  | Unannotated_clause(Clause(x,body)) ->
-    string_of_var x ^ " = " ^
-    begin
-      match body with
-      | Value_body(v) -> string_of_value v
-      | Var_body(v) -> "variable " ^ string_of_var v
-      | Input -> "input"
-      | Appl_body(v1,v2) -> "fcn " ^ string_of_var v1 ^ " with arg " ^ string_of_var v2
-      | _ -> "some other body"
-    end
-  | Enter_clause(param, arg, context_clause) ->
-    "Enter clause " ^ (string_of_var param) ^ " " ^ (string_of_var arg) ^ " " ^ string_of_annotated_clause (Unannotated_clause(context_clause))
-  | Exit_clause(original_program_point, new_program_point, context_clause) ->
-    "Exit clause " ^ (string_of_var original_program_point) ^ " " ^ (string_of_var new_program_point) ^ " " ^ string_of_annotated_clause (Unannotated_clause(context_clause))
-  | Start_clause ->
-    "Start of program"
-  | End_clause ->
-    "End of program"
-;;
-
-let print_graph graph : unit =
-  print_endline "Graph:";
-  Hashtbl.iter (fun x -> fun y -> print_endline ((string_of_annotated_clause x) ^ ", " ^ (string_of_annotated_clause y))) graph
-;;
-
+open Core_interpreter_utils;;
 
 (* returns the last program point of the program *)
 let rv (cls: clause list) : var =
@@ -95,17 +30,14 @@ let rec initialize_graph (prev: annotated_clause) (cls: clause list) (graph: (an
 ;;
 
 (*
-
+  called when appl is encountered. Creates function block and wires it into the right place
 *)
 let rec wire_in_function graph body enter_node cur_node : unit =
   match body with
   | [] ->
-    (* wire in enter node *)
     Hashtbl.add graph cur_node enter_node
   | head :: tail ->
     let b = Unannotated_clause(head) in
-
-    (* wire them in *)
     Hashtbl.add graph cur_node b;
     wire_in_function graph tail enter_node b
 ;;
@@ -125,11 +57,8 @@ let rec lookup lookup_stack (node:annotated_clause) context_stack graph iota: Co
       let Clause(x, body) = cl in
       if x <> cur_var then
         (* rule 10: Skip *)
-        (
-          print_endline "skip";
-          (* should probably add a try with here eventually *)
-          lookup lookup_stack a1 context_stack graph iota
-        )
+        (print_endline "skip";
+        lookup lookup_stack a1 context_stack graph iota)
       else
         begin
           match body with
@@ -137,17 +66,13 @@ let rec lookup lookup_stack (node:annotated_clause) context_stack graph iota: Co
             (* check size of lookup stack to determine if we use rule 1 or 3 *)
             if Stack.length lookup_stack = 1 then
               (* rule 1: value discovery *)
-              (
-                print_endline "value discovery";
-                if check_formula (substitute_value cur_formula cur_var v) then v else failwith "I don't know what to do here. Its a dead end"
-              )
+              (print_endline "value discovery";
+              if check_formula (substitute_value cur_formula cur_var v) then v else failwith "I don't know what to do here. Its a dead end")
             else
               (* rule 3: value discard *)
-              (
-                print_endline "value discard";
-                let _ = Stack.pop lookup_stack in
-                lookup lookup_stack a1 context_stack graph iota
-              )
+              (print_endline "value discard";
+              let _ = Stack.pop lookup_stack in
+              lookup lookup_stack a1 context_stack graph iota)
           | Var_body(v) ->
             (* rule 4: alias *)
             print_endline "alias";
@@ -174,10 +99,7 @@ let rec lookup lookup_stack (node:annotated_clause) context_stack graph iota: Co
             (* find the definition of the function *)
             let temp_stack = Stack.create () in
             Stack.push (xf, true_formula) temp_stack;
-            (* not sure if the Unannotated_clause(cl) is correct here *)
-            print_endline "looking for fcn\n";
             let fcn:value = lookup temp_stack (Unannotated_clause(cl)) context_stack graph iota in
-            print_endline "found the fcn\n";
             begin
               match fcn with
               | Value_function(Function_value(param, Expr(clause_list))) ->
@@ -189,12 +111,7 @@ let rec lookup lookup_stack (node:annotated_clause) context_stack graph iota: Co
                 Hashtbl.add graph enter_node (Hashtbl.find graph a1); (* skipping over application node *)
 
                 wire_in_function graph (List.rev clause_list) enter_node exit_node;
-                print_graph graph;
-
-                (* doing this here because we already found x' *)
-                (* let _ = Stack.pop lookup_stack in
-                   Stack.push (x', (substitute_var cur_formula x x')) lookup_stack;
-                   Stack.push cl context_stack; *)
+                print_graph graph; (* only for debugging *)
 
                 (* call lookup from current node to trigger rule 9 *)
                 lookup lookup_stack node context_stack graph iota
@@ -238,7 +155,6 @@ let rec lookup lookup_stack (node:annotated_clause) context_stack graph iota: Co
           failwith "enter clause: clause not an appl"
       end
   | Exit_clause(original_program_point, new_program_point, (Clause(_, body) as cl)) ->
-    (* its kind of a consequence of the math that this always acts like an alias *)
     (* rule 9: function exit. Some premises were verified in the appl case of lookup. *)
     begin
       match body with
@@ -251,11 +167,10 @@ let rec lookup lookup_stack (node:annotated_clause) context_stack graph iota: Co
         failwith "went into fcn without appl"
     end
   | Start_clause ->
-    failwith "start"
+    failwith "reached start of the program"
   | End_clause ->
     print_endline "end";
-    let new_node = Hashtbl.find graph node in
-    lookup lookup_stack new_node context_stack graph iota
+    lookup lookup_stack (Hashtbl.find graph node) context_stack graph iota
 ;;
 
 (* and clause_body =
