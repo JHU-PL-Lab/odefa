@@ -118,6 +118,24 @@ let rec lookup lookup_stack (node:annotated_clause) context_stack graph iota: Co
               | _ ->
                 failwith "fcn wasn't a function"
             end
+          | Unary_operation_body(op, var) ->
+            let _ = Stack.pop lookup_stack in
+            Stack.push (var, true_formula) lookup_stack;
+            let v:value = lookup lookup_stack a1 context_stack graph iota in
+            begin
+              match op with
+              | Unary_operator_bool_not ->
+                begin
+                  match v with
+                  | Value_bool(b) -> Value_bool(not b)
+                  | _ -> raise @@ Utils.Invariant_failure "non-bool expr with not operator"
+                end
+              | Unary_operator_bool_coin_flip ->
+                failwith "unimplemented coin flip"
+            end
+          | Conditional_body(arg, pattern, fcn_1, fcn_2) ->
+            
+            failwith "not implemented yet"
           | _ ->
             failwith "unannotated_clause not implemented yet"
         end
@@ -177,13 +195,13 @@ let rec lookup lookup_stack (node:annotated_clause) context_stack graph iota: Co
    | Value_body of value
    | Var_body of var
    | Appl_body of var * var
-   | Conditional_body of var * pattern * function_value * function_value
+   | Input
    | Projection_body of var * ident
    | Deref_body of var
    | Update_body of var * var
    | Binary_operation_body of var * binary_operator * var
    | Unary_operation_body of unary_operator * var
-   | Input
+   | Conditional_body of var * pattern * function_value * function_value
    [@@deriving eq, ord, to_yojson]
 
    (** A type to represent clauses. *)

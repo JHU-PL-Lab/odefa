@@ -19,6 +19,6 @@ conditional
 16
 
 rules that are incomplete
-2
+2: input guessing 
 
 goal: finish binop and all conditional rules by next week. Then start input guessing the week after.
