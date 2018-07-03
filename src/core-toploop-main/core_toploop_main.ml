@@ -24,7 +24,12 @@ let () =
   print_string "Please enter an expression to evaluate followed by \";;\".\n";
   print_string "\n";
   flush stdout;
-  Core_parser.parse_expressions IO.stdin
+  let expr = Core_parser.parse_expressions IO.stdin in
+  (* print_string "Please enter an expression to var followed by \";;\".\n";
+  print_string "\n";
+  flush stdout;
+  let var = Core_parser.parse_expressions IO.stdin in *)
+  expr
   |> LazyList.iter
     (fun e ->
        print_newline ();

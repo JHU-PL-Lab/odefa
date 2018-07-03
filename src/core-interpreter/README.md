@@ -1,9 +1,3 @@
-# Todo
-1. Make new file from scratch
-2. Currently remembered that lookup stack needs to have ordered pairs of var * formula
-
-currently on lookup appl
-
 rules to implement:
 
 binop
@@ -19,6 +13,10 @@ conditional
 16
 
 rules that are incomplete
-2: input guessing 
+2: input guessing
 
 goal: finish binop and all conditional rules by next week. Then start input guessing the week after.
+
+attempted to change toploop so user inputs a program point to start from, but couldn't get it to work
+
+currently doing exit clause - rules 15 and 16

@@ -17,6 +17,8 @@ let rv (cls: clause list) : var =
   Adjacency list representation
   Annotated_Clause -> the nodes/clauses that are directly behind it.
   if a << b then b maps to a since we are traversing backwards
+
+  currently initialize_graph has to do some lookup work to know
 *)
 let rec initialize_graph (prev: annotated_clause) (cls: clause list) (graph: (annotated_clause, annotated_clause) Hashtbl.t) :
   (annotated_clause, annotated_clause) Hashtbl.t =
@@ -24,13 +26,24 @@ let rec initialize_graph (prev: annotated_clause) (cls: clause list) (graph: (an
   | [] ->
     Hashtbl.add graph prev Start_clause;
     graph
-  | head :: tail ->
-    Hashtbl.add graph prev (Unannotated_clause(head));
-    initialize_graph (Unannotated_clause(head)) tail graph
+  | Clause(x,_) as head :: tail ->
+    begin
+      match head with
+      | Conditional_body(arg, pattern, Function_value(a, f1), Function_value(b, f2)) ->
+        wire_in_function graph (List.tl f1) (Enter_clause(a, arg, x)) (List.hd (List.rev fl));
+        wire_in_function graph (List.tl f2) (Enter_clause(a, arg, x)) (List.hd (List.rev f2));\
+
+        Hashtbl.add graph prev (Unannotated_clause(head));
+        initialize_graph (Unannotated_clause(head)) tail graph;
+      | _ ->
+        Hashtbl.add graph prev (Unannotated_clause(head));
+        initialize_graph (Unannotated_clause(head)) tail graph
+    end
 ;;
 
 (*
-  called when appl is encountered. Creates function block and wires it into the right place
+  called when appl or conditional is encountered.
+  Creates function block and wires it into the right place
 *)
 let rec wire_in_function graph body enter_node cur_node : unit =
   match body with
@@ -58,7 +71,7 @@ let rec lookup lookup_stack (node:annotated_clause) context_stack graph iota: Co
       if x <> cur_var then
         (* rule 10: Skip *)
         (print_endline "skip";
-        lookup lookup_stack a1 context_stack graph iota)
+         lookup lookup_stack a1 context_stack graph iota)
       else
         begin
           match body with
@@ -67,12 +80,12 @@ let rec lookup lookup_stack (node:annotated_clause) context_stack graph iota: Co
             if Stack.length lookup_stack = 1 then
               (* rule 1: value discovery *)
               (print_endline "value discovery";
-              if check_formula (substitute_value cur_formula cur_var v) then v else failwith "I don't know what to do here. Its a dead end")
+               if check_formula (substitute_value cur_formula cur_var v) then v else failwith "I don't know what to do here. Its a dead end")
             else
               (* rule 3: value discard *)
               (print_endline "value discard";
-              let _ = Stack.pop lookup_stack in
-              lookup lookup_stack a1 context_stack graph iota)
+               let _ = Stack.pop lookup_stack in
+               lookup lookup_stack a1 context_stack graph iota)
           | Var_body(v) ->
             (* rule 4: alias *)
             print_endline "alias";
@@ -134,8 +147,8 @@ let rec lookup lookup_stack (node:annotated_clause) context_stack graph iota: Co
                 failwith "unimplemented coin flip"
             end
           | Conditional_body(arg, pattern, fcn_1, fcn_2) ->
-            
-            failwith "not implemented yet"
+             (* need to *)
+
           | _ ->
             failwith "unannotated_clause not implemented yet"
         end
@@ -181,7 +194,8 @@ let rec lookup lookup_stack (node:annotated_clause) context_stack graph iota: Co
         Stack.push (new_program_point, (substitute_var cur_formula original_program_point new_program_point)) lookup_stack;
         Stack.push cl context_stack;
         lookup lookup_stack a1 context_stack graph iota
-      | _ ->
+      | Conditional_body(_,_,_,_) ->
+        (* implement rules 15 and 16 here *)
         failwith "went into fcn without appl"
     end
   | Start_clause ->
@@ -190,24 +204,6 @@ let rec lookup lookup_stack (node:annotated_clause) context_stack graph iota: Co
     print_endline "end";
     lookup lookup_stack (Hashtbl.find graph node) context_stack graph iota
 ;;
-
-(* and clause_body =
-   | Value_body of value
-   | Var_body of var
-   | Appl_body of var * var
-   | Input
-   | Projection_body of var * ident
-   | Deref_body of var
-   | Update_body of var * var
-   | Binary_operation_body of var * binary_operator * var
-   | Unary_operation_body of unary_operator * var
-   | Conditional_body of var * pattern * function_value * function_value
-   [@@deriving eq, ord, to_yojson]
-
-   (** A type to represent clauses. *)
-   and clause =
-    | Clause of var * clause_body
-   [@@deriving eq, ord, to_yojson] *)
 
 (* record rules on page 37 *)
 
@@ -218,31 +214,20 @@ let eval (Expr(cls)) : Core_ast.var * value Core_interpreter.Environment.t =
   let iota:(Core_ast.var, Core_ast.value) Hashtbl.t = Hashtbl.create 10 in
 
   let rx = rv cls in
-  (* start lookup with last program point *)
+  (* start lookup with the last program point *)
   Stack.push (rx, true_formula) lookup_stack;
+  (* Stack.push (x, true_formula) lookup_stack; *)
 
   (* make graph *)
   let graph:(annotated_clause, annotated_clause) Hashtbl.t = initialize_graph (End_clause) (List.rev cls) (Hashtbl.create 10) in
-
-  (* add in end_clause *)
-  (* for now assume Unannotated_clause, not sure if it always will be *)
-  (* Hashtbl.add graph End_clause (Unannotated_clause(List.hd (List.rev cls))); *)
 
   (* this is to fit the return value the toploop expects *)
   let env = Core_interpreter.Environment.create 10 in
 
   (* do lookup *)
   let v = lookup lookup_stack End_clause context_stack graph iota in
+  (* Core_interpreter.Environment.add env x v;
+     x, env *)
   Core_interpreter.Environment.add env rx v;
   rx, env
-
-
-
-(*
-   if not valid then raise @@ Utils.Invariant_failure "invalid graph at the end" else
-   let v = lookup complete_graph (rv cls) (End_clause(rv cls)) lookup_stack context_stack in
-   match v with
-   | None -> raise @@ Utils.Invariant_failure "Unable to evaluate"
-   | Some(v) -> v
- *)
 ;;

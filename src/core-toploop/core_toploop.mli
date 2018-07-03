@@ -14,6 +14,12 @@ val handle_expression :
   Core_toploop_options.configuration ->
   Core_ast.expr ->
   result
+(* val handle_expression :
+  ?callbacks:callbacks ->
+  Core_toploop_options.configuration ->
+  Core_ast.expr ->
+  Core_ast.expr list ->
+  result *)
 
 (** These callbacks perform no operation when called. *)
 val no_op_callbacks : callbacks
