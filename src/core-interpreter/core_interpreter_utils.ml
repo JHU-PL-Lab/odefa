@@ -11,7 +11,6 @@ type evaluation_environment = value Environment.t;;
 let pp_evaluation_environment = pp_map pp_var pp_value Environment.enum;;
 let show_evaluation_environment = pp_to_string pp_evaluation_environment;;
 
-
 module Annotated_Clause =
 struct
   type t = var
