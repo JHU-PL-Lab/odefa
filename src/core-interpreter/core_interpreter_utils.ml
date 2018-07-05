@@ -1,6 +1,16 @@
 (* file has string conversion methods and the annotated_clause type needed for the cfg construction *)
+open Jhupllib;;
 
 open Core_ast;;
+open Core_ast_pp;;
+open Pp_utils;;
+
+module Environment = Var_hashtbl;;
+
+type evaluation_environment = value Environment.t;;
+let pp_evaluation_environment = pp_map pp_var pp_value Environment.enum;;
+let show_evaluation_environment = pp_to_string pp_evaluation_environment;;
+
 
 module Annotated_Clause =
 struct

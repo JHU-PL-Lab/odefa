@@ -12,6 +12,11 @@ conditional
 15
 16
 
+oasis setup -setup-update dynamic
+./configure
+ocaml setup.ml -configure --enable-tests
+make
+
 still haven't seen an example where substitution is necessary
 
 goal: finish binop and all conditional rules by next week. Then start input guessing the week after.

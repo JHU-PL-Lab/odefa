@@ -115,18 +115,16 @@ and pp_expr formatter (Expr(cls)) =
 
 and pp_pattern formatter p =
   match p with
-  | Record_pattern(els) ->
+  (* | Record_pattern(els) ->
     let pp_element formatter (k,v) =
       Format.fprintf formatter "%a=%a" pp_ident k pp_pattern v
     in
-    pp_concat_sep_delim "{" "}" ", " pp_element formatter @@ Ident_map.enum els
+    pp_concat_sep_delim "{" "}" ", " pp_element formatter @@ Ident_map.enum els *)
   | Fun_pattern -> Format.pp_print_string formatter "fun"
-  | Ref_pattern -> Format.pp_print_string formatter "ref"
+  (* | Ref_pattern -> Format.pp_print_string formatter "ref" *)
   | Int_pattern -> Format.pp_print_string formatter "int"
-  | UInt_pattern -> Format.pp_print_string formatter "uint"
   | Bool_pattern(b) ->
     Format.pp_print_string formatter @@ if b then "true" else "false"
-  | String_pattern -> Format.pp_print_string formatter "string"
   | Any_pattern -> Format.pp_print_string formatter "any"
 ;;
 

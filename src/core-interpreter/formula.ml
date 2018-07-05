@@ -14,6 +14,7 @@ type formula =
   | Negated_formula of formula
   | Value_formula of value
   | Var_formula of var
+  | Pattern_formula of pattern
 ;;
 
 let true_formula = Value_formula(Value_bool(true));;
@@ -29,6 +30,7 @@ let rec substitute_var formula x (x':var) : formula =
       Var_formula(x')
     else
       Var_formula(v)
+  | _ -> failwith "TODO"
 ;;
 
 (* substitutes instances of x with v1 *)
@@ -42,6 +44,7 @@ let rec substitute_value formula x (v1:value) : formula =
       Value_formula(v1)
     else
       Var_formula(v)
+  | _ -> failwith "TODO"
 ;;
 
 (* formula to string converter *)
@@ -85,6 +88,7 @@ let rec string_of_formula formula : string =
           | Ident(s) -> "variable " ^ s
         end
     end
+  | _ -> failwith "TODO"
 ;;
 
 type int_or_bool = Int of int | Bool of bool;;
@@ -208,6 +212,7 @@ let rec check_formula_helper formula : int_or_bool =
       | _ -> failwith "not supported"
     end
   | Var_formula(_) -> failwith "never should have happened"
+  | _ -> failwith "TODO"
 ;;
 
 let check_formula formula : bool =

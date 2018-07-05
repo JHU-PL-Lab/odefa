@@ -30,7 +30,6 @@ module List = BatList;;
 %token KEYWORD_OR
 %token KEYWORD_NOT
 %token KEYWORD_COIN_FLIP
-%token KEYWORD_STRING
 %token KEYWORD_ANY
 %token KEYWORD_INPUT
 %token UNDERSCORE
@@ -177,35 +176,33 @@ bool_value:
   ;
 
 pattern:
-  | record_pattern
-      { $1 }
+  /* | record_pattern
+      { $1 } */
   | KEYWORD_FUN
       { Fun_pattern }
-  | KEYWORD_REF
-      { Ref_pattern }
+  /* | KEYWORD_REF
+      { Ref_pattern } */
   | KEYWORD_INT
       { Int_pattern }
   | bool_pattern
       { Bool_pattern($1) }
-  | KEYWORD_STRING
-      { String_pattern }
   | KEYWORD_ANY
       { Any_pattern }
   | UNDERSCORE
       { Any_pattern }
   ;
 
-record_pattern:
+/* record_pattern:
   | OPEN_BRACE CLOSE_BRACE
       { Record_pattern(Ident_map.empty) }
   | OPEN_BRACE separated_nonempty_trailing_list(COMMA, record_pattern_element) CLOSE_BRACE
       { Record_pattern(Ident_map.of_enum @@ List.enum $2) }
-  ;
+  ; */
 
-record_pattern_element:
+/* record_pattern_element:
   | identifier EQUALS pattern
       { ($1,$3) }
-  ;
+  ; */
 
 bool_pattern:
   | KEYWORD_TRUE

@@ -149,8 +149,8 @@ let rec lookup lookup_stack (node:annotated_clause) context_stack graph iota: Co
           | Conditional_body(arg, pattern, Function_value(_, Expr(f1_list)), Function_value(_, Expr(f2_list))) ->
 
             print_endline "conditional";
-            (* first figure out which fcn to use *)
-            Stack.push (arg, true_formula) lookup_stack;
+            (* first figure out which fcn to use. Try both branches *)
+            Stack.push (arg, Binary_formula(Var_formula(arg), Binary_operator_equal_to, Pattern_formula(pattern))) lookup_stack;
             let arg_value:Core_ast.value = lookup lookup_stack a1 context_stack graph iota in
 
             (* check pattern match and select right function *)

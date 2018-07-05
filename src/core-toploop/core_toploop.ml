@@ -2,7 +2,7 @@ open Batteries;;
 
 open Core_ast_pp;;
 open Core_ast_wellformedness;;
-open Core_interpreter;;
+open Core_interpreter_utils;;
 open Core_toploop_types;;
 open Core_toploop_options;;
 
@@ -48,7 +48,7 @@ let stdout_callbacks =
 let do_evaluation callbacks conf e =
   let v, env =
     if conf.topconf_wddpac_interpreter then
-      Core_interpreter_wddpac.eval e
+      Core_interpreter_wddpac_naive_2.eval e (* just to prevent conf from being unused *)
     else
       Core_interpreter_wddpac_naive_2.eval e
   in

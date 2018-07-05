@@ -53,7 +53,6 @@ rule token = parse
   | "any"                            { KEYWORD_ANY }
   | "input"                          { KEYWORD_INPUT }
   | "_"                              { UNDERSCORE }
-  | "string"                         { KEYWORD_STRING }
   | "-"? digit+ as n                 { INT_LITERAL (int_of_string n) }
   | "+"                              { BINOP_PLUS }
   | "-"                              { BINOP_MINUS }

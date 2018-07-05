@@ -112,7 +112,7 @@ let rec matches env x p =
   let v = lookup env x in
   match v,p with
   | _,Any_pattern -> true
-  | Value_record(Record_value(els)),Record_pattern(els') ->
+  (* | Value_record(Record_value(els)),Record_pattern(els') ->
     els'
     |> Ident_map.enum
     |> Enum.for_all
@@ -121,11 +121,10 @@ let rec matches env x p =
            matches env (Ident_map.find i els) p'
          with
          | Not_found -> false
-      )
+      ) *)
   | Value_function(Function_value(_)),Fun_pattern
-  | Value_ref(Ref_value(_)),Ref_pattern
+  (* | Value_ref(Ref_value(_)),Ref_pattern *)
   | Value_int _,Int_pattern ->
-  (* | Value_string _,String_pattern -> *)
     true
   | Value_bool actual_boolean,Bool_pattern pattern_boolean ->
     actual_boolean = pattern_boolean
