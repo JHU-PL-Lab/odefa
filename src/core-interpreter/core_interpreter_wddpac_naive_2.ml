@@ -2,9 +2,11 @@ open Batteries;;
 open Jhupllib;;
 
 open Core_ast;;
-open Formula;;
+(* open Formula;; *)
 
 open Core_interpreter_utils;;
+
+exception Evaluation_dead_end of string;;
 
 (* returns the last program point of the program *)
 let rv (cls: clause list) : var =
@@ -58,7 +60,7 @@ let rec initialize_graph (prev: annotated_clause) (cls: clause list) (graph: (an
 (*
   lookup function
 *)
-let rec lookup lookup_stack (node:annotated_clause) context_stack graph iota: Core_ast.value =
+let rec lookup lookup_stack (node:annotated_clause) context_stack graph iota: (Core_ast.value * formula) =
   let (cur_var, cur_formula) = Stack.top lookup_stack in
   let a1 = Hashtbl.find graph node in
   print_endline ("\nCurrent lookup variable: " ^ string_of_var cur_var);
@@ -80,7 +82,7 @@ let rec lookup lookup_stack (node:annotated_clause) context_stack graph iota: Co
             if Stack.length lookup_stack = 1 then
               (* rule 1: value discovery *)
               (print_endline "value discovery";
-               if check_formula (substitute_value cur_formula cur_var v) then v else failwith "I don't know what to do here. Its a dead end")
+               if check_formula (substitute_value cur_formula cur_var v) then (v, cur_formula) else failwith "I don't know what to do here. Its a dead end")
             else
               (* rule 3: value discard *)
               (print_endline "value discard";
@@ -97,12 +99,12 @@ let rec lookup lookup_stack (node:annotated_clause) context_stack graph iota: Co
             begin
               try
                 let v = Hashtbl.find iota cur_var in
-                if check_formula (substitute_value cur_formula cur_var v) then v else failwith "I don't know what to do here. Its a dead end"
+                if check_formula (substitute_value cur_formula cur_var v) then (v,cur_formula) else failwith "I don't know what to do here. Its a dead end"
               with
               | Not_found ->
                 let v = Value_int(5) in
                 Hashtbl.add iota x v;
-                if check_formula (substitute_value cur_formula x v) then v else failwith "I don't know what to do here" (* might make another return type *)
+                if check_formula (substitute_value cur_formula x v) then (v,cur_formula) else failwith "I don't know what to do here" (* might make another return type *)
               | _ -> failwith "unhandled exception when looking up iota mapping"
             end
           | Appl_body(xf, xn) ->
@@ -112,7 +114,7 @@ let rec lookup lookup_stack (node:annotated_clause) context_stack graph iota: Co
             (* find the definition of the function *)
             let temp_stack = Stack.create () in
             Stack.push (xf, true_formula) temp_stack;
-            let fcn:value = lookup temp_stack (Unannotated_clause(cl)) context_stack graph iota in
+            let fcn,_ = lookup temp_stack (Unannotated_clause(cl)) context_stack graph iota in
             begin
               match fcn with
               | Value_function(Function_value(param, Expr(clause_list))) ->
@@ -134,41 +136,56 @@ let rec lookup lookup_stack (node:annotated_clause) context_stack graph iota: Co
           | Unary_operation_body(op, var) ->
             let _ = Stack.pop lookup_stack in
             Stack.push (var, true_formula) lookup_stack;
-            let v:value = lookup lookup_stack a1 context_stack graph iota in
+            let v,v_formula = lookup lookup_stack a1 context_stack graph iota in
             begin
               match op with
               | Unary_operator_bool_not ->
                 begin
                   match v with
-                  | Value_bool(b) -> Value_bool(not b)
+                  | Value_bool(b) -> (Value_bool(not b), v_formula) (* TODO: think it doesn't change *)
                   | _ -> raise @@ Utils.Invariant_failure "non-bool expr with not operator"
                 end
               | Unary_operator_bool_coin_flip ->
                 failwith "unimplemented coin flip"
             end
-          | Conditional_body(arg, pattern, Function_value(_, Expr(f1_list)), Function_value(_, Expr(f2_list))) ->
+          (* | Conditional_body(arg, pattern, Function_value(_, Expr(f1_list)), Function_value(_, Expr(f2_list))) ->
 
             print_endline "conditional";
-            (* first figure out which fcn to use. Try both branches *)
+            (* Try both branches. First branch is true branch *)
             Stack.push (arg, Binary_formula(Var_formula(arg), Binary_operator_equal_to, Pattern_formula(pattern))) lookup_stack;
-            let arg_value:Core_ast.value = lookup lookup_stack a1 context_stack graph iota in
-
-            (* check pattern match and select right function *)
-            let fcn_list =
-              (
-                if (matches arg_value pattern) then (* fcn1 *)
-                  f1_list
-                else (* fcn2 *)
-                  f2_list
-              )
+            let arg_value_true,formula_1 =
+              try
+                lookup lookup_stack a1 context_stack graph iota
+              with
+              | Evaluation_dead_end(msg) ->
+                (Empty_value, true_formula)
             in
+
+            begin
+              match arg_value_true with
+              | Empty_value ->
+                ()
+              | _ ->
+                ()
+            end
+
+            Stack.push (arg, Negated_formula(Binary_formula(Var_formula(arg), Binary_operator_equal_to, Pattern_formula(pattern)))) lookup_stack;
+            let arg_value_false,formula_2 =
+              try
+                lookup lookup_stack a1 context_stack graph iota
+              with
+              | Evaluation_dead_end(msg) ->
+                (Empty_value, true_formula)
+            in
+
+
 
             (* need to make exit clause now *)
             let new_node = Exit_clause(x, rv fcn_list, cl) in
             (* add exit node to graph, attach rest of function nodes and run again from current node with new binding *)
             Hashtbl.add graph node new_node;
             Hashtbl.add graph new_node (Unannotated_clause(List.hd (List.rev fcn_list)));
-            lookup lookup_stack node context_stack graph iota
+            lookup lookup_stack node context_stack graph iota *)
           | _ ->
             failwith "unannotated_clause not implemented yet"
         end
@@ -221,7 +238,7 @@ let rec lookup lookup_stack (node:annotated_clause) context_stack graph iota: Co
         failwith "exit clause context is no appl or cond"
     end
   | Start_clause ->
-    failwith "reached start of the program"
+    raise (Evaluation_dead_end "reached start of the program")
   | End_clause ->
     print_endline "end";
     lookup lookup_stack (Hashtbl.find graph node) context_stack graph iota
@@ -230,7 +247,7 @@ let rec lookup lookup_stack (node:annotated_clause) context_stack graph iota: Co
 (* record rules on page 37 *)
 
 
-let eval (Expr(cls)) : Core_ast.var * value Core_interpreter.Environment.t =
+let eval (Expr(cls)) : Core_ast.var * value Core_interpreter.Environment.t * formula =
   let context_stack:(clause) Stack.t = Stack.create () in
   let lookup_stack:(var * formula) Stack.t = Stack.create () in
   let iota:(Core_ast.var, Core_ast.value) Hashtbl.t = Hashtbl.create 10 in
@@ -247,9 +264,9 @@ let eval (Expr(cls)) : Core_ast.var * value Core_interpreter.Environment.t =
   let env = Core_interpreter.Environment.create 10 in
 
   (* do lookup *)
-  let v = lookup lookup_stack End_clause context_stack graph iota in
+  let v,formula = lookup lookup_stack End_clause context_stack graph iota in
   (* Core_interpreter.Environment.add env x v;
      x, env *)
   Core_interpreter.Environment.add env rx v;
-  rx, env
+  rx, env, formula
 ;;

@@ -5,6 +5,7 @@
 open Core_ast;;
 open Core_interpreter;;
 open Core_toploop_types;;
+(* open Formula;; *)
 
 (** This function processes a core AST expression.  This function accepts
     callback functions which are invoked when various steps of the expression
@@ -32,7 +33,7 @@ val stdout_illformednesses_callback :
   Core_ast_wellformedness.illformedness list -> unit
 
 (** An evaluation callback which prints messages to stdout. *)
-val stdout_evaluation_result_callback : var -> value Environment.t -> unit
+val stdout_evaluation_result_callback : var -> value Environment.t -> formula -> unit
 
 (** An evaluation callback which prints failure messages to stdout *)
 val stdout_evaluation_failed_callback : string -> unit

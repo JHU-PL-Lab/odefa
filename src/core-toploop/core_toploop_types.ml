@@ -5,6 +5,8 @@
 
 open Core_ast;;
 open Core_ast_pp;;
+(* open Formula;; *)
+(* open Core_interpreter_utils;; *)
 open Core_interpreter;;
 
 (** Represents the result of evaluating an expression.  This data type also
@@ -46,7 +48,7 @@ type result =
     the entire result to be produced. *)
 type callbacks =
   { cb_illformednesses : Core_ast_wellformedness.illformedness list -> unit
-  ; cb_evaluation_result : var -> value Environment.t -> unit
+  ; cb_evaluation_result : var -> value Environment.t -> formula -> unit
   ; cb_evaluation_failed : string -> unit
   ; cb_evaluation_disabled : unit -> unit
   }

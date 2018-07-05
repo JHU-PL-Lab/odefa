@@ -3,7 +3,7 @@ open Jhupllib;;
 open Hashtbl;;
 
 open Core_ast;;
-open Formula;;
+(* open Formula;; *)
 (* open Core_ast_pp;; *)
 
 open Unbounded_context_stack;;
