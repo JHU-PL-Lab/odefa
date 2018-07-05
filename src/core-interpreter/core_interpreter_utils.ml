@@ -18,16 +18,16 @@ type annotated_clause =
 [@@deriving ord, eq, to_yojson]
 ;;
 
-(* let rec matches v p =
+let rec matches v p =
   match v,p with
   | _,Any_pattern -> true
-  | Return_function _,Fun_pattern
-  | Return_int _,Int_pattern ->
+  | Value_function _,Fun_pattern
+  | Value_int _,Int_pattern ->
     true
-  | Return_bool actual_boolean,Bool_pattern pattern_boolean ->
+  | Value_bool actual_boolean,Bool_pattern pattern_boolean ->
     actual_boolean = pattern_boolean
   | _ -> false
-;; *)
+;;
 
 let string_of_var v : string =
   let Var(i, _) = v in

@@ -133,4 +133,7 @@ and pp_pattern formatter p =
 let show_value = pp_to_string pp_value;;
 let show_clause = pp_to_string pp_clause;;
 let show_pattern = pp_to_string pp_pattern;;
-let show_brief_clause formatter (Clause(x,_)) = pp_var formatter x;;
+let show_brief_clause formatter cl =
+  match cl with
+  | Clause(x,_) -> pp_var formatter x
+;;

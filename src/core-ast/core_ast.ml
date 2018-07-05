@@ -170,6 +170,7 @@ and clause_body =
 (** A type to represent clauses. *)
 and clause =
   | Clause of var * clause_body
+  (* | Hash of var  *)
 [@@deriving eq, ord, to_yojson]
 
 (** A type to represent expressions. *)

@@ -5,7 +5,7 @@ module List = BatList;;
 
 %token <string> IDENTIFIER
 %token <int> INT_LITERAL
-%token <string> STRING_LITERAL
+/* %token <string> STRING_LITERAL */
 %token EOF
 %token OPEN_BRACE
 %token CLOSE_BRACE
@@ -69,6 +69,8 @@ expr:
 clause:
   | variable EQUALS clause_body
       { Clause($1,$3) }
+  /* | HASH variable
+      { Hash($2)} */
   ;
 
 variable:
@@ -162,10 +164,10 @@ int_value:
       { $1 }
   ;
 
-string_value:
+/* string_value:
   | STRING_LITERAL
       { $1 }
-  ;
+  ; */
 
 bool_value:
   | KEYWORD_TRUE

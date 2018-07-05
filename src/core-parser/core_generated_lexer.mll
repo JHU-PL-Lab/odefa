@@ -55,7 +55,6 @@ rule token = parse
   | "_"                              { UNDERSCORE }
   | "string"                         { KEYWORD_STRING }
   | "-"? digit+ as n                 { INT_LITERAL (int_of_string n) }
-  | "\"" (string_contents as s) "\"" { STRING_LITERAL s }
   | "+"                              { BINOP_PLUS }
   | "-"                              { BINOP_MINUS }
   | "<"                              { BINOP_LESS }

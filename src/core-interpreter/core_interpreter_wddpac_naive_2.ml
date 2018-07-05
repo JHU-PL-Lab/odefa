@@ -14,6 +14,20 @@ let rv (cls: clause list) : var =
 ;;
 
 (*
+  called when appl or conditional is encountered.
+  Creates function block and wires it into the right place
+*)
+let rec wire_in_function graph body enter_node cur_node : unit =
+  match body with
+  | [] ->
+    Hashtbl.add graph cur_node enter_node
+  | head :: tail ->
+    let b = Unannotated_clause(head) in
+    Hashtbl.add graph cur_node b;
+    wire_in_function graph tail enter_node b
+;;
+
+(*
   Adjacency list representation
   Annotated_Clause -> the nodes/clauses that are directly behind it.
   if a << b then b maps to a since we are traversing backwards
@@ -26,12 +40,12 @@ let rec initialize_graph (prev: annotated_clause) (cls: clause list) (graph: (an
   | [] ->
     Hashtbl.add graph prev Start_clause;
     graph
-  | Clause(x,_) as head :: tail ->
+  | Clause(_, body) as head :: tail ->
     begin
-      match head with
-      | Conditional_body(arg, pattern, Function_value(a, f1), Function_value(b, f2)) ->
-        wire_in_function graph (List.tl f1) (Enter_clause(a, arg, x)) (List.hd (List.rev fl));
-        wire_in_function graph (List.tl f2) (Enter_clause(a, arg, x)) (List.hd (List.rev f2));\
+      match body with
+      | Conditional_body(arg, _, Function_value(a, Expr(f1_list)), Function_value(b, Expr(f2_list))) ->
+        wire_in_function graph (List.tl f1_list) (Enter_clause(a, arg, head)) (Unannotated_clause(List.hd (List.rev f1_list)));
+        wire_in_function graph (List.tl f2_list) (Enter_clause(b, arg, head)) (Unannotated_clause(List.hd (List.rev f2_list)));
 
         Hashtbl.add graph prev (Unannotated_clause(head));
         initialize_graph (Unannotated_clause(head)) tail graph;
@@ -39,20 +53,6 @@ let rec initialize_graph (prev: annotated_clause) (cls: clause list) (graph: (an
         Hashtbl.add graph prev (Unannotated_clause(head));
         initialize_graph (Unannotated_clause(head)) tail graph
     end
-;;
-
-(*
-  called when appl or conditional is encountered.
-  Creates function block and wires it into the right place
-*)
-let rec wire_in_function graph body enter_node cur_node : unit =
-  match body with
-  | [] ->
-    Hashtbl.add graph cur_node enter_node
-  | head :: tail ->
-    let b = Unannotated_clause(head) in
-    Hashtbl.add graph cur_node b;
-    wire_in_function graph tail enter_node b
 ;;
 
 (*
@@ -146,9 +146,29 @@ let rec lookup lookup_stack (node:annotated_clause) context_stack graph iota: Co
               | Unary_operator_bool_coin_flip ->
                 failwith "unimplemented coin flip"
             end
-          | Conditional_body(arg, pattern, fcn_1, fcn_2) ->
-             (* need to *)
+          | Conditional_body(arg, pattern, Function_value(_, Expr(f1_list)), Function_value(_, Expr(f2_list))) ->
 
+            print_endline "conditional";
+            (* first figure out which fcn to use *)
+            Stack.push (arg, true_formula) lookup_stack;
+            let arg_value:Core_ast.value = lookup lookup_stack a1 context_stack graph iota in
+
+            (* check pattern match and select right function *)
+            let fcn_list =
+              (
+                if (matches arg_value pattern) then (* fcn1 *)
+                  f1_list
+                else (* fcn2 *)
+                  f2_list
+              )
+            in
+
+            (* need to make exit clause now *)
+            let new_node = Exit_clause(x, rv fcn_list, cl) in
+            (* add exit node to graph, attach rest of function nodes and run again from current node with new binding *)
+            Hashtbl.add graph node new_node;
+            Hashtbl.add graph new_node (Unannotated_clause(List.hd (List.rev fcn_list)));
+            lookup lookup_stack node context_stack graph iota
           | _ ->
             failwith "unannotated_clause not implemented yet"
         end
@@ -186,10 +206,10 @@ let rec lookup lookup_stack (node:annotated_clause) context_stack graph iota: Co
           failwith "enter clause: clause not an appl"
       end
   | Exit_clause(original_program_point, new_program_point, (Clause(_, body) as cl)) ->
-    (* rule 9: function exit. Some premises were verified in the appl case of lookup. *)
     begin
       match body with
       | Appl_body(_, _) ->
+        (* rule 9: function exit. Some premises were verified in the appl case of lookup. *)
         let _ = Stack.pop lookup_stack in
         Stack.push (new_program_point, (substitute_var cur_formula original_program_point new_program_point)) lookup_stack;
         Stack.push cl context_stack;
@@ -197,6 +217,8 @@ let rec lookup lookup_stack (node:annotated_clause) context_stack graph iota: Co
       | Conditional_body(_,_,_,_) ->
         (* implement rules 15 and 16 here *)
         failwith "went into fcn without appl"
+      | _ ->
+        failwith "exit clause context is no appl or cond"
     end
   | Start_clause ->
     failwith "reached start of the program"
