@@ -8,6 +8,8 @@ open Core_interpreter_utils;;
 
 exception Evaluation_dead_end of string;;
 
+(* module VS = Set.Make(Value);; *)
+
 (* returns the last program point of the program *)
 let rv (cls: clause list) : var =
   match cls with
@@ -82,7 +84,10 @@ let rec lookup lookup_stack (node:annotated_clause) context_stack graph iota: (C
             if Stack.length lookup_stack = 1 then
               (* rule 1: value discovery *)
               (print_endline "value discovery";
-               if check_formula (substitute_value cur_formula cur_var v) then (v, cur_formula) else failwith "I don't know what to do here. Its a dead end")
+               if check_formula (substitute_value cur_formula cur_var v) then
+                 (v, cur_formula)
+               else
+                 failwith "I don't know what to do here. Its a dead end. Return new empty value?")
             else
               (* rule 3: value discard *)
               (print_endline "value discard";
@@ -99,12 +104,18 @@ let rec lookup lookup_stack (node:annotated_clause) context_stack graph iota: (C
             begin
               try
                 let v = Hashtbl.find iota cur_var in
-                if check_formula (substitute_value cur_formula cur_var v) then (v,cur_formula) else failwith "I don't know what to do here. Its a dead end"
+                if check_formula (substitute_value cur_formula cur_var v) then
+                  (v, cur_formula)
+                else
+                  failwith "I don't know what to do here. Its a dead end"
               with
               | Not_found ->
                 let v = Value_int(5) in
                 Hashtbl.add iota x v;
-                if check_formula (substitute_value cur_formula x v) then (v,cur_formula) else failwith "I don't know what to do here" (* might make another return type *)
+                if check_formula (substitute_value cur_formula x v) then
+                  (v, cur_formula)
+                else
+                  failwith "I don't know what to do here" (* might make another return type *)
               | _ -> failwith "unhandled exception when looking up iota mapping"
             end
           | Appl_body(xf, xn) ->
@@ -133,6 +144,30 @@ let rec lookup lookup_stack (node:annotated_clause) context_stack graph iota: (C
               | _ ->
                 failwith "fcn wasn't a function"
             end
+          | Conditional_body(arg, pattern, Function_value(_, Expr(f1_list)), Function_value(_, Expr(f2_list))) ->
+            print_endline "conditional";
+            (* No non-determinism here. Execute the pattern match first to determine which function to wire in *)
+            let new_stack = Stack.create () in (* to prevent value discard from being called *)
+            Stack.push (arg, true_formula) new_stack;
+            (* isn't the formula that is returned by the next call really important?
+                feel like i need to take this formula and boolean and it with the formula that results from the last line of this match
+            *)
+            let arg_value,_ = lookup new_stack a1 context_stack graph iota in
+            let fcn_list =
+              (
+                if (matches arg_value pattern) then
+                  f1_list
+                else
+                  f2_list
+              )
+            in
+            (* need to make exit clause now *)
+            let new_node = Exit_clause(x, rv fcn_list, cl) in
+            (* add exit node to graph, attach rest of function nodes and run again from current node with new binding *)
+            Hashtbl.add graph node new_node;
+            Hashtbl.add graph new_node (Unannotated_clause(List.hd (List.rev fcn_list)));
+            print_graph graph;
+            lookup lookup_stack node context_stack graph iota
           | Unary_operation_body(op, var) ->
             let _ = Stack.pop lookup_stack in
             Stack.push (var, true_formula) lookup_stack;
@@ -148,94 +183,117 @@ let rec lookup lookup_stack (node:annotated_clause) context_stack graph iota: (C
               | Unary_operator_bool_coin_flip ->
                 failwith "unimplemented coin flip"
             end
-          (* | Conditional_body(arg, pattern, Function_value(_, Expr(f1_list)), Function_value(_, Expr(f2_list))) ->
-
-            print_endline "conditional";
-            (* Try both branches. First branch is true branch *)
-            Stack.push (arg, Binary_formula(Var_formula(arg), Binary_operator_equal_to, Pattern_formula(pattern))) lookup_stack;
-            let arg_value_true,formula_1 =
-              try
-                lookup lookup_stack a1 context_stack graph iota
-              with
-              | Evaluation_dead_end(msg) ->
-                (Empty_value, true_formula)
-            in
-
-            begin
-              match arg_value_true with
-              | Empty_value ->
-                ()
-              | _ ->
-                ()
-            end
-
-            Stack.push (arg, Negated_formula(Binary_formula(Var_formula(arg), Binary_operator_equal_to, Pattern_formula(pattern)))) lookup_stack;
-            let arg_value_false,formula_2 =
-              try
-                lookup lookup_stack a1 context_stack graph iota
-              with
-              | Evaluation_dead_end(msg) ->
-                (Empty_value, true_formula)
-            in
-
-
-
-            (* need to make exit clause now *)
-            let new_node = Exit_clause(x, rv fcn_list, cl) in
-            (* add exit node to graph, attach rest of function nodes and run again from current node with new binding *)
-            Hashtbl.add graph node new_node;
-            Hashtbl.add graph new_node (Unannotated_clause(List.hd (List.rev fcn_list)));
-            lookup lookup_stack node context_stack graph iota *)
+          (* | Binary_operation_body(v1, op, v2) ->
+             begin
+              match op with
+              | Binary_operator_plus ->
+                string_of_formula f1 ^ " + " ^ string_of_formula f2
+              | Binary_operator_int_minus ->
+                string_of_formula f1 ^ " - " ^ string_of_formula f2
+              | Binary_operator_int_less_than ->
+                string_of_formula f1 ^ " < " ^ string_of_formula f2
+              | Binary_operator_int_less_than_or_equal_to ->
+                string_of_formula f1 ^ " <= " ^ string_of_formula f2
+              | Binary_operator_equal_to ->
+                string_of_formula f1 ^ " == " ^ string_of_formula f2
+              | Binary_operator_bool_and ->
+                string_of_formula f1 ^ " && " ^ string_of_formula f2
+              | Binary_operator_bool_or ->
+                string_of_formula f1 ^ " || " ^ string_of_formula f2
+              | Binary_operator_index ->
+                string_of_formula f1 ^ " . " ^ string_of_formula f2
+             end *)
           | _ ->
             failwith "unannotated_clause not implemented yet"
         end
     end
   | Enter_clause(param, arg, (Clause(_, body) as cl)) ->
-    if param = cur_var then
-      (
-        (* rule 7: function enter parameter (local) *)
-        print_endline "enter local";
-        let _ = Stack.pop lookup_stack in
-        Stack.push (arg, (substitute_var cur_formula param arg)) lookup_stack;
-        let cur_context = Stack.pop context_stack in
-        begin
-          if cur_context <> cl then
-            failwith "context did not match"
-          else
-            lookup lookup_stack a1 context_stack graph iota
-        end
-      )
-    else
-      (* rule 8: function enter non-local *)
-      begin
-        print_endline "non-local";
-        match body with
-        | Appl_body(xf, _) ->
-          Stack.push (xf, true_formula) lookup_stack;
-          let cur_context = Stack.pop context_stack in
-          begin
+    begin
+      match body with
+      | Appl_body(xf, _) ->
+        if param = cur_var then
+          (
+            (* rule 7: function enter parameter (local) *)
+            print_endline "enter local";
+            let _ = Stack.pop lookup_stack in
+            Stack.push (arg, (substitute_var cur_formula param arg)) lookup_stack;
+            let cur_context = Stack.pop context_stack in
+            begin
+              if cur_context <> cl then
+                failwith "context did not match"
+              else
+                lookup lookup_stack a1 context_stack graph iota
+            end
+          )
+        else
+          (
+            (* rule 8: function enter non-local *)
+            print_endline "non-local";
+            Stack.push (xf, true_formula) lookup_stack;
+            let cur_context = Stack.pop context_stack in
             if cur_context <> cl then
               failwith "context did not match"
             else
               lookup lookup_stack a1 context_stack graph iota
-          end
-        | _ ->
-          failwith "enter clause: clause not an appl"
-      end
+          )
+      | Conditional_body(_, p, Function_value(_, Expr(f1_list)), Function_value(_, Expr(f2_list))) ->
+        if cur_var <> param then
+          (
+            (* rule 14. I think this should never happen either just because of the way we wire in conditionals *)
+            let _ = Stack.pop lookup_stack in
+            lookup lookup_stack a1 context_stack graph iota
+          )
+        else if Stack.is_empty lookup_stack then
+          (
+            (* we started inside a conditional *)
+            (* figure out which branch I'm in *)
+            let Clause(xf1, _) = List.hd f1_list in
+            let Clause(xf2, _) = List.hd f2_list in
+            let cur_node_var =
+              begin
+                match node with
+                | Unannotated_clause(Clause(cnv, _)) -> cnv
+                | _ -> failwith "current node is not unannotated"
+              end
+            in
+            let new_x, new_formula =
+              (
+                if xf1 = cur_node_var then
+                  xf1, Binary_formula(Var_formula(xf1), Binary_operator_equal_to, Pattern_formula(p))
+                else
+                  xf2, Negated_formula(Binary_formula(Var_formula(xf2), Binary_operator_equal_to, Pattern_formula(p)))
+              )
+            in
+            let _ = Stack.pop lookup_stack in
+            Stack.push (new_x, Binary_formula(new_formula, Binary_operator_bool_and, (substitute_var cur_formula cur_var arg))) lookup_stack;
+            lookup lookup_stack a1 context_stack graph iota;
+          )
+        else
+          (
+            (* just business as usual *)
+            let _ = Stack.pop in
+            Stack.push (arg, (substitute_var cur_formula cur_var arg))  lookup_stack;
+            let cur_context = Stack.pop context_stack in
+            if cur_context <> cl then
+              failwith "context did not match"
+            else
+              lookup lookup_stack a1 context_stack graph iota
+          )
+      | _ ->
+        failwith "enter clause context not conditional or appl"
+    end
   | Exit_clause(original_program_point, new_program_point, (Clause(_, body) as cl)) ->
     begin
       match body with
-      | Appl_body(_, _) ->
-        (* rule 9: function exit. Some premises were verified in the appl case of lookup. *)
+      | Appl_body(_, _)
+      | Conditional_body(_,_,_,_) ->
+        (* rule 9, 15, 16: function exit, conditional bottom true and false. Premises were verified in the previous match case of lookup. *)
         let _ = Stack.pop lookup_stack in
         Stack.push (new_program_point, (substitute_var cur_formula original_program_point new_program_point)) lookup_stack;
         Stack.push cl context_stack;
         lookup lookup_stack a1 context_stack graph iota
-      | Conditional_body(_,_,_,_) ->
-        (* implement rules 15 and 16 here *)
-        failwith "went into fcn without appl"
       | _ ->
-        failwith "exit clause context is no appl or cond"
+        failwith "exit clause context is not appl or cond"
     end
   | Start_clause ->
     raise (Evaluation_dead_end "reached start of the program")
@@ -257,11 +315,16 @@ let eval (Expr(cls)) : Core_ast.var * value Core_interpreter.Environment.t * for
   Stack.push (rx, true_formula) lookup_stack;
   (* Stack.push (x, true_formula) lookup_stack; *)
 
+  
+
   (* make graph *)
   let graph:(annotated_clause, annotated_clause) Hashtbl.t = initialize_graph (End_clause) (List.rev cls) (Hashtbl.create 10) in
 
   (* this is to fit the return value the toploop expects *)
   let env = Core_interpreter.Environment.create 10 in
+
+
+  (* TODO: implement the hack where last line is always alias for the program point to start at *)
 
   (* do lookup *)
   let v,formula = lookup lookup_stack End_clause context_stack graph iota in

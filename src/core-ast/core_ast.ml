@@ -144,9 +144,9 @@ and ref_value =
 [@@deriving eq, ord, to_yojson]
 
 (** A type to express empty value sets. *)
-and empty_value =
+(* and empty_value =
   | Empty_value
-[@@deriving eq, ord, to_yojson]
+[@@deriving eq, ord, to_yojson] *)
 
 (** A type to represent values. *)
 and value =

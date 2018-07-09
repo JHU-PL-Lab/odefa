@@ -50,6 +50,8 @@ let string_of_value v : string =
     string_of_int i
   | Value_bool(b) ->
     if b then "true" else "false"
+  | Value_function(Function_value(f, _)) ->
+    "Function " ^ (string_of_var f)
   | _ ->
     "some other value"
 ;;
@@ -65,6 +67,8 @@ let rec string_of_annotated_clause cl : string =
       | Var_body(v) -> "variable " ^ string_of_var v
       | Input -> "input"
       | Appl_body(v1,v2) -> "fcn " ^ string_of_var v1 ^ " with arg " ^ string_of_var v2
+      | Conditional_body(x, _, Function_value(f1, _), Function_value(f2, _)) ->
+        "conditional " ^ (string_of_var x) ^ " ~ p ? " ^ (string_of_var f1) ^ " : " ^ (string_of_var f2)
       | _ -> "some other body"
     end
   | Enter_clause(param, arg, context_clause) ->
