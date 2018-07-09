@@ -68,9 +68,9 @@ let handle_expression
     ?callbacks:(callbacks=no_op_callbacks)
     conf
     e =
-  try
+  (* try *)
     (* Step 1: check for inconsistencies! *)
-    check_wellformed_expr e;
+    (* check_wellformed_expr e; *)
     (* Step 2: perform evaluation. *)
     let evaluation_result,_ = do_evaluation callbacks conf e
     (* let evaluation_result = do_evaluation callbacks e *)
@@ -79,10 +79,10 @@ let handle_expression
     { illformednesses = []
     ; evaluation_result = evaluation_result
     }
-  with
+  (* with
   | Illformedness_found(ills) ->
     callbacks.cb_illformednesses ills;
     { illformednesses = ills
     ; evaluation_result = Evaluation_invalidated
-    }
+    } *)
 ;;

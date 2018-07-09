@@ -310,21 +310,36 @@ let eval (Expr(cls)) : Core_ast.var * value Core_interpreter.Environment.t * for
   let lookup_stack:(var * formula) Stack.t = Stack.create () in
   let iota:(Core_ast.var, Core_ast.value) Hashtbl.t = Hashtbl.create 10 in
 
-  let rx = rv cls in
+  (* let rx = rv cls in *)
   (* start lookup with the last program point *)
-  Stack.push (rx, true_formula) lookup_stack;
   (* Stack.push (x, true_formula) lookup_stack; *)
 
-  
+  (* remove last clause from program and find program point specified by it *)
+  let clause_list, rx =
+    match (List.rev cls) with
+    | [] -> failwith "empty program"
+    | Clause(_, x) :: tail ->
+      begin
+        match x with
+        | Var_body(v) ->
+          tail, v
+        | _ ->
+          failwith "last line was not an alias"
+      end
+  in
+
+  Stack.push (rx, true_formula) lookup_stack;
 
   (* make graph *)
-  let graph:(annotated_clause, annotated_clause) Hashtbl.t = initialize_graph (End_clause) (List.rev cls) (Hashtbl.create 10) in
+  let graph:(annotated_clause, annotated_clause) Hashtbl.t = initialize_graph (End_clause) clause_list (Hashtbl.create 10) in
 
   (* this is to fit the return value the toploop expects *)
   let env = Core_interpreter.Environment.create 10 in
 
 
   (* TODO: implement the hack where last line is always alias for the program point to start at *)
+  (* the starting program point is kinda of actually hard to get from the graph. Find gets its a1, not a0 *)
+  let starting_node = Hashtbl.find graph (Unannotated_clause(rx)) in
 
   (* do lookup *)
   let v,formula = lookup lookup_stack End_clause context_stack graph iota in
