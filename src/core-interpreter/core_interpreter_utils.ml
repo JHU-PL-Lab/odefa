@@ -56,7 +56,6 @@ let string_of_value v : string =
     "some other value"
 ;;
 
-
 let rec string_of_annotated_clause cl : string =
   match cl with
   | Unannotated_clause(Clause(x,body)) ->
@@ -69,6 +68,10 @@ let rec string_of_annotated_clause cl : string =
       | Appl_body(v1,v2) -> "fcn " ^ string_of_var v1 ^ " with arg " ^ string_of_var v2
       | Conditional_body(x, _, Function_value(f1, _), Function_value(f2, _)) ->
         "conditional " ^ (string_of_var x) ^ " ~ p ? " ^ (string_of_var f1) ^ " : " ^ (string_of_var f2)
+      | Unary_operation_body(op, v) ->
+        "unary " ^ (show_unary_operator op) ^ (string_of_var v)
+      | Binary_operation_body(v1, op, v2) ->
+        (string_of_var v1) ^ " " ^ (show_binary_operator op) ^ " " ^ (string_of_var v2)
       | _ -> "some other body"
     end
   | Enter_clause(param, arg, context_clause) ->

@@ -238,7 +238,7 @@ let rec substitute_var formula x (x':var) : formula =
       Var_formula(x')
     else
       Var_formula(v)
-  | _ -> failwith "TODO"
+  | Pattern_formula(p) -> Pattern_formula(p)
 ;;
 
 (* substitutes instances of x with v1 *)
@@ -252,8 +252,23 @@ let rec substitute_value formula x (v1:value) : formula =
       Value_formula(v1)
     else
       Var_formula(v)
-  | _ -> failwith "TODO"
+  | Pattern_formula(p) -> Pattern_formula(p)
 ;;
+
+(* substitutes instances of var_formula x with f *)
+let rec substitute_formula formula x (f:formula) : formula =
+  match formula with
+  | Binary_formula(f1, op, f2) -> Binary_formula(substitute_formula f1 x f, op, substitute_formula f2 x f)
+  | Negated_formula(f1) -> Negated_formula(substitute_formula f1 x f)
+  | Value_formula(v) -> Value_formula(v)
+  | Var_formula(v) ->
+    if v = x then
+      f
+    else
+      Var_formula(v)
+  | Pattern_formula(p) -> Pattern_formula(p)
+;;
+
 
 (* formula to string converter *)
 let rec string_of_formula formula : string =

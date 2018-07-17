@@ -183,26 +183,65 @@ let rec lookup lookup_stack (node:annotated_clause) context_stack graph iota: (C
               | Unary_operator_bool_coin_flip ->
                 failwith "unimplemented coin flip"
             end
-          (* | Binary_operation_body(v1, op, v2) ->
-             begin
+          | Binary_operation_body(v1, op, v2) ->
+            print_endline "binary";
+            (* implementing left first *)
+            let _ = Stack.pop lookup_stack in
+            Stack.push (v1, true_formula) lookup_stack;
+            (* TODO: check left_formula *)
+            let left_value,_ = lookup lookup_stack a1 context_stack graph iota in
+            let new_formula = substitute_formula cur_formula cur_var (Binary_formula(Value_formula(left_value), op, Var_formula(v2))) in
+            (* pop off v1 *)
+            let _ = Stack.pop lookup_stack in
+            Stack.push (v2, new_formula) lookup_stack;
+            let right_value,_ = lookup lookup_stack a1 context_stack graph iota in
+            begin
               match op with
               | Binary_operator_plus ->
-                string_of_formula f1 ^ " + " ^ string_of_formula f2
+                begin
+                  match left_value, right_value with
+                  | Value_int(i1), Value_int(i2) -> Value_int(i1 + i2), new_formula
+                  | _ -> failwith "tried to add non-int"
+                end
               | Binary_operator_int_minus ->
-                string_of_formula f1 ^ " - " ^ string_of_formula f2
+                begin
+                  match left_value, right_value with
+                  | Value_int(i1), Value_int(i2) -> Value_int(i1 - i2), new_formula
+                  | _ -> failwith "tried to subtract non-int"
+                end
               | Binary_operator_int_less_than ->
-                string_of_formula f1 ^ " < " ^ string_of_formula f2
+                begin
+                  match left_value, right_value with
+                  | Value_int(i1), Value_int(i2) -> Value_bool(i1 < i2), new_formula
+                  | _ -> failwith "tried to less than non-int"
+                end
               | Binary_operator_int_less_than_or_equal_to ->
-                string_of_formula f1 ^ " <= " ^ string_of_formula f2
+                begin
+                  match left_value, right_value with
+                  | Value_int(i1), Value_int(i2) -> Value_bool(i1 <= i2), new_formula
+                  | _ -> failwith "tried to less than or equal to non-int"
+                end
               | Binary_operator_equal_to ->
-                string_of_formula f1 ^ " == " ^ string_of_formula f2
+                begin
+                  match left_value, right_value with
+                  | Value_int(i1), Value_int(i2) -> Value_bool(i1 = i2), new_formula
+                  | Value_bool(b1), Value_bool(b2) -> Value_bool(b1 = b2), new_formula
+                  | _ -> failwith "tried to equal two different types"
+                end
               | Binary_operator_bool_and ->
-                string_of_formula f1 ^ " && " ^ string_of_formula f2
+                begin
+                  match left_value, right_value with
+                  | Value_bool(b1), Value_bool(b2) -> Value_bool(b1 && b2), new_formula
+                  | _ -> failwith "tried to and non-booleans"
+                end
               | Binary_operator_bool_or ->
-                string_of_formula f1 ^ " || " ^ string_of_formula f2
-              | Binary_operator_index ->
-                string_of_formula f1 ^ " . " ^ string_of_formula f2
-             end *)
+                begin
+                  match left_value, right_value with
+                  | Value_bool(b1), Value_bool(b2) -> Value_bool(b1 || b2), new_formula
+                  | _ -> failwith "tried to and non-booleans"
+                end
+              | Binary_operator_index -> failwith "index not done yet"
+            end
           | _ ->
             failwith "unannotated_clause not implemented yet"
         end
@@ -304,21 +343,20 @@ let rec lookup lookup_stack (node:annotated_clause) context_stack graph iota: (C
 
 (* record rules on page 37 *)
 
-
 let eval (Expr(cls)) : Core_ast.var * value Core_interpreter.Environment.t * formula =
   let context_stack:(clause) Stack.t = Stack.create () in
   let lookup_stack:(var * formula) Stack.t = Stack.create () in
   let iota:(Core_ast.var, Core_ast.value) Hashtbl.t = Hashtbl.create 10 in
 
-  (* let rx = rv cls in *)
+  let rx = rv cls in
   (* start lookup with the last program point *)
-  (* Stack.push (x, true_formula) lookup_stack; *)
+  Stack.push (rx, true_formula) lookup_stack;
 
   (* remove last clause from program and find program point specified by it *)
-  let clause_list, rx =
-    match (List.rev cls) with
-    | [] -> failwith "empty program"
-    | Clause(_, x) :: tail ->
+  (* let clause_list, rx =
+     match (List.rev cls) with
+     | [] -> failwith "empty program"
+     | Clause(_, x) :: tail ->
       begin
         match x with
         | Var_body(v) ->
@@ -326,12 +364,13 @@ let eval (Expr(cls)) : Core_ast.var * value Core_interpreter.Environment.t * for
         | _ ->
           failwith "last line was not an alias"
       end
-  in
+     in *)
 
-  Stack.push (rx, true_formula) lookup_stack;
+  (* Stack.push (rx, true_formula) lookup_stack; *)
 
   (* make graph *)
-  let graph:(annotated_clause, annotated_clause) Hashtbl.t = initialize_graph (End_clause) clause_list (Hashtbl.create 10) in
+  (* let graph:(annotated_clause, annotated_clause) Hashtbl.t = initialize_graph (End_clause) clause_list (Hashtbl.create 10) in *)
+  let graph:(annotated_clause, annotated_clause) Hashtbl.t = initialize_graph (End_clause) (List.rev cls) (Hashtbl.create 10) in
 
   (* this is to fit the return value the toploop expects *)
   let env = Core_interpreter.Environment.create 10 in
@@ -339,7 +378,7 @@ let eval (Expr(cls)) : Core_ast.var * value Core_interpreter.Environment.t * for
 
   (* TODO: implement the hack where last line is always alias for the program point to start at *)
   (* the starting program point is kinda of actually hard to get from the graph. Find gets its a1, not a0 *)
-  let starting_node = Hashtbl.find graph (Unannotated_clause(rx)) in
+  (* let starting_node = Hashtbl.find graph (Unannotated_clause(rx)) in *)
 
   (* do lookup *)
   let v,formula = lookup lookup_stack End_clause context_stack graph iota in
