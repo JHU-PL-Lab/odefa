@@ -118,3 +118,21 @@ let find_starting_node graph v : annotated_clause =
   let list_of_graph = Hashtbl.to_list graph in
   find_starting_node_helper list_of_graph v
 ;;
+
+(* right now successor only works for a single input var *)
+let successor iota : (Core_ast.var, Core_ast.value) Hashtbl.t =
+  let f _ cur_value =
+    let value =
+      match cur_value with
+      | Value_int(i) -> i
+      | _ -> failwith "iota had non-integer mapping"
+    in
+    if value = 0 then
+      Value_int(1)
+    else if value < 0 then
+      Value_int(value * -1 + 1)
+    else
+      Value_int(value * -1)
+  in
+  Hashtbl.map f iota
+;;

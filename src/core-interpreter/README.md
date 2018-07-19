@@ -16,3 +16,5 @@ non-determinism points
 binary op
 input
 function enter
+
+first attempt at successor, haven't tested at all

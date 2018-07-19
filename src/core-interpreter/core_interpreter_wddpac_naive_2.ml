@@ -88,11 +88,13 @@ let rec lookup lookup_stack (node:annotated_clause) context_stack graph iota: (C
             (* check size of lookup stack to determine if we use rule 1 or 3 *)
             if Stack.length lookup_stack = 1 then
               (* rule 1: value discovery *)
-              (print_endline "value discovery";
-               if check_formula (substitute_value cur_formula cur_var v) then
-                 (v, cur_formula)
-               else
-                 failwith "I don't know what to do here. Its a dead end. Return new empty value?")
+              (
+                print_endline "value discovery";
+                if check_formula (substitute_value cur_formula cur_var v) then
+                  (v, cur_formula)
+                else
+                  raise (Evaluation_dead_end "formula unsatisfied")
+              )
             else
               (* rule 3: value discard *)
               (print_endline "value discard";
@@ -112,7 +114,7 @@ let rec lookup lookup_stack (node:annotated_clause) context_stack graph iota: (C
                 if check_formula (substitute_value cur_formula cur_var v) then
                   (v, cur_formula)
                 else
-                  failwith "I don't know what to do here. Its a dead end"
+                  raise (Evaluation_dead_end "formula unsatisfied")
               with
               | Not_found ->
                 let v = Value_int(5) in
@@ -120,7 +122,7 @@ let rec lookup lookup_stack (node:annotated_clause) context_stack graph iota: (C
                 if check_formula (substitute_value cur_formula x v) then
                   (v, cur_formula)
                 else
-                  failwith "I don't know what to do here" (* might make another return type *)
+                  raise (Evaluation_dead_end "formula unsatisfied")
               | _ -> failwith "unhandled exception when looking up iota mapping"
             end
           | Appl_body(xf, xn) ->
@@ -373,8 +375,17 @@ let rec lookup lookup_stack (node:annotated_clause) context_stack graph iota: (C
     raise (Evaluation_dead_end "reached start of the program")
   | End_clause ->
     print_endline "end";
-    lookup lookup_stack (Hashtbl.find graph node) context_stack graph iota
+    lookup lookup_stack a1 context_stack graph iota
 ;;
+
+let rec eval_helper lookup_stack starting_node context_stack graph iota : Core_ast.value * formula =
+  try
+    lookup lookup_stack starting_node context_stack graph iota
+  with
+  | Evaluation_dead_end(_) ->
+    eval_helper lookup_stack starting_node context_stack graph (successor iota)
+;;
+
 
 let eval (Expr(cls)) : Core_ast.var * value Core_interpreter.Environment.t * formula =
   let context_stack:(clause) Stack.t = Stack.create () in
@@ -409,7 +420,7 @@ let eval (Expr(cls)) : Core_ast.var * value Core_interpreter.Environment.t * for
   (* do lookup *)
   let _ = Stack.pop lookup_stack in (* remove rx from lookup stack *)
   Stack.push (starting_program_point, true_formula) lookup_stack;
-  let v,formula = lookup lookup_stack starting_node context_stack graph iota in
+  let v,formula = eval_helper lookup_stack starting_node context_stack graph iota in
 
   (* this is to fit the return value the toploop expects *)
   let env = Core_interpreter.Environment.create 10 in
