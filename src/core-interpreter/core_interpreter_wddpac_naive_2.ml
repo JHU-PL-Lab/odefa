@@ -36,7 +36,7 @@ let rec wire_in_function graph body enter_node cur_node : unit =
   Annotated_Clause -> the nodes/clauses that are directly behind it.
   if a << b then b maps to a since we are traversing backwards
 
-  currently initialize_graph has to do some lookup work to know
+  Expects clause list to be backwards
 *)
 let rec initialize_graph (prev: annotated_clause) (cls: clause list) (graph: (annotated_clause, annotated_clause) Hashtbl.t) :
   (annotated_clause, annotated_clause) Hashtbl.t =
@@ -252,17 +252,28 @@ let rec lookup lookup_stack (node:annotated_clause) context_stack graph iota: (C
       | Appl_body(xf, _) ->
         if param = cur_var then
           (
-            (* rule 7: function enter parameter (local) *)
-            print_endline "enter local";
-            let _ = Stack.pop lookup_stack in
-            Stack.push (arg, (substitute_var cur_formula param arg)) lookup_stack;
-            let cur_context = Stack.pop context_stack in
-            begin
-              if cur_context <> cl then
-                failwith "context did not match"
-              else
+            if Stack.is_empty context_stack then
+              (
+                (* let temp_stack = Stack.create () in
+                Stack.push (xf, true_formula) temp_stack;
+                let func = lookup temp_stack a1 (Stack.create ()) graph iota in
+                Stack.push (arg, (substitute_var cur_formula param arg)) lookup_stack; *)
                 lookup lookup_stack a1 context_stack graph iota
-            end
+              )
+            else
+              (
+                (* rule 7: function enter parameter (local) *)
+                print_endline "enter local";
+                let _ = Stack.pop lookup_stack in
+                Stack.push (arg, (substitute_var cur_formula param arg)) lookup_stack;
+                let cur_context = Stack.pop context_stack in
+                begin
+                  if cur_context <> cl then
+                    failwith "context did not match"
+                  else
+                    lookup lookup_stack a1 context_stack graph iota
+                end
+              )
           )
         else
           (
@@ -341,22 +352,16 @@ let rec lookup lookup_stack (node:annotated_clause) context_stack graph iota: (C
     lookup lookup_stack (Hashtbl.find graph node) context_stack graph iota
 ;;
 
-(* record rules on page 37 *)
-
 let eval (Expr(cls)) : Core_ast.var * value Core_interpreter.Environment.t * formula =
   let context_stack:(clause) Stack.t = Stack.create () in
   let lookup_stack:(var * formula) Stack.t = Stack.create () in
   let iota:(Core_ast.var, Core_ast.value) Hashtbl.t = Hashtbl.create 10 in
 
-  let rx = rv cls in
-  (* start lookup with the last program point *)
-  Stack.push (rx, true_formula) lookup_stack;
-
-  (* remove last clause from program and find program point specified by it *)
-  (* let clause_list, rx =
-     match (List.rev cls) with
-     | [] -> failwith "empty program"
-     | Clause(_, x) :: tail ->
+  (* remove last clause from program and store program point specified by it *)
+  let clause_list, starting_program_point =
+    match (List.rev cls) with
+    | [] -> failwith "empty program"
+    | Clause(_, x) :: tail ->
       begin
         match x with
         | Var_body(v) ->
@@ -364,26 +369,26 @@ let eval (Expr(cls)) : Core_ast.var * value Core_interpreter.Environment.t * for
         | _ ->
           failwith "last line was not an alias"
       end
-     in *)
+  in
 
-  (* Stack.push (rx, true_formula) lookup_stack; *)
+  (* make graph and add CFG edges by looking up last program point *)
+  let graph:(annotated_clause, annotated_clause) Hashtbl.t = initialize_graph (End_clause) clause_list (Hashtbl.create 10) in
+  let rx = rv (List.rev clause_list) in
+  Stack.push (rx, true_formula) lookup_stack;
+  let _ = lookup lookup_stack End_clause context_stack graph iota in
 
-  (* make graph *)
-  (* let graph:(annotated_clause, annotated_clause) Hashtbl.t = initialize_graph (End_clause) clause_list (Hashtbl.create 10) in *)
-  let graph:(annotated_clause, annotated_clause) Hashtbl.t = initialize_graph (End_clause) (List.rev cls) (Hashtbl.create 10) in
+  (* now need to find the node that starts with program_point *)
+  let starting_node = find_starting_node graph starting_program_point in
+
+  print_endline "\nstatic CFG construction complete";
+
+  (* do lookup *)
+  let _ = Stack.pop lookup_stack in (* remove rx from lookup stack *)
+  Stack.push (starting_program_point, true_formula) lookup_stack;
+  let v,formula = lookup lookup_stack starting_node context_stack graph iota in
 
   (* this is to fit the return value the toploop expects *)
   let env = Core_interpreter.Environment.create 10 in
-
-
-  (* TODO: implement the hack where last line is always alias for the program point to start at *)
-  (* the starting program point is kinda of actually hard to get from the graph. Find gets its a1, not a0 *)
-  (* let starting_node = Hashtbl.find graph (Unannotated_clause(rx)) in *)
-
-  (* do lookup *)
-  let v,formula = lookup lookup_stack End_clause context_stack graph iota in
-  (* Core_interpreter.Environment.add env x v;
-     x, env *)
   Core_interpreter.Environment.add env rx v;
   rx, env, formula
 ;;

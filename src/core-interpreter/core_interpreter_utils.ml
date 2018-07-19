@@ -1,5 +1,6 @@
 (* file has string conversion methods and the annotated_clause type needed for the cfg construction *)
 open Jhupllib;;
+open Batteries;;
 
 open Core_ast;;
 open Core_ast_pp;;
@@ -87,4 +88,33 @@ let rec string_of_annotated_clause cl : string =
 let print_graph graph : unit =
   print_endline "Graph:";
   Hashtbl.iter (fun x -> fun y -> print_endline ((string_of_annotated_clause x) ^ ", " ^ (string_of_annotated_clause y))) graph
+;;
+
+let rec find_starting_node_helper (graph:(annotated_clause * annotated_clause) list) v : annotated_clause =
+  match graph with
+  | [] ->
+    failwith "starting program point not found"
+  | (a1, a0) :: tail ->
+    begin
+      match a0 with
+      | Unannotated_clause(Clause(x, _)) ->
+        if x = v then
+          a1
+        else
+          find_starting_node_helper tail v
+      | Enter_clause(x, _, _)
+      | Exit_clause(x, _,_) ->
+        if v = x then
+          a1
+        else
+          find_starting_node_helper tail v
+      | Start_clause
+      | End_clause ->
+        find_starting_node_helper tail v
+    end
+;;
+
+let find_starting_node graph v : annotated_clause =
+  let list_of_graph = Hashtbl.to_list graph in
+  find_starting_node_helper list_of_graph v
 ;;

@@ -16,10 +16,3 @@ non-determinism points
 binary op
 input
 function enter
-
-What I have:
-a program that takes a simplistic program as input and outputs the value and a formula
-
-Things I need:
-resolve the non-determinism and multiple values problem.
-  do we simply return the first value that we find?
