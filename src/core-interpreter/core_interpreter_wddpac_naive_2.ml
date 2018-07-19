@@ -64,7 +64,12 @@ let rec initialize_graph (prev: annotated_clause) (cls: clause list) (graph: (an
 *)
 let rec lookup lookup_stack (node:annotated_clause) context_stack graph iota: (Core_ast.value * formula) =
   let (cur_var, cur_formula) = Stack.top lookup_stack in
-  let a1 = Hashtbl.find graph node in
+  let a1 =
+    try
+      Hashtbl.find graph node
+    with
+    | Not_found -> failwith "not in graph"
+  in
   print_endline ("\nCurrent lookup variable: " ^ string_of_var cur_var);
   print_endline ("Current node: " ^ string_of_annotated_clause node);
   print_endline ("a1 node: " ^ string_of_annotated_clause a1);
@@ -254,10 +259,14 @@ let rec lookup lookup_stack (node:annotated_clause) context_stack graph iota: (C
           (
             if Stack.is_empty context_stack then
               (
-                (* let temp_stack = Stack.create () in
+                (* rule 9: function enter parameter empty stack*)
+                print_endline "empty enter local";
+                let temp_stack = Stack.create () in
                 Stack.push (xf, true_formula) temp_stack;
-                let func = lookup temp_stack a1 (Stack.create ()) graph iota in
-                Stack.push (arg, (substitute_var cur_formula param arg)) lookup_stack; *)
+                (* this will crash if function is not in graph *)
+                let _ = lookup temp_stack a1 (Stack.create ()) graph iota in
+                let _ = Stack.pop lookup_stack in
+                Stack.push (arg, (substitute_var cur_formula param arg)) lookup_stack;
                 lookup lookup_stack a1 context_stack graph iota
               )
             else
@@ -277,14 +286,29 @@ let rec lookup lookup_stack (node:annotated_clause) context_stack graph iota: (C
           )
         else
           (
-            (* rule 8: function enter non-local *)
-            print_endline "non-local";
-            Stack.push (xf, true_formula) lookup_stack;
-            let cur_context = Stack.pop context_stack in
-            if cur_context <> cl then
-              failwith "context did not match"
+            if Stack.is_empty context_stack then
+              (
+                (* rule 10: function enter empty non-local *)
+                print_endline "empty enter non-local";
+                let temp_stack = Stack.create () in
+                Stack.push (xf, true_formula) temp_stack;
+                (* this will crash if function is not in graph *)
+                let _ = lookup temp_stack a1 (Stack.create ()) graph iota in
+                Stack.push (xf, true_formula) lookup_stack;
+                lookup lookup_stack a1 context_stack graph iota
+              )
             else
-              lookup lookup_stack a1 context_stack graph iota
+              (
+                (* rule 8: function enter non-local *)
+                print_endline "non-local";
+                Stack.push (xf, true_formula) lookup_stack;
+                let cur_context = Stack.pop context_stack in
+                if cur_context <> cl then
+                  failwith "context did not match"
+                else
+                  lookup lookup_stack a1 context_stack graph iota
+
+              )
           )
       | Conditional_body(_, p, Function_value(_, Expr(f1_list)), Function_value(_, Expr(f2_list))) ->
         if cur_var <> param then
