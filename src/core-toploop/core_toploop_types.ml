@@ -48,7 +48,7 @@ type result =
     the entire result to be produced. *)
 type callbacks =
   { cb_illformednesses : Core_ast_wellformedness.illformedness list -> unit
-  ; cb_evaluation_result : var -> value Environment.t -> formula -> unit
+  ; cb_evaluation_result : var -> value Environment.t -> formula -> (Core_ast.var, Core_ast.value) Hashtbl.t -> unit
   ; cb_evaluation_failed : string -> unit
   ; cb_evaluation_disabled : unit -> unit
   }

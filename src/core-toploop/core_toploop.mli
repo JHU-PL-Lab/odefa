@@ -33,7 +33,7 @@ val stdout_illformednesses_callback :
   Core_ast_wellformedness.illformedness list -> unit
 
 (** An evaluation callback which prints messages to stdout. *)
-val stdout_evaluation_result_callback : var -> value Environment.t -> formula -> unit
+val stdout_evaluation_result_callback : var -> value Environment.t -> formula -> (Core_ast.var, Core_ast.value) Hashtbl.t -> unit
 
 (** An evaluation callback which prints failure messages to stdout *)
 val stdout_evaluation_failed_callback : string -> unit

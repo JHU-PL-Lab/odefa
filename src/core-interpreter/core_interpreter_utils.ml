@@ -90,6 +90,11 @@ let print_graph graph : unit =
   Hashtbl.iter (fun x -> fun y -> print_endline ((string_of_annotated_clause x) ^ ", " ^ (string_of_annotated_clause y))) graph
 ;;
 
+let print_iota iota : unit =
+  print_endline "Iota:";
+  Hashtbl.iter (fun x -> fun y -> print_endline ((string_of_var x) ^ " -> " ^ (string_of_value y))) iota
+;;
+
 let rec find_starting_node_helper (graph:(annotated_clause * annotated_clause) list) v : annotated_clause =
   match graph with
   | [] ->
@@ -97,11 +102,18 @@ let rec find_starting_node_helper (graph:(annotated_clause * annotated_clause) l
   | (a1, a0) :: tail ->
     begin
       match a0 with
-      | Unannotated_clause(Clause(x, _)) ->
-        if x = v then
-          a1
-        else
-          find_starting_node_helper tail v
+      | Unannotated_clause(Clause(x, body)) ->
+        begin
+          match body with
+          (* | Conditional_body(_,_,Function_value(_, Expr(f1)),Function_value(_,Expr(f2))) ->
+            find_starting_node_helper (f1:) v *)
+          (* TODO: do this *)
+          | _ ->
+            if x = v then
+              a1
+            else
+              find_starting_node_helper tail v
+        end
       | Enter_clause(x, _, _)
       | Exit_clause(x, _,_) ->
         if v = x then

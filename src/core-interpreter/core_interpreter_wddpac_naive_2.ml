@@ -70,17 +70,19 @@ let rec lookup lookup_stack (node:annotated_clause) context_stack graph iota: (C
     with
     | Not_found -> failwith "not in graph"
   in
-  print_endline ("\nCurrent lookup variable: " ^ string_of_var cur_var);
+  (* print_endline ("\nCurrent lookup variable: " ^ string_of_var cur_var);
   print_endline ("Current node: " ^ string_of_annotated_clause node);
-  print_endline ("a1 node: " ^ string_of_annotated_clause a1);
+  print_endline ("a1 node: " ^ string_of_annotated_clause a1); *)
   match a1 with
   | Unannotated_clause(cl) ->
     begin
       let Clause(x, body) = cl in
       if x <> cur_var then
         (* rule 10: Skip *)
-        (print_endline "skip";
-         lookup lookup_stack a1 context_stack graph iota)
+        (
+          (* print_endline "skip"; *)
+          lookup lookup_stack a1 context_stack graph iota
+        )
       else
         begin
           match body with
@@ -89,7 +91,7 @@ let rec lookup lookup_stack (node:annotated_clause) context_stack graph iota: (C
             if Stack.length lookup_stack = 1 then
               (* rule 1: value discovery *)
               (
-                print_endline "value discovery";
+                (* print_endline "value discovery"; *)
                 if check_formula (substitute_value cur_formula cur_var v) then
                   (v, cur_formula)
                 else
@@ -97,12 +99,12 @@ let rec lookup lookup_stack (node:annotated_clause) context_stack graph iota: (C
               )
             else
               (* rule 3: value discard *)
-              (print_endline "value discard";
-               let _ = Stack.pop lookup_stack in
-               lookup lookup_stack a1 context_stack graph iota)
+              (* (print_endline "value discard"; *)
+              let _ = Stack.pop lookup_stack in
+              lookup lookup_stack a1 context_stack graph iota
           | Var_body(v) ->
             (* rule 4: alias *)
-            print_endline "alias";
+            (* print_endline "alias"; *)
             let _ = Stack.pop lookup_stack in
             Stack.push (v, (substitute_var cur_formula cur_var v)) lookup_stack;
             lookup lookup_stack a1 context_stack graph iota
@@ -117,7 +119,7 @@ let rec lookup lookup_stack (node:annotated_clause) context_stack graph iota: (C
                   raise (Evaluation_dead_end "formula unsatisfied")
               with
               | Not_found ->
-                let v = Value_int(5) in
+                let v = Value_int(0) in
                 Hashtbl.add iota x v;
                 if check_formula (substitute_value cur_formula x v) then
                   (v, cur_formula)
@@ -127,7 +129,7 @@ let rec lookup lookup_stack (node:annotated_clause) context_stack graph iota: (C
             end
           | Appl_body(xf, xn) ->
             (* wire in dyanmically to set the groundwork to apply rule 9 *)
-            print_endline "appl";
+            (* print_endline "appl"; *)
 
             (* find the definition of the function *)
             let temp_stack = Stack.create () in
@@ -144,7 +146,7 @@ let rec lookup lookup_stack (node:annotated_clause) context_stack graph iota: (C
                 Hashtbl.add graph enter_node (Hashtbl.find graph a1); (* skipping over application node *)
 
                 wire_in_function graph (List.rev clause_list) enter_node exit_node;
-                print_graph graph; (* only for debugging *)
+                (* print_graph graph; (* only for debugging *) *)
 
                 (* call lookup from current node to trigger rule 9 *)
                 lookup lookup_stack node context_stack graph iota
@@ -152,7 +154,7 @@ let rec lookup lookup_stack (node:annotated_clause) context_stack graph iota: (C
                 failwith "fcn wasn't a function"
             end
           | Conditional_body(arg, pattern, Function_value(_, Expr(f1_list)), Function_value(_, Expr(f2_list))) ->
-            print_endline "conditional";
+            (* print_endline "conditional"; *)
             (* No non-determinism here. Execute the pattern match first to determine which function to wire in *)
             let new_stack = Stack.create () in (* to prevent value discard from being called *)
             Stack.push (arg, true_formula) new_stack;
@@ -173,7 +175,7 @@ let rec lookup lookup_stack (node:annotated_clause) context_stack graph iota: (C
             (* add exit node to graph, attach rest of function nodes and run again from current node with new binding *)
             Hashtbl.add graph node new_node;
             Hashtbl.add graph new_node (Unannotated_clause(List.hd (List.rev fcn_list)));
-            print_graph graph;
+            (* print_graph graph; *)
             lookup lookup_stack node context_stack graph iota
           | Unary_operation_body(op, var) ->
             let _ = Stack.pop lookup_stack in
@@ -191,7 +193,7 @@ let rec lookup lookup_stack (node:annotated_clause) context_stack graph iota: (C
                 failwith "unimplemented coin flip"
             end
           | Binary_operation_body(v1, op, v2) ->
-            print_endline "binary";
+            (* print_endline "binary"; *)
             (* implementing left first *)
             let _ = Stack.pop lookup_stack in
             Stack.push (v1, true_formula) lookup_stack;
@@ -262,7 +264,7 @@ let rec lookup lookup_stack (node:annotated_clause) context_stack graph iota: (C
             if Stack.is_empty context_stack then
               (
                 (* rule 9: function enter parameter empty stack*)
-                print_endline "empty enter local";
+                (* print_endline "empty enter local"; *)
                 let temp_stack = Stack.create () in
                 Stack.push (xf, true_formula) temp_stack;
                 (* this will crash if function is not in graph *)
@@ -274,7 +276,7 @@ let rec lookup lookup_stack (node:annotated_clause) context_stack graph iota: (C
             else
               (
                 (* rule 7: function enter parameter (local) *)
-                print_endline "enter local";
+                (* print_endline "enter local"; *)
                 let _ = Stack.pop lookup_stack in
                 Stack.push (arg, (substitute_var cur_formula param arg)) lookup_stack;
                 let cur_context = Stack.pop context_stack in
@@ -291,7 +293,7 @@ let rec lookup lookup_stack (node:annotated_clause) context_stack graph iota: (C
             if Stack.is_empty context_stack then
               (
                 (* rule 10: function enter empty non-local *)
-                print_endline "empty enter non-local";
+                (* print_endline "empty enter non-local"; *)
                 let temp_stack = Stack.create () in
                 Stack.push (xf, true_formula) temp_stack;
                 (* this will crash if function is not in graph *)
@@ -302,7 +304,7 @@ let rec lookup lookup_stack (node:annotated_clause) context_stack graph iota: (C
             else
               (
                 (* rule 8: function enter non-local *)
-                print_endline "non-local";
+                (* print_endline "non-local"; *)
                 Stack.push (xf, true_formula) lookup_stack;
                 let cur_context = Stack.pop context_stack in
                 if cur_context <> cl then
@@ -374,7 +376,7 @@ let rec lookup lookup_stack (node:annotated_clause) context_stack graph iota: (C
   | Start_clause ->
     raise (Evaluation_dead_end "reached start of the program")
   | End_clause ->
-    print_endline "end";
+    (* print_endline "end"; *)
     lookup lookup_stack a1 context_stack graph iota
 ;;
 
@@ -387,7 +389,7 @@ let rec eval_helper lookup_stack starting_node context_stack graph iota : Core_a
 ;;
 
 
-let eval (Expr(cls)) : Core_ast.var * value Core_interpreter.Environment.t * formula =
+let eval (Expr(cls)) : Core_ast.var * value Core_interpreter.Environment.t * formula * (Core_ast.var, Core_ast.value) Hashtbl.t =
   let context_stack:(clause) Stack.t = Stack.create () in
   let lookup_stack:(var * formula) Stack.t = Stack.create () in
   let iota:(Core_ast.var, Core_ast.value) Hashtbl.t = Hashtbl.create 10 in
@@ -412,10 +414,11 @@ let eval (Expr(cls)) : Core_ast.var * value Core_interpreter.Environment.t * for
   Stack.push (rx, true_formula) lookup_stack;
   let _ = lookup lookup_stack End_clause context_stack graph iota in
 
+  (* print_graph graph; *)
   (* now need to find the node that starts with program_point *)
   let starting_node = find_starting_node graph starting_program_point in
 
-  print_endline "\nstatic CFG construction complete";
+  (* print_endline "\nstatic CFG construction complete"; *)
 
   (* do lookup *)
   let _ = Stack.pop lookup_stack in (* remove rx from lookup stack *)
@@ -425,5 +428,5 @@ let eval (Expr(cls)) : Core_ast.var * value Core_interpreter.Environment.t * for
   (* this is to fit the return value the toploop expects *)
   let env = Core_interpreter.Environment.create 10 in
   Core_interpreter.Environment.add env rx v;
-  rx, env, formula
+  rx, env, formula, iota
 ;;

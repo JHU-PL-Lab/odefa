@@ -18,3 +18,9 @@ input
 function enter
 
 first attempt at successor, haven't tested at all
+
+current problem: find program point doesn't look into the conditional clause
+
+Current restrictions:
+All input statements at the beginning
+Pretty flat - lookups in above levels do not continue beyond that 
