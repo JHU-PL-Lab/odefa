@@ -19,8 +19,9 @@ function enter
 
 first attempt at successor, haven't tested at all
 
-current problem: find program point doesn't look into the conditional clause
+currently working on: when starting from inside conditional, sometimes previous node doesn't exist - change starting node method.
+also making unit test framework. Iota is currently not being passed up
 
 Current restrictions:
 All input statements at the beginning
-Pretty flat - lookups in above levels do not continue beyond that 
+Pretty flat - lookups in above levels do not continue beyond that

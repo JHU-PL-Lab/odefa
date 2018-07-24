@@ -4,8 +4,6 @@ open OUnit2;;
 
 let all_tests =
   [ Test_files.tests
-  ; Test_utils.tests
-  ; Test_abstract_stores.tests
   ];;
 
 let () =

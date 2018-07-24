@@ -6,14 +6,14 @@
 open Core_ast;;
 open Core_ast_pp;;
 (* open Formula;; *)
-(* open Core_interpreter_utils;; *)
+open Core_interpreter_utils;;
 open Core_interpreter;;
 
 (** Represents the result of evaluating an expression.  This data type also
     captures exceptional cases and toploop configuration properties. *)
 type evaluation_result =
   (* | Evaluation_completed of value *)
-  | Evaluation_completed of var * evaluation_environment
+  | Evaluation_completed of var * evaluation_environment * formula * (Core_ast.var, Core_ast.value) Hashtbl.t
   (** The case in which evaluation was successful. *)
 
   | Evaluation_failure of string

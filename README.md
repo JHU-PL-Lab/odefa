@@ -1,146 +1,158 @@
 Odefa
 =====
 
-This directory contains an implementation of the language discussed in the paper
-"Implementing Higher-Order Demand-Driven Program Analysis".  This document contains
-information about compiling and running the Odefa toploop as well as information
-about the contents of this directory.
+Artifact for the paper **Higher-Order Demand-Driven Program Analysis**.
 
-Building
---------
+| | | |
+|-|-|-|
+| Leandro Facchinetti | <lfacchi2@jhu.edu> | The Johns Hopkins University |
+| Zachary Palmer | <zachary.palmer@swarthmore.edu> | Swarthmore College |
+| Ted Park | <tpark1@swarthmore.edu> | Swarthmore College |
+| Scott F. Smith | <scott@jhu.edu> | The Johns Hopkins University |
 
-There are three major steps to set up a build environment from Odefa:
+Build
+-----
 
-  1. Install OPAM and required libraries.
-  2. Download and pin development dependencies.
-  3. Build Odefa itself.
+1. Install [OCaml](https://ocaml.org/) and [OPAM](https://opam.ocaml.org/).
 
-The subsections below walk through these processes.
+   <details>
+   <summary>Windows Instructions</summary>
 
-### OPAM
+   Install [OCaml for Windows](http://fdopen.github.io/opam-repository-mingw/installation/), which includes the Cygwin shell with OCaml and OPAM preinstalled.
 
-1. Make sure you have [OCaml][ocaml] and [OPAM][opam] installed on the latest
-   version:
+   </details>
 
-        opam init               # necessary for freshly-installed OPAM instances
-        eval `opam config env`  # if you do not have OPAM's environment configured
-        opam update
-        opam upgrade
-        opam switch 4.02.3  # this may take a while
+2. Initialize OPAM:
 
-2. Install the dependencies:
+   ```console
+   $ opam init
+   $ eval `opam config env`
+   ```
 
-        opam install oasis batteries menhir ounit ppx_deriving ppx_deriving_yojson ocaml-monadic monadlib
+3. Update & upgrade:
 
-   If your shell hashes binary locations, you may need to clear your hashes now.
-   (In bash, `hash -r` does this.)
+   ```console
+   $ opam update
+   $ opam upgrade
+   ```
 
-### Development Dependencies
+4. Switch to the appropriate compiler version:
 
-Odefa depends upon libraries which tend to develop at the same time as it does
-(but which are functionally independent and are designed to be used by other
-projects).  To configure this environment, you must first clone the repository
-for the dependency and then pin that repository as an OPAM package.
+   ```console
+   $ opam switch 4.06.1
+   $ eval `opam config env`
+   ```
 
-1. Install `jhupllib`:
+   <details>
+   <summary>Windows Instructions</summary>
 
-        git clone https://github.com/JHU-PL-Lab/jhu-pl-lib.git ../jhu-pl-lib
-        opam pin add jhupllib ../jhu-pl-lib
+   Either
 
-2. Install `pds-reachability`:
+   ```console
+   $ opam switch 4.06.1+mingw64
+   $ eval `opam config env`
+   ```
 
-        git clone https://github.com/JHU-PL-Lab/pds-reachability.git ../pds-reachability
-        opam pin add pds-reachability ../pds-reachability
+   or
 
-You will need to re-run an appropriate `opam pin` command each time one of these
-libraries is changed.
+   ```console
+   $ opam switch 4.06.1+mingw32
+   $ eval `opam config env`
+   ```
 
-### Building Odefa
+   depending on the system.
 
-With the above configuration, it is now possible to build Odefa.
+   </details>
 
-1. Generate configuration:
+5. Install the dependencies:
 
-        oasis setup -setup-update dynamic
+   ```console
+   $ opam install oasis \
+                  batteries \
+                  menhir \
+                  ounit \
+                  ppx_deriving \
+                  ppx_deriving_yojson \
+                  "ocaml-monadic=0.4.0" \
+                  monadlib \
+                  "jhupllib=0.1.1" \
+                  "pds-reachability=0.2.1"
+   ```
 
-2. Configure:
+   Note that newer versions of some of the constrained packages above may work, but the above-listed versions were tested with this project.
 
-        ./configure
+6. If your shell hashes binary locations, you may need to clear your hashes, for example (in Bash):
 
-3. Enable tests:
+   ```console
+   $ hash -r
+   ```
 
-        ocaml setup.ml -configure --enable-tests
+7. Generate configuration:
 
-4. Build:
+   ```console
+   $ oasis setup -setup-update dynamic
+   ```
 
-        make
+8. Configure:
 
-5. Interact with the toploop (sample programs can be found at `test-sources/`):
+   ```console
+   $ ./configure
+   ```
 
-        ./core_toploop_main.native
+9. Enable tests:
 
-6. Run the tests:
+   ```console
+   $ ocaml setup.ml -configure --enable-tests
+   ```
 
-        make test
+10. Build:
 
-Execution
----------
+    ```console
+    $ make
+    ```
 
-The Odefa toploop accepts command-line arguments.  Brief help for these
-arguments may be obtained by passing `--help`.  Notable options are:
+11. Interact with the toploop (find sample programs at `test-sources/`):
 
-#### `--log=trace`
+    ```console
+    $ ./toploop_main.native
+    ```
 
-Enables quite verbose logging.
+12. Run the tests:
 
-#### `--disable-inconsistency-check`
+    ```console
+    $ make test
+    ```
 
-By default, the toploop checks programs for a form of inconsistency: lookup on
-call sites should return only functions.  This causes several variable lookups
-and is not suitable for benchmarking.  This flag disables the inconsistency
-check.
+`toploop_main.native` Command-Line Arguments
+--------------------------------------------
 
-#### `--select-context-stack=0ddpa`
+- `--log=trace`: Enable verbose logging.
+- `--disable-inconsistency-check`: By default, the toploop checks programs for inconsistencies. For example, it checks that only functions appear in the operator position of a function call, and that only records appear in the subject position of a record projection. This inconsistency check forces variable lookups that interfere with benchmarking, and this flag disables it.
+- `--select-context-stack=0ddpa`: Uses DDPA with a 0-level context stack (which is a monovariant analysis). Any positive integer value is admitted here (e.g. `7ddpa`).
 
-Uses DDPA with a 0-level context stack (which is a monovariant analysis).  Any positive integer value is admitted here (e.g. `7ddpa`).
+Run the following for extended help (including options to produce diagrams of the incremental PDR graphs):
 
-Other options exist, including a setting to produce diagrams of the incremental PDR graphs.
+```console
+$ ./toploop_main.native --help
+```
 
-Benchmark
----------
+Developer Setup
+---------------
 
-To reproduce the benchmark, start by asserting that the code builds and runs as
-expected:
+Odefa depends on libraries which tend to develop at the same time as it does, but which are functionally independent and are designed to be used by other projects. Configure these libraries for local development by pinning them:
 
-    make && ./benchmark.native
+1. `jhupllib`:
 
-Then, use `benchmark/generate-big-example.rb` to create big programs by copying
-a benchmark over and over, renaming variables accordingly.
+   ```console
+   $ git clone https://github.com/JHU-PL-Lab/jhu-pl-lib.git ../jhu-pl-lib
+   $ opam pin add jhupllib ../jhu-pl-lib
+   ```
 
-    ruby benchmark/generate-big-example.rb <odefa|scheme> <file> <times>
+2. `pds-reachability`:
 
-Where `odefa` is used for Odefa code and `scheme` is used for Scheme code from
-the P4F benchmarks.
+   ```console
+   $ git clone https://github.com/JHU-PL-Lab/pds-reachability.git ../pds-reachability
+   $ opam pin add pds-reachability ../pds-reachability
+   ```
 
-Example:
-
-    ruby benchmark/generate-big-example.rb odefa benchmark-sources/sat.code 5
-
-The experiments reported on the paper are documented as scripts named
-`benchmark/benchmark-*.rb`.
-
-Authors
--------
-
-- Leandro Facchinetti <lfacchi2@jhu.edu>.
-- Zachary Palmer <zachary.palmer@jhu.edu>.
-- Scott F. Smith <scott@jhu.edu>.
-- Clare Hanlon <chanlon1@swarthmore.edu>
-
-The Johns Hopkins University
-
-
-[ocaml]: https://ocaml.org/
-[opam]: https://opam.ocaml.org/
-[docker]: https://www.docker.com/
-[docker-compose]: https://docs.docker.com/compose/
+Re-run `opam pin` when these libraries change.

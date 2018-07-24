@@ -58,10 +58,10 @@ let do_evaluation callbacks conf e =
   begin
     try
       callbacks.cb_evaluation_result v env formula iota;
-      (Core_toploop_types.Evaluation_completed(v,env), iota)
+      Core_toploop_types.Evaluation_completed(v,env,formula,iota)
     with
     | Core_interpreter.Evaluation_failure s ->
-      (Core_toploop_types.Evaluation_failure s, iota)
+      (Core_toploop_types.Evaluation_failure s)
   end
 ;;
 
@@ -73,7 +73,7 @@ let handle_expression
     (* Step 1: check for inconsistencies! *)
     (* check_wellformed_expr e; *)
     (* Step 2: perform evaluation. *)
-    let evaluation_result,_ = do_evaluation callbacks conf e
+    let evaluation_result = do_evaluation callbacks conf e
     (* let evaluation_result = do_evaluation callbacks e *)
     in
     (* Generate answer. *)
