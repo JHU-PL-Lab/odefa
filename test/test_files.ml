@@ -21,6 +21,7 @@ open Core_ast;;
 open Core_ast_wellformedness;;
 open Core_toploop_options;;
 open Core_toploop_types;;
+open Core_interpreter_utils;;
 open String_utils;;
 
 let lazy_logger = Logger_utils.make_lazy_logger "Test_files";;
@@ -99,8 +100,6 @@ let parse_expectation str =
         Expect_ill_formed
       | "EXPECT-FORMULA"::args_part ->
         let formula = String.join "" args_part in
-        (* let args = whitespace_split args_str in
-        let formula = assert_one_arg args in *)
         Expect_formula(formula)
       | "EXPECT-IOTA"::args_part ->
         let iota = String.join "" args_part in
@@ -119,7 +118,7 @@ let parse_expectation str =
   | Expectation_not_found -> None
 ;;
 
-let observe_evaluated formula iota expectation =
+let observe_evaluated formula (iota:input_mapping) expectation =
   match expectation with
   | Expect_evaluate -> None
   | Expect_stuck ->
@@ -130,7 +129,9 @@ let observe_evaluated formula iota expectation =
     assert_equal s (string_of_formula formula);
     None
   | Expect_iota(s) ->
-    assert_equal
+    print_endline (string_of_input_mapping iota);
+    assert_equal s (string_of_input_mapping iota);
+    None
   | _ -> Some expectation
 ;;
 
@@ -176,6 +177,7 @@ let make_test filename expectations =
     | Expect_well_formed -> "should be well-formed"
     | Expect_ill_formed -> "should be ill-formed"
     | Expect_formula(s) -> "should have this formula: " ^ s
+    | Expect_iota(s) -> "should have this iota: " ^ s
   in
   let test_name = filename in
   (* Create the test in a thunk. *)
@@ -232,7 +234,7 @@ let make_test filename expectations =
         (* Now report the result of evaluation. *)
         begin
           match result.evaluation_result with
-          | Evaluation_completed (_,_,formula) -> observation (observe_evaluated formula iota)
+          | Evaluation_completed (_,_,formula, iota) -> observation (observe_evaluated formula iota)
           | Evaluation_failure failure -> observation (observe_stuck failure)
           | Evaluation_invalidated -> observation observe_evaluation_invalidated
           | Evaluation_disabled -> ()

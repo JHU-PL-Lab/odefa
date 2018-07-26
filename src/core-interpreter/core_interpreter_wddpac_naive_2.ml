@@ -2,6 +2,9 @@ open Batteries;;
 open Jhupllib;;
 
 open Core_ast;;
+(* open Core_ast_pp;; *)
+(* open Pp_utils;; *)
+
 (* open Formula;; *)
 
 open Core_interpreter_utils;;
@@ -112,7 +115,7 @@ let rec lookup lookup_stack (node:annotated_clause) context_stack graph iota: (C
             (* rule 2: input. TODO: right now it guesses 5 for all input clauses *)
             begin
               try
-                let v = Hashtbl.find iota cur_var in
+                let v = Iota.find iota cur_var in
                 if check_formula (substitute_value cur_formula cur_var v) then
                   (v, cur_formula)
                 else
@@ -120,7 +123,7 @@ let rec lookup lookup_stack (node:annotated_clause) context_stack graph iota: (C
               with
               | Not_found ->
                 let v = Value_int(0) in
-                Hashtbl.add iota x v;
+                Iota.add iota x v;
                 if check_formula (substitute_value cur_formula x v) then
                   (v, cur_formula)
                 else
@@ -389,10 +392,10 @@ let rec eval_helper lookup_stack starting_node context_stack graph iota : Core_a
 ;;
 
 
-let eval (Expr(cls)) : Core_ast.var * value Core_interpreter.Environment.t * formula * (Core_ast.var, Core_ast.value) Hashtbl.t =
+let eval (Expr(cls)) : Core_ast.var * value Core_interpreter.Environment.t * formula * input_mapping =
   let context_stack:(clause) Stack.t = Stack.create () in
   let lookup_stack:(var * formula) Stack.t = Stack.create () in
-  let iota:(Core_ast.var, Core_ast.value) Hashtbl.t = Hashtbl.create 10 in
+  let iota = Iota.create 10 in
 
   (* remove last clause from program and store program point specified by it *)
   let clause_list, starting_program_point =

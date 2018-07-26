@@ -16,9 +16,8 @@ let stdout_illformednesses_callback ills =
   flush stdout
 ;;
 
-let stdout_evaluation_result_callback v env formula iota =
+let stdout_evaluation_result_callback v env formula _ =
   print_endline ((show_var v) ^ " where " ^ (show_evaluation_environment env) ^ " with formula " ^ (string_of_formula formula) ^ "\n");
-  print_iota iota;
   flush stdout
 ;;
 

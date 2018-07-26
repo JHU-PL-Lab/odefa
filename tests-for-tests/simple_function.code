@@ -1,0 +1,9 @@
+# EXPECT-EVALUATE
+# EXPECT-FORMULA value true
+# EXPECT-IOTA {}
+
+x=2;
+y=fun a-> (b=a);
+z=y x;
+
+q=z;

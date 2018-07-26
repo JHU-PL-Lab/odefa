@@ -3,7 +3,8 @@
 *)
 
 open Core_ast;;
-open Core_interpreter;;
+(* open Core_interpreter;; *)
+open Core_interpreter_utils;;
 open Core_toploop_types;;
 (* open Formula;; *)
 
@@ -33,7 +34,7 @@ val stdout_illformednesses_callback :
   Core_ast_wellformedness.illformedness list -> unit
 
 (** An evaluation callback which prints messages to stdout. *)
-val stdout_evaluation_result_callback : var -> value Environment.t -> formula -> (Core_ast.var, Core_ast.value) Hashtbl.t -> unit
+val stdout_evaluation_result_callback : var -> value Environment.t -> formula -> input_mapping -> unit
 
 (** An evaluation callback which prints failure messages to stdout *)
 val stdout_evaluation_failed_callback : string -> unit

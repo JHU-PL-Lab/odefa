@@ -7,10 +7,14 @@ open Core_ast_pp;;
 open Pp_utils;;
 
 module Environment = Var_hashtbl;;
-
 type evaluation_environment = value Environment.t;;
 let pp_evaluation_environment = pp_map pp_var pp_value Environment.enum;;
 let show_evaluation_environment = pp_to_string pp_evaluation_environment;;
+
+module Iota = Var_hashtbl;;
+type input_mapping = value Iota.t;;
+let pp_input_mapping = pp_map pp_var pp_value Iota.enum;;
+let show_input_mapping = pp_to_string pp_input_mapping;;
 
 module Annotated_Clause =
 struct
@@ -83,6 +87,18 @@ let rec string_of_annotated_clause cl : string =
     "Start of program"
   | End_clause ->
     "End of program"
+;;
+
+let rec string_of_input_mapping_helper lst : string =
+  match lst with
+  | [] -> ""
+  | (k, v) :: tail ->
+    (string_of_var k) ^ " -> " ^ (string_of_value v) ^ ", " ^ (string_of_input_mapping_helper tail)
+;;
+
+let string_of_input_mapping (iota:input_mapping) : string =
+  let lst_of_iota = BatList.of_enum (Iota.enum iota) in
+  "{" ^ (string_of_input_mapping_helper lst_of_iota) ^ "}"
 ;;
 
 let print_graph graph : unit =
@@ -164,7 +180,7 @@ let find_starting_node graph v : annotated_clause =
 ;;
 
 (* right now successor only works for a single input var *)
-let successor iota : (Core_ast.var, Core_ast.value) Hashtbl.t =
+let successor iota : input_mapping =
   let f _ cur_value =
     let value =
       match cur_value with
@@ -178,5 +194,5 @@ let successor iota : (Core_ast.var, Core_ast.value) Hashtbl.t =
     else
       Value_int(value * -1)
   in
-  Hashtbl.map f iota
+  Iota.map f iota
 ;;

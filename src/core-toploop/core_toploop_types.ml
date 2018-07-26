@@ -8,12 +8,13 @@ open Core_ast_pp;;
 (* open Formula;; *)
 open Core_interpreter_utils;;
 open Core_interpreter;;
+(* open Core_interpreter_wddpac_naive_2;; *)
 
 (** Represents the result of evaluating an expression.  This data type also
     captures exceptional cases and toploop configuration properties. *)
 type evaluation_result =
   (* | Evaluation_completed of value *)
-  | Evaluation_completed of var * evaluation_environment * formula * (Core_ast.var, Core_ast.value) Hashtbl.t
+  | Evaluation_completed of var * evaluation_environment * formula * input_mapping
   (** The case in which evaluation was successful. *)
 
   | Evaluation_failure of string
@@ -48,7 +49,7 @@ type result =
     the entire result to be produced. *)
 type callbacks =
   { cb_illformednesses : Core_ast_wellformedness.illformedness list -> unit
-  ; cb_evaluation_result : var -> value Environment.t -> formula -> (Core_ast.var, Core_ast.value) Hashtbl.t -> unit
+  ; cb_evaluation_result : var -> value Environment.t -> formula -> input_mapping -> unit
   ; cb_evaluation_failed : string -> unit
   ; cb_evaluation_disabled : unit -> unit
   }

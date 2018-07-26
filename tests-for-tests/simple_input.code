@@ -1,0 +1,7 @@
+# EXPECT-EVALUATE
+# EXPECT-FORMULA value true
+# EXPECT-IOTA {x -> 0, }
+
+x=input;
+
+q=x;

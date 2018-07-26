@@ -1,0 +1,7 @@
+# EXPECT-EVALUATE
+# EXPECT-FORMULA value true
+
+x=2;
+y=x;
+
+q=y;

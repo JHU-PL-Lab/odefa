@@ -315,10 +315,10 @@ let rec string_of_formula formula : string =
 
 let pp_formula _ formula = string_of_formula formula;;
 
-(* let pp_hashtbl _ iota =
+let pp_hashtbl _ iota =
   let temp = Hashtbl.length iota in
   string_of_int temp
-;; *)
+;;
 
 type int_or_bool = Int of int | Bool of bool;;
 
