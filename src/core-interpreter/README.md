@@ -36,8 +36,8 @@ functions with non-Unannotated_clauses inside their bodies - not sure if I prope
 x = input;
 y = 2;
 z = x == y;
-w = z ~ true ? fun n-> (b=1) : fun c-> (d=c);
-q=d;
+w = z ~ true ? fun n-> (b=n) : fun c-> (d=c);
+q=b;
 ;;
 
 seems like rule 15 is not correct
