@@ -227,46 +227,13 @@ type formula =
 
 let true_formula = Value_formula(Value_bool(true));;
 
-(* substitutes instances of x with x' *)
-let rec substitute_var formula x (x':var) : formula =
-  match formula with
-  | Binary_formula(f1, op, f2) -> Binary_formula(substitute_var f1 x x', op, substitute_var f2 x x')
-  | Negated_formula(f1) -> Negated_formula(substitute_var f1 x x')
-  | Value_formula(v) -> Value_formula(v)
-  | Var_formula(v) ->
-    if v = x then
-      Var_formula(x')
-    else
-      Var_formula(v)
-  | Pattern_formula(p) -> Pattern_formula(p)
-;;
-
-(* substitutes instances of x with v1 *)
-let rec substitute_value formula x (v1:value) : formula =
-  match formula with
-  | Binary_formula(f1, op, f2) -> Binary_formula(substitute_value f1 x v1, op, substitute_value f2 x v1)
-  | Negated_formula(f1) -> Negated_formula(substitute_value f1 x v1)
-  | Value_formula(v) -> Value_formula(v)
-  | Var_formula(v) ->
-    if v = x then
-      Value_formula(v1)
-    else
-      Var_formula(v)
-  | Pattern_formula(p) -> Pattern_formula(p)
-;;
-
-(* substitutes instances of var_formula x with f *)
-let rec substitute_formula formula x (f:formula) : formula =
-  match formula with
-  | Binary_formula(f1, op, f2) -> Binary_formula(substitute_formula f1 x f, op, substitute_formula f2 x f)
-  | Negated_formula(f1) -> Negated_formula(substitute_formula f1 x f)
-  | Value_formula(v) -> Value_formula(v)
-  | Var_formula(v) ->
-    if v = x then
-      f
-    else
-      Var_formula(v)
-  | Pattern_formula(p) -> Pattern_formula(p)
+let string_of_pattern pattern : string =
+  match pattern with
+  | Fun_pattern -> "fun pattern"
+  | Int_pattern -> "int pattern"
+  | Bool_pattern(_) -> "bool pattern"
+  (* | Bool_pattern(b) -> "bool(" ^ (string_of_bool b) ^ ") pattern" *)
+  | Any_pattern -> "any pattern"
 ;;
 
 (* formula to string converter *)
@@ -310,7 +277,49 @@ let rec string_of_formula formula : string =
           | Ident(s) -> "variable " ^ s
         end
     end
-  | _ -> failwith "TODO"
+  | Pattern_formula(p) -> "pattern formula: " ^ (string_of_pattern p)
+;;
+
+(* substitutes instances of x with x' *)
+let rec substitute_var formula x (x':var) : formula =
+  match formula with
+  | Binary_formula(f1, op, f2) -> Binary_formula(substitute_var f1 x x', op, substitute_var f2 x x')
+  | Negated_formula(f1) -> Negated_formula(substitute_var f1 x x')
+  | Value_formula(v) -> Value_formula(v)
+  | Var_formula(v) ->
+    if v = x then
+      Var_formula(x')
+    else
+      Var_formula(v)
+  | Pattern_formula(p) -> Pattern_formula(p)
+;;
+
+(* substitutes instances of x with v1 *)
+let rec substitute_value formula x (v1:value) : formula =
+  match formula with
+  | Binary_formula(f1, op, f2) -> Binary_formula(substitute_value f1 x v1, op, substitute_value f2 x v1)
+  | Negated_formula(f1) -> Negated_formula(substitute_value f1 x v1)
+  | Value_formula(v) -> Value_formula(v)
+  | Var_formula(v) ->
+    if v = x then
+      Value_formula(v1)
+    else
+      Var_formula(v)
+  | Pattern_formula(p) -> Pattern_formula(p)
+;;
+
+(* substitutes instances of var_formula x with f *)
+let rec substitute_formula formula x (f:formula) : formula =
+  match formula with
+  | Binary_formula(f1, op, f2) -> Binary_formula(substitute_formula f1 x f, op, substitute_formula f2 x f)
+  | Negated_formula(f1) -> Negated_formula(substitute_formula f1 x f)
+  | Value_formula(v) -> Value_formula(v)
+  | Var_formula(v) ->
+    if v = x then
+      f
+    else
+      Var_formula(v)
+  | Pattern_formula(p) -> Pattern_formula(p)
 ;;
 
 let pp_formula _ formula = string_of_formula formula;;
@@ -441,7 +450,7 @@ let rec check_formula_helper formula : int_or_bool =
       | _ -> failwith "not supported"
     end
   | Var_formula(_) -> failwith "never should have happened"
-  | _ -> failwith "TODO"
+  | _ -> failwith "check_formula_helper pattern formula in core_ast"
 ;;
 
 let check_formula formula : bool =

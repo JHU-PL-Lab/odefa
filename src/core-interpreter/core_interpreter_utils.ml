@@ -29,6 +29,7 @@ type annotated_clause =
   | Exit_clause of var * var * clause
   | Start_clause
   | End_clause
+  | Junk_clause
 [@@deriving ord, eq, to_yojson]
 ;;
 
@@ -87,6 +88,8 @@ let rec string_of_annotated_clause cl : string =
     "Start of program"
   | End_clause ->
     "End of program"
+  | Junk_clause ->
+    "Junk clause"
 ;;
 
 let rec string_of_input_mapping_helper lst : string =
@@ -111,42 +114,47 @@ let print_iota iota : unit =
   Hashtbl.iter (fun x -> fun y -> print_endline ((string_of_var x) ^ " -> " ^ (string_of_value y))) iota
 ;;
 
-let rec create_starting_node (graph:(annotated_clause * annotated_clause) list) v : annotated_clause =
+let print_stack stack : unit =
+  print_endline "Stack:";
+  Stack.iter (fun (v,_) -> print_endline ((string_of_var v))) stack
+  (* Stack.iter (fun (v,f) -> print_endline ((string_of_var v) ^ " with formula: " ^ (string_of_formula f))) stack *)
+;;
+
+(* find starting node in the a1 position, then create temporary junk mapping and returns new node *)
+let rec create_starting_node (graph:(annotated_clause * annotated_clause) list) v g =
   match graph with
   | [] ->
     failwith "starting program point not found"
   | (a1, _) :: tail ->
     begin
       match a1 with
-      | Unannotated_clause(Clause(x, body)) ->
-        begin
-          match body with
-          (* | Conditional_body(_,_,Function_value(_, Expr(f1)),Function_value(_,Expr(f2))) ->
-            find_starting_node_helper (f1:) v *)
-          (* TODO: do this *)
-          | _ ->
-            if x = v then
-              a1
-            else
-              create_starting_node tail v
-        end
+      | Unannotated_clause(Clause(x, _)) ->
+        if x = v then
+          let new_node = Junk_clause in (* new_node can be any type of clause *)
+          Hashtbl.add g new_node a1;
+          (new_node, g)
+        else
+          create_starting_node tail v g
       | Enter_clause(x, _, _)
       | Exit_clause(x, _,_) ->
         if v = x then
-          a1
+          (a1, g)
         else
-          create_starting_node tail v
+          create_starting_node tail v g
       | Start_clause
-      | End_clause ->
-        create_starting_node tail v
+      | End_clause
+      | Junk_clause ->
+        create_starting_node tail v g
+
     end
 ;;
 
-
-let rec find_starting_node_helper (graph:(annotated_clause * annotated_clause) list) v : annotated_clause =
+(* try finding starting node in the a0 position and returns a1 *)
+let rec find_starting_node_helper (graph:(annotated_clause * annotated_clause) list) v g =
   match graph with
   | [] ->
-    create_starting_node graph v
+    print_endline "creation time";
+    create_starting_node (Hashtbl.to_list g) v g
   | (a1, a0) :: tail ->
     begin
       match a0 with
@@ -154,29 +162,74 @@ let rec find_starting_node_helper (graph:(annotated_clause * annotated_clause) l
         begin
           match body with
           (* | Conditional_body(_,_,Function_value(_, Expr(f1)),Function_value(_,Expr(f2))) ->
-            find_starting_node_helper (f1:) v *)
-          (* TODO: do this *)
+             find_starting_node_helper (f1:) v *)
+          (* TODO: not sure if the above case is needed/any different *)
           | _ ->
             if x = v then
-              a1
+              (a1, g)
             else
-              find_starting_node_helper tail v
+              find_starting_node_helper tail v g
         end
       | Enter_clause(x, _, _)
       | Exit_clause(x, _,_) ->
         if v = x then
-          a1
+          (a1, g)
         else
-          find_starting_node_helper tail v
+          find_starting_node_helper tail v g
       | Start_clause
-      | End_clause ->
-        find_starting_node_helper tail v
+      | End_clause
+      | Junk_clause ->
+        find_starting_node_helper tail v g
     end
 ;;
 
-let find_starting_node graph v : annotated_clause =
+let find_starting_node graph v : (annotated_clause * (annotated_clause, annotated_clause) Hashtbl.t) =
   let list_of_graph = Hashtbl.to_list graph in
-  find_starting_node_helper list_of_graph v
+  find_starting_node_helper list_of_graph v graph
+;;
+
+let rec find_clause_by_var_helper graph v =
+  match graph with
+  | [] -> failwith "didn't find clause"
+  | head :: tail ->
+    let (cl1, cl2) = head in
+    let option1 =
+      match cl1 with
+      | Unannotated_clause(Clause(x,_)) as pos1 ->
+        if x = v then pos1 else Junk_clause
+      | _ -> Junk_clause
+    in
+    let option2 =
+      match cl2 with
+      | Unannotated_clause(Clause(x,_)) as pos2 ->
+        if x = v then pos2 else Junk_clause
+      | _ -> Junk_clause
+    in
+    match option1, option2 with
+    | Junk_clause, Junk_clause -> find_clause_by_var_helper tail v
+    | output, Junk_clause -> output
+    | Junk_clause, output -> output
+    | _,_ -> failwith "find_clause_by_var_helper result should not have happened"
+;;
+
+let find_clause_by_var graph v : annotated_clause =
+  let list_of_graph = Hashtbl.to_list graph in
+  find_clause_by_var_helper list_of_graph v
+;;
+
+let rec find_by_value_helper graph (cl:annotated_clause) =
+  match graph with
+  | [] -> failwith "couldn't find value"
+  | (cl1, cl2) :: tail ->
+    if cl = cl2 then
+      cl1
+    else
+      find_by_value_helper tail cl
+;;
+
+let rec find_by_value (graph:(annotated_clause, annotated_clause) Hashtbl.t) (cl:annotated_clause) : annotated_clause =
+  let list_of_graph = Hashtbl.to_list graph in
+  find_by_value_helper list_of_graph cl
 ;;
 
 (* right now successor only works for a single input var *)

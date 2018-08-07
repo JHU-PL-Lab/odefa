@@ -20,8 +20,24 @@ function enter
 first attempt at successor, haven't tested at all
 
 currently working on: when starting from inside conditional, sometimes previous node doesn't exist - change starting node method.
-also making unit test framework. Iota is currently not being passed up
 
 Current restrictions:
 All input statements at the beginning
 Pretty flat - lookups in above levels do not continue beyond that
+
+
+
+sat solver interface
+z3
+or just make own module
+
+functions with non-Unannotated_clauses inside their bodies - not sure if I properly wire those
+
+x = input;
+y = 2;
+z = x == y;
+w = z ~ true ? fun n-> (b=1) : fun c-> (d=c);
+q=d;
+;;
+
+seems like rule 15 is not correct

@@ -129,7 +129,7 @@ let observe_evaluated formula (iota:input_mapping) expectation =
     assert_equal s (string_of_formula formula);
     None
   | Expect_iota(s) ->
-    print_endline (string_of_input_mapping iota);
+    (* print_endline (string_of_input_mapping iota); *)
     assert_equal s (string_of_input_mapping iota);
     None
   | _ -> Some expectation
