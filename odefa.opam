@@ -18,6 +18,7 @@ depends: [
   "ocamlbuild" {build}
   "ocamlfind" {build}
   "ounit" {build}
+  "pdr-programming"
   "ppx_deriving" {>= "3.2"}
   "ppx_deriving_yojson" {>= "2.1"}
   "yojson"

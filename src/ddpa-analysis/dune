@@ -18,6 +18,7 @@
   (preprocess
     (pps
       ocaml-monadic
+      pdr-programming.ppx
       ppx_deriving.std
       ppx_deriving_yojson
     )

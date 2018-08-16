@@ -53,6 +53,11 @@ let negative_pattern_set_selection record_type pattern_set =
   return @@ Pattern_set.of_enum selected_patterns
 ;;
 
+let negative_pattern_set_selection_enum record_type pattern_set =
+  Nondeterminism_monad.enum @@
+  negative_pattern_set_selection record_type pattern_set
+;;
+
 (* `pattern' /must/ satisfy the `is_record_pattern_set' predicate. Note that
    the results of `negative_pattern_set_selection' already satisfy it. *)
 let pattern_projection pattern label =

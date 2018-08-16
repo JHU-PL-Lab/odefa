@@ -72,12 +72,10 @@ module Make(C : Context_stack)
   : Analysis_sig with module C = C =
 struct
   module C = C;;
-  module Structure_types = Ddpa_pds_structure_types.Make(C);;
-  module Dynamic_pop_types =
-    Ddpa_pds_dynamic_pop_types.Make(C)(Structure_types)
-  ;;
+  module Structure_types = Ddpa_pds_structure_types_new.Make(C);;
+  module Dynamic_pop_functions = Ddpa_pds_dynamic_pop_functions.Make(C)(Structure_types);;
   module Dynamic_pop_handler =
-    Ddpa_pds_dynamic_pop_handler.Make(C)(Structure_types)(Dynamic_pop_types)
+    Ddpa_pds_dynamic_pop_handler_new.Make(C)(Structure_types)(Dynamic_pop_functions)
   ;;
 
   module Ddpa_pds_reachability_basis =
@@ -95,15 +93,6 @@ struct
 
   open Ddpa_pds_reachability.Stack_action.T;;
   open Ddpa_pds_reachability.Terminus.T;;
-
-  module Edge_functions =
-    Ddpa_pds_edge_functions.Make
-      (C)
-      (Structure_types)
-      (Dynamic_pop_types)
-      (Ddpa_pds_reachability_basis)
-      (Ddpa_pds_reachability)
-  ;;
 
   type ddpa_analysis_logging_data =
     { ddpa_logging_config : ddpa_analysis_logging_config
@@ -281,9 +270,9 @@ struct
       let add_edge_for_reachability edge reachability =
         reachability
         |> Ddpa_pds_reachability.add_edge_function
-          (Edge_functions.create_edge_function edge)
+          (Dynamic_pop_handler.create_edge_function edge)
         |> Ddpa_pds_reachability.add_untargeted_dynamic_pop_action_function
-          (Edge_functions.create_untargeted_dynamic_pop_action_function
+          (Dynamic_pop_handler.create_untargeted_dynamic_pop_action_function
              analysis.ddpa_end_of_block_map edge)
       in
       let pds_reachability' =

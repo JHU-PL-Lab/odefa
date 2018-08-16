@@ -153,6 +153,7 @@ let analyze_variables_option =
           let new_selection =
             match analyze_string with
             | "none" -> Analyze_no_variables
+            | "top"
             | "all" -> Analyze_toplevel_variables
             | _ ->
               if String.starts_with analyze_string "only:"
