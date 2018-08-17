@@ -114,7 +114,7 @@ struct
           let%require Continuation_value (v : abs_filtered_value) =
             [%pop Some(acl0,ctx)]
           in
-          let%require Capture4 = [%pop] in
+          let%require Capture5 = [%pop] in
           let (k1 : pds_continuation) = [%pop] in
           let (k2 : pds_continuation) = [%pop] in
           let (k3 : pds_continuation) = [%pop] in
@@ -723,7 +723,7 @@ struct
              instead, we are pushing stack elements one at a time. *)
           let eps = Pattern_set.empty in
           let k1'' = [ Capture5; Lookup_var(x2,eps,eps) ] in
-          let k2'' = [ Capture2; Lookup_var(x3,eps,eps) ] in
+          let k2'' = [ Capture2; Lookup_var(x3,eps,eps); Jump(acl1, ctx) ] in
           let k3'' = [ Binary_operation; Jump(acl0,ctx) ] in
           let k0 = [ lookup_element ] in
           k0 @ k3'' @ k2'' @ k1''
