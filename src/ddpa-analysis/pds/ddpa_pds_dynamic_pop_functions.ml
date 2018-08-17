@@ -67,8 +67,61 @@ struct
         (* Block Marker Skip *)
         (* * This is handled as a special case because it does not involve
            a pop. *)
-        (* Capture *)
-        (* * This is manually encoded in each place it is required. *)
+        (* Capture(1) *)
+        begin
+          let%require Continuation_value (v : abs_filtered_value) =
+            [%pop Some(acl0,ctx)]
+          in
+          let%require Capture1 = [%pop] in
+          let k1 = [%pop] in
+          [Continuation_value v; k1]
+        end;
+        (* Capture(2) *)
+        begin
+          let%require Continuation_value (v : abs_filtered_value) =
+            [%pop Some(acl0,ctx)]
+          in
+          let%require Capture2 = [%pop] in
+          let (k1 : pds_continuation) = [%pop] in
+          let (k2 : pds_continuation) = [%pop] in
+          [Continuation_value v; k2; k1]
+        end;
+        (* Capture(3) *)
+        begin
+          let%require Continuation_value (v : abs_filtered_value) =
+            [%pop Some(acl0,ctx)]
+          in
+          let%require Capture3 = [%pop] in
+          let (k1 : pds_continuation) = [%pop] in
+          let (k2 : pds_continuation) = [%pop] in
+          let (k3 : pds_continuation) = [%pop] in
+          [Continuation_value v; k3; k2; k1]
+        end;
+        (* Capture(4) *)
+        begin
+          let%require Continuation_value (v : abs_filtered_value) =
+            [%pop Some(acl0,ctx)]
+          in
+          let%require Capture4 = [%pop] in
+          let (k1 : pds_continuation) = [%pop] in
+          let (k2 : pds_continuation) = [%pop] in
+          let (k3 : pds_continuation) = [%pop] in
+          let (k4 : pds_continuation) = [%pop] in
+          [Continuation_value v; k4; k3; k2; k1]
+        end;
+        (* Capture(5) *)
+        begin
+          let%require Continuation_value (v : abs_filtered_value) =
+            [%pop Some(acl0,ctx)]
+          in
+          let%require Capture4 = [%pop] in
+          let (k1 : pds_continuation) = [%pop] in
+          let (k2 : pds_continuation) = [%pop] in
+          let (k3 : pds_continuation) = [%pop] in
+          let (k4 : pds_continuation) = [%pop] in
+          let (k5 : pds_continuation) = [%pop] in
+          [Continuation_value v; k5; k4; k3; k2; k1]
+        end;
         (* Rewind *)
         (* * This is handled in untargeted pops *)
         (* ********** Function Wiring ********** *)
