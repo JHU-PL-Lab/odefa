@@ -366,7 +366,456 @@ struct
           |> Enum.append first_pushes
           |> List.of_enum
         end;
-        (* TODO: all other rules starting at State section *)
+        (* ********** State ********** *)
+        (* Update Is Empty Record *)
+        begin
+          let%require Unannotated_clause(
+              Abs_clause((x : abstract_var), Abs_update_body _)) = acl1
+          in
+          let%require Lookup_var(x_,patsp,patsn) = [%pop Some(acl1,ctx)] in
+          let%require true = equal_abstract_var x x_ in
+          let empty_record = Abs_value_record(Abs_record_value Ident_map.empty) in
+          let empty_record_pat = Record_pattern Ident_map.empty in
+          let%require true =
+            (Pattern_set.subset patsp
+               (Pattern_set.of_list [empty_record_pat; Any_pattern]))
+          in
+          let%require true = not @@ Pattern_set.mem empty_record_pat patsn in
+          let%require true = not @@ Pattern_set.mem Any_pattern patsn in
+          [ Continuation_value(Abs_filtered_value(
+                empty_record,Pattern_set.empty,Pattern_set.empty))
+          ]
+        end;
+        (* Dereference Start *)
+        begin
+          let%require Unannotated_clause(Abs_clause(
+              (x : abstract_var), Abs_deref_body(x' : abstract_var)
+            )) = acl1
+          in
+          let%require Lookup_var(x_,patsp,patsn) = [%pop Some(acl1,ctx)] in
+          let%require true = equal_abstract_var x x_ in
+          [ Deref(patsp, patsn);
+            Lookup_var(x', Pattern_set.empty, Pattern_set.empty)
+          ]
+        end;
+        (* Dereference Stop *)
+        begin
+          let%require Continuation_value(Abs_filtered_value(
+              Abs_value_ref(cell : abstract_ref_value),patsp,patsn
+            )) = [%pop Some(acl0, ctx)]
+          in
+          let%require true = Pattern_set.is_empty patsp in
+          let%require true = Pattern_set.is_empty patsn in
+          let%require Deref(patsp,patsn) = [%pop] in
+          let Abs_ref_value x' = cell in
+          [ Lookup_var(x', patsp, patsn) ]
+        end;
+        (* ********** Alias Analysis (State) ********** *)
+        (* Alias Analysis Start *)
+        begin
+          let%require Unannotated_clause(Abs_clause(
+              _, Abs_update_body((x' : abstract_var),_))) = acl1
+          in
+          let%require Lookup_var(
+              (x : abstract_var),
+              (patsp0 : Pattern_set.t),
+              (patsn0 : Pattern_set.t)
+            ) = [%pop Some(acl0, ctx)] in
+          let deref = [%pop] in
+          let%require Deref _ = deref in
+          let k1'' = [ Capture5; Lookup_var(x,patsp0,patsn0) ] in
+          let k2'' = [ Capture2;
+                       Lookup_var(x',Pattern_set.empty,Pattern_set.empty);
+                       Jump(acl1,ctx)
+                     ]
+          in
+          let k3'' = [ Alias_huh; Jump(acl0,ctx) ] in
+          let k0 = [ deref; Lookup_var(x,patsp0,patsn0) ] in
+          k0 @ k3'' @ k2'' @ k1''
+        end;
+        (* Alias Analysis Stop *)
+        begin
+          let%require Unannotated_clause(Abs_clause(
+              _, Abs_update_body(_, (x'' : abstract_var)))) = acl1
+          in
+          let%require Alias_huh = [%pop Some(acl1, ctx)] in
+          let%require Continuation_value(Abs_filtered_value(
+              (v : abstract_value),patsp,patsn
+            )) = [%pop]
+          in
+          let%require true = Pattern_set.is_empty patsp in
+          let%require true = Pattern_set.is_empty patsn in
+          let%require Continuation_value(Abs_filtered_value(
+              v',patsp,patsn
+            )) = [%pop]
+          in
+          let%require true = Pattern_set.is_empty patsp in
+          let%require true = Pattern_set.is_empty patsn in
+          let (equal_values : bool) = equal_abstract_value v v' in
+          let%require Lookup_var(
+              (x : abstract_var),
+              (patsp0 : Pattern_set.t),
+              (patsn0 : Pattern_set.t)
+            ) = [%pop] in
+          let%require Deref(patsp1,patsn1) = [%pop] in
+          if equal_values then
+            [ Lookup_var(x'',patsp1,patsn1) ]
+          else
+            [ Deref(patsp1,patsn1); Lookup_var(x,patsp0,patsn0) ]
+        end;
+        (* ********** Side Effect Search (State) ********** *)
+        (* Stateful Immediate Clause Skip *)
+        begin
+          let%require (Unannotated_clause(Abs_clause(
+              (x : abstract_var),b)
+            )) = acl1
+          in
+          let%require true = is_immediate acl1 in
+          let%antirequire Abs_update_body _ = b in
+          let element = [%pop Some(acl1,ctx)] in
+          let%require Lookup_var(x_,_,_) = element in
+          let%require true = not @@ equal_abstract_var x x_ in
+          [ element ]
+        end;
+        (* Side Effect Search Start: Function Flow Check *)
+        begin
+          let%require Exit_clause(
+              (x0'' : abstract_var), _, (c : abstract_clause)
+            ) = acl1
+          in
+          let%require Abs_clause(_,Abs_appl_body(_,_)) = c in
+          let (lookup_element : pds_continuation) =
+            [%pop Some(Unannotated_clause(c),ctx)]
+          in
+          let%require Lookup_var(x0''_,_,_) = lookup_element in
+          let%require true = equal_abstract_var x0'' x0''_ in
+          let deref_element = [%pop] in
+          let%require Deref(_,_) = deref_element in
+          let%require Abs_clause(_,Abs_appl_body(x2'',x3'')) = c in
+          [ deref_element;
+            lookup_element;
+            Real_flow_huh;
+            Jump(acl0,ctx);
+            Capture2;
+            Lookup_var(x2'',Pattern_set.empty,Pattern_set.empty);
+            Jump(Unannotated_clause(c),ctx);
+            Lookup_var(x3'',Pattern_set.empty,Pattern_set.empty);
+          ]
+        end;
+        (* Side Effect Search Start: Function Flow Validated *)
+        begin
+          let%require Exit_clause(
+              (x0'' : abstract_var), (x' : abstract_var), (c : abstract_clause)
+            ) = acl1
+          in
+          let%require Abs_clause(_,Abs_appl_body(_,_)) = c in
+          let%require Real_flow_huh = [%pop Some(acl1, C.push c ctx)] in
+          let%require Continuation_value fv = [%pop] in
+          let Abs_filtered_value(v,_,_) = fv in
+          let%require Abs_value_function(Abs_function_value(_,e)) = v in
+          let Abs_expr cls = e in
+          let%require true = equal_abstract_var x' (rv cls) in
+          let (lookup_element : pds_continuation) = [%pop] in
+          let%require Lookup_var(x,_,_) = lookup_element in
+          let%require true = not @@ equal_abstract_var x0'' x in
+          let deref_element = [%pop] in
+          let%require Deref(_,_) = deref_element in
+          let%require Lookup_var(x,patsp,patsn) = lookup_element in
+          [ deref_element;
+            lookup_element;
+            Side_effect_search_start;
+            Side_effect_lookup_var(x,patsp,patsn,acl0,ctx)
+          ]
+        end;
+        (* Side Effect Search Start: Conditional Positive *)
+        (* Side Effect Search Start: Conditional Negative *)
+        begin
+          let%require Exit_clause(_,_,c) = acl1 in
+          let%require Abs_clause(_,Abs_conditional_body _) = c in
+          let (lookup_element : pds_continuation) = [%pop Some(acl1,ctx)] in
+          let%require Lookup_var(x,_,_) = lookup_element in
+          let%require Exit_clause(x_,_,_) = acl1 in
+          let%require true = not @@ equal_abstract_var x x_ in
+          let deref_element = [%pop] in
+          let%require Deref(_,_) = deref_element in
+          let%require Lookup_var(x,patsp0,patsn0) = lookup_element in
+          let%require Exit_clause(_,x',c) = acl1 in
+          let%require Abs_clause(_,Abs_conditional_body(x2'',p,f1,f2)) = c in
+          let Abs_function_value(_,Abs_expr f1cls) = f1 in
+          let Abs_function_value(_,Abs_expr f2cls) = f2 in
+          let%pick (patsp',patsn') =
+            if equal_abstract_var x' (rv f1cls) then
+              Enum.singleton (Pattern_set.singleton p, Pattern_set.empty)
+            else if equal_abstract_var x' (rv f2cls) then
+              Enum.singleton (Pattern_set.empty, Pattern_set.singleton p)
+            else
+              Enum.empty ()
+          in
+          [ deref_element;
+            lookup_element;
+            Side_effect_search_start;
+            Side_effect_lookup_var(x,patsp0,patsn0,acl0,ctx);
+            Jump(Unannotated_clause c, ctx);
+            Lookup_var(x2'',patsp',patsn')
+          ]
+        end;
+        (* Side Effect Search Immediate Clause Skip *)
+        begin
+          let%require Unannotated_clause(Abs_clause(_,b)) = acl1 in
+          let%require true = is_immediate acl1 in
+          let%antirequire Abs_update_body _ = b in
+          let element = [%pop Some(acl1,ctx)] in
+          let%require Side_effect_lookup_var _ = element in
+          [ element ]
+        end;
+        (* Side Effect Search: Function Bottom: Flow Check *)
+        begin
+          let%require Exit_clause(_,_,c) = acl1 in
+          let%require Abs_clause(_,Abs_appl_body _) = c in
+          let element = [%pop Some(Unannotated_clause(c),ctx)] in
+          let%require Side_effect_lookup_var _ = element in
+          let%require Exit_clause(_,_,c) = acl1 in
+          let%require Abs_clause(_,Abs_appl_body(x2'',x3'')) = c in
+          [ element;
+            Real_flow_huh;
+            Jump(acl0,ctx);
+            Capture2;
+            Lookup_var(x2'',Pattern_set.empty,Pattern_set.empty);
+            Jump(Unannotated_clause(c),ctx);
+            Lookup_var(x3'',Pattern_set.empty,Pattern_set.empty);
+          ]
+        end;
+        (* Side Effect Search: Function Bottom: Flow Validated *)
+        begin
+          let%require Exit_clause(_,(x' : abstract_var),c) = acl1 in
+          let%require Abs_clause(_,Abs_appl_body _) = c in
+          let%require Real_flow_huh =
+            [%pop Some(Unannotated_clause(c),C.push c ctx)]
+          in
+          let%require Continuation_value(Abs_filtered_value(v,_,_)) = [%pop] in
+          let%require Abs_value_function(Abs_function_value(_,e)) = v in
+          let Abs_expr(cls) = e in
+          let%require true = equal_abstract_var x' (rv cls) in
+          let element = [%pop] in
+          let%require Side_effect_lookup_var _ = element in
+          [ element; element ]
+        end;
+        (* Side Effect Search: Conditional Positive *)
+        (* Side Effect Search: Conditional Negative *)
+        begin
+          let%require Exit_clause(_,_,c) = acl1 in
+          let%require Abs_clause(_,Abs_conditional_body _) = c in
+          let element = [%pop Some(Unannotated_clause(c),ctx)] in
+          let%require Side_effect_lookup_var _ = element in
+          let%require Exit_clause(_,x',c) = acl1 in
+          let%require Abs_clause(_,Abs_conditional_body(x1,p,f1,f2)) = c in
+          let Abs_function_value(_,Abs_expr f1cls) = f1 in
+          let Abs_function_value(_,Abs_expr f2cls) = f2 in
+          let%pick (patsp',patsn') =
+            if equal_abstract_var x' (rv f1cls) then
+              Enum.singleton (Pattern_set.singleton p, Pattern_set.empty)
+            else if equal_abstract_var x' (rv f2cls) then
+              Enum.singleton (Pattern_set.empty, Pattern_set.singleton p)
+            else
+              Enum.empty ()
+          in
+          [ element; Jump(acl1,ctx); Lookup_var(x1,patsp',patsn') ]
+        end;
+        (* Side Effect Search: Top *)
+        begin
+          let%require Enter_clause(_,_,c) = acl1 in
+          let%pick ctx' =
+            match c with
+            | Abs_clause(_,Abs_appl_body _) -> Enum.singleton @@ C.pop ctx
+            | Abs_clause(_,Abs_conditional_body _) -> Enum.singleton ctx
+            | _ -> Enum.empty ()
+          in
+          let%require Side_effect_lookup_var _ = [%pop Some(acl1,ctx')] in
+          []
+        end;
+        (* Side Effect Search: Complete, None Found *)
+        begin
+          let%require Side_effect_search_start = [%pop Some(acl0, ctx)] in
+          []
+        end;
+        (* Side Effect Search: Alias Analysis Start *)
+        begin
+          let%require Unannotated_clause(Abs_clause(
+              _,Abs_update_body((x' : abstract_var),_)
+            )) = acl1
+          in
+          let element = [%pop Some(acl1,ctx)] in
+          let%require Side_effect_lookup_var(x,patsp,patsn,acl',ctx') =
+            element
+          in
+          [ element;
+            Alias_huh;
+            Jump(acl0,ctx);
+            Capture2;
+            Lookup_var(x,patsp,patsn);
+            Jump(acl',ctx');
+            Capture5;
+            Lookup_var(x',Pattern_set.empty,Pattern_set.empty);
+          ]
+        end;
+        (* Side Effect Search: May Not Alias *)
+        begin
+          let%require
+            Unannotated_clause(Abs_clause(_,Abs_update_body(_,_))) = acl1
+          in
+          let%require Alias_huh = [%pop Some(acl1,ctx)] in
+          let%require Continuation_value _ = [%pop] in
+          let%require Continuation_value _ = [%pop] in
+          let element = [%pop] in
+          let%require Side_effect_lookup_var _ = element in
+          [ element ]
+        end;
+        (* Side Effect Search: May Alias *)
+        begin
+          let%require Unannotated_clause(Abs_clause(
+              _,Abs_update_body(_,(x'' : abstract_var))
+            )) = acl1
+          in
+          let%require Alias_huh = [%pop Some(acl1,ctx)] in
+          let%require Continuation_value(Abs_filtered_value(
+              (v : abstract_value),_,_
+            )) = [%pop] in
+          let%require Continuation_value(Abs_filtered_value(
+              (v' : abstract_value),_,_
+            )) = [%pop] in
+          let%require true = equal_abstract_value v v' in
+          let%require Side_effect_lookup_var _ = [%pop] in
+          [ Side_effect_search_escape x'' ]
+        end;
+        (* Side Effect Search: Escape: Incremental *)
+        begin
+          let (escape_element : pds_continuation) = [%pop Some(acl0,ctx)] in
+          let%require Side_effect_search_escape _ = escape_element in
+          let%require Side_effect_lookup_var _ = [%pop] in
+          [ escape_element ]
+        end;
+        (* Side Effect Search Escape: Base *)
+        begin
+          let%require Side_effect_search_escape(x' : abstract_var) =
+            [%pop Some(acl0,ctx)]
+          in
+          let%require Side_effect_search_start = [%pop] in
+          let%require Lookup_var _ = [%pop] in
+          let%require Deref(patsp,patsn) = [%pop] in
+          [ Lookup_var(x',patsp,patsn) ]
+        end;
+        (* ********** Operations ********** *)
+        (* Binary Operation Start *)
+        begin
+          let%require
+            Unannotated_clause(Abs_clause(
+                 (x1 : abstract_var),
+                 Abs_binary_operation_body(
+                   (x2 : abstract_var), _, (x3 : abstract_var)
+                 )
+               )) = acl1
+          in
+          let lookup_element = [%pop Some(acl1,ctx)] in
+          let%require Lookup_var(x1_,_,_) = lookup_element in
+          let%require true = equal_abstract_var x1 x1_ in
+          (* The lists below are in reverse order of their presentation in the
+             formal rules because we are not directly modifying the stack;
+             instead, we are pushing stack elements one at a time. *)
+          let eps = Pattern_set.empty in
+          let k1'' = [ Capture5; Lookup_var(x2,eps,eps) ] in
+          let k2'' = [ Capture2; Lookup_var(x3,eps,eps) ] in
+          let k3'' = [ Binary_operation; Jump(acl0,ctx) ] in
+          let k0 = [ lookup_element ] in
+          k0 @ k3'' @ k2'' @ k1''
+        end;
+        (* Binary Operation Evaluation *)
+        begin
+          let%require
+            Unannotated_clause(Abs_clause(
+                (x1 : abstract_var),
+                Abs_binary_operation_body(_, (op:binary_operator), _)
+              )) = acl1
+          in
+          let%require Binary_operation = [%pop Some(acl1,ctx)] in
+          let%require Continuation_value(Abs_filtered_value(
+              (v2 : abstract_value),patsp,patsn
+            )) = [%pop]
+          in
+          let%require true = Pattern_set.is_empty patsp in
+          let%require true = Pattern_set.is_empty patsn in
+          let%require
+            Continuation_value(Abs_filtered_value(v1,patsp,patsn)) = [%pop]
+          in
+          let%require true = Pattern_set.is_empty patsp in
+          let%require true = Pattern_set.is_empty patsn in
+          let%require Some result_values = abstract_binary_operation op v1 v2 in
+          let%pick (result_value : abstract_value) = result_values in
+          let%require Lookup_var(x1_,patsp,patsn) = [%pop] in
+          let%require true = equal_abstract_var x1 x1_ in
+          (* NOTE: For types that are not immediate (e.g. binary operations on
+             records), we'll need a different handler for pattern matching.  It
+             seems that our current theory for handling binary operators only works
+             for operations that return immediately matchable types. *)
+          let%require Some immediate_patterns =
+            immediately_matched_by result_value
+          in
+          let%require true = Pattern_set.subset patsp immediate_patterns in
+          let%require true =
+            Pattern_set.is_empty @@ Pattern_set.inter immediate_patterns patsn
+          in
+          [ Continuation_value(Abs_filtered_value(
+                result_value, Pattern_set.empty, Pattern_set.empty
+              ))
+          ]
+        end;
+        (* Unary Operation Start *)
+        begin
+          let%require
+            Unannotated_clause(Abs_clause(
+                 (x1 : abstract_var),
+                 Abs_unary_operation_body(_,(x2 : abstract_var))
+               )) = acl1
+          in
+          let lookup_element = [%pop Some(acl1,ctx)] in
+          let%require Lookup_var(x1_,_,_) = lookup_element in
+          let%require true = equal_abstract_var x1 x1_ in
+          let k1'' =
+            [ Capture2; Lookup_var(x2,Pattern_set.empty,Pattern_set.empty) ]
+          in
+          let k2'' = [ Unary_operation; Jump(acl0,ctx) ] in
+          let k0 = [ lookup_element ] in
+          k0 @ k2'' @ k1''
+        end;
+        (* Unary Operation Evaluation *)
+        begin
+          let%require Unannotated_clause(Abs_clause(
+              (x1 : abstract_var),
+              Abs_unary_operation_body((op : unary_operator),_)
+            )) = acl1
+          in
+          let%require Unary_operation = [%pop Some(acl1,ctx)] in
+          let%require Continuation_value(Abs_filtered_value(
+              v,patsp,patsn
+            )) = [%pop]
+          in
+          let%require true = Pattern_set.is_empty patsp in
+          let%require true = Pattern_set.is_empty patsn in
+          let%require Some result_values = abstract_unary_operation op v in
+          let%pick (result_value : abstract_value) = result_values in
+          let%require Lookup_var(x1_,patsp,patsn) = [%pop] in
+          let%require true = equal_abstract_var x1 x1_ in
+          let%require Some immediate_patterns =
+            immediately_matched_by result_value
+          in
+          let%require true = Pattern_set.subset patsp immediate_patterns in
+          let%require true =
+            Pattern_set.is_empty @@ Pattern_set.inter immediate_patterns patsn
+          in
+          [ Continuation_value(Abs_filtered_value(
+                result_value, Pattern_set.empty, Pattern_set.empty
+              ))
+          ]
+        end;
       ]
     ;;
   end;;
