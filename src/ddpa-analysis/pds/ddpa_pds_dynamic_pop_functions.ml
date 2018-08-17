@@ -480,15 +480,15 @@ struct
         (* Side Effect Search Start: Function Flow Check *)
         begin
           let%require Exit_clause(
-              (x0'' : abstract_var), _, (c : abstract_clause)
+              (x : abstract_var), _, (c : abstract_clause)
             ) = acl1
           in
           let%require Abs_clause(_,Abs_appl_body(_,_)) = c in
           let (lookup_element : pds_continuation) =
             [%pop Some(Unannotated_clause(c),ctx)]
           in
-          let%require Lookup_var(x0''_,_,_) = lookup_element in
-          let%require true = equal_abstract_var x0'' x0''_ in
+          let%require Lookup_var(x_,_,_) = lookup_element in
+          let%require true = equal_abstract_var x x_ in
           let deref_element = [%pop] in
           let%require Deref(_,_) = deref_element in
           let%require Abs_clause(_,Abs_appl_body(x2'',x3'')) = c in
