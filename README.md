@@ -66,19 +66,18 @@ Build
 5. Install the dependencies:
 
    ```console
-   $ opam install oasis \
+   $ opam install dune \
                   batteries \
                   menhir \
                   ounit \
                   ppx_deriving \
                   ppx_deriving_yojson \
-                  "ocaml-monadic=0.4.0" \
+                  ocaml-monadic \
                   monadlib \
-                  "jhupllib=0.1.1" \
-                  "pds-reachability=0.2.1"
+                  jhupllib \
+                  pds-reachability \
+                  pdr-programming
    ```
-
-   Note that newer versions of some of the constrained packages above may work, but the above-listed versions were tested with this project.
 
 6. If your shell hashes binary locations, you may need to clear your hashes, for example (in Bash):
 
@@ -86,41 +85,23 @@ Build
    $ hash -r
    ```
 
-7. Generate configuration:
+7. Build:
 
    ```console
-   $ oasis setup -setup-update dynamic
+   $ make
    ```
 
-8. Configure:
+8. Interact with the toploop (find sample programs at `test-sources/`):
 
    ```console
-   $ ./configure
+   $ ./ddpa_toploop
    ```
 
-9. Enable tests:
+9. Run the tests:
 
    ```console
-   $ ocaml setup.ml -configure --enable-tests
+   $ make test
    ```
-
-10. Build:
-
-    ```console
-    $ make
-    ```
-
-11. Interact with the toploop (find sample programs at `test-sources/`):
-
-    ```console
-    $ ./toploop_main.native
-    ```
-
-12. Run the tests:
-
-    ```console
-    $ make test
-    ```
 
 `toploop_main.native` Command-Line Arguments
 --------------------------------------------
@@ -154,4 +135,15 @@ Odefa depends on libraries which tend to develop at the same time as it does, bu
    $ opam pin add pds-reachability ../pds-reachability
    ```
 
-Re-run `opam pin` when these libraries change.
+3. `pdr-programming`:
+
+   ```console
+   $ git clone https://github.com/JHU-PL-Lab/pdr-programming.git ../pdr-programming
+   $ opam pin add pdr-programming ../pdr-programming
+   ```
+
+When these libraries change, run
+
+   ```console
+   $ opam upgrade jhupllib pds-reachability pdr-programming
+   ```
