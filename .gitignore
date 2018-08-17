@@ -25,5 +25,5 @@
 # Dune intermediates
 /*.install
 
-# Makefile outputs
+# Makefile temporaries
 /ddpa_toploop
