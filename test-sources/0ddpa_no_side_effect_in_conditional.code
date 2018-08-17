@@ -1,0 +1,11 @@
+# EXPECT-WELL-FORMED
+# EXPECT-EVALUATE
+# EXPECT-ANALYSIS-STACK-IS 1ddpa
+# EXPECT-ANALYSIS-LOOKUP-FROM-END d {{a=x}}
+# EXPECT-ANALYSIS-NO-INCONSISTENCIES
+
+x = 0;
+q = {a=x};
+c = ref q;
+y = x ~ int ? fun yt -> ( ytr = true ) : fun yf -> ( ytf = false );
+d = !c;
