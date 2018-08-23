@@ -1,0 +1,9 @@
+# EXPECT-EVALUATE
+# EXPECT-IOTA {x -> 2, }
+
+x = input;
+y = 2;
+z = x == y;
+w = z ~ true ? fun n-> (b=n) : fun c-> (d=c);
+
+q=b;

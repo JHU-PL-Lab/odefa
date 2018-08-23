@@ -33,16 +33,7 @@ type annotated_clause =
 [@@deriving ord, eq, to_yojson]
 ;;
 
-let rec matches v p =
-  match v,p with
-  | _,Any_pattern -> true
-  | Value_function _,Fun_pattern
-  | Value_int _,Int_pattern ->
-    true
-  | Value_bool actual_boolean,Bool_pattern pattern_boolean ->
-    actual_boolean = pattern_boolean
-  | _ -> false
-;;
+
 
 let string_of_var v : string =
   let Var(i, _) = v in
@@ -153,7 +144,7 @@ let rec create_starting_node (graph:(annotated_clause * annotated_clause) list) 
 let rec find_starting_node_helper (graph:(annotated_clause * annotated_clause) list) v g =
   match graph with
   | [] ->
-    print_endline "creation time";
+    (* print_endline "creation time"; *)
     create_starting_node (Hashtbl.to_list g) v g
   | (a1, a0) :: tail ->
     begin
@@ -234,6 +225,7 @@ let rec find_by_value (graph:(annotated_clause, annotated_clause) Hashtbl.t) (cl
 
 (* right now successor only works for a single input var *)
 let successor iota : input_mapping =
+  (* print_endline "\nsuccessor\n"; *)
   let f _ cur_value =
     let value =
       match cur_value with
@@ -248,4 +240,148 @@ let successor iota : input_mapping =
       Value_int(value * -1)
   in
   Iota.map f iota
+;;
+
+let rec evaluate_patterns formula : formula =
+  (* print_endline ("\ncur formula: " ^ (string_of_formula formula)); *)
+  match formula with
+  | Binary_formula(f1, op, f2) ->
+    begin
+      match op with
+      | Binary_operator_tilde ->
+        (* print_endline "tilde"; *)
+        let f1_value = evaluate_formula (evaluate_patterns f1) in
+        (* print_endline ("f1: " ^ (string_of_formula f1) ^ " with value: " ^ (string_of_value f1_value)); *)
+        (* print_endline ("f2: " ^ (string_of_formula f2)); *)
+        begin
+          match f1_value,f2 with
+          | Value_bool(_) as v, Pattern_formula(p) ->
+            let temp = matches v p in
+            (* print_endline ("match value: " ^ (string_of_bool temp)); *)
+            Value_formula(Value_bool(temp))
+          | Value_int(_) as v, Pattern_formula(p) ->
+            Value_formula(Value_bool(matches v p))
+          | _, Pattern_formula(_) ->
+            failwith "Evaluate patterns - not implemented yet"
+          | _,_ ->
+            failwith "This should never happen evaluate_patterns"
+        end
+      | _ ->
+        (* print_endline "other binary op"; *)
+        Binary_formula(evaluate_patterns f1, op, evaluate_patterns f2)
+    end
+  | Negated_formula(f1) ->
+    (* print_endline "negated"; *)
+    Negated_formula(evaluate_patterns f1)
+  | Value_formula(v) ->
+    (* print_endline "value"; *)
+    Value_formula(v)
+  | Var_formula(_) ->
+    failwith "evaluate formula in core_ast should not have var formula"
+  | Pattern_formula(p) ->
+    (* print_endline "pattern"; *)
+    Pattern_formula(p)
+
+(* this method expects the one variable to already have been substituted for a value, so no vars *)
+and evaluate_formula formula : Core_ast.value =
+  let formula_without_patterns = evaluate_patterns formula in
+  (* print_endline ("formula_without_patterns: " ^ (string_of_formula formula_without_patterns)); *)
+  match formula_without_patterns with
+  | Binary_formula(f1, op, f2) ->
+    let v1 = evaluate_formula f1 in
+    let v2 = evaluate_formula f2 in
+    begin
+      match op with
+      | Binary_operator_plus ->
+        begin
+          match v1, v2 with
+          | Value_int(i1), Value_int(i2) ->
+            Value_int(i1 + i2)
+          | _ ->
+            raise Formula_illformed
+        end
+      | Binary_operator_int_minus ->
+        begin
+          match v1, v2 with
+          | Value_int(i1), Value_int(i2) ->
+            Value_int(i1 - i2)
+          | _ ->
+            raise Formula_illformed
+        end
+      | Binary_operator_int_less_than ->
+        begin
+          match v1, v2 with
+          | Value_int(i1), Value_int(i2) ->
+            Value_bool(i1 < i2)
+          | _ ->
+            raise Formula_illformed
+        end
+      | Binary_operator_int_less_than_or_equal_to ->
+        begin
+          match v1, v2 with
+          | Value_int(i1), Value_int(i2) ->
+            Value_bool(i1 <= i2)
+          | _ ->
+            raise Formula_illformed
+        end
+      | Binary_operator_equal_to ->
+        begin
+          match v1, v2 with
+          | Value_int(i1), Value_int(i2) ->
+            Value_bool(i1 = i2)
+          | Value_bool(b1), Value_bool(b2) ->
+            Value_bool(b1 = b2)
+          | _,_ ->
+            raise Formula_illformed
+        end
+      | Binary_operator_bool_and ->
+        begin
+          match v1, v2 with
+          | Value_bool(b1), Value_bool(b2) ->
+            Value_bool(b1 && b2)
+          | _ ->
+            raise Formula_illformed
+        end
+      | Binary_operator_bool_or ->
+        begin
+          match v1, v2 with
+          | Value_bool(b1), Value_bool(b2) ->
+            Value_bool(b1 || b2)
+          | _ ->
+            raise Formula_illformed
+        end
+      | Binary_operator_index ->
+        failwith "Binary_operator_index not implemented yet - evaluate_formula"
+      | Binary_operator_tilde ->
+        failwith "Tilde should not be encountered"
+    end
+  | Negated_formula(f1) ->
+    let temp = evaluate_formula f1 in
+    begin
+      match temp with
+      | Value_bool(b) -> Value_bool(not b)
+      | Value_int(_)
+      | Value_function(_)
+      | Value_ref(_)
+      | Value_record(_) ->
+        raise Formula_illformed
+    end
+  | Value_formula(v) ->
+    v
+  | Var_formula(_) ->
+    failwith "evaluate formula in utils should not have var formula"
+  | Pattern_formula(_) ->
+    failwith "evaluate formula in utils should not have pattern formula"
+;;
+
+(* could just return false on Formula_illformed exception. But I know that's not what is actually supposed to happen *)
+let check_formula formula : bool =
+  match evaluate_formula formula with
+  | Value_record(_)
+  | Value_function(_)
+  | Value_ref(_)
+  | Value_int(_) ->
+    true
+  | Value_bool(b) ->
+    b
 ;;

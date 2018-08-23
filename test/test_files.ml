@@ -124,8 +124,6 @@ let observe_evaluated formula (iota:input_mapping) expectation =
   | Expect_stuck ->
     assert_failure @@ "Evaluation completed but was expected to become stuck."
   | Expect_formula(s) ->
-    (* print_endline s;
-    print_endline (string_of_formula formula); *)
     assert_equal s (string_of_formula formula);
     None
   | Expect_iota(s) ->

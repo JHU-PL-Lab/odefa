@@ -45,6 +45,7 @@ let pp_binary_operator formatter binop =
     | Binary_operator_bool_and -> "and"
     | Binary_operator_bool_or -> "or"
     | Binary_operator_index -> "@"
+    | Binary_operator_tilde -> "~"
   in
   Format.pp_print_string formatter s
 ;;

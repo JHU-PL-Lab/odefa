@@ -5,6 +5,7 @@ open Hashtbl;;
 open Core_ast;;
 (* open Formula;; *)
 (* open Core_ast_pp;; *)
+open Core_interpreter_utils;;
 
 open Unbounded_context_stack;;
 open Wddpac_graph_hashtbl;;

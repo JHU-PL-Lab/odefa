@@ -13,6 +13,8 @@ exception Evaluation_dead_end of string;;
 
 (* module VS = Set.Make(Value);; *)
 
+let evaluation_counter = ref 0;;
+
 (* returns the last program point of the program *)
 let rv (cls: clause list) : var =
   match cls with
@@ -65,7 +67,7 @@ let rec initialize_graph (prev: annotated_clause) (cls: clause list) (graph: (an
 (*
   lookup function
 *)
-let rec lookup lookup_stack (node:annotated_clause) context_stack graph iota: (Core_ast.value * formula) =
+let rec lookup lookup_stack (node:annotated_clause) context_stack graph iota: (Core_ast.value * formula * input_mapping) =
   let (cur_var, cur_formula) = Stack.top lookup_stack in
   let a1 =
     try
@@ -77,6 +79,7 @@ let rec lookup lookup_stack (node:annotated_clause) context_stack graph iota: (C
   print_endline ("Current node: " ^ string_of_annotated_clause node);
   print_endline ("a1 node: " ^ string_of_annotated_clause a1);
   print_stack lookup_stack;
+  print_endline ("current formula: " ^ string_of_formula cur_formula);
   (* print_graph graph; *)
   match a1 with
   | Unannotated_clause(cl) ->
@@ -97,10 +100,11 @@ let rec lookup lookup_stack (node:annotated_clause) context_stack graph iota: (C
               (* rule 1: value discovery *)
               (
                 (* print_endline "value discovery"; *)
-                (* if check_formula (substitute_value cur_formula cur_var v) then *)
-                  (v, cur_formula)
-                (* else
-                  raise (Evaluation_dead_end "formula unsatisfied") *)
+                (* print_endline (string_of_formula cur_formula); *)
+                if check_formula (substitute_value cur_formula cur_var v) then
+                  (v, cur_formula, iota)
+                else
+                  raise (Evaluation_dead_end "formula unsatisfied")
               )
             else
               (* rule 3: value discard *)
@@ -122,19 +126,19 @@ let rec lookup lookup_stack (node:annotated_clause) context_stack graph iota: (C
             begin
               try
                 let v = Iota.find iota cur_var in
-                (* if check_formula (substitute_value cur_formula cur_var v) then *)
-                  (v, cur_formula)
-                (* else
-                  raise (Evaluation_dead_end "formula unsatisfied") *)
+                if check_formula (substitute_value cur_formula cur_var v) then
+                  (v, cur_formula, iota)
+                else
+                  raise (Evaluation_dead_end "formula unsatisfied")
               with
               | Not_found ->
                 let v = Value_int(0) in
                 Iota.add iota x v;
-                (* if check_formula (substitute_value cur_formula x v) then *)
-                  (v, cur_formula)
-                (* else
-                  raise (Evaluation_dead_end "formula unsatisfied") *)
-              | _ -> failwith "unhandled exception when looking up iota mapping"
+                if check_formula (substitute_value cur_formula x v) then
+                  (v, cur_formula, iota)
+                else
+                  raise (Evaluation_dead_end "formula unsatisfied")
+                  (* | _ -> failwith "unhandled exception when looking up iota mapping" *)
             end
           | Appl_body(xf, xn) ->
             (* wire in dyanmically to set the groundwork to apply rule 9 *)
@@ -143,7 +147,7 @@ let rec lookup lookup_stack (node:annotated_clause) context_stack graph iota: (C
             (* find the definition of the function *)
             let temp_stack = Stack.create () in
             Stack.push (xf, true_formula) temp_stack;
-            let fcn,_ = lookup temp_stack (Unannotated_clause(cl)) context_stack graph iota in
+            let fcn,_,_ = lookup temp_stack (Unannotated_clause(cl)) context_stack graph iota in
             begin
               match fcn with
               | Value_function(Function_value(param, Expr(clause_list))) ->
@@ -171,7 +175,7 @@ let rec lookup lookup_stack (node:annotated_clause) context_stack graph iota: (C
             (* isn't the formula that is returned by the next call really important?
                 feel like i need to take this formula and boolean and it with the formula that results from the last line of this match
             *)
-            let arg_value,_ = lookup new_stack a1 context_stack graph iota in
+            let arg_value,_,_ = lookup new_stack a1 context_stack graph iota in
             let fcn_list,param =
               (
                 if (matches arg_value pattern) then
@@ -193,13 +197,13 @@ let rec lookup lookup_stack (node:annotated_clause) context_stack graph iota: (C
             (* print_endline "unary"; *)
             let _ = Stack.pop lookup_stack in
             Stack.push (var, true_formula) lookup_stack;
-            let v,v_formula = lookup lookup_stack a1 context_stack graph iota in
+            let v,v_formula,_ = lookup lookup_stack a1 context_stack graph iota in
             begin
               match op with
               | Unary_operator_bool_not ->
                 begin
                   match v with
-                  | Value_bool(b) -> (Value_bool(not b), v_formula) (* TODO: think it doesn't change *)
+                  | Value_bool(b) -> (Value_bool(not b), v_formula, iota) (* TODO: think it doesn't change *)
                   | _ -> raise @@ Utils.Invariant_failure "non-bool expr with not operator"
                 end
               | Unary_operator_bool_coin_flip ->
@@ -218,64 +222,65 @@ let rec lookup lookup_stack (node:annotated_clause) context_stack graph iota: (C
               failwith "ahh"
             else
               (
-            let left_stack = Stack.create () in
-            Stack.push (v1, true_formula) left_stack;
-            (* TODO: check left_formula *)
-            let left_value,_ = lookup left_stack a1 context_stack graph iota in
-            let new_formula = substitute_formula cur_formula cur_var (Binary_formula(Value_formula(left_value), op, Var_formula(v2))) in
-            (* pop off v1 *)
-            (* let _ = Stack.pop lookup_stack in *)
-            let right_stack = Stack.create () in
-            Stack.push (v2, new_formula) right_stack;
-            let right_value,_ = lookup right_stack a1 context_stack graph iota in
-            begin
-              match op with
-              | Binary_operator_plus ->
+                let left_stack = Stack.create () in
+                Stack.push (v1, true_formula) left_stack;
+                (* TODO: check left_formula *)
+                let left_value,_,_ = lookup left_stack a1 context_stack graph iota in
+                let new_formula = substitute_formula cur_formula cur_var (Binary_formula(Value_formula(left_value), op, Var_formula(v2))) in
+                (* pop off v1 *)
+                (* let _ = Stack.pop lookup_stack in *)
+                let right_stack = Stack.create () in
+                Stack.push (v2, new_formula) right_stack;
+                let right_value,_,_ = lookup right_stack a1 context_stack graph iota in
                 begin
-                  match left_value, right_value with
-                  | Value_int(i1), Value_int(i2) -> Value_int(i1 + i2), new_formula
-                  | _ -> failwith "tried to add non-int"
+                  match op with
+                  | Binary_operator_plus ->
+                    begin
+                      match left_value, right_value with
+                      | Value_int(i1), Value_int(i2) -> Value_int(i1 + i2), new_formula, iota
+                      | _ -> failwith "tried to add non-int"
+                    end
+                  | Binary_operator_int_minus ->
+                    begin
+                      match left_value, right_value with
+                      | Value_int(i1), Value_int(i2) -> Value_int(i1 - i2), new_formula, iota
+                      | _ -> failwith "tried to subtract non-int"
+                    end
+                  | Binary_operator_int_less_than ->
+                    begin
+                      match left_value, right_value with
+                      | Value_int(i1), Value_int(i2) -> Value_bool(i1 < i2), new_formula, iota
+                      | _ -> failwith "tried to less than non-int"
+                    end
+                  | Binary_operator_int_less_than_or_equal_to ->
+                    begin
+                      match left_value, right_value with
+                      | Value_int(i1), Value_int(i2) -> Value_bool(i1 <= i2), new_formula, iota
+                      | _ -> failwith "tried to less than or equal to non-int"
+                    end
+                  | Binary_operator_equal_to ->
+                    begin
+                      match left_value, right_value with
+                      | Value_int(i1), Value_int(i2) -> Value_bool(i1 = i2), new_formula, iota
+                      | Value_bool(b1), Value_bool(b2) -> Value_bool(b1 = b2), new_formula, iota
+                      | _ -> failwith "tried to equal two different types"
+                    end
+                  | Binary_operator_bool_and ->
+                    begin
+                      match left_value, right_value with
+                      | Value_bool(b1), Value_bool(b2) -> Value_bool(b1 && b2), new_formula, iota
+                      | _ -> failwith "tried to and non-booleans"
+                    end
+                  | Binary_operator_bool_or ->
+                    begin
+                      match left_value, right_value with
+                      | Value_bool(b1), Value_bool(b2) -> Value_bool(b1 || b2), new_formula, iota
+                      | _ -> failwith "tried to and non-booleans"
+                    end
+                  | Binary_operator_index -> failwith "index not done yet"
+                  | Binary_operator_tilde -> failwith "todo core interpreter 2"
                 end
-              | Binary_operator_int_minus ->
-                begin
-                  match left_value, right_value with
-                  | Value_int(i1), Value_int(i2) -> Value_int(i1 - i2), new_formula
-                  | _ -> failwith "tried to subtract non-int"
-                end
-              | Binary_operator_int_less_than ->
-                begin
-                  match left_value, right_value with
-                  | Value_int(i1), Value_int(i2) -> Value_bool(i1 < i2), new_formula
-                  | _ -> failwith "tried to less than non-int"
-                end
-              | Binary_operator_int_less_than_or_equal_to ->
-                begin
-                  match left_value, right_value with
-                  | Value_int(i1), Value_int(i2) -> Value_bool(i1 <= i2), new_formula
-                  | _ -> failwith "tried to less than or equal to non-int"
-                end
-              | Binary_operator_equal_to ->
-                begin
-                  match left_value, right_value with
-                  | Value_int(i1), Value_int(i2) -> Value_bool(i1 = i2), new_formula
-                  | Value_bool(b1), Value_bool(b2) -> Value_bool(b1 = b2), new_formula
-                  | _ -> failwith "tried to equal two different types"
-                end
-              | Binary_operator_bool_and ->
-                begin
-                  match left_value, right_value with
-                  | Value_bool(b1), Value_bool(b2) -> Value_bool(b1 && b2), new_formula
-                  | _ -> failwith "tried to and non-booleans"
-                end
-              | Binary_operator_bool_or ->
-                begin
-                  match left_value, right_value with
-                  | Value_bool(b1), Value_bool(b2) -> Value_bool(b1 || b2), new_formula
-                  | _ -> failwith "tried to and non-booleans"
-                end
-              | Binary_operator_index -> failwith "index not done yet"
-            end
-          )
+              )
           | _ ->
             failwith "unannotated_clause not implemented yet"
         end
@@ -339,19 +344,20 @@ let rec lookup lookup_stack (node:annotated_clause) context_stack graph iota: (C
 
               )
           )
-      | Conditional_body(_, p, Function_value(_, Expr(f1_list)), Function_value(_, Expr(f2_list))) ->
-        if cur_var <> param then
-          (
+      | Conditional_body(a, p, Function_value(_, Expr(f1_list)), Function_value(_, Expr(f2_list))) ->
+        (* if cur_var <> param then
+           (
             (* rule 14. I think this should never happen either just because of the way we wire in conditionals *)
             print_endline "14";
             let _ = Stack.pop lookup_stack in
             lookup lookup_stack a1 context_stack graph iota
-          )
-        else if Stack.is_empty context_stack then
+           )
+           else  *)
+        if Stack.is_empty context_stack then
           (
             (* we started inside a conditional *)
             (* figure out which branch I'm in *)
-            print_endline "15";
+            (* print_endline "15"; *)
             let Clause(xf1, _) = List.hd f1_list in
             let Clause(xf2, _) = List.hd f2_list in
             let cur_node_var =
@@ -363,10 +369,11 @@ let rec lookup lookup_stack (node:annotated_clause) context_stack graph iota: (C
             in
             let _, new_formula =
               (
+                let pattern_formula = Binary_formula(Var_formula(a), Binary_operator_tilde, Pattern_formula(p)) in
                 if xf1 = cur_node_var then
-                  xf1, Binary_formula(Var_formula(xf1), Binary_operator_equal_to, Pattern_formula(p))
+                  xf1, Binary_formula(pattern_formula, Binary_operator_equal_to, Value_formula(Value_bool(true)))
                 else
-                  xf2, Negated_formula(Binary_formula(Var_formula(xf2), Binary_operator_equal_to, Pattern_formula(p)))
+                  xf2, Binary_formula(pattern_formula, Binary_operator_equal_to, Value_formula(Value_bool(false)))
               )
             in
             let _ = Stack.pop lookup_stack in
@@ -376,12 +383,12 @@ let rec lookup lookup_stack (node:annotated_clause) context_stack graph iota: (C
           )
         else
           (
-            print_endline "16";
+            (* print_endline "16"; *)
             (* just business as usual *)
             let _ = Stack.pop lookup_stack in
             Stack.push (arg, (substitute_var cur_formula cur_var arg)) lookup_stack;
 
-            print_endline "here";
+            (* print_endline "here"; *)
             let cur_context = Stack.pop context_stack in
             if cur_context <> cl then
               failwith "context did not match"
@@ -412,16 +419,29 @@ let rec lookup lookup_stack (node:annotated_clause) context_stack graph iota: (C
     lookup lookup_stack a1 context_stack graph iota
 ;;
 
-let rec eval_helper lookup_stack starting_node context_stack graph iota : Core_ast.value * formula =
-  try
-    lookup lookup_stack starting_node context_stack graph iota
-  with
-  | Evaluation_dead_end(_) ->
-    eval_helper lookup_stack starting_node context_stack graph (successor iota)
+let rec eval_helper lookup_stack starting_node context_stack graph iota starting_program_point: Core_ast.value * formula * input_mapping =
+  if (!evaluation_counter > 100) then
+    failwith "Evaluation max reached"
+  else
+    try
+      print_endline ("evaluation number: " ^ string_of_int !evaluation_counter);
+      let lookup_stack = Stack.create () in
+      Stack.push (starting_program_point, true_formula) lookup_stack;
+      lookup lookup_stack starting_node context_stack graph iota
+    with
+    | Evaluation_dead_end(_) ->
+      evaluation_counter := !evaluation_counter +1;
+      eval_helper lookup_stack starting_node context_stack graph (successor iota) starting_program_point
 ;;
 
 
 let eval (Expr(cls)) : Core_ast.var * value Core_interpreter.Environment.t * formula * input_mapping =
+  (* let f1 = Binary_formula(Value_formula(Value_int(1)), Binary_operator_tilde, Pattern_formula(Int_pattern)) in
+     let f2 = Binary_formula(Value_formula(Value_int(2)), Binary_operator_plus, f1) in
+     let temp = evaluate_patterns f2 in
+     print_endline "hi";
+     print_endline (string_of_formula temp); *)
+
   let context_stack:(clause) Stack.t = Stack.create () in
   let lookup_stack:(var * formula) Stack.t = Stack.create () in
   let iota = Iota.create 10 in
@@ -460,13 +480,13 @@ let eval (Expr(cls)) : Core_ast.var * value Core_interpreter.Environment.t * for
   (* do lookup *)
   let lookup_stack = Stack.create () in
   Stack.push (starting_program_point, true_formula) lookup_stack;
-  let v,formula = eval_helper lookup_stack starting_node context_stack graph iota in
+  let v,formula,new_iota = eval_helper lookup_stack starting_node context_stack graph iota starting_program_point in
 
   print_endline "iota:";
-  print_endline (string_of_input_mapping iota);
+  print_endline (string_of_input_mapping new_iota);
 
   (* this is to fit the return value the toploop expects *)
   let env = Core_interpreter.Environment.create 10 in
   Core_interpreter.Environment.add env rx v;
-  rx, env, formula, iota
+  rx, env, formula, new_iota
 ;;
