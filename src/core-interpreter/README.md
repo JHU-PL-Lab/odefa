@@ -11,7 +11,8 @@ binary op
 input
 function enter
 
-
+during recursion: we lookup most recently put mapping, probably usually works but might
+fail if we call the function again.
 
 Current restrictions:
 Only one input statement

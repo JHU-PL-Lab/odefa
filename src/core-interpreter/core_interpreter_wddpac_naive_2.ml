@@ -80,7 +80,7 @@ let rec lookup lookup_stack (node:annotated_clause) context_stack graph iota: (C
   print_endline ("a1 node: " ^ string_of_annotated_clause a1);
   print_stack lookup_stack;
   print_endline ("current formula: " ^ string_of_formula cur_formula);
-  (* print_graph graph; *)
+  print_graph graph;
   match a1 with
   | Unannotated_clause(cl) ->
     begin
