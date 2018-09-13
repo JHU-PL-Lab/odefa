@@ -1,0 +1,13 @@
+# EXPECT-EVALUATE
+# EXPECT-IOTA {}
+
+k = fun x -> (
+  a = fun y -> (
+    b = x;
+  );
+);
+e = {};
+p = k e;
+r = p e;
+
+q = r;

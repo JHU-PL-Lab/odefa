@@ -11,6 +11,7 @@
 
 zero = 0;
 one = 1;
+two = 2;
 five = 5;
 
 sum = fun number -> (

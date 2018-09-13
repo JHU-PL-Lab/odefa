@@ -27,6 +27,10 @@ type annotated_clause =
   | Unannotated_clause of clause
   | Enter_clause of var * var * clause
   | Exit_clause of var * var * clause
+  (* arg, pattern, then, else *)
+  | Conditional_enter_clause of Core_ast.var * Core_ast.pattern * annotated_clause * annotated_clause
+  (* Conditional_enter_clause, x from x = conditional *)
+  | Conditional_exit_clause of Core_ast.var * Core_ast.pattern * annotated_clause * annotated_clause * annotated_clause * Core_ast.var
   | Start_clause
   | End_clause
   | Junk_clause
@@ -72,9 +76,13 @@ let rec string_of_annotated_clause cl : string =
       | _ -> "some other body"
     end
   | Enter_clause(param, arg, context_clause) ->
-    "Enter clause " ^ (string_of_var param) ^ " " ^ (string_of_var arg) ^ " " ^ string_of_annotated_clause (Unannotated_clause(context_clause))
+    "Enter clause " ^ (string_of_var param) ^ " = " ^ (string_of_var arg) ^ " C: " ^ string_of_annotated_clause (Unannotated_clause(context_clause))
   | Exit_clause(original_program_point, new_program_point, context_clause) ->
-    "Exit clause " ^ (string_of_var original_program_point) ^ " " ^ (string_of_var new_program_point) ^ " " ^ string_of_annotated_clause (Unannotated_clause(context_clause))
+    "Exit clause " ^ (string_of_var original_program_point) ^ " = " ^ (string_of_var new_program_point) ^ " C: " ^ string_of_annotated_clause (Unannotated_clause(context_clause))
+  | Conditional_enter_clause(_) ->
+    "Conditional_enter_clause"
+  | Conditional_exit_clause(_) ->
+    "Conditional_exit_clause"
   | Start_clause ->
     "Start of program"
   | End_clause ->
@@ -111,6 +119,16 @@ let print_stack stack : unit =
   (* Stack.iter (fun (v,f) -> print_endline ((string_of_var v) ^ " with formula: " ^ (string_of_formula f))) stack *)
 ;;
 
+let print_context_stack stack : unit =
+  if Stack.is_empty stack then
+    print_endline "Empty context stack"
+  else
+    (
+      print_endline "Context";
+      Stack.iter (fun c -> print_endline ((string_of_annotated_clause (Unannotated_clause(c))))) stack
+    )
+;;
+
 (* find starting node in the a1 position, then create temporary junk mapping and returns new node *)
 let rec create_starting_node (graph:(annotated_clause * annotated_clause) list) v g =
   match graph with
@@ -132,6 +150,10 @@ let rec create_starting_node (graph:(annotated_clause * annotated_clause) list) 
           (a1, g)
         else
           create_starting_node tail v g
+      | Conditional_enter_clause(_) ->
+        failwith "create_starting_node should not encounter this match case"
+      | Conditional_exit_clause(_) ->
+        failwith "create_starting_node should not encounter this match case"
       | Start_clause
       | End_clause
       | Junk_clause ->
@@ -167,6 +189,8 @@ let rec find_starting_node_helper (graph:(annotated_clause * annotated_clause) l
           (a1, g)
         else
           find_starting_node_helper tail v g
+      | Conditional_enter_clause(_)
+      | Conditional_exit_clause(_)
       | Start_clause
       | End_clause
       | Junk_clause ->
@@ -218,9 +242,78 @@ let rec find_by_value_helper graph (cl:annotated_clause) =
       find_by_value_helper tail cl
 ;;
 
-let rec find_by_value (graph:(annotated_clause, annotated_clause) Hashtbl.t) (cl:annotated_clause) : annotated_clause =
+let find_by_value (graph:(annotated_clause, annotated_clause) Hashtbl.t) (cl:annotated_clause) : annotated_clause =
   let list_of_graph = Hashtbl.to_list graph in
   find_by_value_helper list_of_graph cl
+;;
+
+let rec next_node_helper nodes cur_mapping : annotated_clause =
+  match nodes with
+  | [] ->
+    Junk_clause (* really means no more possible options *)
+  | head::tail ->
+    if head = cur_mapping then
+      List.hd tail
+    else
+      next_node_helper tail cur_mapping
+;;
+
+let next_node (graph:(annotated_clause, annotated_clause) Hashtbl.t) key cur_mapping : annotated_clause =
+  let list_of_nodes = Hashtbl.find_all graph key in
+  (* let list_of_graph = Hashtbl.to_list graph in *)
+  next_node_helper list_of_nodes cur_mapping
+;;
+
+(* let rec choose_conditional_branch nodes ret_var : annotated_clause =
+   match nodes with
+   | [] -> failwith "ran out of choices utils"
+   | head::tail ->
+    begin
+      match head with
+      | Exit_clause(_, new_program_point, (Clause(_, body))) ->
+        begin
+          match body with
+          | Conditional_body(_,_,_,_) ->
+            if new_program_point = ret_var then
+              head
+            else
+              choose_conditional_branch tail ret_var
+          | _ ->
+            choose_conditional_branch tail ret_var
+        end
+      | _ ->
+        choose_conditional_branch tail ret_var
+    end
+   ;; *)
+
+(* let transformed_cond graph cl =
+  try
+    Hashtbl.find graph (Conditional_enter_clause(cl));
+    true
+  with
+    Not_found ->
+    false
+;; *)
+
+let clause_to_annotated_clause graph (cl:Core_ast.clause) : annotated_clause =
+  let Clause(x, body) = cl in
+  let candidate =
+    match body with
+    | Conditional_body(arg, _, Function_value(_, _), Function_value(b, _)) ->
+      (
+        match Hashtbl.find graph (Enter_clause(b, arg, cl)) with
+        | Conditional_enter_clause(a, p, n1, n2) as w1 ->
+          Conditional_exit_clause(a, p, n1, n2, w1, x)
+        | _ ->
+          failwith "clause_to_annotated_clause"
+      )
+    | _ ->
+      Unannotated_clause(cl)
+  in
+  if Hashtbl.mem graph candidate then
+    candidate
+  else
+    failwith ("converted clause not found: " ^ (string_of_annotated_clause candidate))
 ;;
 
 (* right now successor only works for a single input var *)
