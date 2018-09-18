@@ -223,13 +223,6 @@ let rec matches v p =
   | _ -> false
 ;;
 
-(* formula type that will be passed along as a parameter in lookup
-   couple things I'm thinking of:
-   what values to I need?
-   method to check if its valid
-   pretty sure don't need a map to associate x with formula
-   substitute vars in formula method
-*)
 type formula =
   | Binary_formula of formula * binary_operator * formula
   | Negated_formula of formula
@@ -244,7 +237,6 @@ let string_of_pattern pattern : string =
   match pattern with
   | Fun_pattern -> "fun pattern"
   | Int_pattern -> "int pattern"
-  (* | Bool_pattern(_) -> "bool pattern" *)
   | Bool_pattern(b) -> "bool(" ^ (string_of_bool b) ^ ") pattern"
   | Any_pattern -> "any pattern"
 ;;

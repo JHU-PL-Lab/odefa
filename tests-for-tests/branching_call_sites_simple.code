@@ -1,0 +1,16 @@
+# EXPECT-EVALUATE
+# EXPECT-IOTA {}
+
+# f = fun p -> (
+#   cond = p ~ true ? fun a-> (b=1) : fun c -> (d=2);
+# );
+# x = input;
+# one = 1;
+# y = x == one;
+# z = false;
+# u = f y;
+# w = f u;
+
+b=1;
+
+q=b;

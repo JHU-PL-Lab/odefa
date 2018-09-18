@@ -37,8 +37,6 @@ type annotated_clause =
 [@@deriving ord, eq, to_yojson]
 ;;
 
-
-
 let string_of_var v : string =
   let Var(i, _) = v in
   let Ident(s) = i in
@@ -174,9 +172,6 @@ let rec find_starting_node_helper (graph:(annotated_clause * annotated_clause) l
       | Unannotated_clause(Clause(x, body)) ->
         begin
           match body with
-          (* | Conditional_body(_,_,Function_value(_, Expr(f1)),Function_value(_,Expr(f2))) ->
-             find_starting_node_helper (f1:) v *)
-          (* TODO: not sure if the above case is needed/any different *)
           | _ ->
             if x = v then
               (a1, g)
@@ -260,40 +255,8 @@ let rec next_node_helper nodes cur_mapping : annotated_clause =
 
 let next_node (graph:(annotated_clause, annotated_clause) Hashtbl.t) key cur_mapping : annotated_clause =
   let list_of_nodes = Hashtbl.find_all graph key in
-  (* let list_of_graph = Hashtbl.to_list graph in *)
   next_node_helper list_of_nodes cur_mapping
 ;;
-
-(* let rec choose_conditional_branch nodes ret_var : annotated_clause =
-   match nodes with
-   | [] -> failwith "ran out of choices utils"
-   | head::tail ->
-    begin
-      match head with
-      | Exit_clause(_, new_program_point, (Clause(_, body))) ->
-        begin
-          match body with
-          | Conditional_body(_,_,_,_) ->
-            if new_program_point = ret_var then
-              head
-            else
-              choose_conditional_branch tail ret_var
-          | _ ->
-            choose_conditional_branch tail ret_var
-        end
-      | _ ->
-        choose_conditional_branch tail ret_var
-    end
-   ;; *)
-
-(* let transformed_cond graph cl =
-  try
-    Hashtbl.find graph (Conditional_enter_clause(cl));
-    true
-  with
-    Not_found ->
-    false
-;; *)
 
 let clause_to_annotated_clause graph (cl:Core_ast.clause) : annotated_clause =
   let Clause(x, body) = cl in

@@ -1,5 +1,5 @@
 # EXPECT-EVALUATE
-# EXPECT-IOTA {}
+# EXPECT-IOTA {x -> 5, }
 
 # let rec sum = fun number ->
 #   if number = 0 then
@@ -8,14 +8,16 @@
 #     (sum (number - 1)) + number
 # in
 # sum 5 (* => 15 *)
+# will reach b if z = true, so when r = 15, so when x = 5
 
+x = input;
 zero = 0;
 one = 1;
-two = 2;
 five = 5;
+fifteen = 15;
 
 sum = fun number -> (
-  numberequal0 = number == zero;
+  numberequal0 = number < zero;
   sumresult = numberequal0 ~ true
                       ? fun numberequal0match -> (
                         numberequal0matchresult = zero;
@@ -27,6 +29,9 @@ sum = fun number -> (
                       );
 );
 
-r = sum two; # => 15
+r = sum x; # => 15
 
-q=r;
+z = r == fifteen;
+final = z ~ true ? fun a -> (b = a) : fun c -> (d = c);
+
+q=b;
