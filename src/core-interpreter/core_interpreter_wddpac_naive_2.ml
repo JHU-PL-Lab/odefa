@@ -4,6 +4,9 @@ open Jhupllib;;
 open Core_ast;;
 open Core_interpreter_utils;;
 
+(* open Sys;; *)
+open Unix;;
+
 exception Evaluation_dead_end of string;;
 
 let evaluation_counter = ref 0;;
@@ -495,8 +498,17 @@ let rec eval_helper lookup_stack starting_node context_stack graph iota starting
       eval_helper lookup_stack starting_node context_stack graph (successor iota) starting_program_point
 ;;
 
+let script formula:string =
+  execv "/usr/bin/python" [| "python";"/home/theodore/research/odefa/src/core-interpreter/test.py";formula|]
+;;
 
 let eval (Expr(cls)) : Core_ast.var * value Core_interpreter.Environment.t * formula * input_mapping =
+
+  let temp_formula = "x + y > 5" in
+  let _ = handle_unix_error script temp_formula in
+
+
+
   let context_stack:(clause) Stack.t = Stack.create () in
   let lookup_stack:(var * formula) Stack.t = Stack.create () in
   let iota = Iota.create 10 in

@@ -9,7 +9,7 @@
 # y = x == one;
 # z = false;
 # u = f y;
-# w = f u;
+# w = f z;
 
 b=1;
 

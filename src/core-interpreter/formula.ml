@@ -69,6 +69,8 @@ let rec string_of_formula formula : string =
         string_of_formula f1 ^ " || " ^ string_of_formula f2
       | Binary_operator_index ->
         string_of_formula f1 ^ " . " ^ string_of_formula f2
+      | Binary_operator_tilde ->
+        string_of_formula f1 ^ " ~ " ^ string_of_formula f2
     end
   | Negated_formula(f1) -> "not " ^ string_of_formula f1
   | Value_formula(v) -> "value " ^
@@ -196,6 +198,8 @@ let rec check_formula_helper formula : int_or_bool =
         end
       | Binary_operator_index ->
         Bool(false)
+      | Binary_operator_tilde ->
+        failwith "Not implemented yet tilde in formula"
     end
   | Negated_formula(f1) ->
     let r1 = check_formula_helper f1 in
