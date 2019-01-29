@@ -6,6 +6,7 @@ open Core_interpreter_utils;;
 
 (* open Sys;; *)
 open Unix;;
+open Yojson.Basic.Util;;
 
 exception Evaluation_dead_end of string;;
 
@@ -91,11 +92,11 @@ let rec lookup lookup_stack (node:annotated_clause) context_stack graph iota: (C
     with
     | Not_found -> failwith "not in graph"
   in
-  print_endline ("\nCurrent lookup variable: " ^ string_of_var cur_var);
-  print_endline ("Current node: " ^ string_of_annotated_clause node);
-  print_endline ("a1 node: " ^ string_of_annotated_clause a1);
-  print_stack lookup_stack;
-  print_context_stack context_stack;
+  (* print_endline ("\nCurrent lookup variable: " ^ string_of_var cur_var); *)
+  (* print_endline ("Current node: " ^ string_of_annotated_clause node); *)
+  (* print_endline ("a1 node: " ^ string_of_annotated_clause a1); *)
+  (* print_stack lookup_stack; *)
+  (* print_context_stack context_stack; *)
   (* print_endline ("current formula: " ^ string_of_formula cur_formula);
      print_graph graph; *)
   match a1 with
@@ -172,13 +173,13 @@ let rec lookup lookup_stack (node:annotated_clause) context_stack graph iota: (C
                 Hashtbl.add graph enter_node (Hashtbl.find graph a1);
                 Hashtbl.add graph (Unannotated_clause(List.hd clause_list)) enter_node;
 
-                print_endline "last clause:";
-                print_endline (string_of_annotated_clause (Unannotated_clause(List.hd (List.rev clause_list))));
+                (* print_endline "last clause:"; *)
+                (* print_endline (string_of_annotated_clause (Unannotated_clause(List.hd (List.rev clause_list)))); *)
                 Hashtbl.add graph exit_node (clause_to_annotated_clause graph (List.hd (List.rev clause_list)));
                 Hashtbl.add graph node exit_node;
 
-                print_endline "concluding appl";
-                print_graph graph; (* only for debugging *)
+                (* print_endline "concluding appl"; *)
+                (* print_graph graph; (* only for debugging *) *)
 
                 lookup lookup_stack node context_stack graph iota
 
@@ -226,8 +227,8 @@ let rec lookup lookup_stack (node:annotated_clause) context_stack graph iota: (C
                     begin
                       match left_value, right_value with
                       | Value_int(i1), Value_int(i2) ->
-                        print_endline ("left side evaulated to: " ^ (string_of_value left_value));
-                        print_endline ("plus evaluated to " ^ string_of_int(i1+i2));
+                        (* print_endline ("left side evaulated to: " ^ (string_of_value left_value)); *)
+                        (* print_endline ("plus evaluated to " ^ string_of_int(i1+i2)); *)
                         Value_int(i1 + i2), new_formula, iota
                       | _ -> failwith "tried to add non-int"
                     end
@@ -235,7 +236,7 @@ let rec lookup lookup_stack (node:annotated_clause) context_stack graph iota: (C
                     begin
                       match left_value, right_value with
                       | Value_int(i1), Value_int(i2) ->
-                        print_endline ("minus evaluated to " ^ string_of_int(i1-i2));
+                        (* print_endline ("minus evaluated to " ^ string_of_int(i1-i2)); *)
                         Value_int(i1 - i2), new_formula, iota
                       | _ -> failwith "tried to subtract non-int"
                     end
@@ -301,13 +302,13 @@ let rec lookup lookup_stack (node:annotated_clause) context_stack graph iota: (C
             else
               (
                 (* function enter parameter (local) *)
-                print_endline "enter local";
+                (* print_endline "enter local"; *)
                 let cur_context = Stack.pop context_stack in
                 let node_to_lookup_from =
                   if cur_context <> cl then
                     (
-                      print_endline "context did not match";
-                      print_endline ("clause in node: " ^ string_of_annotated_clause (Unannotated_clause(cl)));
+                      (* print_endline "context did not match"; *)
+                      (* print_endline ("clause in node: " ^ string_of_annotated_clause (Unannotated_clause(cl))); *)
                       let next_node = next_node graph node a1 in
                       match next_node with
                       | Junk_clause ->
@@ -331,20 +332,20 @@ let rec lookup lookup_stack (node:annotated_clause) context_stack graph iota: (C
             if Stack.is_empty context_stack then
               (
                 (* function enter empty non-local *)
-                print_endline "empty enter non-local";
+                (* print_endline "empty enter non-local"; *)
                 Stack.push (xf, true_formula) lookup_stack;
                 lookup lookup_stack a1 context_stack graph iota
               )
             else
               (
                 (* function enter non-local *)
-                print_endline "non-local";
+                (* print_endline "non-local"; *)
                 Stack.push (xf, true_formula) lookup_stack;
                 let cur_context = Stack.pop context_stack in
                 if cur_context <> cl then
                   (
-                    print_endline "context did not match";
-                    print_endline ("clause in node: " ^ string_of_annotated_clause (Unannotated_clause(cl)));
+                    (* print_endline "context did not match"; *)
+                    (* print_endline ("clause in node: " ^ string_of_annotated_clause (Unannotated_clause(cl))); *)
                     (* failwith "here"; *)
                     Stack.push cur_context context_stack;
                     lookup lookup_stack a1 context_stack graph iota
@@ -362,8 +363,8 @@ let rec lookup lookup_stack (node:annotated_clause) context_stack graph iota: (C
             let cur_context = Stack.pop context_stack in
             if cur_context <> cl then
               (
-                print_endline "context did not match";
-                print_endline ("clause in node: " ^ string_of_annotated_clause (Unannotated_clause(cl)));
+                (* print_endline "context did not match"; *)
+                (* print_endline ("clause in node: " ^ string_of_annotated_clause (Unannotated_clause(cl))); *)
                 Stack.push cur_context context_stack;
                 lookup lookup_stack a1 context_stack graph iota
                 (* failwith "context did not match" *)
@@ -407,8 +408,8 @@ let rec lookup lookup_stack (node:annotated_clause) context_stack graph iota: (C
             let cur_context = Stack.pop context_stack in
             if cur_context <> cl then
               (
-                print_endline "context did not match";
-                print_endline ("clause in node: " ^ string_of_annotated_clause (Unannotated_clause(cl)));
+                (* print_endline "context did not match"; *)
+                (* print_endline ("clause in node: " ^ string_of_annotated_clause (Unannotated_clause(cl))); *)
                 Stack.push cur_context context_stack;
                 lookup lookup_stack a1 context_stack graph iota
               )
@@ -426,7 +427,7 @@ let rec lookup lookup_stack (node:annotated_clause) context_stack graph iota: (C
         if original_program_point <> cur_var then
           (
             (* skip over *)
-            print_endline "exit clause skip over";
+            (* print_endline "exit clause skip over"; *)
             let _ = Stack.pop context_stack in (* we aren't going into the function so undo context push *)
             (* since we know the node here we want is an appl, we can hardcode unannotated *)
             let original_node = Unannotated_clause(cl) in
@@ -443,7 +444,7 @@ let rec lookup lookup_stack (node:annotated_clause) context_stack graph iota: (C
         if original_program_point <> cur_var then
           (
             (* skip over *)
-            print_endline "skipping";
+            (* print_endline "skipping"; *)
             lookup lookup_stack a1 context_stack graph iota
           )
         else
@@ -462,12 +463,12 @@ let rec lookup lookup_stack (node:annotated_clause) context_stack graph iota: (C
       lookup lookup_stack w1 context_stack graph iota
     else
       (
-        print_endline "looking up arg";
+        (* print_endline "looking up arg"; *)
         let new_stack = Stack.create () in (* to prevent value discard from being called *)
         Stack.push (a, true_formula) new_stack;
         let context_copy = Stack.copy context_stack in
         let arg_value,_,_ = lookup new_stack w1 context_copy graph iota in
-        print_endline ("arg_value: " ^ (string_of_value arg_value));
+        (* print_endline ("arg_value: " ^ (string_of_value arg_value)); *)
         let _ = (* little bit of redundancy here *)
           if (matches arg_value p) then
             Hashtbl.add graph a1 then_branch
@@ -498,14 +499,20 @@ let rec eval_helper lookup_stack starting_node context_stack graph iota starting
       eval_helper lookup_stack starting_node context_stack graph (successor iota) starting_program_point
 ;;
 
-let script formula:string =
+let script formula =
   execv "/usr/bin/python" [| "python";"/home/theodore/research/odefa/src/core-interpreter/test.py";formula|]
 ;;
 
 let eval (Expr(cls)) : Core_ast.var * value Core_interpreter.Environment.t * formula * input_mapping =
 
-  let temp_formula = "x + y > 5" in
-  let _ = handle_unix_error script temp_formula in
+  (* let temp_formula = "x + y > 5" in
+     let _ = handle_unix_error script temp_formula in *)
+
+
+  let json = Yojson.Basic.from_file "ddpa_graphs.json" in
+  (* let open Yojson.Basic.Util in *)
+  let test = json |> member "element_type" |> to_string in
+  print_endline ("TESTING: " ^ test);
 
 
 
@@ -548,6 +555,9 @@ let eval (Expr(cls)) : Core_ast.var * value Core_interpreter.Environment.t * for
   let lookup_stack = Stack.create () in
   Stack.push (starting_program_point, true_formula) lookup_stack;
   let v,formula,new_iota = eval_helper lookup_stack starting_node context_stack graph iota starting_program_point in
+
+  (* new stuff - giving formula to python script *)
+  let _ = handle_unix_error script (string_of_formula_2 formula) in
 
   print_endline "iota:";
   print_endline (string_of_input_mapping new_iota);

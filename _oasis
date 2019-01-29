@@ -73,8 +73,7 @@ Library "core-interpreter"
   Path: src/core-interpreter
   Modules:
     Core_interpreter_wddpac_naive_2,
-    Core_interpreter_utils,
-    Sat_solver
+    Core_interpreter_utils
   BuildDepends:
     batteries,
     jhupllib,

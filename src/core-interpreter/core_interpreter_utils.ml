@@ -441,3 +441,54 @@ let check_formula formula : bool =
   | Value_bool(b) ->
     b
 ;;
+
+(* formula to string converter *)
+let rec string_of_formula_2 formula : string =
+  match formula with
+  | Binary_formula(f1, op, f2) ->
+    begin
+      match op with
+      | Binary_operator_plus ->
+        string_of_formula_2 f1 ^ " + " ^ string_of_formula_2 f2
+      | Binary_operator_int_minus ->
+        string_of_formula_2 f1 ^ " - " ^ string_of_formula_2 f2
+      | Binary_operator_int_less_than ->
+        string_of_formula_2 f1 ^ " < " ^ string_of_formula_2 f2
+      | Binary_operator_int_less_than_or_equal_to ->
+        string_of_formula_2 f1 ^ " <= " ^ string_of_formula_2 f2
+      | Binary_operator_equal_to ->
+        string_of_formula_2 f1 ^ " == " ^ string_of_formula_2 f2
+      | Binary_operator_bool_and ->
+        "And(" ^ string_of_formula_2 f1 ^ ", " ^ string_of_formula_2 f2 ^ ")"
+      | Binary_operator_bool_or ->
+        "Or(" ^ string_of_formula_2 f1 ^ ", " ^ string_of_formula_2 f2 ^ ")"
+      | Binary_operator_index ->
+        string_of_formula_2 f1 ^ " . " ^ string_of_formula_2 f2
+      | Binary_operator_tilde ->
+        string_of_formula_2 f1 ^ " ~ " ^ string_of_formula_2 f2
+    end
+  | Negated_formula(f1) -> "Not(" ^ string_of_formula_2 f1 ^ ")"
+  | Value_formula(v) ->
+                        (match v with
+                         | Value_record(_) -> "record"
+                         | Value_function(_) -> "function"
+                         | Value_ref(_) -> "ref"
+                         | Value_int(i) -> string_of_int i
+                         | Value_bool(b) ->
+                           begin
+                             match b with
+                             | true -> "True"
+                             | false -> "False"
+                           end
+                        )
+  | Var_formula(var) ->
+    begin
+      match var with
+      | Var(i, _) ->
+        begin
+          match i with
+          | Ident(s) -> s
+        end
+    end
+  | _ -> failwith "TODO"
+;;

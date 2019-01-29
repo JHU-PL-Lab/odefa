@@ -1,39 +1,32 @@
 #!/usr/bin/python
 
-def convert( formula, dictionary ):
-    output = Int(0)
-    for c in formula:
-        if c.isalpha():
-            output = output + dictionary[c]
-        else:
-            output = output + c
-    return output
+# Right now the model will make extra variables because
+# True and False are parsed by for loop
+
+# usage: python test.py "x+y>5,x>1,y>1"
 
 from z3 import *
 import sys
 
 formula = sys.argv[1]
+
 print("formula")
 print(formula)
 
-# make list for formula variables and maps them to solver variables
-counter = 0
-vars = {}
+# make list for formula variables to keep track of duplicates and make solver variables
+vars = []
 for c in formula:
     if (c.isalpha()) and (c not in vars):
-        vars[c] = Real(c)
+        vars.append(c)
+        exec(c + "= Real(c)")
+
 print("vars")
 print(vars)
 
 # make solver and solve
 s = Solver()
-s.add(vars['x'] + vars['y'] > 5, vars['x'] > 1, vars['y'] > 1)
+exec("s.add(" + formula + ")")
 print("type")
-print(type(vars['x'] > 1))
-
-# print("convert")
-# print(type(convert(formula, vars)))
-# print(convert(formula, vars))
 
 # print out output
 print(s.check())

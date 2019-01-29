@@ -1,0 +1,99 @@
+
+{
+  "element_type": "ddpa_graph",
+  "work_count": 0,
+  "graph": {
+    "ddpa_graph": [
+      "Graph",
+      {
+        "type": "set",
+        "elements": [
+          [
+            "Ddpa_edge",
+            [
+              "Unannotated_clause",
+              [
+                "Abs_clause",
+                [ "Abs_var", [ "Ident", "x" ] ],
+                [ "Abs_value_body", [ "Abs_value_int" ] ]
+              ]
+            ],
+            [
+              "Unannotated_clause",
+              [
+                "Abs_clause",
+                [ "Abs_var", [ "Ident", "xx" ] ],
+                [
+                  "Abs_binary_operation_body",
+                  [ "Abs_var", [ "Ident", "x" ] ],
+                  "+",
+                  [ "Abs_var", [ "Ident", "x" ] ]
+                ]
+              ]
+            ]
+          ],
+          [
+            "Ddpa_edge",
+            [
+              "Unannotated_clause",
+              [
+                "Abs_clause",
+                [ "Abs_var", [ "Ident", "xx" ] ],
+                [
+                  "Abs_binary_operation_body",
+                  [ "Abs_var", [ "Ident", "x" ] ],
+                  "+",
+                  [ "Abs_var", [ "Ident", "x" ] ]
+                ]
+              ]
+            ],
+            [ "End_clause", [ "Abs_var", [ "Ident", "xx" ] ] ]
+          ],
+          [
+            "Ddpa_edge",
+            [ "Start_clause", [ "Abs_var", [ "Ident", "xx" ] ] ],
+            [
+              "Unannotated_clause",
+              [
+                "Abs_clause",
+                [ "Abs_var", [ "Ident", "x" ] ],
+                [ "Abs_value_body", [ "Abs_value_int" ] ]
+              ]
+            ]
+          ]
+        ]
+      }
+    ],
+    "ddpa_graph_fully_closed": true,
+    "ddpa_active_nodes": {
+      "type": "set",
+      "elements": [
+        [
+          "Unannotated_clause",
+          [
+            "Abs_clause",
+            [ "Abs_var", [ "Ident", "x" ] ],
+            [ "Abs_value_body", [ "Abs_value_int" ] ]
+          ]
+        ],
+        [
+          "Unannotated_clause",
+          [
+            "Abs_clause",
+            [ "Abs_var", [ "Ident", "xx" ] ],
+            [
+              "Abs_binary_operation_body",
+              [ "Abs_var", [ "Ident", "x" ] ],
+              "+",
+              [ "Abs_var", [ "Ident", "x" ] ]
+            ]
+          ]
+        ],
+        [ "Start_clause", [ "Abs_var", [ "Ident", "xx" ] ] ],
+        [ "End_clause", [ "Abs_var", [ "Ident", "xx" ] ] ]
+      ]
+    },
+    "ddpa_active_non_immediate_nodes": { "type": "set", "elements": [] }
+  }
+}
+
