@@ -101,6 +101,51 @@ let string_of_input_mapping (iota:input_mapping) : string =
   "{" ^ (string_of_input_mapping_helper lst_of_iota) ^ "}"
 ;;
 
+let string_of_clause_body (body:clause_body) : string =
+  match body with
+  | Value_body(v) -> string_of_value v
+  | Var_body(v) -> string_of_var v
+  | Appl_body(_,x) -> "Function " ^ (string_of_var x)
+  | Conditional_body(_,_,_,_) -> "conditional"
+  | Projection_body(_,_) -> "projection"
+  | Deref_body(_) -> "deref"
+  | Update_body(_,_)-> "update"
+  | Binary_operation_body(v1,op,v2) ->
+    begin
+    match op with
+    | Binary_operator_plus ->
+      string_of_var v1 ^ " + " ^ string_of_var v2
+    | Binary_operator_int_minus ->
+      string_of_var v1 ^ " - " ^ string_of_var v2
+    | Binary_operator_int_less_than ->
+      string_of_var v1 ^ " < " ^ string_of_var v2
+    | Binary_operator_int_less_than_or_equal_to ->
+      string_of_var v1 ^ " <= " ^ string_of_var v2
+    | Binary_operator_equal_to ->
+      string_of_var v1 ^ " == " ^ string_of_var v2
+    | Binary_operator_bool_and ->
+      "And(" ^ string_of_var v1 ^ ", " ^ string_of_var v2 ^ ")"
+    | Binary_operator_bool_or ->
+      "Or(" ^ string_of_var v1 ^ ", " ^ string_of_var v2 ^ ")"
+    | Binary_operator_index ->
+      string_of_var v1 ^ " . " ^ string_of_var v2
+    | Binary_operator_tilde ->
+      string_of_var v1 ^ " ~ " ^ string_of_var v2
+    end
+  | Unary_operation_body(op,v) ->
+    begin
+      match op with
+      | Unary_operator_bool_not ->  "not" ^ (string_of_var v)
+      | Unary_operator_bool_coin_flip ->  "coin_flip" ^ (string_of_var v)
+    end
+  | Input -> "Input"
+;;
+
+let print_intermediate_map map: unit =
+  print_endline "CFG precursor:";
+  Hashtbl.iter (fun x -> fun y -> print_endline ((string_of_var x) ^ " -> " ^ (string_of_clause_body y))) map
+;;
+
 let print_graph graph : unit =
   print_endline "Graph:";
   Hashtbl.iter (fun x -> fun y -> print_endline ((string_of_annotated_clause x) ^ ", " ^ (string_of_annotated_clause y))) graph
