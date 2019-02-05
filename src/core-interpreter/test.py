@@ -8,26 +8,32 @@
 from z3 import *
 import sys
 
-formula = sys.argv[1]
+x = Real('x')
+solve(Or(x <= 1, 1 <= x))
+# solve(Or(x <= 0, 0 < x))
 
-print("formula")
-print(formula)
 
-# make list for formula variables to keep track of duplicates and make solver variables
-vars = []
-for c in formula:
-    if (c.isalpha()) and (c not in vars):
-        vars.append(c)
-        exec(c + "= Real(c)")
-
-print("vars")
-print(vars)
-
-# make solver and solve
-s = Solver()
-exec("s.add(" + formula + ")")
-print("type")
+# formula = sys.argv[1]
+#
+# print("formula")
+# print(formula)
+#
+# # make list for formula variables to keep track of duplicates and make solver variables
+# vars = []
+# for c in formula:
+#     if (c.isalpha()) and (c not in vars):
+#         vars.append(c)
+#         exec(c + "= Real(c)")
+#
+# print("vars")
+# print(vars)
+#
+# # make solver and solve
+# # s = Solver()
+# print("\nResults:")
+# exec("solve(" + formula + ")")
+# exec("s.add(" + formula + ")")
 
 # print out output
-print(s.check())
-print(s.model())
+# print(s.check())
+# print(s.model())

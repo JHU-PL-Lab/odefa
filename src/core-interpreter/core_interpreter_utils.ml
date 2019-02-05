@@ -141,6 +141,66 @@ let string_of_clause_body (body:clause_body) : string =
   | Input -> "Input"
 ;;
 
+(* formula to string converter *)
+let rec string_of_formula_2 formula : string =
+  match formula with
+  | Binary_formula(f1, op, f2) ->
+    begin
+      match op with
+      | Binary_operator_plus ->
+        string_of_formula_2 f1 ^ " + " ^ string_of_formula_2 f2
+      | Binary_operator_int_minus ->
+        string_of_formula_2 f1 ^ " - " ^ string_of_formula_2 f2
+      | Binary_operator_int_less_than ->
+        string_of_formula_2 f1 ^ " < " ^ string_of_formula_2 f2
+      | Binary_operator_int_less_than_or_equal_to ->
+        string_of_formula_2 f1 ^ " <= " ^ string_of_formula_2 f2
+      | Binary_operator_equal_to ->
+        string_of_formula_2 f1 ^ " == " ^ string_of_formula_2 f2
+      | Binary_operator_bool_and ->
+        "And(" ^ string_of_formula_2 f1 ^ ", " ^ string_of_formula_2 f2 ^ ")"
+      | Binary_operator_bool_or ->
+        "Or(" ^ string_of_formula_2 f1 ^ ", " ^ string_of_formula_2 f2 ^ ")"
+      | Binary_operator_index ->
+        string_of_formula_2 f1 ^ " . " ^ string_of_formula_2 f2
+      | Binary_operator_tilde ->
+        string_of_formula_2 f1 ^ " ~ " ^ string_of_formula_2 f2
+    end
+  | Negated_formula(f1) -> "Not(" ^ string_of_formula_2 f1 ^ ")"
+  | Value_formula(v) ->
+                        (match v with
+                         | Value_record(_) -> "record"
+                         | Value_function(_) -> "function"
+                         | Value_ref(_) -> "ref"
+                         | Value_int(i) -> string_of_int i
+                         | Value_bool(b) -> string_of_bool b
+                        )
+  | Var_formula(var) ->
+    begin
+      match var with
+      | Var(i, _) ->
+        begin
+          match i with
+          | Ident(s) -> s
+        end
+    end
+  | _ -> failwith "TODO"
+;;
+
+let rec string_of_phi phi =
+  match phi with
+  | [] -> ""
+  | head :: tail ->
+    (string_of_formula_2 head) ^ "," ^  (string_of_phi tail)
+;;
+
+let print_phi phi =
+  print_endline "Phi:";
+  print_endline (string_of_phi phi)
+;;
+
+let print_set s = Set.iter print_endline s;;
+
 let print_intermediate_map map: unit =
   print_endline "CFG precursor:";
   Hashtbl.iter (fun x -> fun y -> print_endline ((string_of_var x) ^ " -> " ^ (string_of_clause_body y))) map
@@ -148,7 +208,8 @@ let print_intermediate_map map: unit =
 
 let print_graph graph : unit =
   print_endline "Graph:";
-  Hashtbl.iter (fun x -> fun y -> print_endline ((string_of_annotated_clause x) ^ ", " ^ (string_of_annotated_clause y))) graph
+  Hashtbl.iter (fun x -> fun y -> print_endline ((string_of_annotated_clause x) ^ ", " ^ (string_of_annotated_clause y))) graph;
+  print_endline ""
 ;;
 
 let print_iota iota : unit =
@@ -241,6 +302,12 @@ let rec find_starting_node_helper (graph:(annotated_clause * annotated_clause) l
 let find_starting_node graph v : (annotated_clause * (annotated_clause, annotated_clause) Hashtbl.t) =
   let list_of_graph = Hashtbl.to_list graph in
   find_starting_node_helper list_of_graph v graph
+;;
+
+let find_starting_node_2 graph v : annotated_clause =
+  let list_of_graph = Hashtbl.to_list graph in
+  let node,_ = find_starting_node_helper list_of_graph v graph in
+  node
 ;;
 
 let rec find_clause_by_var_helper graph v =
@@ -485,55 +552,4 @@ let check_formula formula : bool =
     true
   | Value_bool(b) ->
     b
-;;
-
-(* formula to string converter *)
-let rec string_of_formula_2 formula : string =
-  match formula with
-  | Binary_formula(f1, op, f2) ->
-    begin
-      match op with
-      | Binary_operator_plus ->
-        string_of_formula_2 f1 ^ " + " ^ string_of_formula_2 f2
-      | Binary_operator_int_minus ->
-        string_of_formula_2 f1 ^ " - " ^ string_of_formula_2 f2
-      | Binary_operator_int_less_than ->
-        string_of_formula_2 f1 ^ " < " ^ string_of_formula_2 f2
-      | Binary_operator_int_less_than_or_equal_to ->
-        string_of_formula_2 f1 ^ " <= " ^ string_of_formula_2 f2
-      | Binary_operator_equal_to ->
-        string_of_formula_2 f1 ^ " == " ^ string_of_formula_2 f2
-      | Binary_operator_bool_and ->
-        "And(" ^ string_of_formula_2 f1 ^ ", " ^ string_of_formula_2 f2 ^ ")"
-      | Binary_operator_bool_or ->
-        "Or(" ^ string_of_formula_2 f1 ^ ", " ^ string_of_formula_2 f2 ^ ")"
-      | Binary_operator_index ->
-        string_of_formula_2 f1 ^ " . " ^ string_of_formula_2 f2
-      | Binary_operator_tilde ->
-        string_of_formula_2 f1 ^ " ~ " ^ string_of_formula_2 f2
-    end
-  | Negated_formula(f1) -> "Not(" ^ string_of_formula_2 f1 ^ ")"
-  | Value_formula(v) ->
-                        (match v with
-                         | Value_record(_) -> "record"
-                         | Value_function(_) -> "function"
-                         | Value_ref(_) -> "ref"
-                         | Value_int(i) -> string_of_int i
-                         | Value_bool(b) ->
-                           begin
-                             match b with
-                             | true -> "True"
-                             | false -> "False"
-                           end
-                        )
-  | Var_formula(var) ->
-    begin
-      match var with
-      | Var(i, _) ->
-        begin
-          match i with
-          | Ident(s) -> s
-        end
-    end
-  | _ -> failwith "TODO"
 ;;
