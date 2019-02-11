@@ -31,8 +31,8 @@ type annotated_clause =
   | Conditional_enter_clause of Core_ast.var * Core_ast.pattern * annotated_clause * annotated_clause
   (* Conditional_enter_clause, x from x = conditional *)
   | Conditional_exit_clause of Core_ast.var * Core_ast.pattern * annotated_clause * annotated_clause * annotated_clause * Core_ast.var
-  | Start_clause
-  | End_clause
+  | Start_clause of Core_ast.var
+  | End_clause of Core_ast.var
   | Junk_clause
 [@@deriving ord, eq, to_yojson]
 ;;
@@ -81,10 +81,10 @@ let rec string_of_annotated_clause cl : string =
     "Conditional_enter_clause"
   | Conditional_exit_clause(_) ->
     "Conditional_exit_clause"
-  | Start_clause ->
-    "Start of program"
-  | End_clause ->
-    "End of program"
+  | Start_clause(v) ->
+    "Start clause " ^ (string_of_var v)
+  | End_clause(v) ->
+    "End clause " ^ (string_of_var v)
   | Junk_clause ->
     "Junk clause"
 ;;
@@ -173,7 +173,12 @@ let rec string_of_formula_2 formula : string =
                          | Value_function(_) -> "function"
                          | Value_ref(_) -> "ref"
                          | Value_int(i) -> string_of_int i
-                         | Value_bool(b) -> string_of_bool b
+                         | Value_bool(b) ->
+                           begin
+                             match b with
+                             | true -> "True"
+                             | false -> "False"
+                           end
                         )
   | Var_formula(var) ->
     begin
@@ -258,8 +263,8 @@ let rec create_starting_node (graph:(annotated_clause * annotated_clause) list) 
         failwith "create_starting_node should not encounter this match case"
       | Conditional_exit_clause(_) ->
         failwith "create_starting_node should not encounter this match case"
-      | Start_clause
-      | End_clause
+      | Start_clause(_)
+      | End_clause(_)
       | Junk_clause ->
         create_starting_node tail v g
 
@@ -292,8 +297,8 @@ let rec find_starting_node_helper (graph:(annotated_clause * annotated_clause) l
           find_starting_node_helper tail v g
       | Conditional_enter_clause(_)
       | Conditional_exit_clause(_)
-      | Start_clause
-      | End_clause
+      | Start_clause(_)
+      | End_clause(_)
       | Junk_clause ->
         find_starting_node_helper tail v g
     end

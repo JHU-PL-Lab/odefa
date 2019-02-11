@@ -50,7 +50,8 @@ let stdout_callbacks =
 let do_evaluation callbacks conf e =
   let v, env, formula, iota =
     if conf.topconf_wddpac_interpreter then
-      Core_interpreter_wddpac_naive_2.eval e (* if you pass in -W you use concrete *)
+      (* Core_interpreter_wddpac_naive_2.eval e (* if you pass in -W you use concrete *) *)
+      Symbolic_generator.eval e
     else
       Symbolic_generator.eval e
   in

@@ -72,7 +72,6 @@ Library "core-interpreter"
   FindlibParent: odefa
   Path: src/core-interpreter
   Modules:
-    Core_interpreter_wddpac_naive_2,
     Core_interpreter_utils,
     Symbolic_generator
   BuildDepends:

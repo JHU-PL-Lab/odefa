@@ -1,0 +1,10 @@
+# should be 8
+
+x=3;
+y=5;
+z=y+x;
+w=z-x;
+u=z+w;
+v=u-y;
+
+q=v;

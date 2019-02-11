@@ -1,4 +1,4 @@
-open Batteries;;
+(* open Batteries;;
 open Jhupllib;;
 
 open Core_ast;;
@@ -566,4 +566,4 @@ let eval (Expr(cls)) : Core_ast.var * value Core_interpreter.Environment.t * for
   let env = Core_interpreter.Environment.create 10 in
   Core_interpreter.Environment.add env rx v;
   rx, env, formula, new_iota
-;;
+;; *)

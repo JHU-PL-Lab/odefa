@@ -1,6 +1,7 @@
+[
 {
   "element_type": "ddpa_graph",
-  "work_count": 0,
+  "work_count": 86,
   "graph": {
     "ddpa_graph": [
       "Graph",
@@ -13,6 +14,18 @@
               "Unannotated_clause",
               [
                 "Abs_clause",
+                [ "Abs_var", [ "Ident", "m" ] ],
+                [ "Abs_var_body", [ "Abs_var", [ "Ident", "n" ] ] ]
+              ]
+            ],
+            [ "End_clause", [ "Abs_var", [ "Ident", "m" ] ] ]
+          ],
+          [
+            "Ddpa_edge",
+            [
+              "Unannotated_clause",
+              [
+                "Abs_clause",
                 [ "Abs_var", [ "Ident", "x" ] ],
                 [ "Abs_value_body", [ "Abs_value_int" ] ]
               ]
@@ -21,11 +34,73 @@
               "Unannotated_clause",
               [
                 "Abs_clause",
-                [ "Abs_var", [ "Ident", "xx" ] ],
+                [ "Abs_var", [ "Ident", "y" ] ],
                 [
-                  "Abs_binary_operation_body",
-                  [ "Abs_var", [ "Ident", "x" ] ],
-                  "+",
+                  "Abs_value_body",
+                  [
+                    "Abs_value_function",
+                    [
+                      "Abs_function_value",
+                      [ "Abs_var", [ "Ident", "n" ] ],
+                      [
+                        "Abs_expr",
+                        [
+                          [
+                            "Abs_clause",
+                            [ "Abs_var", [ "Ident", "m" ] ],
+                            [
+                              "Abs_var_body",
+                              [ "Abs_var", [ "Ident", "n" ] ]
+                            ]
+                          ]
+                        ]
+                      ]
+                    ]
+                  ]
+                ]
+              ]
+            ]
+          ],
+          [
+            "Ddpa_edge",
+            [
+              "Unannotated_clause",
+              [
+                "Abs_clause",
+                [ "Abs_var", [ "Ident", "y" ] ],
+                [
+                  "Abs_value_body",
+                  [
+                    "Abs_value_function",
+                    [
+                      "Abs_function_value",
+                      [ "Abs_var", [ "Ident", "n" ] ],
+                      [
+                        "Abs_expr",
+                        [
+                          [
+                            "Abs_clause",
+                            [ "Abs_var", [ "Ident", "m" ] ],
+                            [
+                              "Abs_var_body",
+                              [ "Abs_var", [ "Ident", "n" ] ]
+                            ]
+                          ]
+                        ]
+                      ]
+                    ]
+                  ]
+                ]
+              ]
+            ],
+            [
+              "Unannotated_clause",
+              [
+                "Abs_clause",
+                [ "Abs_var", [ "Ident", "z" ] ],
+                [
+                  "Abs_appl_body",
+                  [ "Abs_var", [ "Ident", "y" ] ],
                   [ "Abs_var", [ "Ident", "x" ] ]
                 ]
               ]
@@ -37,26 +112,138 @@
               "Unannotated_clause",
               [
                 "Abs_clause",
-                [ "Abs_var", [ "Ident", "xx" ] ],
+                [ "Abs_var", [ "Ident", "y" ] ],
                 [
-                  "Abs_binary_operation_body",
-                  [ "Abs_var", [ "Ident", "x" ] ],
-                  "+",
+                  "Abs_value_body",
+                  [
+                    "Abs_value_function",
+                    [
+                      "Abs_function_value",
+                      [ "Abs_var", [ "Ident", "n" ] ],
+                      [
+                        "Abs_expr",
+                        [
+                          [
+                            "Abs_clause",
+                            [ "Abs_var", [ "Ident", "m" ] ],
+                            [
+                              "Abs_var_body",
+                              [ "Abs_var", [ "Ident", "n" ] ]
+                            ]
+                          ]
+                        ]
+                      ]
+                    ]
+                  ]
+                ]
+              ]
+            ],
+            [
+              "Enter_clause",
+              [ "Abs_var", [ "Ident", "n" ] ],
+              [ "Abs_var", [ "Ident", "x" ] ],
+              [
+                "Abs_clause",
+                [ "Abs_var", [ "Ident", "z" ] ],
+                [
+                  "Abs_appl_body",
+                  [ "Abs_var", [ "Ident", "y" ] ],
+                  [ "Abs_var", [ "Ident", "x" ] ]
+                ]
+              ]
+            ]
+          ],
+          [
+            "Ddpa_edge",
+            [
+              "Unannotated_clause",
+              [
+                "Abs_clause",
+                [ "Abs_var", [ "Ident", "z" ] ],
+                [
+                  "Abs_appl_body",
+                  [ "Abs_var", [ "Ident", "y" ] ],
                   [ "Abs_var", [ "Ident", "x" ] ]
                 ]
               ]
             ],
-            [ "End_clause", [ "Abs_var", [ "Ident", "xx" ] ] ]
+            [ "End_clause", [ "Abs_var", [ "Ident", "z" ] ] ]
           ],
           [
             "Ddpa_edge",
-            [ "Start_clause", [ "Abs_var", [ "Ident", "xx" ] ] ],
+            [
+              "Enter_clause",
+              [ "Abs_var", [ "Ident", "n" ] ],
+              [ "Abs_var", [ "Ident", "x" ] ],
+              [
+                "Abs_clause",
+                [ "Abs_var", [ "Ident", "z" ] ],
+                [
+                  "Abs_appl_body",
+                  [ "Abs_var", [ "Ident", "y" ] ],
+                  [ "Abs_var", [ "Ident", "x" ] ]
+                ]
+              ]
+            ],
+            [ "Start_clause", [ "Abs_var", [ "Ident", "m" ] ] ]
+          ],
+          [
+            "Ddpa_edge",
+            [
+              "Exit_clause",
+              [ "Abs_var", [ "Ident", "z" ] ],
+              [ "Abs_var", [ "Ident", "m" ] ],
+              [
+                "Abs_clause",
+                [ "Abs_var", [ "Ident", "z" ] ],
+                [
+                  "Abs_appl_body",
+                  [ "Abs_var", [ "Ident", "y" ] ],
+                  [ "Abs_var", [ "Ident", "x" ] ]
+                ]
+              ]
+            ],
+            [ "End_clause", [ "Abs_var", [ "Ident", "z" ] ] ]
+          ],
+          [
+            "Ddpa_edge",
+            [ "Start_clause", [ "Abs_var", [ "Ident", "m" ] ] ],
+            [
+              "Unannotated_clause",
+              [
+                "Abs_clause",
+                [ "Abs_var", [ "Ident", "m" ] ],
+                [ "Abs_var_body", [ "Abs_var", [ "Ident", "n" ] ] ]
+              ]
+            ]
+          ],
+          [
+            "Ddpa_edge",
+            [ "Start_clause", [ "Abs_var", [ "Ident", "z" ] ] ],
             [
               "Unannotated_clause",
               [
                 "Abs_clause",
                 [ "Abs_var", [ "Ident", "x" ] ],
                 [ "Abs_value_body", [ "Abs_value_int" ] ]
+              ]
+            ]
+          ],
+          [
+            "Ddpa_edge",
+            [ "End_clause", [ "Abs_var", [ "Ident", "m" ] ] ],
+            [
+              "Exit_clause",
+              [ "Abs_var", [ "Ident", "z" ] ],
+              [ "Abs_var", [ "Ident", "m" ] ],
+              [
+                "Abs_clause",
+                [ "Abs_var", [ "Ident", "z" ] ],
+                [
+                  "Abs_appl_body",
+                  [ "Abs_var", [ "Ident", "y" ] ],
+                  [ "Abs_var", [ "Ident", "x" ] ]
+                ]
               ]
             ]
           ]
@@ -71,6 +258,14 @@
           "Unannotated_clause",
           [
             "Abs_clause",
+            [ "Abs_var", [ "Ident", "m" ] ],
+            [ "Abs_var_body", [ "Abs_var", [ "Ident", "n" ] ] ]
+          ]
+        ],
+        [
+          "Unannotated_clause",
+          [
+            "Abs_clause",
             [ "Abs_var", [ "Ident", "x" ] ],
             [ "Abs_value_body", [ "Abs_value_int" ] ]
           ]
@@ -79,19 +274,92 @@
           "Unannotated_clause",
           [
             "Abs_clause",
-            [ "Abs_var", [ "Ident", "xx" ] ],
+            [ "Abs_var", [ "Ident", "y" ] ],
             [
-              "Abs_binary_operation_body",
-              [ "Abs_var", [ "Ident", "x" ] ],
-              "+",
+              "Abs_value_body",
+              [
+                "Abs_value_function",
+                [
+                  "Abs_function_value",
+                  [ "Abs_var", [ "Ident", "n" ] ],
+                  [
+                    "Abs_expr",
+                    [
+                      [
+                        "Abs_clause",
+                        [ "Abs_var", [ "Ident", "m" ] ],
+                        [ "Abs_var_body", [ "Abs_var", [ "Ident", "n" ] ] ]
+                      ]
+                    ]
+                  ]
+                ]
+              ]
+            ]
+          ]
+        ],
+        [
+          "Unannotated_clause",
+          [
+            "Abs_clause",
+            [ "Abs_var", [ "Ident", "z" ] ],
+            [
+              "Abs_appl_body",
+              [ "Abs_var", [ "Ident", "y" ] ],
               [ "Abs_var", [ "Ident", "x" ] ]
             ]
           ]
         ],
-        [ "Start_clause", [ "Abs_var", [ "Ident", "xx" ] ] ],
-        [ "End_clause", [ "Abs_var", [ "Ident", "xx" ] ] ]
+        [
+          "Enter_clause",
+          [ "Abs_var", [ "Ident", "n" ] ],
+          [ "Abs_var", [ "Ident", "x" ] ],
+          [
+            "Abs_clause",
+            [ "Abs_var", [ "Ident", "z" ] ],
+            [
+              "Abs_appl_body",
+              [ "Abs_var", [ "Ident", "y" ] ],
+              [ "Abs_var", [ "Ident", "x" ] ]
+            ]
+          ]
+        ],
+        [
+          "Exit_clause",
+          [ "Abs_var", [ "Ident", "z" ] ],
+          [ "Abs_var", [ "Ident", "m" ] ],
+          [
+            "Abs_clause",
+            [ "Abs_var", [ "Ident", "z" ] ],
+            [
+              "Abs_appl_body",
+              [ "Abs_var", [ "Ident", "y" ] ],
+              [ "Abs_var", [ "Ident", "x" ] ]
+            ]
+          ]
+        ],
+        [ "Start_clause", [ "Abs_var", [ "Ident", "m" ] ] ],
+        [ "Start_clause", [ "Abs_var", [ "Ident", "z" ] ] ],
+        [ "End_clause", [ "Abs_var", [ "Ident", "m" ] ] ],
+        [ "End_clause", [ "Abs_var", [ "Ident", "z" ] ] ]
       ]
     },
-    "ddpa_active_non_immediate_nodes": { "type": "set", "elements": [] }
+    "ddpa_active_non_immediate_nodes": {
+      "type": "set",
+      "elements": [
+        [
+          "Unannotated_clause",
+          [
+            "Abs_clause",
+            [ "Abs_var", [ "Ident", "z" ] ],
+            [
+              "Abs_appl_body",
+              [ "Abs_var", [ "Ident", "y" ] ],
+              [ "Abs_var", [ "Ident", "x" ] ]
+            ]
+          ]
+        ]
+      ]
+    }
   }
 }
+]

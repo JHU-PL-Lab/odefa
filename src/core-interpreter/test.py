@@ -8,30 +8,39 @@
 from z3 import *
 import sys
 
-x = Real('x')
-solve(Or(x <= 1, 1 <= x))
+# x = Bool('x')
+# y
+# solve(x == True,y == Not(x),)
 # solve(Or(x <= 0, 0 < x))
 
 
-# formula = sys.argv[1]
-#
-# print("formula")
-# print(formula)
-#
-# # make list for formula variables to keep track of duplicates and make solver variables
-# vars = []
-# for c in formula:
-#     if (c.isalpha()) and (c not in vars):
-#         vars.append(c)
-#         exec(c + "= Real(c)")
-#
-# print("vars")
-# print(vars)
-#
-# # make solver and solve
+formula = sys.argv[1]
+
+print("formula")
+print(formula)
+
+# make list for formula variables to keep track of duplicates and make solver variables
+# right now, there's a restriction on vars that are allowed to be booleans
+vars = []
+for c in formula:
+    if (c.isalpha()) and (c not in vars):
+        vars.append(c)
+        if (c in ('a','b','c','d','e')):
+            exec(c + "= Bool('" + c +  "')")
+        else:
+            exec(c + "= Real('" + c + "')")
+
+print("vars")
+print(vars)
+
+# make solver and solve
 # # s = Solver()
-# print("\nResults:")
-# exec("solve(" + formula + ")")
+print("\nResults:")
+# try:
+exec("solve(" + formula + ")")
+# except Z3Exception:
+    # print("t    ")
+
 # exec("s.add(" + formula + ")")
 
 # print out output

@@ -15,6 +15,14 @@ let rv (cls: clause list) : var =
   | _ -> let Clause(x,_) = List.last cls in x
 ;;
 
+let rv_of_function (fcn:value) : var =
+  match fcn with
+  | Value_function(Function_value(_,Expr(cls))) ->
+    rv cls
+  | _ ->
+    failwith "Not a function - rv of function"
+;;
+
 let script formulas_list =
   execv "/usr/bin/python" [| "python";"/home/theodore/research/odefa/src/core-interpreter/test.py";formulas_list|]
 ;;
@@ -52,9 +60,12 @@ let get_annotated_clause_from_json (edge:Yojson.Basic.json list) map : annotated
     let node_to_add = Hashtbl.find map var in
     Unannotated_clause(Clause(var, node_to_add))
   else if node_type = "Start_clause" then
-    Start_clause
+    let a = List.nth edge 1 |> to_list in
+    let b = List.nth a 1 |> to_list in
+    let var_ident = List.nth b 1 |> to_string in
+    Start_clause(Core_ast.Var(Ident(var_ident),None))
   else if node_type = "End_clause" then
-    End_clause
+    End_clause(Core_ast.Var(Ident("d"),None))
   else
     failwith "Unrecognized node type in json ddpa graph"
 ;;
@@ -67,6 +78,16 @@ let rec initialize_graph (map: (var,clause_body) Hashtbl.t) (elements:Yojson.Bas
     let node2 = get_annotated_clause_from_json (to_list (List.nth (to_list head) 2)) map in
     Hashtbl.add graph node2 node1;
     initialize_graph map tail graph
+;;
+
+let mayBeTop context_stack context : bool =
+  if Stack.is_empty context_stack then
+    true
+  else
+  if Stack.top = context then
+    true
+  else
+    false
 ;;
 
 (*
@@ -103,22 +124,129 @@ let rec lookup lookup_stack (node:annotated_clause) context_stack graph phi: (Co
           let posCover = Binary_formula(Value_formula(Value_int(1)), Binary_operator_int_less_than_or_equal_to, Var_formula(x)) in
           let existence_formula = Binary_formula(negCover, Binary_operator_bool_or, posCover) in
           Value_int(0),phi@[existence_formula] (* pretty sure the value here is garbage - well what if we depend on it later? *)
+        | Appl_body(_,_) ->
+          failwith "appl body encountered"
+        | Unary_operation_body(op, v1) ->
+          let _ = Stack.pop lookup_stack in
+          (* let lookup_stack1 = lookup_stack in  *)
+          Stack.push (v1, "placeholder") lookup_stack;
+          let v2, phi2 = lookup lookup_stack a1 context_stack graph phi in
+          begin
+            match op with
+            | Unary_operator_bool_not ->
+              begin
+                match v2 with
+                | Value_bool(b) -> Value_bool(not b), phi@phi2@[Binary_formula(Var_formula(cur_var),Binary_operator_equal_to, Negated_formula(Var_formula(v1)))]
+                | _ -> raise @@ Utils.Invariant_failure "non-bool expr with not operator"
+              end
+            | Unary_operator_bool_coin_flip ->
+              failwith "unimplemented coin flip"
+          end
+        | Binary_operation_body(v1, op, v2) ->
+          let _ = Stack.pop lookup_stack in
+          let lookup_stack1 = lookup_stack in
+          Stack.push (v1, "placeholder") lookup_stack1;
+          let left_value, phi1 = lookup lookup_stack1 a1 context_stack graph phi in
+          let lookup_stack2 = lookup_stack in
+          Stack.push (v2, "placeholder") lookup_stack1;
+          let right_value, phi2 = lookup lookup_stack2 a1 context_stack graph phi in
+          let phi = phi@phi1@phi2 in
+          begin
+            match op with
+            | Binary_operator_plus ->
+              begin
+                match left_value, right_value with
+                | Value_int(i1), Value_int(i2) ->
+                  (* print_endline ("left side evaulated to: " ^ (string_of_value left_value)); *)
+                  (* print_endline ("plus evaluated to " ^ string_of_int(i1+i2)); *)
+                  Value_int(i1 + i2), phi@[Binary_formula(Var_formula(cur_var), Binary_operator_equal_to, Binary_formula(Var_formula(v1), Binary_operator_plus, Var_formula(v2)))]
+                | _ -> failwith "tried to add non-int"
+              end
+            | Binary_operator_int_minus ->
+              begin
+                match left_value, right_value with
+                | Value_int(i1), Value_int(i2) ->
+                  (* print_endline ("left side evaulated to: " ^ (string_of_value left_value)); *)
+                  (* print_endline ("plus evaluated to " ^ string_of_int(i1+i2)); *)
+                  Value_int(i1 - i2), phi@[Binary_formula(Var_formula(cur_var), Binary_operator_equal_to, Binary_formula(Var_formula(v1), Binary_operator_int_minus, Var_formula(v2)))]
+                | _ -> failwith "tried to subtract non-int"
+              end
+            | Binary_operator_int_less_than ->
+              begin
+                match left_value, right_value with
+                | Value_int(i1), Value_int(i2) ->
+                  (* print_endline ("left side evaulated to: " ^ (string_of_value left_value)); *)
+                  (* print_endline ("plus evaluated to " ^ string_of_int(i1+i2)); *)
+                  Value_bool(i1 < i2), phi@[Binary_formula(Var_formula(cur_var), Binary_operator_equal_to, Binary_formula(Var_formula(v1), Binary_operator_int_less_than, Var_formula(v2)))]
+                | _ -> failwith "tried to less than non-int"
+              end
+            | Binary_operator_int_less_than_or_equal_to ->
+              begin
+                match left_value, right_value with
+                | Value_int(i1), Value_int(i2) ->
+                  (* print_endline ("left side evaulated to: " ^ (string_of_value left_value)); *)
+                  (* print_endline ("plus evaluated to " ^ string_of_int(i1+i2)); *)
+                  Value_bool(i1 <= i2), phi@[Binary_formula(Var_formula(cur_var), Binary_operator_equal_to, Binary_formula(Var_formula(v1), Binary_operator_int_less_than_or_equal_to, Var_formula(v2)))]
+                | _ -> failwith "tried to less or equal than non-int"
+              end
+            | Binary_operator_equal_to ->
+              let new_formula = phi@[Binary_formula(Var_formula(cur_var), Binary_operator_equal_to, Binary_formula(Var_formula(v1), Binary_operator_equal_to, Var_formula(v2)))] in
+              begin
+                match left_value, right_value with
+                | Value_int(i1), Value_int(i2) ->
+                  (* print_endline ("equal evaluated to " ^ string_of_bool(i1=i2)); *)
+                  Value_bool(i1 = i2), new_formula
+                | Value_bool(b1), Value_bool(b2) -> Value_bool(b1 = b2), new_formula
+                | _ -> failwith "tried to equal two different types"
+              end
+            | Binary_operator_bool_and ->
+              begin
+                match left_value, right_value with
+                | Value_bool(b1), Value_bool(b2) -> Value_bool(b1 && b2), phi@[Binary_formula(Var_formula(cur_var), Binary_operator_equal_to, Binary_formula(Var_formula(v1), Binary_operator_bool_and, Var_formula(v2)))]
+                | _ -> failwith "tried to and non-booleans"
+              end
+            | Binary_operator_bool_or ->
+              begin
+                match left_value, right_value with
+                | Value_bool(b1), Value_bool(b2) -> Value_bool(b1 || b2), phi@[Binary_formula(Var_formula(cur_var), Binary_operator_equal_to, Binary_formula(Var_formula(v1), Binary_operator_bool_or, Var_formula(v2)))]
+                | _ -> failwith "tried to or non-booleans"
+              end
+            | Binary_operator_index -> failwith "index not done yet"
+            | Binary_operator_tilde -> failwith "tilde binop"
+          end
         | _ ->
           failwith "not implemented yet"
       end
   | Enter_clause(_) ->
     failwith "todo"
-  | Exit_clause(_) ->
-    failwith "todo"
+  (* | Exit_clause(original_program_point, new_program_point, (Clause(_, body) as cl)) -> *)
+  | Exit_clause(_) -> failwith "dodo"
+    (* begin
+      match body with
+      | Appl_body(xf, xn) ->
+        let new_stack = Stack.create () in
+        Stack.push (xf, "placeholder") new_stack;
+        let f,_ = lookup new_stack (Unannotated_clause(cl)) context_stack graph phi in
+        let rv_xf = rv_of_function f in
+        let _ = Stack.pop lookup_stack in
+        Stack.push (rv_xf, "placeholder") lookup_stack;
+        Stack.push cl context_stack;
+        lookup lookup_stack a1 context_stack graph (phi@[Binary_formula(Var_formula(cur_var),Binary_operator_equal_to, Var_formula(xn))])
+      | Conditional_body(_,_,_,_) ->
+        failwith "conditional todo"
+      | _ ->
+        failwith "exit clause context is not appl or cond"
+    end *)
+
   (* arg, pattern, then, else *)
   | Conditional_enter_clause(_) ->
     failwith "todo"
   (* Conditional_enter_clause, x from x = conditional *)
   | Conditional_exit_clause(_,_,_,_,_,_) ->
     failwith "todo"
-  | Start_clause ->
+  | Start_clause(_) ->
     failwith "todo"
-  | End_clause ->
+  | End_clause(_) ->
     failwith "todo"
   | Junk_clause ->
     failwith "todo"
