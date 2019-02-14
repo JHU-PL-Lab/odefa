@@ -2,9 +2,9 @@
 # EXPECT-FORMULA value true
 # EXPECT-IOTA {}
 
-one = 1;
+w = 1;
 x = 2;
-y = fun a-> (b = a; c = b + one);
+y = fun n-> (m = n; u = m + w);
 z = y x;
 
 q = z;
