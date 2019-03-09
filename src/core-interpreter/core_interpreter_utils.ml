@@ -112,25 +112,25 @@ let string_of_clause_body (body:clause_body) : string =
   | Update_body(_,_)-> "update"
   | Binary_operation_body(v1,op,v2) ->
     begin
-    match op with
-    | Binary_operator_plus ->
-      string_of_var v1 ^ " + " ^ string_of_var v2
-    | Binary_operator_int_minus ->
-      string_of_var v1 ^ " - " ^ string_of_var v2
-    | Binary_operator_int_less_than ->
-      string_of_var v1 ^ " < " ^ string_of_var v2
-    | Binary_operator_int_less_than_or_equal_to ->
-      string_of_var v1 ^ " <= " ^ string_of_var v2
-    | Binary_operator_equal_to ->
-      string_of_var v1 ^ " == " ^ string_of_var v2
-    | Binary_operator_bool_and ->
-      "And(" ^ string_of_var v1 ^ ", " ^ string_of_var v2 ^ ")"
-    | Binary_operator_bool_or ->
-      "Or(" ^ string_of_var v1 ^ ", " ^ string_of_var v2 ^ ")"
-    | Binary_operator_index ->
-      string_of_var v1 ^ " . " ^ string_of_var v2
-    | Binary_operator_tilde ->
-      string_of_var v1 ^ " ~ " ^ string_of_var v2
+      match op with
+      | Binary_operator_plus ->
+        string_of_var v1 ^ " + " ^ string_of_var v2
+      | Binary_operator_int_minus ->
+        string_of_var v1 ^ " - " ^ string_of_var v2
+      | Binary_operator_int_less_than ->
+        string_of_var v1 ^ " < " ^ string_of_var v2
+      | Binary_operator_int_less_than_or_equal_to ->
+        string_of_var v1 ^ " <= " ^ string_of_var v2
+      | Binary_operator_equal_to ->
+        string_of_var v1 ^ " == " ^ string_of_var v2
+      | Binary_operator_bool_and ->
+        "And(" ^ string_of_var v1 ^ ", " ^ string_of_var v2 ^ ")"
+      | Binary_operator_bool_or ->
+        "Or(" ^ string_of_var v1 ^ ", " ^ string_of_var v2 ^ ")"
+      | Binary_operator_index ->
+        string_of_var v1 ^ " . " ^ string_of_var v2
+      | Binary_operator_tilde ->
+        string_of_var v1 ^ " ~ " ^ string_of_var v2
     end
   | Unary_operation_body(op,v) ->
     begin
@@ -168,18 +168,18 @@ let rec string_of_formula_2 formula : string =
     end
   | Negated_formula(f1) -> "Not(" ^ string_of_formula_2 f1 ^ ")"
   | Value_formula(v) ->
-                        (match v with
-                         | Value_record(_) -> "record"
-                         | Value_function(_) -> "function"
-                         | Value_ref(_) -> "ref"
-                         | Value_int(i) -> string_of_int i
-                         | Value_bool(b) ->
-                           begin
-                             match b with
-                             | true -> "True"
-                             | false -> "False"
-                           end
-                        )
+    (match v with
+     | Value_record(_) -> "record"
+     | Value_function(_) -> "function"
+     | Value_ref(_) -> "ref"
+     | Value_int(i) -> string_of_int i
+     | Value_bool(b) ->
+       begin
+         match b with
+         | true -> "True"
+         | false -> "False"
+       end
+    )
   | Var_formula(var) ->
     begin
       match var with
@@ -189,14 +189,15 @@ let rec string_of_formula_2 formula : string =
           | Ident(s) -> s
         end
     end
-  | _ -> failwith "TODO"
+  | Pattern_formula(pattern) ->
+    string_of_pattern pattern
 ;;
 
 let rec string_of_phi phi =
   match phi with
   | [] -> ""
   | head :: tail ->
-    (string_of_formula_2 head) ^ "," ^  (string_of_phi tail)
+    (string_of_formula_2 head) ^ " , " ^  (string_of_phi tail)
 ;;
 
 let print_phi phi =
@@ -373,6 +374,56 @@ let rec next_node_helper nodes cur_mapping : annotated_clause =
 let next_node (graph:(annotated_clause, annotated_clause) Hashtbl.t) key cur_mapping : annotated_clause =
   let list_of_nodes = Hashtbl.find_all graph key in
   next_node_helper list_of_nodes cur_mapping
+;;
+
+let rec matching_node_helper nodes context : annotated_clause =
+  match nodes with
+  | [] ->
+    failwith "couldn't find any matching nodes: utils"
+  | head :: tail ->
+    match head with
+    | Enter_clause(_,_,c)
+    | Exit_clause(_,_,c) ->
+      if c = context then
+        head
+      else
+        matching_node_helper tail context
+    | Conditional_enter_clause(_)
+    | Conditional_exit_clause(_)
+    | Unannotated_clause(_)
+    | Start_clause(_)
+    | End_clause(_)
+    | Junk_clause ->
+      matching_node_helper tail context
+;;
+
+let matching_node graph node context : annotated_clause =
+  let list_of_nodes = Hashtbl.find_all graph node in
+  matching_node_helper list_of_nodes context
+;;
+
+let get_exit_nodes graph node true_var : (annotated_clause * annotated_clause) =
+  let candidates = Hashtbl.find_all graph node in
+  let exit_clauses = List.filter (fun ac ->
+      match ac with
+      | Exit_clause(_) -> true
+      | _ -> false
+    ) candidates
+  in
+  match (List.hd exit_clauses) with
+  | Exit_clause(_, return_var, _) ->
+    if return_var = true_var then
+      (List.hd exit_clauses, List.last exit_clauses)
+    else
+      (List.last exit_clauses, List.hd exit_clauses)
+  | _ -> failwith "get_exit_nodes failure"
+;;
+
+let rec create_list_copy (list_to_copy: 'a list) : 'a list =
+  match list_to_copy with
+  | [] -> []
+  | head :: tail ->
+    head :: create_list_copy tail
 ;;
 
 let clause_to_annotated_clause graph (cl:Core_ast.clause) : annotated_clause =

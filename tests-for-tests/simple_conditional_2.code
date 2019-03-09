@@ -1,0 +1,4 @@
+x = 2;
+w = x ~ true  ? fun n-> (m=n+n) : fun u-> (v=u);
+
+q=w;

@@ -53,6 +53,7 @@ let do_evaluation callbacks conf e =
       (* Core_interpreter_wddpac_naive_2.eval e (* if you pass in -W you use concrete *) *)
       Symbolic_generator.eval e
     else
+      (* Core_interpreter_wddpac_naive_2.eval e *)
       Symbolic_generator.eval e
   in
   begin

@@ -1,4 +1,4 @@
-(* open Batteries;;
+open Batteries;;
 open Jhupllib;;
 
 open Core_ast;;
@@ -6,7 +6,7 @@ open Core_interpreter_utils;;
 
 (* open Sys;; *)
 open Unix;;
-open Yojson.Basic.Util;;
+(* open Yojson.Basic.Util;; *)
 
 exception Evaluation_dead_end of string;;
 
@@ -44,7 +44,7 @@ let rec initialize_graph (prev: annotated_clause) (cls: clause list) (graph: (an
   (annotated_clause, annotated_clause) Hashtbl.t =
   match cls with
   | [] ->
-    Hashtbl.add graph prev Start_clause;
+    Hashtbl.add graph prev (Start_clause(Var(Ident("d"), None)));
     graph
   | Clause(x, body) as head :: tail ->
     begin
@@ -92,11 +92,11 @@ let rec lookup lookup_stack (node:annotated_clause) context_stack graph iota: (C
     with
     | Not_found -> failwith "not in graph"
   in
-  (* print_endline ("\nCurrent lookup variable: " ^ string_of_var cur_var); *)
-  (* print_endline ("Current node: " ^ string_of_annotated_clause node); *)
-  (* print_endline ("a1 node: " ^ string_of_annotated_clause a1); *)
-  (* print_stack lookup_stack; *)
-  (* print_context_stack context_stack; *)
+  print_endline ("\nCurrent lookup variable: " ^ string_of_var cur_var);
+  print_endline ("Current node: " ^ string_of_annotated_clause node);
+  print_endline ("a1 node: " ^ string_of_annotated_clause a1);
+  print_stack lookup_stack;
+  print_context_stack context_stack;
   (* print_endline ("current formula: " ^ string_of_formula cur_formula);
      print_graph graph; *)
   match a1 with
@@ -477,9 +477,9 @@ let rec lookup lookup_stack (node:annotated_clause) context_stack graph iota: (C
         in
         lookup lookup_stack a1 context_stack graph iota
       )
-  | Start_clause ->
+  | Start_clause(_) ->
     raise (Evaluation_dead_end "reached start of the program")
-  | End_clause
+  | End_clause(_)
   | Junk_clause ->
     lookup lookup_stack a1 context_stack graph iota
 ;;
@@ -509,10 +509,10 @@ let eval (Expr(cls)) : Core_ast.var * value Core_interpreter.Environment.t * for
      let _ = handle_unix_error script temp_formula in *)
 
 
-  let json = Yojson.Basic.from_file "ddpa_graphs.json" in
+  (* let json = Yojson.Basic.from_file "ddpa_graphs.json" in *)
   (* let open Yojson.Basic.Util in *)
-  let test = json |> member "element_type" |> to_string in
-  print_endline ("TESTING: " ^ test);
+  (* let test = json |> member "element_type" |> to_string in *)
+  (* print_endline ("TESTING: " ^ test); *)
 
 
 
@@ -535,11 +535,11 @@ let eval (Expr(cls)) : Core_ast.var * value Core_interpreter.Environment.t * for
   in
 
   (* make graph and add CFG edges by looking up last program point *)
-  let graph:(annotated_clause, annotated_clause) Hashtbl.t = initialize_graph (End_clause) clause_list (Hashtbl.create 10) in
+  let graph:(annotated_clause, annotated_clause) Hashtbl.t = initialize_graph (End_clause(Var(Ident("d"), None))) clause_list (Hashtbl.create 10) in
   let rx = rv (List.rev clause_list) in
   Stack.push (rx, true_formula) lookup_stack;
   print_graph graph;
-  let _ = lookup lookup_stack End_clause context_stack graph iota in
+  let _ = lookup lookup_stack (End_clause(Var(Ident("d"), None))) context_stack graph iota in
 
   (* now need to find the node that starts with program_point *)
   let starting_node, new_graph = find_starting_node graph starting_program_point in
@@ -566,4 +566,4 @@ let eval (Expr(cls)) : Core_ast.var * value Core_interpreter.Environment.t * for
   let env = Core_interpreter.Environment.create 10 in
   Core_interpreter.Environment.add env rx v;
   rx, env, formula, new_iota
-;; *)
+;;

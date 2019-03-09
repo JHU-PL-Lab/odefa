@@ -15,8 +15,8 @@ two = 2;
 five = 5;
 
 sum = fun number -> (
-  numberequal0 = number == zero;
-  sumresult = numberequal0 ~ true
+  boolNumberequal0 = number == zero;
+  sumresult = boolNumberequal0 ~ true
                       ? fun numberequal0match -> (
                         numberequal0matchresult = zero;
                       )
@@ -27,6 +27,6 @@ sum = fun number -> (
                       );
 );
 
-r = sum five; # => 15
+r = sum two; # => 15
 
 q=r;

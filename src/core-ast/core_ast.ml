@@ -237,7 +237,11 @@ let string_of_pattern pattern : string =
   match pattern with
   | Fun_pattern -> "fun pattern"
   | Int_pattern -> "int pattern"
-  | Bool_pattern(b) -> "bool(" ^ (string_of_bool b) ^ ") pattern"
+  | Bool_pattern(b) ->
+    if b then
+      "True"
+    else
+      "False"
   | Any_pattern -> "any pattern"
 ;;
 
