@@ -73,7 +73,6 @@ Library "core-interpreter"
   Path: src/core-interpreter
   Modules:
     Core_interpreter_utils,
-    Core_interpreter_wddpac_naive_2,
     Symbolic_generator
   BuildDepends:
     batteries,

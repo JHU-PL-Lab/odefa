@@ -227,7 +227,7 @@ type formula =
   | Binary_formula of formula * binary_operator * formula
   | Negated_formula of formula
   | Value_formula of value
-  | Var_formula of var
+  | Var_formula of var * clause Stack.t
   | Pattern_formula of pattern
 ;;
 
@@ -279,7 +279,7 @@ let rec string_of_formula formula : string =
                          | Value_int(i) -> string_of_int i
                          | Value_bool(b) -> string_of_bool b
                         )
-  | Var_formula(var) ->
+  | Var_formula(var, _) ->
     begin
       match var with
       | Var(i, _) ->
@@ -297,11 +297,11 @@ let rec substitute_var formula x (x':var) : formula =
   | Binary_formula(f1, op, f2) -> Binary_formula(substitute_var f1 x x', op, substitute_var f2 x x')
   | Negated_formula(f1) -> Negated_formula(substitute_var f1 x x')
   | Value_formula(v) -> Value_formula(v)
-  | Var_formula(v) ->
+  | Var_formula(v, context_stack) ->
     if v = x then
-      Var_formula(x')
+      Var_formula(x', context_stack)
     else
-      Var_formula(v)
+      Var_formula(v, context_stack)
   | Pattern_formula(p) -> Pattern_formula(p)
 ;;
 
@@ -311,11 +311,11 @@ let rec substitute_value formula x (v1:value) : formula =
   | Binary_formula(f1, op, f2) -> Binary_formula(substitute_value f1 x v1, op, substitute_value f2 x v1)
   | Negated_formula(f1) -> Negated_formula(substitute_value f1 x v1)
   | Value_formula(v) -> Value_formula(v)
-  | Var_formula(v) ->
+  | Var_formula(v, context_stack) ->
     if v = x then
       Value_formula(v1)
     else
-      Var_formula(v)
+      Var_formula(v, context_stack)
   | Pattern_formula(p) -> Pattern_formula(p)
 ;;
 
@@ -325,11 +325,11 @@ let rec substitute_formula formula x (f:formula) : formula =
   | Binary_formula(f1, op, f2) -> Binary_formula(substitute_formula f1 x f, op, substitute_formula f2 x f)
   | Negated_formula(f1) -> Negated_formula(substitute_formula f1 x f)
   | Value_formula(v) -> Value_formula(v)
-  | Var_formula(v) ->
+  | Var_formula(v, context_stack) ->
     if v = x then
       f
     else
-      Var_formula(v)
+      Var_formula(v, context_stack)
   | Pattern_formula(p) -> Pattern_formula(p)
 ;;
 

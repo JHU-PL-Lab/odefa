@@ -141,6 +141,15 @@ let string_of_clause_body (body:clause_body) : string =
   | Input -> "Input"
 ;;
 
+let rec string_of_context_stack context_stack : string =
+  let stack_copy = Stack.copy context_stack in
+  if Stack.is_empty stack_copy then
+    ""
+  else
+    let Clause(x, _) = Stack.pop stack_copy in
+    (string_of_var x) ^ "I" ^ (string_of_context_stack stack_copy)
+;;
+
 (* formula to string converter *)
 let rec string_of_formula_2 formula : string =
   match formula with
@@ -148,25 +157,25 @@ let rec string_of_formula_2 formula : string =
     begin
       match op with
       | Binary_operator_plus ->
-        string_of_formula_2 f1 ^ " + " ^ string_of_formula_2 f2
+        "( " ^ string_of_formula_2 f1 ^ " + " ^ string_of_formula_2 f2 ^ " )"
       | Binary_operator_int_minus ->
-        string_of_formula_2 f1 ^ " - " ^ string_of_formula_2 f2
+        "( " ^ string_of_formula_2 f1 ^ " - " ^ string_of_formula_2 f2 ^ " )"
       | Binary_operator_int_less_than ->
-        string_of_formula_2 f1 ^ " < " ^ string_of_formula_2 f2
+        "( " ^ string_of_formula_2 f1 ^ " < " ^ string_of_formula_2 f2 ^ " )"
       | Binary_operator_int_less_than_or_equal_to ->
-        string_of_formula_2 f1 ^ " <= " ^ string_of_formula_2 f2
+        "( " ^ string_of_formula_2 f1 ^ " <= " ^ string_of_formula_2 f2 ^ " )"
       | Binary_operator_equal_to ->
-        string_of_formula_2 f1 ^ " == " ^ string_of_formula_2 f2
+        "( " ^ string_of_formula_2 f1 ^ " == " ^ string_of_formula_2 f2 ^ " )"
       | Binary_operator_bool_and ->
-        "And(" ^ string_of_formula_2 f1 ^ ", " ^ string_of_formula_2 f2 ^ ")"
+        "And (" ^ string_of_formula_2 f1 ^ ", " ^ string_of_formula_2 f2 ^ " )"
       | Binary_operator_bool_or ->
-        "Or(" ^ string_of_formula_2 f1 ^ ", " ^ string_of_formula_2 f2 ^ ")"
+        "Or (" ^ string_of_formula_2 f1 ^ ", " ^ string_of_formula_2 f2 ^ " )"
       | Binary_operator_index ->
-        string_of_formula_2 f1 ^ " . " ^ string_of_formula_2 f2
+        "( " ^ string_of_formula_2 f1 ^ " . " ^ string_of_formula_2 f2 ^ " )"
       | Binary_operator_tilde ->
-        string_of_formula_2 f1 ^ " ~ " ^ string_of_formula_2 f2
+        "( " ^ string_of_formula_2 f1 ^ " ~ " ^ string_of_formula_2 f2 ^ " )"
     end
-  | Negated_formula(f1) -> "Not(" ^ string_of_formula_2 f1 ^ ")"
+  | Negated_formula(f1) -> "Not (" ^ string_of_formula_2 f1 ^ ")"
   | Value_formula(v) ->
     (match v with
      | Value_record(_) -> "record"
@@ -180,13 +189,13 @@ let rec string_of_formula_2 formula : string =
          | false -> "False"
        end
     )
-  | Var_formula(var) ->
+  | Var_formula(var, context_stack) ->
     begin
       match var with
       | Var(i, _) ->
         begin
           match i with
-          | Ident(s) -> s
+          | Ident(s) -> s ^ "AAA" ^ (string_of_context_stack context_stack) ^ "AAA"
         end
     end
   | Pattern_formula(pattern) ->
@@ -374,6 +383,16 @@ let rec next_node_helper nodes cur_mapping : annotated_clause =
 let next_node (graph:(annotated_clause, annotated_clause) Hashtbl.t) key cur_mapping : annotated_clause =
   let list_of_nodes = Hashtbl.find_all graph key in
   next_node_helper list_of_nodes cur_mapping
+;;
+
+let get_non_exit_clause_node (graph:(annotated_clause, annotated_clause) Hashtbl.t) key : annotated_clause =
+  let list_of_nodes = Hashtbl.find_all graph key in
+  List.hd (List.filter (fun a ->
+      match a with
+      | Exit_clause(_) ->
+        false
+      | _ -> true
+    ) list_of_nodes)
 ;;
 
 let rec matching_node_helper nodes context : annotated_clause =
