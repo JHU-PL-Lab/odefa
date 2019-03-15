@@ -27,6 +27,6 @@ sum = fun number -> (
                       );
 );
 
-r = sum two; # => 15
+r = sum five; # => 15
 
 q=r;

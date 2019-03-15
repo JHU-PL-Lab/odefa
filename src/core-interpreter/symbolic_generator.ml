@@ -353,7 +353,7 @@ let rec lookup (lookup_stack:(var * (clause Stack.t)) Stack.t) (node:annotated_c
           let _ = print_endline "QWE QWE QWE QWE QWE QWE" in
           let _ = print_endline "QWE QWE QWE QWE QWE QWE" in
           (* eventually need to be more careful with context stack here *)
-          let original_context_stack = Stack.copy context_stack in 
+          let original_context_stack = Stack.copy context_stack in
           let _ = Stack.pop context_stack in
           lookup lookup_stack a1 context_stack graph (phi@[Binary_formula(Var_formula(cur_var, (Stack.copy original_context_stack)),
                                                                           Binary_operator_equal_to, (Var_formula(cur_var, (Stack.copy context_stack))))])
@@ -502,6 +502,7 @@ and eval_helper queue prompt_user : Core_ast.value * formula list =
       begin
         match new_state with
         | Done(v, phi) ->
+          let phi = trim_list phi [] in 
           let _ = Sys.command ("python /home/theodore/research/odefa/src/core-interpreter/test.py \"" ^ (string_of_phi phi) ^ "\"") in
           if prompt_user then
             (

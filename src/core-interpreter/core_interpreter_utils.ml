@@ -466,6 +466,17 @@ let clause_to_annotated_clause graph (cl:Core_ast.clause) : annotated_clause =
     failwith ("converted clause not found: " ^ (string_of_annotated_clause candidate))
 ;;
 
+let rec trim_list phi to_return =
+  match phi with
+  | [] -> to_return
+  | head :: tail ->
+    if List.mem head to_return then
+      trim_list tail to_return
+    else
+      trim_list tail (to_return@[head])
+;;
+
+
 (* right now successor only works for a single input var *)
 let successor iota : input_mapping =
   (* print_endline "\nsuccessor\n"; *)
