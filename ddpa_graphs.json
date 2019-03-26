@@ -1,7 +1,7 @@
 [
 {
   "element_type": "ddpa_graph",
-  "work_count": 886,
+  "work_count": 1036,
   "graph": {
     "ddpa_graph": [
       "Graph",
@@ -421,6 +421,25 @@
               "Unannotated_clause",
               [
                 "Abs_clause",
+                [ "Abs_var", [ "Ident", "four" ] ],
+                [ "Abs_value_body", [ "Abs_value_int" ] ]
+              ]
+            ],
+            [
+              "Unannotated_clause",
+              [
+                "Abs_clause",
+                [ "Abs_var", [ "Ident", "five" ] ],
+                [ "Abs_value_body", [ "Abs_value_int" ] ]
+              ]
+            ]
+          ],
+          [
+            "Ddpa_edge",
+            [
+              "Unannotated_clause",
+              [
+                "Abs_clause",
                 [ "Abs_var", [ "Ident", "numberequal0antimatchresult" ] ],
                 [
                   "Abs_binary_operation_body",
@@ -565,7 +584,7 @@
                 [
                   "Abs_appl_body",
                   [ "Abs_var", [ "Ident", "sum" ] ],
-                  [ "Abs_var", [ "Ident", "five" ] ]
+                  [ "Abs_var", [ "Ident", "three" ] ]
                 ]
               ]
             ],
@@ -706,7 +725,7 @@
                 [
                   "Abs_appl_body",
                   [ "Abs_var", [ "Ident", "sum" ] ],
-                  [ "Abs_var", [ "Ident", "five" ] ]
+                  [ "Abs_var", [ "Ident", "three" ] ]
                 ]
               ]
             ]
@@ -841,14 +860,14 @@
             [
               "Enter_clause",
               [ "Abs_var", [ "Ident", "number" ] ],
-              [ "Abs_var", [ "Ident", "five" ] ],
+              [ "Abs_var", [ "Ident", "three" ] ],
               [
                 "Abs_clause",
                 [ "Abs_var", [ "Ident", "r" ] ],
                 [
                   "Abs_appl_body",
                   [ "Abs_var", [ "Ident", "sum" ] ],
-                  [ "Abs_var", [ "Ident", "five" ] ]
+                  [ "Abs_var", [ "Ident", "three" ] ]
                 ]
               ]
             ]
@@ -936,6 +955,25 @@
               "Unannotated_clause",
               [
                 "Abs_clause",
+                [ "Abs_var", [ "Ident", "three" ] ],
+                [ "Abs_value_body", [ "Abs_value_int" ] ]
+              ]
+            ],
+            [
+              "Unannotated_clause",
+              [
+                "Abs_clause",
+                [ "Abs_var", [ "Ident", "four" ] ],
+                [ "Abs_value_body", [ "Abs_value_int" ] ]
+              ]
+            ]
+          ],
+          [
+            "Ddpa_edge",
+            [
+              "Unannotated_clause",
+              [
+                "Abs_clause",
                 [ "Abs_var", [ "Ident", "two" ] ],
                 [ "Abs_value_body", [ "Abs_value_int" ] ]
               ]
@@ -944,7 +982,7 @@
               "Unannotated_clause",
               [
                 "Abs_clause",
-                [ "Abs_var", [ "Ident", "five" ] ],
+                [ "Abs_var", [ "Ident", "three" ] ],
                 [ "Abs_value_body", [ "Abs_value_int" ] ]
               ]
             ]
@@ -973,14 +1011,14 @@
             [
               "Enter_clause",
               [ "Abs_var", [ "Ident", "number" ] ],
-              [ "Abs_var", [ "Ident", "five" ] ],
+              [ "Abs_var", [ "Ident", "numberminus1" ] ],
               [
                 "Abs_clause",
-                [ "Abs_var", [ "Ident", "r" ] ],
+                [ "Abs_var", [ "Ident", "partialsum" ] ],
                 [
                   "Abs_appl_body",
                   [ "Abs_var", [ "Ident", "sum" ] ],
-                  [ "Abs_var", [ "Ident", "five" ] ]
+                  [ "Abs_var", [ "Ident", "numberminus1" ] ]
                 ]
               ]
             ],
@@ -991,14 +1029,14 @@
             [
               "Enter_clause",
               [ "Abs_var", [ "Ident", "number" ] ],
-              [ "Abs_var", [ "Ident", "numberminus1" ] ],
+              [ "Abs_var", [ "Ident", "three" ] ],
               [
                 "Abs_clause",
-                [ "Abs_var", [ "Ident", "partialsum" ] ],
+                [ "Abs_var", [ "Ident", "r" ] ],
                 [
                   "Abs_appl_body",
                   [ "Abs_var", [ "Ident", "sum" ] ],
-                  [ "Abs_var", [ "Ident", "numberminus1" ] ]
+                  [ "Abs_var", [ "Ident", "three" ] ]
                 ]
               ]
             ],
@@ -1210,7 +1248,7 @@
                 [
                   "Abs_appl_body",
                   [ "Abs_var", [ "Ident", "sum" ] ],
-                  [ "Abs_var", [ "Ident", "five" ] ]
+                  [ "Abs_var", [ "Ident", "three" ] ]
                 ]
               ]
             ],
@@ -1633,7 +1671,7 @@
                 [
                   "Abs_appl_body",
                   [ "Abs_var", [ "Ident", "sum" ] ],
-                  [ "Abs_var", [ "Ident", "five" ] ]
+                  [ "Abs_var", [ "Ident", "three" ] ]
                 ]
               ]
             ]
@@ -1663,6 +1701,14 @@
           [
             "Abs_clause",
             [ "Abs_var", [ "Ident", "five" ] ],
+            [ "Abs_value_body", [ "Abs_value_int" ] ]
+          ]
+        ],
+        [
+          "Unannotated_clause",
+          [
+            "Abs_clause",
+            [ "Abs_var", [ "Ident", "four" ] ],
             [ "Abs_value_body", [ "Abs_value_int" ] ]
           ]
         ],
@@ -1728,7 +1774,7 @@
             [
               "Abs_appl_body",
               [ "Abs_var", [ "Ident", "sum" ] ],
-              [ "Abs_var", [ "Ident", "five" ] ]
+              [ "Abs_var", [ "Ident", "three" ] ]
             ]
           ]
         ],
@@ -1913,6 +1959,14 @@
           "Unannotated_clause",
           [
             "Abs_clause",
+            [ "Abs_var", [ "Ident", "three" ] ],
+            [ "Abs_value_body", [ "Abs_value_int" ] ]
+          ]
+        ],
+        [
+          "Unannotated_clause",
+          [
+            "Abs_clause",
             [ "Abs_var", [ "Ident", "two" ] ],
             [ "Abs_value_body", [ "Abs_value_int" ] ]
           ]
@@ -1928,20 +1982,6 @@
         [
           "Enter_clause",
           [ "Abs_var", [ "Ident", "number" ] ],
-          [ "Abs_var", [ "Ident", "five" ] ],
-          [
-            "Abs_clause",
-            [ "Abs_var", [ "Ident", "r" ] ],
-            [
-              "Abs_appl_body",
-              [ "Abs_var", [ "Ident", "sum" ] ],
-              [ "Abs_var", [ "Ident", "five" ] ]
-            ]
-          ]
-        ],
-        [
-          "Enter_clause",
-          [ "Abs_var", [ "Ident", "number" ] ],
           [ "Abs_var", [ "Ident", "numberminus1" ] ],
           [
             "Abs_clause",
@@ -1950,6 +1990,20 @@
               "Abs_appl_body",
               [ "Abs_var", [ "Ident", "sum" ] ],
               [ "Abs_var", [ "Ident", "numberminus1" ] ]
+            ]
+          ]
+        ],
+        [
+          "Enter_clause",
+          [ "Abs_var", [ "Ident", "number" ] ],
+          [ "Abs_var", [ "Ident", "three" ] ],
+          [
+            "Abs_clause",
+            [ "Abs_var", [ "Ident", "r" ] ],
+            [
+              "Abs_appl_body",
+              [ "Abs_var", [ "Ident", "sum" ] ],
+              [ "Abs_var", [ "Ident", "three" ] ]
             ]
           ]
         ],
@@ -2115,7 +2169,7 @@
             [
               "Abs_appl_body",
               [ "Abs_var", [ "Ident", "sum" ] ],
-              [ "Abs_var", [ "Ident", "five" ] ]
+              [ "Abs_var", [ "Ident", "three" ] ]
             ]
           ]
         ],
@@ -2302,7 +2356,7 @@
             [
               "Abs_appl_body",
               [ "Abs_var", [ "Ident", "sum" ] ],
-              [ "Abs_var", [ "Ident", "five" ] ]
+              [ "Abs_var", [ "Ident", "three" ] ]
             ]
           ]
         ],

@@ -167,7 +167,7 @@ let rec lookup (lookup_stack:(var * (clause Stack.t)) Stack.t) (node:annotated_c
         | Var_body(var) ->
           let _ = Stack.pop lookup_stack in
           Stack.push (var, (Stack.copy context_stack)) lookup_stack;
-          lookup lookup_stack a1 context_stack graph (phi@[Binary_formula(Var_formula(cur_var, (Stack.copy context_stack)),Binary_operator_equal_to, Var_formula(var, context_stack))])
+          lookup lookup_stack a1 context_stack graph (phi@[Binary_formula(Var_formula(cur_var, (Stack.copy context_stack)),Binary_operator_equal_to, Var_formula(var, (Stack.copy context_stack)))])
         | Input ->
           (* solve(Or(x <= 1, 1 <= x)) *)
           let negCover = Binary_formula(Var_formula(x, (Stack.copy context_stack)),Binary_operator_int_less_than_or_equal_to, Value_formula(Value_int(1))) in
@@ -319,6 +319,7 @@ let rec lookup (lookup_stack:(var * (clause Stack.t)) Stack.t) (node:annotated_c
               (* else
                  failwith "context didn't match?" *)
             else
+              let _ = print_endline "looking for right context" in
               (* gotta find the other node - if there isn't fails *)
               let right_node = matching_node graph node cur_context in
               Hashtbl.add graph node right_node;
@@ -328,23 +329,26 @@ let rec lookup (lookup_stack:(var * (clause Stack.t)) Stack.t) (node:annotated_c
               (* Stack.push (arg, "placeholder") lookup_stack; *)
               lookup lookup_stack node context_stack graph phi
         else
-          let _ = print_endline "TESTING TESTING TESTING" in
-          let _ = print_endline "TESTING TESTING TESTING" in
-          let _ = print_endline "TESTING TESTING TESTING" in
-          let _ = print_endline "TESTING TESTING TESTING" in
-          let _ = print_endline "TESTING TESTING TESTING" in
-          let _ = print_endline "TESTING TESTING TESTING" in
-          let _ = Stack.push (xf, (Stack.copy context_stack)) lookup_stack in
           let original_context_stack = Stack.copy context_stack in
-          let _ =
-            if not (Stack.is_empty context_stack) then
-              let _ = Stack.pop context_stack in
-              "junk"
-            else
-              "junk"
-          in
-          lookup lookup_stack a1 context_stack graph (phi@[Binary_formula(Var_formula(cur_var, (Stack.copy original_context_stack)),
-                                                                          Binary_operator_equal_to, (Var_formula(cur_var, (Stack.copy context_stack))))])
+          let cur_context = Stack.pop context_stack in
+          if cur_context = cl then
+            let _ = print_endline "TESTING TESTING TESTING" in
+            let _ = print_endline "TESTING TESTING TESTING" in
+            let _ = print_endline "TESTING TESTING TESTING" in
+            let _ = print_endline "TESTING TESTING TESTING" in
+            let _ = print_endline "TESTING TESTING TESTING" in
+            let _ = print_endline "TESTING TESTING TESTING" in
+            let _ = Stack.push (xf, (Stack.copy context_stack)) lookup_stack in
+            lookup lookup_stack a1 context_stack graph (phi@[Binary_formula(Var_formula(cur_var, (Stack.copy original_context_stack)),
+                                                                            Binary_operator_equal_to, (Var_formula(cur_var, (Stack.copy context_stack))))])
+          else
+            let _ = print_endline "looking for right context" in
+            (* gotta find the other node - if there isn't fails *)
+            let right_node = matching_node graph node cur_context in
+            Hashtbl.add graph node right_node;
+            Stack.push cur_context context_stack;
+            print_endline ("rightnode: " ^ (string_of_annotated_clause right_node));
+            lookup lookup_stack node context_stack graph phi
       | Conditional_body(_,_,_,_) ->
         if cur_var <> param then
           let _ = print_endline "QWE QWE QWE QWE QWE QWE" in
@@ -502,7 +506,7 @@ and eval_helper queue prompt_user : Core_ast.value * formula list =
       begin
         match new_state with
         | Done(v, phi) ->
-          let phi = trim_list phi [] in 
+          let phi = trim_list phi [] in
           let _ = Sys.command ("python /home/theodore/research/odefa/src/core-interpreter/test.py \"" ^ (string_of_phi phi) ^ "\"") in
           if prompt_user then
             (
