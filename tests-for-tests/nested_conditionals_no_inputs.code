@@ -1,0 +1,13 @@
+
+one = 1;
+two = 2;
+boolZ = true;
+condA = boolZ ~ true
+  ? fun boolA -> (
+    condB = boolA ~ false ? fun c -> (d=one) : fun e -> (f=two);
+  )
+  : fun n -> (
+    m=n;
+  );
+
+q=condA

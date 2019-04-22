@@ -12,6 +12,8 @@
 zero = 0;
 one = 1;
 two = 2;
+three = 3;
+four = 4;
 five = 5;
 
 sum = fun number -> (
@@ -27,6 +29,6 @@ sum = fun number -> (
                       );
 );
 
-r = sum five; # => 15
+r = sum five;
 
 q=r;

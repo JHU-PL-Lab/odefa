@@ -1,0 +1,14 @@
+x=input;
+one = 1;
+two = 2;
+three = 3;
+boolZ = x == two;
+condA = boolZ ~ true
+  ? fun boolA -> (
+    condB = boolA ~ false ? fun c -> (d=one) : fun e -> (f=three);
+  )
+  : fun n -> (
+    m=n;
+  );
+
+q=condB

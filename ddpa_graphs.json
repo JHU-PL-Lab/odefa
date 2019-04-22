@@ -1,7 +1,7 @@
 [
 {
   "element_type": "ddpa_graph",
-  "work_count": 1036,
+  "work_count": 312,
   "graph": {
     "ddpa_graph": [
       "Graph",
@@ -14,12 +14,12 @@
               "Unannotated_clause",
               [
                 "Abs_clause",
-                [ "Abs_var", [ "Ident", "boolNumberequal0" ] ],
+                [ "Abs_var", [ "Ident", "boolZ" ] ],
                 [
                   "Abs_binary_operation_body",
-                  [ "Abs_var", [ "Ident", "number" ] ],
+                  [ "Abs_var", [ "Ident", "x" ] ],
                   "==",
-                  [ "Abs_var", [ "Ident", "zero" ] ]
+                  [ "Abs_var", [ "Ident", "two" ] ]
                 ]
               ]
             ],
@@ -27,380 +27,53 @@
               "Unannotated_clause",
               [
                 "Abs_clause",
-                [ "Abs_var", [ "Ident", "sumresult" ] ],
+                [ "Abs_var", [ "Ident", "condA" ] ],
                 [
                   "Abs_conditional_body",
-                  [ "Abs_var", [ "Ident", "boolNumberequal0" ] ],
+                  [ "Abs_var", [ "Ident", "boolZ" ] ],
                   [ "Bool_pattern", true ],
                   [
                     "Abs_function_value",
-                    [ "Abs_var", [ "Ident", "numberequal0match" ] ],
+                    [ "Abs_var", [ "Ident", "boolA" ] ],
                     [
                       "Abs_expr",
                       [
                         [
                           "Abs_clause",
+                          [ "Abs_var", [ "Ident", "condB" ] ],
                           [
-                            "Abs_var",
-                            [ "Ident", "numberequal0matchresult" ]
-                          ],
-                          [
-                            "Abs_var_body",
-                            [ "Abs_var", [ "Ident", "zero" ] ]
-                          ]
-                        ]
-                      ]
-                    ]
-                  ],
-                  [
-                    "Abs_function_value",
-                    [ "Abs_var", [ "Ident", "numberequal0antimatch" ] ],
-                    [
-                      "Abs_expr",
-                      [
-                        [
-                          "Abs_clause",
-                          [ "Abs_var", [ "Ident", "numberminus1" ] ],
-                          [
-                            "Abs_binary_operation_body",
-                            [ "Abs_var", [ "Ident", "number" ] ],
-                            "-",
-                            [ "Abs_var", [ "Ident", "one" ] ]
-                          ]
-                        ],
-                        [
-                          "Abs_clause",
-                          [ "Abs_var", [ "Ident", "partialsum" ] ],
-                          [
-                            "Abs_appl_body",
-                            [ "Abs_var", [ "Ident", "sum" ] ],
-                            [ "Abs_var", [ "Ident", "numberminus1" ] ]
-                          ]
-                        ],
-                        [
-                          "Abs_clause",
-                          [
-                            "Abs_var",
-                            [ "Ident", "numberequal0antimatchresult" ]
-                          ],
-                          [
-                            "Abs_binary_operation_body",
-                            [ "Abs_var", [ "Ident", "partialsum" ] ],
-                            "+",
-                            [ "Abs_var", [ "Ident", "number" ] ]
-                          ]
-                        ]
-                      ]
-                    ]
-                  ]
-                ]
-              ]
-            ]
-          ],
-          [
-            "Ddpa_edge",
-            [
-              "Unannotated_clause",
-              [
-                "Abs_clause",
-                [ "Abs_var", [ "Ident", "boolNumberequal0" ] ],
-                [
-                  "Abs_binary_operation_body",
-                  [ "Abs_var", [ "Ident", "number" ] ],
-                  "==",
-                  [ "Abs_var", [ "Ident", "zero" ] ]
-                ]
-              ]
-            ],
-            [
-              "Enter_clause",
-              [ "Abs_var", [ "Ident", "numberequal0antimatch" ] ],
-              [ "Abs_var", [ "Ident", "boolNumberequal0" ] ],
-              [
-                "Abs_clause",
-                [ "Abs_var", [ "Ident", "sumresult" ] ],
-                [
-                  "Abs_conditional_body",
-                  [ "Abs_var", [ "Ident", "boolNumberequal0" ] ],
-                  [ "Bool_pattern", true ],
-                  [
-                    "Abs_function_value",
-                    [ "Abs_var", [ "Ident", "numberequal0match" ] ],
-                    [
-                      "Abs_expr",
-                      [
-                        [
-                          "Abs_clause",
-                          [
-                            "Abs_var",
-                            [ "Ident", "numberequal0matchresult" ]
-                          ],
-                          [
-                            "Abs_var_body",
-                            [ "Abs_var", [ "Ident", "zero" ] ]
-                          ]
-                        ]
-                      ]
-                    ]
-                  ],
-                  [
-                    "Abs_function_value",
-                    [ "Abs_var", [ "Ident", "numberequal0antimatch" ] ],
-                    [
-                      "Abs_expr",
-                      [
-                        [
-                          "Abs_clause",
-                          [ "Abs_var", [ "Ident", "numberminus1" ] ],
-                          [
-                            "Abs_binary_operation_body",
-                            [ "Abs_var", [ "Ident", "number" ] ],
-                            "-",
-                            [ "Abs_var", [ "Ident", "one" ] ]
-                          ]
-                        ],
-                        [
-                          "Abs_clause",
-                          [ "Abs_var", [ "Ident", "partialsum" ] ],
-                          [
-                            "Abs_appl_body",
-                            [ "Abs_var", [ "Ident", "sum" ] ],
-                            [ "Abs_var", [ "Ident", "numberminus1" ] ]
-                          ]
-                        ],
-                        [
-                          "Abs_clause",
-                          [
-                            "Abs_var",
-                            [ "Ident", "numberequal0antimatchresult" ]
-                          ],
-                          [
-                            "Abs_binary_operation_body",
-                            [ "Abs_var", [ "Ident", "partialsum" ] ],
-                            "+",
-                            [ "Abs_var", [ "Ident", "number" ] ]
-                          ]
-                        ]
-                      ]
-                    ]
-                  ]
-                ]
-              ]
-            ]
-          ],
-          [
-            "Ddpa_edge",
-            [
-              "Unannotated_clause",
-              [
-                "Abs_clause",
-                [ "Abs_var", [ "Ident", "boolNumberequal0" ] ],
-                [
-                  "Abs_binary_operation_body",
-                  [ "Abs_var", [ "Ident", "number" ] ],
-                  "==",
-                  [ "Abs_var", [ "Ident", "zero" ] ]
-                ]
-              ]
-            ],
-            [
-              "Enter_clause",
-              [ "Abs_var", [ "Ident", "numberequal0match" ] ],
-              [ "Abs_var", [ "Ident", "boolNumberequal0" ] ],
-              [
-                "Abs_clause",
-                [ "Abs_var", [ "Ident", "sumresult" ] ],
-                [
-                  "Abs_conditional_body",
-                  [ "Abs_var", [ "Ident", "boolNumberequal0" ] ],
-                  [ "Bool_pattern", true ],
-                  [
-                    "Abs_function_value",
-                    [ "Abs_var", [ "Ident", "numberequal0match" ] ],
-                    [
-                      "Abs_expr",
-                      [
-                        [
-                          "Abs_clause",
-                          [
-                            "Abs_var",
-                            [ "Ident", "numberequal0matchresult" ]
-                          ],
-                          [
-                            "Abs_var_body",
-                            [ "Abs_var", [ "Ident", "zero" ] ]
-                          ]
-                        ]
-                      ]
-                    ]
-                  ],
-                  [
-                    "Abs_function_value",
-                    [ "Abs_var", [ "Ident", "numberequal0antimatch" ] ],
-                    [
-                      "Abs_expr",
-                      [
-                        [
-                          "Abs_clause",
-                          [ "Abs_var", [ "Ident", "numberminus1" ] ],
-                          [
-                            "Abs_binary_operation_body",
-                            [ "Abs_var", [ "Ident", "number" ] ],
-                            "-",
-                            [ "Abs_var", [ "Ident", "one" ] ]
-                          ]
-                        ],
-                        [
-                          "Abs_clause",
-                          [ "Abs_var", [ "Ident", "partialsum" ] ],
-                          [
-                            "Abs_appl_body",
-                            [ "Abs_var", [ "Ident", "sum" ] ],
-                            [ "Abs_var", [ "Ident", "numberminus1" ] ]
-                          ]
-                        ],
-                        [
-                          "Abs_clause",
-                          [
-                            "Abs_var",
-                            [ "Ident", "numberequal0antimatchresult" ]
-                          ],
-                          [
-                            "Abs_binary_operation_body",
-                            [ "Abs_var", [ "Ident", "partialsum" ] ],
-                            "+",
-                            [ "Abs_var", [ "Ident", "number" ] ]
-                          ]
-                        ]
-                      ]
-                    ]
-                  ]
-                ]
-              ]
-            ]
-          ],
-          [
-            "Ddpa_edge",
-            [
-              "Unannotated_clause",
-              [
-                "Abs_clause",
-                [ "Abs_var", [ "Ident", "five" ] ],
-                [ "Abs_value_body", [ "Abs_value_int" ] ]
-              ]
-            ],
-            [
-              "Unannotated_clause",
-              [
-                "Abs_clause",
-                [ "Abs_var", [ "Ident", "sum" ] ],
-                [
-                  "Abs_value_body",
-                  [
-                    "Abs_value_function",
-                    [
-                      "Abs_function_value",
-                      [ "Abs_var", [ "Ident", "number" ] ],
-                      [
-                        "Abs_expr",
-                        [
-                          [
-                            "Abs_clause",
-                            [ "Abs_var", [ "Ident", "boolNumberequal0" ] ],
+                            "Abs_conditional_body",
+                            [ "Abs_var", [ "Ident", "boolA" ] ],
+                            [ "Bool_pattern", false ],
                             [
-                              "Abs_binary_operation_body",
-                              [ "Abs_var", [ "Ident", "number" ] ],
-                              "==",
-                              [ "Abs_var", [ "Ident", "zero" ] ]
-                            ]
-                          ],
-                          [
-                            "Abs_clause",
-                            [ "Abs_var", [ "Ident", "sumresult" ] ],
-                            [
-                              "Abs_conditional_body",
-                              [ "Abs_var", [ "Ident", "boolNumberequal0" ] ],
-                              [ "Bool_pattern", true ],
+                              "Abs_function_value",
+                              [ "Abs_var", [ "Ident", "c" ] ],
                               [
-                                "Abs_function_value",
+                                "Abs_expr",
                                 [
-                                  "Abs_var",
-                                  [ "Ident", "numberequal0match" ]
-                                ],
-                                [
-                                  "Abs_expr",
                                   [
+                                    "Abs_clause",
+                                    [ "Abs_var", [ "Ident", "d" ] ],
                                     [
-                                      "Abs_clause",
-                                      [
-                                        "Abs_var",
-                                        [
-                                          "Ident", "numberequal0matchresult"
-                                        ]
-                                      ],
-                                      [
-                                        "Abs_var_body",
-                                        [ "Abs_var", [ "Ident", "zero" ] ]
-                                      ]
+                                      "Abs_var_body",
+                                      [ "Abs_var", [ "Ident", "one" ] ]
                                     ]
                                   ]
                                 ]
-                              ],
+                              ]
+                            ],
+                            [
+                              "Abs_function_value",
+                              [ "Abs_var", [ "Ident", "e" ] ],
                               [
-                                "Abs_function_value",
+                                "Abs_expr",
                                 [
-                                  "Abs_var",
-                                  [ "Ident", "numberequal0antimatch" ]
-                                ],
-                                [
-                                  "Abs_expr",
                                   [
+                                    "Abs_clause",
+                                    [ "Abs_var", [ "Ident", "f" ] ],
                                     [
-                                      "Abs_clause",
-                                      [
-                                        "Abs_var",
-                                        [ "Ident", "numberminus1" ]
-                                      ],
-                                      [
-                                        "Abs_binary_operation_body",
-                                        [ "Abs_var", [ "Ident", "number" ] ],
-                                        "-",
-                                        [ "Abs_var", [ "Ident", "one" ] ]
-                                      ]
-                                    ],
-                                    [
-                                      "Abs_clause",
-                                      [
-                                        "Abs_var",
-                                        [ "Ident", "partialsum" ]
-                                      ],
-                                      [
-                                        "Abs_appl_body",
-                                        [ "Abs_var", [ "Ident", "sum" ] ],
-                                        [
-                                          "Abs_var",
-                                          [ "Ident", "numberminus1" ]
-                                        ]
-                                      ]
-                                    ],
-                                    [
-                                      "Abs_clause",
-                                      [
-                                        "Abs_var",
-                                        [
-                                          "Ident",
-                                          "numberequal0antimatchresult"
-                                        ]
-                                      ],
-                                      [
-                                        "Abs_binary_operation_body",
-                                        [
-                                          "Abs_var",
-                                          [ "Ident", "partialsum" ]
-                                        ],
-                                        "+",
-                                        [ "Abs_var", [ "Ident", "number" ] ]
-                                      ]
+                                      "Abs_var_body",
+                                      [ "Abs_var", [ "Ident", "three" ] ]
                                     ]
                                   ]
                                 ]
@@ -410,6 +83,20 @@
                         ]
                       ]
                     ]
+                  ],
+                  [
+                    "Abs_function_value",
+                    [ "Abs_var", [ "Ident", "n" ] ],
+                    [
+                      "Abs_expr",
+                      [
+                        [
+                          "Abs_clause",
+                          [ "Abs_var", [ "Ident", "m" ] ],
+                          [ "Abs_var_body", [ "Abs_var", [ "Ident", "n" ] ] ]
+                        ]
+                      ]
+                    ]
                   ]
                 ]
               ]
@@ -421,111 +108,347 @@
               "Unannotated_clause",
               [
                 "Abs_clause",
-                [ "Abs_var", [ "Ident", "four" ] ],
-                [ "Abs_value_body", [ "Abs_value_int" ] ]
-              ]
-            ],
-            [
-              "Unannotated_clause",
-              [
-                "Abs_clause",
-                [ "Abs_var", [ "Ident", "five" ] ],
-                [ "Abs_value_body", [ "Abs_value_int" ] ]
-              ]
-            ]
-          ],
-          [
-            "Ddpa_edge",
-            [
-              "Unannotated_clause",
-              [
-                "Abs_clause",
-                [ "Abs_var", [ "Ident", "numberequal0antimatchresult" ] ],
+                [ "Abs_var", [ "Ident", "boolZ" ] ],
                 [
                   "Abs_binary_operation_body",
-                  [ "Abs_var", [ "Ident", "partialsum" ] ],
-                  "+",
-                  [ "Abs_var", [ "Ident", "number" ] ]
-                ]
-              ]
-            ],
-            [
-              "End_clause",
-              [ "Abs_var", [ "Ident", "numberequal0antimatchresult" ] ]
-            ]
-          ],
-          [
-            "Ddpa_edge",
-            [
-              "Unannotated_clause",
-              [
-                "Abs_clause",
-                [ "Abs_var", [ "Ident", "numberequal0matchresult" ] ],
-                [ "Abs_var_body", [ "Abs_var", [ "Ident", "zero" ] ] ]
-              ]
-            ],
-            [
-              "End_clause",
-              [ "Abs_var", [ "Ident", "numberequal0matchresult" ] ]
-            ]
-          ],
-          [
-            "Ddpa_edge",
-            [
-              "Unannotated_clause",
-              [
-                "Abs_clause",
-                [ "Abs_var", [ "Ident", "numberminus1" ] ],
-                [
-                  "Abs_binary_operation_body",
-                  [ "Abs_var", [ "Ident", "number" ] ],
-                  "-",
-                  [ "Abs_var", [ "Ident", "one" ] ]
-                ]
-              ]
-            ],
-            [
-              "Unannotated_clause",
-              [
-                "Abs_clause",
-                [ "Abs_var", [ "Ident", "partialsum" ] ],
-                [
-                  "Abs_appl_body",
-                  [ "Abs_var", [ "Ident", "sum" ] ],
-                  [ "Abs_var", [ "Ident", "numberminus1" ] ]
-                ]
-              ]
-            ]
-          ],
-          [
-            "Ddpa_edge",
-            [
-              "Unannotated_clause",
-              [
-                "Abs_clause",
-                [ "Abs_var", [ "Ident", "numberminus1" ] ],
-                [
-                  "Abs_binary_operation_body",
-                  [ "Abs_var", [ "Ident", "number" ] ],
-                  "-",
-                  [ "Abs_var", [ "Ident", "one" ] ]
+                  [ "Abs_var", [ "Ident", "x" ] ],
+                  "==",
+                  [ "Abs_var", [ "Ident", "two" ] ]
                 ]
               ]
             ],
             [
               "Enter_clause",
-              [ "Abs_var", [ "Ident", "number" ] ],
-              [ "Abs_var", [ "Ident", "numberminus1" ] ],
+              [ "Abs_var", [ "Ident", "boolA" ] ],
+              [ "Abs_var", [ "Ident", "boolZ" ] ],
               [
                 "Abs_clause",
-                [ "Abs_var", [ "Ident", "partialsum" ] ],
+                [ "Abs_var", [ "Ident", "condA" ] ],
                 [
-                  "Abs_appl_body",
-                  [ "Abs_var", [ "Ident", "sum" ] ],
-                  [ "Abs_var", [ "Ident", "numberminus1" ] ]
+                  "Abs_conditional_body",
+                  [ "Abs_var", [ "Ident", "boolZ" ] ],
+                  [ "Bool_pattern", true ],
+                  [
+                    "Abs_function_value",
+                    [ "Abs_var", [ "Ident", "boolA" ] ],
+                    [
+                      "Abs_expr",
+                      [
+                        [
+                          "Abs_clause",
+                          [ "Abs_var", [ "Ident", "condB" ] ],
+                          [
+                            "Abs_conditional_body",
+                            [ "Abs_var", [ "Ident", "boolA" ] ],
+                            [ "Bool_pattern", false ],
+                            [
+                              "Abs_function_value",
+                              [ "Abs_var", [ "Ident", "c" ] ],
+                              [
+                                "Abs_expr",
+                                [
+                                  [
+                                    "Abs_clause",
+                                    [ "Abs_var", [ "Ident", "d" ] ],
+                                    [
+                                      "Abs_var_body",
+                                      [ "Abs_var", [ "Ident", "one" ] ]
+                                    ]
+                                  ]
+                                ]
+                              ]
+                            ],
+                            [
+                              "Abs_function_value",
+                              [ "Abs_var", [ "Ident", "e" ] ],
+                              [
+                                "Abs_expr",
+                                [
+                                  [
+                                    "Abs_clause",
+                                    [ "Abs_var", [ "Ident", "f" ] ],
+                                    [
+                                      "Abs_var_body",
+                                      [ "Abs_var", [ "Ident", "three" ] ]
+                                    ]
+                                  ]
+                                ]
+                              ]
+                            ]
+                          ]
+                        ]
+                      ]
+                    ]
+                  ],
+                  [
+                    "Abs_function_value",
+                    [ "Abs_var", [ "Ident", "n" ] ],
+                    [
+                      "Abs_expr",
+                      [
+                        [
+                          "Abs_clause",
+                          [ "Abs_var", [ "Ident", "m" ] ],
+                          [ "Abs_var_body", [ "Abs_var", [ "Ident", "n" ] ] ]
+                        ]
+                      ]
+                    ]
+                  ]
                 ]
               ]
             ]
+          ],
+          [
+            "Ddpa_edge",
+            [
+              "Unannotated_clause",
+              [
+                "Abs_clause",
+                [ "Abs_var", [ "Ident", "boolZ" ] ],
+                [
+                  "Abs_binary_operation_body",
+                  [ "Abs_var", [ "Ident", "x" ] ],
+                  "==",
+                  [ "Abs_var", [ "Ident", "two" ] ]
+                ]
+              ]
+            ],
+            [
+              "Enter_clause",
+              [ "Abs_var", [ "Ident", "n" ] ],
+              [ "Abs_var", [ "Ident", "boolZ" ] ],
+              [
+                "Abs_clause",
+                [ "Abs_var", [ "Ident", "condA" ] ],
+                [
+                  "Abs_conditional_body",
+                  [ "Abs_var", [ "Ident", "boolZ" ] ],
+                  [ "Bool_pattern", true ],
+                  [
+                    "Abs_function_value",
+                    [ "Abs_var", [ "Ident", "boolA" ] ],
+                    [
+                      "Abs_expr",
+                      [
+                        [
+                          "Abs_clause",
+                          [ "Abs_var", [ "Ident", "condB" ] ],
+                          [
+                            "Abs_conditional_body",
+                            [ "Abs_var", [ "Ident", "boolA" ] ],
+                            [ "Bool_pattern", false ],
+                            [
+                              "Abs_function_value",
+                              [ "Abs_var", [ "Ident", "c" ] ],
+                              [
+                                "Abs_expr",
+                                [
+                                  [
+                                    "Abs_clause",
+                                    [ "Abs_var", [ "Ident", "d" ] ],
+                                    [
+                                      "Abs_var_body",
+                                      [ "Abs_var", [ "Ident", "one" ] ]
+                                    ]
+                                  ]
+                                ]
+                              ]
+                            ],
+                            [
+                              "Abs_function_value",
+                              [ "Abs_var", [ "Ident", "e" ] ],
+                              [
+                                "Abs_expr",
+                                [
+                                  [
+                                    "Abs_clause",
+                                    [ "Abs_var", [ "Ident", "f" ] ],
+                                    [
+                                      "Abs_var_body",
+                                      [ "Abs_var", [ "Ident", "three" ] ]
+                                    ]
+                                  ]
+                                ]
+                              ]
+                            ]
+                          ]
+                        ]
+                      ]
+                    ]
+                  ],
+                  [
+                    "Abs_function_value",
+                    [ "Abs_var", [ "Ident", "n" ] ],
+                    [
+                      "Abs_expr",
+                      [
+                        [
+                          "Abs_clause",
+                          [ "Abs_var", [ "Ident", "m" ] ],
+                          [ "Abs_var_body", [ "Abs_var", [ "Ident", "n" ] ] ]
+                        ]
+                      ]
+                    ]
+                  ]
+                ]
+              ]
+            ]
+          ],
+          [
+            "Ddpa_edge",
+            [
+              "Unannotated_clause",
+              [
+                "Abs_clause",
+                [ "Abs_var", [ "Ident", "condA" ] ],
+                [
+                  "Abs_conditional_body",
+                  [ "Abs_var", [ "Ident", "boolZ" ] ],
+                  [ "Bool_pattern", true ],
+                  [
+                    "Abs_function_value",
+                    [ "Abs_var", [ "Ident", "boolA" ] ],
+                    [
+                      "Abs_expr",
+                      [
+                        [
+                          "Abs_clause",
+                          [ "Abs_var", [ "Ident", "condB" ] ],
+                          [
+                            "Abs_conditional_body",
+                            [ "Abs_var", [ "Ident", "boolA" ] ],
+                            [ "Bool_pattern", false ],
+                            [
+                              "Abs_function_value",
+                              [ "Abs_var", [ "Ident", "c" ] ],
+                              [
+                                "Abs_expr",
+                                [
+                                  [
+                                    "Abs_clause",
+                                    [ "Abs_var", [ "Ident", "d" ] ],
+                                    [
+                                      "Abs_var_body",
+                                      [ "Abs_var", [ "Ident", "one" ] ]
+                                    ]
+                                  ]
+                                ]
+                              ]
+                            ],
+                            [
+                              "Abs_function_value",
+                              [ "Abs_var", [ "Ident", "e" ] ],
+                              [
+                                "Abs_expr",
+                                [
+                                  [
+                                    "Abs_clause",
+                                    [ "Abs_var", [ "Ident", "f" ] ],
+                                    [
+                                      "Abs_var_body",
+                                      [ "Abs_var", [ "Ident", "three" ] ]
+                                    ]
+                                  ]
+                                ]
+                              ]
+                            ]
+                          ]
+                        ]
+                      ]
+                    ]
+                  ],
+                  [
+                    "Abs_function_value",
+                    [ "Abs_var", [ "Ident", "n" ] ],
+                    [
+                      "Abs_expr",
+                      [
+                        [
+                          "Abs_clause",
+                          [ "Abs_var", [ "Ident", "m" ] ],
+                          [ "Abs_var_body", [ "Abs_var", [ "Ident", "n" ] ] ]
+                        ]
+                      ]
+                    ]
+                  ]
+                ]
+              ]
+            ],
+            [ "End_clause", [ "Abs_var", [ "Ident", "condA" ] ] ]
+          ],
+          [
+            "Ddpa_edge",
+            [
+              "Unannotated_clause",
+              [
+                "Abs_clause",
+                [ "Abs_var", [ "Ident", "condB" ] ],
+                [
+                  "Abs_conditional_body",
+                  [ "Abs_var", [ "Ident", "boolA" ] ],
+                  [ "Bool_pattern", false ],
+                  [
+                    "Abs_function_value",
+                    [ "Abs_var", [ "Ident", "c" ] ],
+                    [
+                      "Abs_expr",
+                      [
+                        [
+                          "Abs_clause",
+                          [ "Abs_var", [ "Ident", "d" ] ],
+                          [
+                            "Abs_var_body",
+                            [ "Abs_var", [ "Ident", "one" ] ]
+                          ]
+                        ]
+                      ]
+                    ]
+                  ],
+                  [
+                    "Abs_function_value",
+                    [ "Abs_var", [ "Ident", "e" ] ],
+                    [
+                      "Abs_expr",
+                      [
+                        [
+                          "Abs_clause",
+                          [ "Abs_var", [ "Ident", "f" ] ],
+                          [
+                            "Abs_var_body",
+                            [ "Abs_var", [ "Ident", "three" ] ]
+                          ]
+                        ]
+                      ]
+                    ]
+                  ]
+                ]
+              ]
+            ],
+            [ "End_clause", [ "Abs_var", [ "Ident", "condB" ] ] ]
+          ],
+          [
+            "Ddpa_edge",
+            [
+              "Unannotated_clause",
+              [
+                "Abs_clause",
+                [ "Abs_var", [ "Ident", "f" ] ],
+                [ "Abs_var_body", [ "Abs_var", [ "Ident", "three" ] ] ]
+              ]
+            ],
+            [ "End_clause", [ "Abs_var", [ "Ident", "f" ] ] ]
+          ],
+          [
+            "Ddpa_edge",
+            [
+              "Unannotated_clause",
+              [
+                "Abs_clause",
+                [ "Abs_var", [ "Ident", "m" ] ],
+                [ "Abs_var_body", [ "Abs_var", [ "Ident", "n" ] ] ]
+              ]
+            ],
+            [ "End_clause", [ "Abs_var", [ "Ident", "m" ] ] ]
           ],
           [
             "Ddpa_edge",
@@ -552,409 +475,6 @@
               "Unannotated_clause",
               [
                 "Abs_clause",
-                [ "Abs_var", [ "Ident", "partialsum" ] ],
-                [
-                  "Abs_appl_body",
-                  [ "Abs_var", [ "Ident", "sum" ] ],
-                  [ "Abs_var", [ "Ident", "numberminus1" ] ]
-                ]
-              ]
-            ],
-            [
-              "Unannotated_clause",
-              [
-                "Abs_clause",
-                [ "Abs_var", [ "Ident", "numberequal0antimatchresult" ] ],
-                [
-                  "Abs_binary_operation_body",
-                  [ "Abs_var", [ "Ident", "partialsum" ] ],
-                  "+",
-                  [ "Abs_var", [ "Ident", "number" ] ]
-                ]
-              ]
-            ]
-          ],
-          [
-            "Ddpa_edge",
-            [
-              "Unannotated_clause",
-              [
-                "Abs_clause",
-                [ "Abs_var", [ "Ident", "r" ] ],
-                [
-                  "Abs_appl_body",
-                  [ "Abs_var", [ "Ident", "sum" ] ],
-                  [ "Abs_var", [ "Ident", "three" ] ]
-                ]
-              ]
-            ],
-            [ "End_clause", [ "Abs_var", [ "Ident", "r" ] ] ]
-          ],
-          [
-            "Ddpa_edge",
-            [
-              "Unannotated_clause",
-              [
-                "Abs_clause",
-                [ "Abs_var", [ "Ident", "sum" ] ],
-                [
-                  "Abs_value_body",
-                  [
-                    "Abs_value_function",
-                    [
-                      "Abs_function_value",
-                      [ "Abs_var", [ "Ident", "number" ] ],
-                      [
-                        "Abs_expr",
-                        [
-                          [
-                            "Abs_clause",
-                            [ "Abs_var", [ "Ident", "boolNumberequal0" ] ],
-                            [
-                              "Abs_binary_operation_body",
-                              [ "Abs_var", [ "Ident", "number" ] ],
-                              "==",
-                              [ "Abs_var", [ "Ident", "zero" ] ]
-                            ]
-                          ],
-                          [
-                            "Abs_clause",
-                            [ "Abs_var", [ "Ident", "sumresult" ] ],
-                            [
-                              "Abs_conditional_body",
-                              [ "Abs_var", [ "Ident", "boolNumberequal0" ] ],
-                              [ "Bool_pattern", true ],
-                              [
-                                "Abs_function_value",
-                                [
-                                  "Abs_var",
-                                  [ "Ident", "numberequal0match" ]
-                                ],
-                                [
-                                  "Abs_expr",
-                                  [
-                                    [
-                                      "Abs_clause",
-                                      [
-                                        "Abs_var",
-                                        [
-                                          "Ident", "numberequal0matchresult"
-                                        ]
-                                      ],
-                                      [
-                                        "Abs_var_body",
-                                        [ "Abs_var", [ "Ident", "zero" ] ]
-                                      ]
-                                    ]
-                                  ]
-                                ]
-                              ],
-                              [
-                                "Abs_function_value",
-                                [
-                                  "Abs_var",
-                                  [ "Ident", "numberequal0antimatch" ]
-                                ],
-                                [
-                                  "Abs_expr",
-                                  [
-                                    [
-                                      "Abs_clause",
-                                      [
-                                        "Abs_var",
-                                        [ "Ident", "numberminus1" ]
-                                      ],
-                                      [
-                                        "Abs_binary_operation_body",
-                                        [ "Abs_var", [ "Ident", "number" ] ],
-                                        "-",
-                                        [ "Abs_var", [ "Ident", "one" ] ]
-                                      ]
-                                    ],
-                                    [
-                                      "Abs_clause",
-                                      [
-                                        "Abs_var",
-                                        [ "Ident", "partialsum" ]
-                                      ],
-                                      [
-                                        "Abs_appl_body",
-                                        [ "Abs_var", [ "Ident", "sum" ] ],
-                                        [
-                                          "Abs_var",
-                                          [ "Ident", "numberminus1" ]
-                                        ]
-                                      ]
-                                    ],
-                                    [
-                                      "Abs_clause",
-                                      [
-                                        "Abs_var",
-                                        [
-                                          "Ident",
-                                          "numberequal0antimatchresult"
-                                        ]
-                                      ],
-                                      [
-                                        "Abs_binary_operation_body",
-                                        [
-                                          "Abs_var",
-                                          [ "Ident", "partialsum" ]
-                                        ],
-                                        "+",
-                                        [ "Abs_var", [ "Ident", "number" ] ]
-                                      ]
-                                    ]
-                                  ]
-                                ]
-                              ]
-                            ]
-                          ]
-                        ]
-                      ]
-                    ]
-                  ]
-                ]
-              ]
-            ],
-            [
-              "Unannotated_clause",
-              [
-                "Abs_clause",
-                [ "Abs_var", [ "Ident", "r" ] ],
-                [
-                  "Abs_appl_body",
-                  [ "Abs_var", [ "Ident", "sum" ] ],
-                  [ "Abs_var", [ "Ident", "three" ] ]
-                ]
-              ]
-            ]
-          ],
-          [
-            "Ddpa_edge",
-            [
-              "Unannotated_clause",
-              [
-                "Abs_clause",
-                [ "Abs_var", [ "Ident", "sum" ] ],
-                [
-                  "Abs_value_body",
-                  [
-                    "Abs_value_function",
-                    [
-                      "Abs_function_value",
-                      [ "Abs_var", [ "Ident", "number" ] ],
-                      [
-                        "Abs_expr",
-                        [
-                          [
-                            "Abs_clause",
-                            [ "Abs_var", [ "Ident", "boolNumberequal0" ] ],
-                            [
-                              "Abs_binary_operation_body",
-                              [ "Abs_var", [ "Ident", "number" ] ],
-                              "==",
-                              [ "Abs_var", [ "Ident", "zero" ] ]
-                            ]
-                          ],
-                          [
-                            "Abs_clause",
-                            [ "Abs_var", [ "Ident", "sumresult" ] ],
-                            [
-                              "Abs_conditional_body",
-                              [ "Abs_var", [ "Ident", "boolNumberequal0" ] ],
-                              [ "Bool_pattern", true ],
-                              [
-                                "Abs_function_value",
-                                [
-                                  "Abs_var",
-                                  [ "Ident", "numberequal0match" ]
-                                ],
-                                [
-                                  "Abs_expr",
-                                  [
-                                    [
-                                      "Abs_clause",
-                                      [
-                                        "Abs_var",
-                                        [
-                                          "Ident", "numberequal0matchresult"
-                                        ]
-                                      ],
-                                      [
-                                        "Abs_var_body",
-                                        [ "Abs_var", [ "Ident", "zero" ] ]
-                                      ]
-                                    ]
-                                  ]
-                                ]
-                              ],
-                              [
-                                "Abs_function_value",
-                                [
-                                  "Abs_var",
-                                  [ "Ident", "numberequal0antimatch" ]
-                                ],
-                                [
-                                  "Abs_expr",
-                                  [
-                                    [
-                                      "Abs_clause",
-                                      [
-                                        "Abs_var",
-                                        [ "Ident", "numberminus1" ]
-                                      ],
-                                      [
-                                        "Abs_binary_operation_body",
-                                        [ "Abs_var", [ "Ident", "number" ] ],
-                                        "-",
-                                        [ "Abs_var", [ "Ident", "one" ] ]
-                                      ]
-                                    ],
-                                    [
-                                      "Abs_clause",
-                                      [
-                                        "Abs_var",
-                                        [ "Ident", "partialsum" ]
-                                      ],
-                                      [
-                                        "Abs_appl_body",
-                                        [ "Abs_var", [ "Ident", "sum" ] ],
-                                        [
-                                          "Abs_var",
-                                          [ "Ident", "numberminus1" ]
-                                        ]
-                                      ]
-                                    ],
-                                    [
-                                      "Abs_clause",
-                                      [
-                                        "Abs_var",
-                                        [
-                                          "Ident",
-                                          "numberequal0antimatchresult"
-                                        ]
-                                      ],
-                                      [
-                                        "Abs_binary_operation_body",
-                                        [
-                                          "Abs_var",
-                                          [ "Ident", "partialsum" ]
-                                        ],
-                                        "+",
-                                        [ "Abs_var", [ "Ident", "number" ] ]
-                                      ]
-                                    ]
-                                  ]
-                                ]
-                              ]
-                            ]
-                          ]
-                        ]
-                      ]
-                    ]
-                  ]
-                ]
-              ]
-            ],
-            [
-              "Enter_clause",
-              [ "Abs_var", [ "Ident", "number" ] ],
-              [ "Abs_var", [ "Ident", "three" ] ],
-              [
-                "Abs_clause",
-                [ "Abs_var", [ "Ident", "r" ] ],
-                [
-                  "Abs_appl_body",
-                  [ "Abs_var", [ "Ident", "sum" ] ],
-                  [ "Abs_var", [ "Ident", "three" ] ]
-                ]
-              ]
-            ]
-          ],
-          [
-            "Ddpa_edge",
-            [
-              "Unannotated_clause",
-              [
-                "Abs_clause",
-                [ "Abs_var", [ "Ident", "sumresult" ] ],
-                [
-                  "Abs_conditional_body",
-                  [ "Abs_var", [ "Ident", "boolNumberequal0" ] ],
-                  [ "Bool_pattern", true ],
-                  [
-                    "Abs_function_value",
-                    [ "Abs_var", [ "Ident", "numberequal0match" ] ],
-                    [
-                      "Abs_expr",
-                      [
-                        [
-                          "Abs_clause",
-                          [
-                            "Abs_var",
-                            [ "Ident", "numberequal0matchresult" ]
-                          ],
-                          [
-                            "Abs_var_body",
-                            [ "Abs_var", [ "Ident", "zero" ] ]
-                          ]
-                        ]
-                      ]
-                    ]
-                  ],
-                  [
-                    "Abs_function_value",
-                    [ "Abs_var", [ "Ident", "numberequal0antimatch" ] ],
-                    [
-                      "Abs_expr",
-                      [
-                        [
-                          "Abs_clause",
-                          [ "Abs_var", [ "Ident", "numberminus1" ] ],
-                          [
-                            "Abs_binary_operation_body",
-                            [ "Abs_var", [ "Ident", "number" ] ],
-                            "-",
-                            [ "Abs_var", [ "Ident", "one" ] ]
-                          ]
-                        ],
-                        [
-                          "Abs_clause",
-                          [ "Abs_var", [ "Ident", "partialsum" ] ],
-                          [
-                            "Abs_appl_body",
-                            [ "Abs_var", [ "Ident", "sum" ] ],
-                            [ "Abs_var", [ "Ident", "numberminus1" ] ]
-                          ]
-                        ],
-                        [
-                          "Abs_clause",
-                          [
-                            "Abs_var",
-                            [ "Ident", "numberequal0antimatchresult" ]
-                          ],
-                          [
-                            "Abs_binary_operation_body",
-                            [ "Abs_var", [ "Ident", "partialsum" ] ],
-                            "+",
-                            [ "Abs_var", [ "Ident", "number" ] ]
-                          ]
-                        ]
-                      ]
-                    ]
-                  ]
-                ]
-              ]
-            ],
-            [ "End_clause", [ "Abs_var", [ "Ident", "sumresult" ] ] ]
-          ],
-          [
-            "Ddpa_edge",
-            [
-              "Unannotated_clause",
-              [
-                "Abs_clause",
                 [ "Abs_var", [ "Ident", "three" ] ],
                 [ "Abs_value_body", [ "Abs_value_int" ] ]
               ]
@@ -963,8 +483,13 @@
               "Unannotated_clause",
               [
                 "Abs_clause",
-                [ "Abs_var", [ "Ident", "four" ] ],
-                [ "Abs_value_body", [ "Abs_value_int" ] ]
+                [ "Abs_var", [ "Ident", "boolZ" ] ],
+                [
+                  "Abs_binary_operation_body",
+                  [ "Abs_var", [ "Ident", "x" ] ],
+                  "==",
+                  [ "Abs_var", [ "Ident", "two" ] ]
+                ]
               ]
             ]
           ],
@@ -993,7 +518,7 @@
               "Unannotated_clause",
               [
                 "Abs_clause",
-                [ "Abs_var", [ "Ident", "zero" ] ],
+                [ "Abs_var", [ "Ident", "x" ] ],
                 [ "Abs_value_body", [ "Abs_value_int" ] ]
               ]
             ],
@@ -1010,66 +535,198 @@
             "Ddpa_edge",
             [
               "Enter_clause",
-              [ "Abs_var", [ "Ident", "number" ] ],
-              [ "Abs_var", [ "Ident", "numberminus1" ] ],
+              [ "Abs_var", [ "Ident", "boolA" ] ],
+              [ "Abs_var", [ "Ident", "boolZ" ] ],
               [
                 "Abs_clause",
-                [ "Abs_var", [ "Ident", "partialsum" ] ],
+                [ "Abs_var", [ "Ident", "condA" ] ],
                 [
-                  "Abs_appl_body",
-                  [ "Abs_var", [ "Ident", "sum" ] ],
-                  [ "Abs_var", [ "Ident", "numberminus1" ] ]
+                  "Abs_conditional_body",
+                  [ "Abs_var", [ "Ident", "boolZ" ] ],
+                  [ "Bool_pattern", true ],
+                  [
+                    "Abs_function_value",
+                    [ "Abs_var", [ "Ident", "boolA" ] ],
+                    [
+                      "Abs_expr",
+                      [
+                        [
+                          "Abs_clause",
+                          [ "Abs_var", [ "Ident", "condB" ] ],
+                          [
+                            "Abs_conditional_body",
+                            [ "Abs_var", [ "Ident", "boolA" ] ],
+                            [ "Bool_pattern", false ],
+                            [
+                              "Abs_function_value",
+                              [ "Abs_var", [ "Ident", "c" ] ],
+                              [
+                                "Abs_expr",
+                                [
+                                  [
+                                    "Abs_clause",
+                                    [ "Abs_var", [ "Ident", "d" ] ],
+                                    [
+                                      "Abs_var_body",
+                                      [ "Abs_var", [ "Ident", "one" ] ]
+                                    ]
+                                  ]
+                                ]
+                              ]
+                            ],
+                            [
+                              "Abs_function_value",
+                              [ "Abs_var", [ "Ident", "e" ] ],
+                              [
+                                "Abs_expr",
+                                [
+                                  [
+                                    "Abs_clause",
+                                    [ "Abs_var", [ "Ident", "f" ] ],
+                                    [
+                                      "Abs_var_body",
+                                      [ "Abs_var", [ "Ident", "three" ] ]
+                                    ]
+                                  ]
+                                ]
+                              ]
+                            ]
+                          ]
+                        ]
+                      ]
+                    ]
+                  ],
+                  [
+                    "Abs_function_value",
+                    [ "Abs_var", [ "Ident", "n" ] ],
+                    [
+                      "Abs_expr",
+                      [
+                        [
+                          "Abs_clause",
+                          [ "Abs_var", [ "Ident", "m" ] ],
+                          [ "Abs_var_body", [ "Abs_var", [ "Ident", "n" ] ] ]
+                        ]
+                      ]
+                    ]
+                  ]
                 ]
               ]
             ],
-            [ "Start_clause", [ "Abs_var", [ "Ident", "sumresult" ] ] ]
+            [ "Start_clause", [ "Abs_var", [ "Ident", "condB" ] ] ]
           ],
           [
             "Ddpa_edge",
             [
               "Enter_clause",
-              [ "Abs_var", [ "Ident", "number" ] ],
-              [ "Abs_var", [ "Ident", "three" ] ],
+              [ "Abs_var", [ "Ident", "e" ] ],
+              [ "Abs_var", [ "Ident", "boolA" ] ],
               [
                 "Abs_clause",
-                [ "Abs_var", [ "Ident", "r" ] ],
+                [ "Abs_var", [ "Ident", "condB" ] ],
                 [
-                  "Abs_appl_body",
-                  [ "Abs_var", [ "Ident", "sum" ] ],
-                  [ "Abs_var", [ "Ident", "three" ] ]
+                  "Abs_conditional_body",
+                  [ "Abs_var", [ "Ident", "boolA" ] ],
+                  [ "Bool_pattern", false ],
+                  [
+                    "Abs_function_value",
+                    [ "Abs_var", [ "Ident", "c" ] ],
+                    [
+                      "Abs_expr",
+                      [
+                        [
+                          "Abs_clause",
+                          [ "Abs_var", [ "Ident", "d" ] ],
+                          [
+                            "Abs_var_body",
+                            [ "Abs_var", [ "Ident", "one" ] ]
+                          ]
+                        ]
+                      ]
+                    ]
+                  ],
+                  [
+                    "Abs_function_value",
+                    [ "Abs_var", [ "Ident", "e" ] ],
+                    [
+                      "Abs_expr",
+                      [
+                        [
+                          "Abs_clause",
+                          [ "Abs_var", [ "Ident", "f" ] ],
+                          [
+                            "Abs_var_body",
+                            [ "Abs_var", [ "Ident", "three" ] ]
+                          ]
+                        ]
+                      ]
+                    ]
+                  ]
                 ]
               ]
             ],
-            [ "Start_clause", [ "Abs_var", [ "Ident", "sumresult" ] ] ]
+            [ "Start_clause", [ "Abs_var", [ "Ident", "f" ] ] ]
           ],
           [
             "Ddpa_edge",
             [
               "Enter_clause",
-              [ "Abs_var", [ "Ident", "numberequal0antimatch" ] ],
-              [ "Abs_var", [ "Ident", "boolNumberequal0" ] ],
+              [ "Abs_var", [ "Ident", "n" ] ],
+              [ "Abs_var", [ "Ident", "boolZ" ] ],
               [
                 "Abs_clause",
-                [ "Abs_var", [ "Ident", "sumresult" ] ],
+                [ "Abs_var", [ "Ident", "condA" ] ],
                 [
                   "Abs_conditional_body",
-                  [ "Abs_var", [ "Ident", "boolNumberequal0" ] ],
+                  [ "Abs_var", [ "Ident", "boolZ" ] ],
                   [ "Bool_pattern", true ],
                   [
                     "Abs_function_value",
-                    [ "Abs_var", [ "Ident", "numberequal0match" ] ],
+                    [ "Abs_var", [ "Ident", "boolA" ] ],
                     [
                       "Abs_expr",
                       [
                         [
                           "Abs_clause",
+                          [ "Abs_var", [ "Ident", "condB" ] ],
                           [
-                            "Abs_var",
-                            [ "Ident", "numberequal0matchresult" ]
-                          ],
-                          [
-                            "Abs_var_body",
-                            [ "Abs_var", [ "Ident", "zero" ] ]
+                            "Abs_conditional_body",
+                            [ "Abs_var", [ "Ident", "boolA" ] ],
+                            [ "Bool_pattern", false ],
+                            [
+                              "Abs_function_value",
+                              [ "Abs_var", [ "Ident", "c" ] ],
+                              [
+                                "Abs_expr",
+                                [
+                                  [
+                                    "Abs_clause",
+                                    [ "Abs_var", [ "Ident", "d" ] ],
+                                    [
+                                      "Abs_var_body",
+                                      [ "Abs_var", [ "Ident", "one" ] ]
+                                    ]
+                                  ]
+                                ]
+                              ]
+                            ],
+                            [
+                              "Abs_function_value",
+                              [ "Abs_var", [ "Ident", "e" ] ],
+                              [
+                                "Abs_expr",
+                                [
+                                  [
+                                    "Abs_clause",
+                                    [ "Abs_var", [ "Ident", "f" ] ],
+                                    [
+                                      "Abs_var_body",
+                                      [ "Abs_var", [ "Ident", "three" ] ]
+                                    ]
+                                  ]
+                                ]
+                              ]
+                            ]
                           ]
                         ]
                       ]
@@ -1077,40 +734,233 @@
                   ],
                   [
                     "Abs_function_value",
-                    [ "Abs_var", [ "Ident", "numberequal0antimatch" ] ],
+                    [ "Abs_var", [ "Ident", "n" ] ],
                     [
                       "Abs_expr",
                       [
                         [
                           "Abs_clause",
-                          [ "Abs_var", [ "Ident", "numberminus1" ] ],
+                          [ "Abs_var", [ "Ident", "m" ] ],
+                          [ "Abs_var_body", [ "Abs_var", [ "Ident", "n" ] ] ]
+                        ]
+                      ]
+                    ]
+                  ]
+                ]
+              ]
+            ],
+            [ "Start_clause", [ "Abs_var", [ "Ident", "m" ] ] ]
+          ],
+          [
+            "Ddpa_edge",
+            [
+              "Exit_clause",
+              [ "Abs_var", [ "Ident", "condA" ] ],
+              [ "Abs_var", [ "Ident", "condB" ] ],
+              [
+                "Abs_clause",
+                [ "Abs_var", [ "Ident", "condA" ] ],
+                [
+                  "Abs_conditional_body",
+                  [ "Abs_var", [ "Ident", "boolZ" ] ],
+                  [ "Bool_pattern", true ],
+                  [
+                    "Abs_function_value",
+                    [ "Abs_var", [ "Ident", "boolA" ] ],
+                    [
+                      "Abs_expr",
+                      [
+                        [
+                          "Abs_clause",
+                          [ "Abs_var", [ "Ident", "condB" ] ],
                           [
-                            "Abs_binary_operation_body",
-                            [ "Abs_var", [ "Ident", "number" ] ],
-                            "-",
+                            "Abs_conditional_body",
+                            [ "Abs_var", [ "Ident", "boolA" ] ],
+                            [ "Bool_pattern", false ],
+                            [
+                              "Abs_function_value",
+                              [ "Abs_var", [ "Ident", "c" ] ],
+                              [
+                                "Abs_expr",
+                                [
+                                  [
+                                    "Abs_clause",
+                                    [ "Abs_var", [ "Ident", "d" ] ],
+                                    [
+                                      "Abs_var_body",
+                                      [ "Abs_var", [ "Ident", "one" ] ]
+                                    ]
+                                  ]
+                                ]
+                              ]
+                            ],
+                            [
+                              "Abs_function_value",
+                              [ "Abs_var", [ "Ident", "e" ] ],
+                              [
+                                "Abs_expr",
+                                [
+                                  [
+                                    "Abs_clause",
+                                    [ "Abs_var", [ "Ident", "f" ] ],
+                                    [
+                                      "Abs_var_body",
+                                      [ "Abs_var", [ "Ident", "three" ] ]
+                                    ]
+                                  ]
+                                ]
+                              ]
+                            ]
+                          ]
+                        ]
+                      ]
+                    ]
+                  ],
+                  [
+                    "Abs_function_value",
+                    [ "Abs_var", [ "Ident", "n" ] ],
+                    [
+                      "Abs_expr",
+                      [
+                        [
+                          "Abs_clause",
+                          [ "Abs_var", [ "Ident", "m" ] ],
+                          [ "Abs_var_body", [ "Abs_var", [ "Ident", "n" ] ] ]
+                        ]
+                      ]
+                    ]
+                  ]
+                ]
+              ]
+            ],
+            [ "End_clause", [ "Abs_var", [ "Ident", "condA" ] ] ]
+          ],
+          [
+            "Ddpa_edge",
+            [
+              "Exit_clause",
+              [ "Abs_var", [ "Ident", "condA" ] ],
+              [ "Abs_var", [ "Ident", "m" ] ],
+              [
+                "Abs_clause",
+                [ "Abs_var", [ "Ident", "condA" ] ],
+                [
+                  "Abs_conditional_body",
+                  [ "Abs_var", [ "Ident", "boolZ" ] ],
+                  [ "Bool_pattern", true ],
+                  [
+                    "Abs_function_value",
+                    [ "Abs_var", [ "Ident", "boolA" ] ],
+                    [
+                      "Abs_expr",
+                      [
+                        [
+                          "Abs_clause",
+                          [ "Abs_var", [ "Ident", "condB" ] ],
+                          [
+                            "Abs_conditional_body",
+                            [ "Abs_var", [ "Ident", "boolA" ] ],
+                            [ "Bool_pattern", false ],
+                            [
+                              "Abs_function_value",
+                              [ "Abs_var", [ "Ident", "c" ] ],
+                              [
+                                "Abs_expr",
+                                [
+                                  [
+                                    "Abs_clause",
+                                    [ "Abs_var", [ "Ident", "d" ] ],
+                                    [
+                                      "Abs_var_body",
+                                      [ "Abs_var", [ "Ident", "one" ] ]
+                                    ]
+                                  ]
+                                ]
+                              ]
+                            ],
+                            [
+                              "Abs_function_value",
+                              [ "Abs_var", [ "Ident", "e" ] ],
+                              [
+                                "Abs_expr",
+                                [
+                                  [
+                                    "Abs_clause",
+                                    [ "Abs_var", [ "Ident", "f" ] ],
+                                    [
+                                      "Abs_var_body",
+                                      [ "Abs_var", [ "Ident", "three" ] ]
+                                    ]
+                                  ]
+                                ]
+                              ]
+                            ]
+                          ]
+                        ]
+                      ]
+                    ]
+                  ],
+                  [
+                    "Abs_function_value",
+                    [ "Abs_var", [ "Ident", "n" ] ],
+                    [
+                      "Abs_expr",
+                      [
+                        [
+                          "Abs_clause",
+                          [ "Abs_var", [ "Ident", "m" ] ],
+                          [ "Abs_var_body", [ "Abs_var", [ "Ident", "n" ] ] ]
+                        ]
+                      ]
+                    ]
+                  ]
+                ]
+              ]
+            ],
+            [ "End_clause", [ "Abs_var", [ "Ident", "condA" ] ] ]
+          ],
+          [
+            "Ddpa_edge",
+            [
+              "Exit_clause",
+              [ "Abs_var", [ "Ident", "condB" ] ],
+              [ "Abs_var", [ "Ident", "f" ] ],
+              [
+                "Abs_clause",
+                [ "Abs_var", [ "Ident", "condB" ] ],
+                [
+                  "Abs_conditional_body",
+                  [ "Abs_var", [ "Ident", "boolA" ] ],
+                  [ "Bool_pattern", false ],
+                  [
+                    "Abs_function_value",
+                    [ "Abs_var", [ "Ident", "c" ] ],
+                    [
+                      "Abs_expr",
+                      [
+                        [
+                          "Abs_clause",
+                          [ "Abs_var", [ "Ident", "d" ] ],
+                          [
+                            "Abs_var_body",
                             [ "Abs_var", [ "Ident", "one" ] ]
                           ]
-                        ],
+                        ]
+                      ]
+                    ]
+                  ],
+                  [
+                    "Abs_function_value",
+                    [ "Abs_var", [ "Ident", "e" ] ],
+                    [
+                      "Abs_expr",
+                      [
                         [
                           "Abs_clause",
-                          [ "Abs_var", [ "Ident", "partialsum" ] ],
+                          [ "Abs_var", [ "Ident", "f" ] ],
                           [
-                            "Abs_appl_body",
-                            [ "Abs_var", [ "Ident", "sum" ] ],
-                            [ "Abs_var", [ "Ident", "numberminus1" ] ]
-                          ]
-                        ],
-                        [
-                          "Abs_clause",
-                          [
-                            "Abs_var",
-                            [ "Ident", "numberequal0antimatchresult" ]
-                          ],
-                          [
-                            "Abs_binary_operation_body",
-                            [ "Abs_var", [ "Ident", "partialsum" ] ],
-                            "+",
-                            [ "Abs_var", [ "Ident", "number" ] ]
+                            "Abs_var_body",
+                            [ "Abs_var", [ "Ident", "three" ] ]
                           ]
                         ]
                       ]
@@ -1119,395 +969,44 @@
                 ]
               ]
             ],
-            [
-              "Start_clause",
-              [ "Abs_var", [ "Ident", "numberequal0antimatchresult" ] ]
-            ]
+            [ "End_clause", [ "Abs_var", [ "Ident", "condB" ] ] ]
           ],
           [
             "Ddpa_edge",
-            [
-              "Enter_clause",
-              [ "Abs_var", [ "Ident", "numberequal0match" ] ],
-              [ "Abs_var", [ "Ident", "boolNumberequal0" ] ],
-              [
-                "Abs_clause",
-                [ "Abs_var", [ "Ident", "sumresult" ] ],
-                [
-                  "Abs_conditional_body",
-                  [ "Abs_var", [ "Ident", "boolNumberequal0" ] ],
-                  [ "Bool_pattern", true ],
-                  [
-                    "Abs_function_value",
-                    [ "Abs_var", [ "Ident", "numberequal0match" ] ],
-                    [
-                      "Abs_expr",
-                      [
-                        [
-                          "Abs_clause",
-                          [
-                            "Abs_var",
-                            [ "Ident", "numberequal0matchresult" ]
-                          ],
-                          [
-                            "Abs_var_body",
-                            [ "Abs_var", [ "Ident", "zero" ] ]
-                          ]
-                        ]
-                      ]
-                    ]
-                  ],
-                  [
-                    "Abs_function_value",
-                    [ "Abs_var", [ "Ident", "numberequal0antimatch" ] ],
-                    [
-                      "Abs_expr",
-                      [
-                        [
-                          "Abs_clause",
-                          [ "Abs_var", [ "Ident", "numberminus1" ] ],
-                          [
-                            "Abs_binary_operation_body",
-                            [ "Abs_var", [ "Ident", "number" ] ],
-                            "-",
-                            [ "Abs_var", [ "Ident", "one" ] ]
-                          ]
-                        ],
-                        [
-                          "Abs_clause",
-                          [ "Abs_var", [ "Ident", "partialsum" ] ],
-                          [
-                            "Abs_appl_body",
-                            [ "Abs_var", [ "Ident", "sum" ] ],
-                            [ "Abs_var", [ "Ident", "numberminus1" ] ]
-                          ]
-                        ],
-                        [
-                          "Abs_clause",
-                          [
-                            "Abs_var",
-                            [ "Ident", "numberequal0antimatchresult" ]
-                          ],
-                          [
-                            "Abs_binary_operation_body",
-                            [ "Abs_var", [ "Ident", "partialsum" ] ],
-                            "+",
-                            [ "Abs_var", [ "Ident", "number" ] ]
-                          ]
-                        ]
-                      ]
-                    ]
-                  ]
-                ]
-              ]
-            ],
-            [
-              "Start_clause",
-              [ "Abs_var", [ "Ident", "numberequal0matchresult" ] ]
-            ]
-          ],
-          [
-            "Ddpa_edge",
-            [
-              "Exit_clause",
-              [ "Abs_var", [ "Ident", "partialsum" ] ],
-              [ "Abs_var", [ "Ident", "sumresult" ] ],
-              [
-                "Abs_clause",
-                [ "Abs_var", [ "Ident", "partialsum" ] ],
-                [
-                  "Abs_appl_body",
-                  [ "Abs_var", [ "Ident", "sum" ] ],
-                  [ "Abs_var", [ "Ident", "numberminus1" ] ]
-                ]
-              ]
-            ],
+            [ "Start_clause", [ "Abs_var", [ "Ident", "condA" ] ] ],
             [
               "Unannotated_clause",
               [
                 "Abs_clause",
-                [ "Abs_var", [ "Ident", "numberequal0antimatchresult" ] ],
-                [
-                  "Abs_binary_operation_body",
-                  [ "Abs_var", [ "Ident", "partialsum" ] ],
-                  "+",
-                  [ "Abs_var", [ "Ident", "number" ] ]
-                ]
-              ]
-            ]
-          ],
-          [
-            "Ddpa_edge",
-            [
-              "Exit_clause",
-              [ "Abs_var", [ "Ident", "r" ] ],
-              [ "Abs_var", [ "Ident", "sumresult" ] ],
-              [
-                "Abs_clause",
-                [ "Abs_var", [ "Ident", "r" ] ],
-                [
-                  "Abs_appl_body",
-                  [ "Abs_var", [ "Ident", "sum" ] ],
-                  [ "Abs_var", [ "Ident", "three" ] ]
-                ]
-              ]
-            ],
-            [ "End_clause", [ "Abs_var", [ "Ident", "r" ] ] ]
-          ],
-          [
-            "Ddpa_edge",
-            [
-              "Exit_clause",
-              [ "Abs_var", [ "Ident", "sumresult" ] ],
-              [ "Abs_var", [ "Ident", "numberequal0antimatchresult" ] ],
-              [
-                "Abs_clause",
-                [ "Abs_var", [ "Ident", "sumresult" ] ],
-                [
-                  "Abs_conditional_body",
-                  [ "Abs_var", [ "Ident", "boolNumberequal0" ] ],
-                  [ "Bool_pattern", true ],
-                  [
-                    "Abs_function_value",
-                    [ "Abs_var", [ "Ident", "numberequal0match" ] ],
-                    [
-                      "Abs_expr",
-                      [
-                        [
-                          "Abs_clause",
-                          [
-                            "Abs_var",
-                            [ "Ident", "numberequal0matchresult" ]
-                          ],
-                          [
-                            "Abs_var_body",
-                            [ "Abs_var", [ "Ident", "zero" ] ]
-                          ]
-                        ]
-                      ]
-                    ]
-                  ],
-                  [
-                    "Abs_function_value",
-                    [ "Abs_var", [ "Ident", "numberequal0antimatch" ] ],
-                    [
-                      "Abs_expr",
-                      [
-                        [
-                          "Abs_clause",
-                          [ "Abs_var", [ "Ident", "numberminus1" ] ],
-                          [
-                            "Abs_binary_operation_body",
-                            [ "Abs_var", [ "Ident", "number" ] ],
-                            "-",
-                            [ "Abs_var", [ "Ident", "one" ] ]
-                          ]
-                        ],
-                        [
-                          "Abs_clause",
-                          [ "Abs_var", [ "Ident", "partialsum" ] ],
-                          [
-                            "Abs_appl_body",
-                            [ "Abs_var", [ "Ident", "sum" ] ],
-                            [ "Abs_var", [ "Ident", "numberminus1" ] ]
-                          ]
-                        ],
-                        [
-                          "Abs_clause",
-                          [
-                            "Abs_var",
-                            [ "Ident", "numberequal0antimatchresult" ]
-                          ],
-                          [
-                            "Abs_binary_operation_body",
-                            [ "Abs_var", [ "Ident", "partialsum" ] ],
-                            "+",
-                            [ "Abs_var", [ "Ident", "number" ] ]
-                          ]
-                        ]
-                      ]
-                    ]
-                  ]
-                ]
-              ]
-            ],
-            [ "End_clause", [ "Abs_var", [ "Ident", "sumresult" ] ] ]
-          ],
-          [
-            "Ddpa_edge",
-            [
-              "Exit_clause",
-              [ "Abs_var", [ "Ident", "sumresult" ] ],
-              [ "Abs_var", [ "Ident", "numberequal0matchresult" ] ],
-              [
-                "Abs_clause",
-                [ "Abs_var", [ "Ident", "sumresult" ] ],
-                [
-                  "Abs_conditional_body",
-                  [ "Abs_var", [ "Ident", "boolNumberequal0" ] ],
-                  [ "Bool_pattern", true ],
-                  [
-                    "Abs_function_value",
-                    [ "Abs_var", [ "Ident", "numberequal0match" ] ],
-                    [
-                      "Abs_expr",
-                      [
-                        [
-                          "Abs_clause",
-                          [
-                            "Abs_var",
-                            [ "Ident", "numberequal0matchresult" ]
-                          ],
-                          [
-                            "Abs_var_body",
-                            [ "Abs_var", [ "Ident", "zero" ] ]
-                          ]
-                        ]
-                      ]
-                    ]
-                  ],
-                  [
-                    "Abs_function_value",
-                    [ "Abs_var", [ "Ident", "numberequal0antimatch" ] ],
-                    [
-                      "Abs_expr",
-                      [
-                        [
-                          "Abs_clause",
-                          [ "Abs_var", [ "Ident", "numberminus1" ] ],
-                          [
-                            "Abs_binary_operation_body",
-                            [ "Abs_var", [ "Ident", "number" ] ],
-                            "-",
-                            [ "Abs_var", [ "Ident", "one" ] ]
-                          ]
-                        ],
-                        [
-                          "Abs_clause",
-                          [ "Abs_var", [ "Ident", "partialsum" ] ],
-                          [
-                            "Abs_appl_body",
-                            [ "Abs_var", [ "Ident", "sum" ] ],
-                            [ "Abs_var", [ "Ident", "numberminus1" ] ]
-                          ]
-                        ],
-                        [
-                          "Abs_clause",
-                          [
-                            "Abs_var",
-                            [ "Ident", "numberequal0antimatchresult" ]
-                          ],
-                          [
-                            "Abs_binary_operation_body",
-                            [ "Abs_var", [ "Ident", "partialsum" ] ],
-                            "+",
-                            [ "Abs_var", [ "Ident", "number" ] ]
-                          ]
-                        ]
-                      ]
-                    ]
-                  ]
-                ]
-              ]
-            ],
-            [ "End_clause", [ "Abs_var", [ "Ident", "sumresult" ] ] ]
-          ],
-          [
-            "Ddpa_edge",
-            [
-              "Start_clause",
-              [ "Abs_var", [ "Ident", "numberequal0antimatchresult" ] ]
-            ],
-            [
-              "Unannotated_clause",
-              [
-                "Abs_clause",
-                [ "Abs_var", [ "Ident", "numberminus1" ] ],
-                [
-                  "Abs_binary_operation_body",
-                  [ "Abs_var", [ "Ident", "number" ] ],
-                  "-",
-                  [ "Abs_var", [ "Ident", "one" ] ]
-                ]
-              ]
-            ]
-          ],
-          [
-            "Ddpa_edge",
-            [
-              "Start_clause",
-              [ "Abs_var", [ "Ident", "numberequal0matchresult" ] ]
-            ],
-            [
-              "Unannotated_clause",
-              [
-                "Abs_clause",
-                [ "Abs_var", [ "Ident", "numberequal0matchresult" ] ],
-                [ "Abs_var_body", [ "Abs_var", [ "Ident", "zero" ] ] ]
-              ]
-            ]
-          ],
-          [
-            "Ddpa_edge",
-            [ "Start_clause", [ "Abs_var", [ "Ident", "r" ] ] ],
-            [
-              "Unannotated_clause",
-              [
-                "Abs_clause",
-                [ "Abs_var", [ "Ident", "zero" ] ],
+                [ "Abs_var", [ "Ident", "x" ] ],
                 [ "Abs_value_body", [ "Abs_value_int" ] ]
               ]
             ]
           ],
           [
             "Ddpa_edge",
-            [ "Start_clause", [ "Abs_var", [ "Ident", "sumresult" ] ] ],
+            [ "Start_clause", [ "Abs_var", [ "Ident", "condB" ] ] ],
             [
               "Unannotated_clause",
               [
                 "Abs_clause",
-                [ "Abs_var", [ "Ident", "boolNumberequal0" ] ],
-                [
-                  "Abs_binary_operation_body",
-                  [ "Abs_var", [ "Ident", "number" ] ],
-                  "==",
-                  [ "Abs_var", [ "Ident", "zero" ] ]
-                ]
-              ]
-            ]
-          ],
-          [
-            "Ddpa_edge",
-            [
-              "End_clause",
-              [ "Abs_var", [ "Ident", "numberequal0antimatchresult" ] ]
-            ],
-            [
-              "Exit_clause",
-              [ "Abs_var", [ "Ident", "sumresult" ] ],
-              [ "Abs_var", [ "Ident", "numberequal0antimatchresult" ] ],
-              [
-                "Abs_clause",
-                [ "Abs_var", [ "Ident", "sumresult" ] ],
+                [ "Abs_var", [ "Ident", "condB" ] ],
                 [
                   "Abs_conditional_body",
-                  [ "Abs_var", [ "Ident", "boolNumberequal0" ] ],
-                  [ "Bool_pattern", true ],
+                  [ "Abs_var", [ "Ident", "boolA" ] ],
+                  [ "Bool_pattern", false ],
                   [
                     "Abs_function_value",
-                    [ "Abs_var", [ "Ident", "numberequal0match" ] ],
+                    [ "Abs_var", [ "Ident", "c" ] ],
                     [
                       "Abs_expr",
                       [
                         [
                           "Abs_clause",
-                          [
-                            "Abs_var",
-                            [ "Ident", "numberequal0matchresult" ]
-                          ],
+                          [ "Abs_var", [ "Ident", "d" ] ],
                           [
                             "Abs_var_body",
-                            [ "Abs_var", [ "Ident", "zero" ] ]
+                            [ "Abs_var", [ "Ident", "one" ] ]
                           ]
                         ]
                       ]
@@ -1515,40 +1014,16 @@
                   ],
                   [
                     "Abs_function_value",
-                    [ "Abs_var", [ "Ident", "numberequal0antimatch" ] ],
+                    [ "Abs_var", [ "Ident", "e" ] ],
                     [
                       "Abs_expr",
                       [
                         [
                           "Abs_clause",
-                          [ "Abs_var", [ "Ident", "numberminus1" ] ],
+                          [ "Abs_var", [ "Ident", "f" ] ],
                           [
-                            "Abs_binary_operation_body",
-                            [ "Abs_var", [ "Ident", "number" ] ],
-                            "-",
-                            [ "Abs_var", [ "Ident", "one" ] ]
-                          ]
-                        ],
-                        [
-                          "Abs_clause",
-                          [ "Abs_var", [ "Ident", "partialsum" ] ],
-                          [
-                            "Abs_appl_body",
-                            [ "Abs_var", [ "Ident", "sum" ] ],
-                            [ "Abs_var", [ "Ident", "numberminus1" ] ]
-                          ]
-                        ],
-                        [
-                          "Abs_clause",
-                          [
-                            "Abs_var",
-                            [ "Ident", "numberequal0antimatchresult" ]
-                          ],
-                          [
-                            "Abs_binary_operation_body",
-                            [ "Abs_var", [ "Ident", "partialsum" ] ],
-                            "+",
-                            [ "Abs_var", [ "Ident", "number" ] ]
+                            "Abs_var_body",
+                            [ "Abs_var", [ "Ident", "three" ] ]
                           ]
                         ]
                       ]
@@ -1560,36 +1035,30 @@
           ],
           [
             "Ddpa_edge",
+            [ "Start_clause", [ "Abs_var", [ "Ident", "condB" ] ] ],
             [
-              "End_clause",
-              [ "Abs_var", [ "Ident", "numberequal0matchresult" ] ]
-            ],
-            [
-              "Exit_clause",
-              [ "Abs_var", [ "Ident", "sumresult" ] ],
-              [ "Abs_var", [ "Ident", "numberequal0matchresult" ] ],
+              "Enter_clause",
+              [ "Abs_var", [ "Ident", "e" ] ],
+              [ "Abs_var", [ "Ident", "boolA" ] ],
               [
                 "Abs_clause",
-                [ "Abs_var", [ "Ident", "sumresult" ] ],
+                [ "Abs_var", [ "Ident", "condB" ] ],
                 [
                   "Abs_conditional_body",
-                  [ "Abs_var", [ "Ident", "boolNumberequal0" ] ],
-                  [ "Bool_pattern", true ],
+                  [ "Abs_var", [ "Ident", "boolA" ] ],
+                  [ "Bool_pattern", false ],
                   [
                     "Abs_function_value",
-                    [ "Abs_var", [ "Ident", "numberequal0match" ] ],
+                    [ "Abs_var", [ "Ident", "c" ] ],
                     [
                       "Abs_expr",
                       [
                         [
                           "Abs_clause",
-                          [
-                            "Abs_var",
-                            [ "Ident", "numberequal0matchresult" ]
-                          ],
+                          [ "Abs_var", [ "Ident", "d" ] ],
                           [
                             "Abs_var_body",
-                            [ "Abs_var", [ "Ident", "zero" ] ]
+                            [ "Abs_var", [ "Ident", "one" ] ]
                           ]
                         ]
                       ]
@@ -1597,40 +1066,16 @@
                   ],
                   [
                     "Abs_function_value",
-                    [ "Abs_var", [ "Ident", "numberequal0antimatch" ] ],
+                    [ "Abs_var", [ "Ident", "e" ] ],
                     [
                       "Abs_expr",
                       [
                         [
                           "Abs_clause",
-                          [ "Abs_var", [ "Ident", "numberminus1" ] ],
+                          [ "Abs_var", [ "Ident", "f" ] ],
                           [
-                            "Abs_binary_operation_body",
-                            [ "Abs_var", [ "Ident", "number" ] ],
-                            "-",
-                            [ "Abs_var", [ "Ident", "one" ] ]
-                          ]
-                        ],
-                        [
-                          "Abs_clause",
-                          [ "Abs_var", [ "Ident", "partialsum" ] ],
-                          [
-                            "Abs_appl_body",
-                            [ "Abs_var", [ "Ident", "sum" ] ],
-                            [ "Abs_var", [ "Ident", "numberminus1" ] ]
-                          ]
-                        ],
-                        [
-                          "Abs_clause",
-                          [
-                            "Abs_var",
-                            [ "Ident", "numberequal0antimatchresult" ]
-                          ],
-                          [
-                            "Abs_binary_operation_body",
-                            [ "Abs_var", [ "Ident", "partialsum" ] ],
-                            "+",
-                            [ "Abs_var", [ "Ident", "number" ] ]
+                            "Abs_var_body",
+                            [ "Abs_var", [ "Ident", "three" ] ]
                           ]
                         ]
                       ]
@@ -1642,36 +1087,244 @@
           ],
           [
             "Ddpa_edge",
-            [ "End_clause", [ "Abs_var", [ "Ident", "sumresult" ] ] ],
+            [ "Start_clause", [ "Abs_var", [ "Ident", "f" ] ] ],
             [
-              "Exit_clause",
-              [ "Abs_var", [ "Ident", "partialsum" ] ],
-              [ "Abs_var", [ "Ident", "sumresult" ] ],
+              "Unannotated_clause",
               [
                 "Abs_clause",
-                [ "Abs_var", [ "Ident", "partialsum" ] ],
+                [ "Abs_var", [ "Ident", "f" ] ],
+                [ "Abs_var_body", [ "Abs_var", [ "Ident", "three" ] ] ]
+              ]
+            ]
+          ],
+          [
+            "Ddpa_edge",
+            [ "Start_clause", [ "Abs_var", [ "Ident", "m" ] ] ],
+            [
+              "Unannotated_clause",
+              [
+                "Abs_clause",
+                [ "Abs_var", [ "Ident", "m" ] ],
+                [ "Abs_var_body", [ "Abs_var", [ "Ident", "n" ] ] ]
+              ]
+            ]
+          ],
+          [
+            "Ddpa_edge",
+            [ "End_clause", [ "Abs_var", [ "Ident", "condB" ] ] ],
+            [
+              "Exit_clause",
+              [ "Abs_var", [ "Ident", "condA" ] ],
+              [ "Abs_var", [ "Ident", "condB" ] ],
+              [
+                "Abs_clause",
+                [ "Abs_var", [ "Ident", "condA" ] ],
                 [
-                  "Abs_appl_body",
-                  [ "Abs_var", [ "Ident", "sum" ] ],
-                  [ "Abs_var", [ "Ident", "numberminus1" ] ]
+                  "Abs_conditional_body",
+                  [ "Abs_var", [ "Ident", "boolZ" ] ],
+                  [ "Bool_pattern", true ],
+                  [
+                    "Abs_function_value",
+                    [ "Abs_var", [ "Ident", "boolA" ] ],
+                    [
+                      "Abs_expr",
+                      [
+                        [
+                          "Abs_clause",
+                          [ "Abs_var", [ "Ident", "condB" ] ],
+                          [
+                            "Abs_conditional_body",
+                            [ "Abs_var", [ "Ident", "boolA" ] ],
+                            [ "Bool_pattern", false ],
+                            [
+                              "Abs_function_value",
+                              [ "Abs_var", [ "Ident", "c" ] ],
+                              [
+                                "Abs_expr",
+                                [
+                                  [
+                                    "Abs_clause",
+                                    [ "Abs_var", [ "Ident", "d" ] ],
+                                    [
+                                      "Abs_var_body",
+                                      [ "Abs_var", [ "Ident", "one" ] ]
+                                    ]
+                                  ]
+                                ]
+                              ]
+                            ],
+                            [
+                              "Abs_function_value",
+                              [ "Abs_var", [ "Ident", "e" ] ],
+                              [
+                                "Abs_expr",
+                                [
+                                  [
+                                    "Abs_clause",
+                                    [ "Abs_var", [ "Ident", "f" ] ],
+                                    [
+                                      "Abs_var_body",
+                                      [ "Abs_var", [ "Ident", "three" ] ]
+                                    ]
+                                  ]
+                                ]
+                              ]
+                            ]
+                          ]
+                        ]
+                      ]
+                    ]
+                  ],
+                  [
+                    "Abs_function_value",
+                    [ "Abs_var", [ "Ident", "n" ] ],
+                    [
+                      "Abs_expr",
+                      [
+                        [
+                          "Abs_clause",
+                          [ "Abs_var", [ "Ident", "m" ] ],
+                          [ "Abs_var_body", [ "Abs_var", [ "Ident", "n" ] ] ]
+                        ]
+                      ]
+                    ]
+                  ]
                 ]
               ]
             ]
           ],
           [
             "Ddpa_edge",
-            [ "End_clause", [ "Abs_var", [ "Ident", "sumresult" ] ] ],
+            [ "End_clause", [ "Abs_var", [ "Ident", "f" ] ] ],
             [
               "Exit_clause",
-              [ "Abs_var", [ "Ident", "r" ] ],
-              [ "Abs_var", [ "Ident", "sumresult" ] ],
+              [ "Abs_var", [ "Ident", "condB" ] ],
+              [ "Abs_var", [ "Ident", "f" ] ],
               [
                 "Abs_clause",
-                [ "Abs_var", [ "Ident", "r" ] ],
+                [ "Abs_var", [ "Ident", "condB" ] ],
                 [
-                  "Abs_appl_body",
-                  [ "Abs_var", [ "Ident", "sum" ] ],
-                  [ "Abs_var", [ "Ident", "three" ] ]
+                  "Abs_conditional_body",
+                  [ "Abs_var", [ "Ident", "boolA" ] ],
+                  [ "Bool_pattern", false ],
+                  [
+                    "Abs_function_value",
+                    [ "Abs_var", [ "Ident", "c" ] ],
+                    [
+                      "Abs_expr",
+                      [
+                        [
+                          "Abs_clause",
+                          [ "Abs_var", [ "Ident", "d" ] ],
+                          [
+                            "Abs_var_body",
+                            [ "Abs_var", [ "Ident", "one" ] ]
+                          ]
+                        ]
+                      ]
+                    ]
+                  ],
+                  [
+                    "Abs_function_value",
+                    [ "Abs_var", [ "Ident", "e" ] ],
+                    [
+                      "Abs_expr",
+                      [
+                        [
+                          "Abs_clause",
+                          [ "Abs_var", [ "Ident", "f" ] ],
+                          [
+                            "Abs_var_body",
+                            [ "Abs_var", [ "Ident", "three" ] ]
+                          ]
+                        ]
+                      ]
+                    ]
+                  ]
+                ]
+              ]
+            ]
+          ],
+          [
+            "Ddpa_edge",
+            [ "End_clause", [ "Abs_var", [ "Ident", "m" ] ] ],
+            [
+              "Exit_clause",
+              [ "Abs_var", [ "Ident", "condA" ] ],
+              [ "Abs_var", [ "Ident", "m" ] ],
+              [
+                "Abs_clause",
+                [ "Abs_var", [ "Ident", "condA" ] ],
+                [
+                  "Abs_conditional_body",
+                  [ "Abs_var", [ "Ident", "boolZ" ] ],
+                  [ "Bool_pattern", true ],
+                  [
+                    "Abs_function_value",
+                    [ "Abs_var", [ "Ident", "boolA" ] ],
+                    [
+                      "Abs_expr",
+                      [
+                        [
+                          "Abs_clause",
+                          [ "Abs_var", [ "Ident", "condB" ] ],
+                          [
+                            "Abs_conditional_body",
+                            [ "Abs_var", [ "Ident", "boolA" ] ],
+                            [ "Bool_pattern", false ],
+                            [
+                              "Abs_function_value",
+                              [ "Abs_var", [ "Ident", "c" ] ],
+                              [
+                                "Abs_expr",
+                                [
+                                  [
+                                    "Abs_clause",
+                                    [ "Abs_var", [ "Ident", "d" ] ],
+                                    [
+                                      "Abs_var_body",
+                                      [ "Abs_var", [ "Ident", "one" ] ]
+                                    ]
+                                  ]
+                                ]
+                              ]
+                            ],
+                            [
+                              "Abs_function_value",
+                              [ "Abs_var", [ "Ident", "e" ] ],
+                              [
+                                "Abs_expr",
+                                [
+                                  [
+                                    "Abs_clause",
+                                    [ "Abs_var", [ "Ident", "f" ] ],
+                                    [
+                                      "Abs_var_body",
+                                      [ "Abs_var", [ "Ident", "three" ] ]
+                                    ]
+                                  ]
+                                ]
+                              ]
+                            ]
+                          ]
+                        ]
+                      ]
+                    ]
+                  ],
+                  [
+                    "Abs_function_value",
+                    [ "Abs_var", [ "Ident", "n" ] ],
+                    [
+                      "Abs_expr",
+                      [
+                        [
+                          "Abs_clause",
+                          [ "Abs_var", [ "Ident", "m" ] ],
+                          [ "Abs_var_body", [ "Abs_var", [ "Ident", "n" ] ] ]
+                        ]
+                      ]
+                    ]
+                  ]
                 ]
               ]
             ]
@@ -1687,12 +1340,12 @@
           "Unannotated_clause",
           [
             "Abs_clause",
-            [ "Abs_var", [ "Ident", "boolNumberequal0" ] ],
+            [ "Abs_var", [ "Ident", "boolZ" ] ],
             [
               "Abs_binary_operation_body",
-              [ "Abs_var", [ "Ident", "number" ] ],
+              [ "Abs_var", [ "Ident", "x" ] ],
               "==",
-              [ "Abs_var", [ "Ident", "zero" ] ]
+              [ "Abs_var", [ "Ident", "two" ] ]
             ]
           ]
         ],
@@ -1700,181 +1353,53 @@
           "Unannotated_clause",
           [
             "Abs_clause",
-            [ "Abs_var", [ "Ident", "five" ] ],
-            [ "Abs_value_body", [ "Abs_value_int" ] ]
-          ]
-        ],
-        [
-          "Unannotated_clause",
-          [
-            "Abs_clause",
-            [ "Abs_var", [ "Ident", "four" ] ],
-            [ "Abs_value_body", [ "Abs_value_int" ] ]
-          ]
-        ],
-        [
-          "Unannotated_clause",
-          [
-            "Abs_clause",
-            [ "Abs_var", [ "Ident", "numberequal0antimatchresult" ] ],
+            [ "Abs_var", [ "Ident", "condA" ] ],
             [
-              "Abs_binary_operation_body",
-              [ "Abs_var", [ "Ident", "partialsum" ] ],
-              "+",
-              [ "Abs_var", [ "Ident", "number" ] ]
-            ]
-          ]
-        ],
-        [
-          "Unannotated_clause",
-          [
-            "Abs_clause",
-            [ "Abs_var", [ "Ident", "numberequal0matchresult" ] ],
-            [ "Abs_var_body", [ "Abs_var", [ "Ident", "zero" ] ] ]
-          ]
-        ],
-        [
-          "Unannotated_clause",
-          [
-            "Abs_clause",
-            [ "Abs_var", [ "Ident", "numberminus1" ] ],
-            [
-              "Abs_binary_operation_body",
-              [ "Abs_var", [ "Ident", "number" ] ],
-              "-",
-              [ "Abs_var", [ "Ident", "one" ] ]
-            ]
-          ]
-        ],
-        [
-          "Unannotated_clause",
-          [
-            "Abs_clause",
-            [ "Abs_var", [ "Ident", "one" ] ],
-            [ "Abs_value_body", [ "Abs_value_int" ] ]
-          ]
-        ],
-        [
-          "Unannotated_clause",
-          [
-            "Abs_clause",
-            [ "Abs_var", [ "Ident", "partialsum" ] ],
-            [
-              "Abs_appl_body",
-              [ "Abs_var", [ "Ident", "sum" ] ],
-              [ "Abs_var", [ "Ident", "numberminus1" ] ]
-            ]
-          ]
-        ],
-        [
-          "Unannotated_clause",
-          [
-            "Abs_clause",
-            [ "Abs_var", [ "Ident", "r" ] ],
-            [
-              "Abs_appl_body",
-              [ "Abs_var", [ "Ident", "sum" ] ],
-              [ "Abs_var", [ "Ident", "three" ] ]
-            ]
-          ]
-        ],
-        [
-          "Unannotated_clause",
-          [
-            "Abs_clause",
-            [ "Abs_var", [ "Ident", "sum" ] ],
-            [
-              "Abs_value_body",
+              "Abs_conditional_body",
+              [ "Abs_var", [ "Ident", "boolZ" ] ],
+              [ "Bool_pattern", true ],
               [
-                "Abs_value_function",
+                "Abs_function_value",
+                [ "Abs_var", [ "Ident", "boolA" ] ],
                 [
-                  "Abs_function_value",
-                  [ "Abs_var", [ "Ident", "number" ] ],
+                  "Abs_expr",
                   [
-                    "Abs_expr",
                     [
+                      "Abs_clause",
+                      [ "Abs_var", [ "Ident", "condB" ] ],
                       [
-                        "Abs_clause",
-                        [ "Abs_var", [ "Ident", "boolNumberequal0" ] ],
+                        "Abs_conditional_body",
+                        [ "Abs_var", [ "Ident", "boolA" ] ],
+                        [ "Bool_pattern", false ],
                         [
-                          "Abs_binary_operation_body",
-                          [ "Abs_var", [ "Ident", "number" ] ],
-                          "==",
-                          [ "Abs_var", [ "Ident", "zero" ] ]
-                        ]
-                      ],
-                      [
-                        "Abs_clause",
-                        [ "Abs_var", [ "Ident", "sumresult" ] ],
-                        [
-                          "Abs_conditional_body",
-                          [ "Abs_var", [ "Ident", "boolNumberequal0" ] ],
-                          [ "Bool_pattern", true ],
+                          "Abs_function_value",
+                          [ "Abs_var", [ "Ident", "c" ] ],
                           [
-                            "Abs_function_value",
-                            [ "Abs_var", [ "Ident", "numberequal0match" ] ],
+                            "Abs_expr",
                             [
-                              "Abs_expr",
                               [
+                                "Abs_clause",
+                                [ "Abs_var", [ "Ident", "d" ] ],
                                 [
-                                  "Abs_clause",
-                                  [
-                                    "Abs_var",
-                                    [ "Ident", "numberequal0matchresult" ]
-                                  ],
-                                  [
-                                    "Abs_var_body",
-                                    [ "Abs_var", [ "Ident", "zero" ] ]
-                                  ]
+                                  "Abs_var_body",
+                                  [ "Abs_var", [ "Ident", "one" ] ]
                                 ]
                               ]
                             ]
-                          ],
+                          ]
+                        ],
+                        [
+                          "Abs_function_value",
+                          [ "Abs_var", [ "Ident", "e" ] ],
                           [
-                            "Abs_function_value",
+                            "Abs_expr",
                             [
-                              "Abs_var",
-                              [ "Ident", "numberequal0antimatch" ]
-                            ],
-                            [
-                              "Abs_expr",
                               [
+                                "Abs_clause",
+                                [ "Abs_var", [ "Ident", "f" ] ],
                                 [
-                                  "Abs_clause",
-                                  [ "Abs_var", [ "Ident", "numberminus1" ] ],
-                                  [
-                                    "Abs_binary_operation_body",
-                                    [ "Abs_var", [ "Ident", "number" ] ],
-                                    "-",
-                                    [ "Abs_var", [ "Ident", "one" ] ]
-                                  ]
-                                ],
-                                [
-                                  "Abs_clause",
-                                  [ "Abs_var", [ "Ident", "partialsum" ] ],
-                                  [
-                                    "Abs_appl_body",
-                                    [ "Abs_var", [ "Ident", "sum" ] ],
-                                    [
-                                      "Abs_var",
-                                      [ "Ident", "numberminus1" ]
-                                    ]
-                                  ]
-                                ],
-                                [
-                                  "Abs_clause",
-                                  [
-                                    "Abs_var",
-                                    [
-                                      "Ident", "numberequal0antimatchresult"
-                                    ]
-                                  ],
-                                  [
-                                    "Abs_binary_operation_body",
-                                    [ "Abs_var", [ "Ident", "partialsum" ] ],
-                                    "+",
-                                    [ "Abs_var", [ "Ident", "number" ] ]
-                                  ]
+                                  "Abs_var_body",
+                                  [ "Abs_var", [ "Ident", "three" ] ]
                                 ]
                               ]
                             ]
@@ -1884,6 +1409,20 @@
                     ]
                   ]
                 ]
+              ],
+              [
+                "Abs_function_value",
+                [ "Abs_var", [ "Ident", "n" ] ],
+                [
+                  "Abs_expr",
+                  [
+                    [
+                      "Abs_clause",
+                      [ "Abs_var", [ "Ident", "m" ] ],
+                      [ "Abs_var_body", [ "Abs_var", [ "Ident", "n" ] ] ]
+                    ]
+                  ]
+                ]
               ]
             ]
           ]
@@ -1892,67 +1431,64 @@
           "Unannotated_clause",
           [
             "Abs_clause",
-            [ "Abs_var", [ "Ident", "sumresult" ] ],
+            [ "Abs_var", [ "Ident", "condB" ] ],
             [
               "Abs_conditional_body",
-              [ "Abs_var", [ "Ident", "boolNumberequal0" ] ],
-              [ "Bool_pattern", true ],
+              [ "Abs_var", [ "Ident", "boolA" ] ],
+              [ "Bool_pattern", false ],
               [
                 "Abs_function_value",
-                [ "Abs_var", [ "Ident", "numberequal0match" ] ],
+                [ "Abs_var", [ "Ident", "c" ] ],
                 [
                   "Abs_expr",
                   [
                     [
                       "Abs_clause",
-                      [ "Abs_var", [ "Ident", "numberequal0matchresult" ] ],
-                      [ "Abs_var_body", [ "Abs_var", [ "Ident", "zero" ] ] ]
+                      [ "Abs_var", [ "Ident", "d" ] ],
+                      [ "Abs_var_body", [ "Abs_var", [ "Ident", "one" ] ] ]
                     ]
                   ]
                 ]
               ],
               [
                 "Abs_function_value",
-                [ "Abs_var", [ "Ident", "numberequal0antimatch" ] ],
+                [ "Abs_var", [ "Ident", "e" ] ],
                 [
                   "Abs_expr",
                   [
                     [
                       "Abs_clause",
-                      [ "Abs_var", [ "Ident", "numberminus1" ] ],
-                      [
-                        "Abs_binary_operation_body",
-                        [ "Abs_var", [ "Ident", "number" ] ],
-                        "-",
-                        [ "Abs_var", [ "Ident", "one" ] ]
-                      ]
-                    ],
-                    [
-                      "Abs_clause",
-                      [ "Abs_var", [ "Ident", "partialsum" ] ],
-                      [
-                        "Abs_appl_body",
-                        [ "Abs_var", [ "Ident", "sum" ] ],
-                        [ "Abs_var", [ "Ident", "numberminus1" ] ]
-                      ]
-                    ],
-                    [
-                      "Abs_clause",
-                      [
-                        "Abs_var",
-                        [ "Ident", "numberequal0antimatchresult" ]
-                      ],
-                      [
-                        "Abs_binary_operation_body",
-                        [ "Abs_var", [ "Ident", "partialsum" ] ],
-                        "+",
-                        [ "Abs_var", [ "Ident", "number" ] ]
-                      ]
+                      [ "Abs_var", [ "Ident", "f" ] ],
+                      [ "Abs_var_body", [ "Abs_var", [ "Ident", "three" ] ] ]
                     ]
                   ]
                 ]
               ]
             ]
+          ]
+        ],
+        [
+          "Unannotated_clause",
+          [
+            "Abs_clause",
+            [ "Abs_var", [ "Ident", "f" ] ],
+            [ "Abs_var_body", [ "Abs_var", [ "Ident", "three" ] ] ]
+          ]
+        ],
+        [
+          "Unannotated_clause",
+          [
+            "Abs_clause",
+            [ "Abs_var", [ "Ident", "m" ] ],
+            [ "Abs_var_body", [ "Abs_var", [ "Ident", "n" ] ] ]
+          ]
+        ],
+        [
+          "Unannotated_clause",
+          [
+            "Abs_clause",
+            [ "Abs_var", [ "Ident", "one" ] ],
+            [ "Abs_value_body", [ "Abs_value_int" ] ]
           ]
         ],
         [
@@ -1975,100 +1511,83 @@
           "Unannotated_clause",
           [
             "Abs_clause",
-            [ "Abs_var", [ "Ident", "zero" ] ],
+            [ "Abs_var", [ "Ident", "x" ] ],
             [ "Abs_value_body", [ "Abs_value_int" ] ]
           ]
         ],
         [
           "Enter_clause",
-          [ "Abs_var", [ "Ident", "number" ] ],
-          [ "Abs_var", [ "Ident", "numberminus1" ] ],
+          [ "Abs_var", [ "Ident", "boolA" ] ],
+          [ "Abs_var", [ "Ident", "boolZ" ] ],
           [
             "Abs_clause",
-            [ "Abs_var", [ "Ident", "partialsum" ] ],
-            [
-              "Abs_appl_body",
-              [ "Abs_var", [ "Ident", "sum" ] ],
-              [ "Abs_var", [ "Ident", "numberminus1" ] ]
-            ]
-          ]
-        ],
-        [
-          "Enter_clause",
-          [ "Abs_var", [ "Ident", "number" ] ],
-          [ "Abs_var", [ "Ident", "three" ] ],
-          [
-            "Abs_clause",
-            [ "Abs_var", [ "Ident", "r" ] ],
-            [
-              "Abs_appl_body",
-              [ "Abs_var", [ "Ident", "sum" ] ],
-              [ "Abs_var", [ "Ident", "three" ] ]
-            ]
-          ]
-        ],
-        [
-          "Enter_clause",
-          [ "Abs_var", [ "Ident", "numberequal0antimatch" ] ],
-          [ "Abs_var", [ "Ident", "boolNumberequal0" ] ],
-          [
-            "Abs_clause",
-            [ "Abs_var", [ "Ident", "sumresult" ] ],
+            [ "Abs_var", [ "Ident", "condA" ] ],
             [
               "Abs_conditional_body",
-              [ "Abs_var", [ "Ident", "boolNumberequal0" ] ],
+              [ "Abs_var", [ "Ident", "boolZ" ] ],
               [ "Bool_pattern", true ],
               [
                 "Abs_function_value",
-                [ "Abs_var", [ "Ident", "numberequal0match" ] ],
+                [ "Abs_var", [ "Ident", "boolA" ] ],
                 [
                   "Abs_expr",
                   [
                     [
                       "Abs_clause",
-                      [ "Abs_var", [ "Ident", "numberequal0matchresult" ] ],
-                      [ "Abs_var_body", [ "Abs_var", [ "Ident", "zero" ] ] ]
+                      [ "Abs_var", [ "Ident", "condB" ] ],
+                      [
+                        "Abs_conditional_body",
+                        [ "Abs_var", [ "Ident", "boolA" ] ],
+                        [ "Bool_pattern", false ],
+                        [
+                          "Abs_function_value",
+                          [ "Abs_var", [ "Ident", "c" ] ],
+                          [
+                            "Abs_expr",
+                            [
+                              [
+                                "Abs_clause",
+                                [ "Abs_var", [ "Ident", "d" ] ],
+                                [
+                                  "Abs_var_body",
+                                  [ "Abs_var", [ "Ident", "one" ] ]
+                                ]
+                              ]
+                            ]
+                          ]
+                        ],
+                        [
+                          "Abs_function_value",
+                          [ "Abs_var", [ "Ident", "e" ] ],
+                          [
+                            "Abs_expr",
+                            [
+                              [
+                                "Abs_clause",
+                                [ "Abs_var", [ "Ident", "f" ] ],
+                                [
+                                  "Abs_var_body",
+                                  [ "Abs_var", [ "Ident", "three" ] ]
+                                ]
+                              ]
+                            ]
+                          ]
+                        ]
+                      ]
                     ]
                   ]
                 ]
               ],
               [
                 "Abs_function_value",
-                [ "Abs_var", [ "Ident", "numberequal0antimatch" ] ],
+                [ "Abs_var", [ "Ident", "n" ] ],
                 [
                   "Abs_expr",
                   [
                     [
                       "Abs_clause",
-                      [ "Abs_var", [ "Ident", "numberminus1" ] ],
-                      [
-                        "Abs_binary_operation_body",
-                        [ "Abs_var", [ "Ident", "number" ] ],
-                        "-",
-                        [ "Abs_var", [ "Ident", "one" ] ]
-                      ]
-                    ],
-                    [
-                      "Abs_clause",
-                      [ "Abs_var", [ "Ident", "partialsum" ] ],
-                      [
-                        "Abs_appl_body",
-                        [ "Abs_var", [ "Ident", "sum" ] ],
-                        [ "Abs_var", [ "Ident", "numberminus1" ] ]
-                      ]
-                    ],
-                    [
-                      "Abs_clause",
-                      [
-                        "Abs_var",
-                        [ "Ident", "numberequal0antimatchresult" ]
-                      ],
-                      [
-                        "Abs_binary_operation_body",
-                        [ "Abs_var", [ "Ident", "partialsum" ] ],
-                        "+",
-                        [ "Abs_var", [ "Ident", "number" ] ]
-                      ]
+                      [ "Abs_var", [ "Ident", "m" ] ],
+                      [ "Abs_var_body", [ "Abs_var", [ "Ident", "n" ] ] ]
                     ]
                   ]
                 ]
@@ -2078,66 +1597,119 @@
         ],
         [
           "Enter_clause",
-          [ "Abs_var", [ "Ident", "numberequal0match" ] ],
-          [ "Abs_var", [ "Ident", "boolNumberequal0" ] ],
+          [ "Abs_var", [ "Ident", "e" ] ],
+          [ "Abs_var", [ "Ident", "boolA" ] ],
           [
             "Abs_clause",
-            [ "Abs_var", [ "Ident", "sumresult" ] ],
+            [ "Abs_var", [ "Ident", "condB" ] ],
             [
               "Abs_conditional_body",
-              [ "Abs_var", [ "Ident", "boolNumberequal0" ] ],
-              [ "Bool_pattern", true ],
+              [ "Abs_var", [ "Ident", "boolA" ] ],
+              [ "Bool_pattern", false ],
               [
                 "Abs_function_value",
-                [ "Abs_var", [ "Ident", "numberequal0match" ] ],
+                [ "Abs_var", [ "Ident", "c" ] ],
                 [
                   "Abs_expr",
                   [
                     [
                       "Abs_clause",
-                      [ "Abs_var", [ "Ident", "numberequal0matchresult" ] ],
-                      [ "Abs_var_body", [ "Abs_var", [ "Ident", "zero" ] ] ]
+                      [ "Abs_var", [ "Ident", "d" ] ],
+                      [ "Abs_var_body", [ "Abs_var", [ "Ident", "one" ] ] ]
                     ]
                   ]
                 ]
               ],
               [
                 "Abs_function_value",
-                [ "Abs_var", [ "Ident", "numberequal0antimatch" ] ],
+                [ "Abs_var", [ "Ident", "e" ] ],
                 [
                   "Abs_expr",
                   [
                     [
                       "Abs_clause",
-                      [ "Abs_var", [ "Ident", "numberminus1" ] ],
-                      [
-                        "Abs_binary_operation_body",
-                        [ "Abs_var", [ "Ident", "number" ] ],
-                        "-",
-                        [ "Abs_var", [ "Ident", "one" ] ]
-                      ]
-                    ],
+                      [ "Abs_var", [ "Ident", "f" ] ],
+                      [ "Abs_var_body", [ "Abs_var", [ "Ident", "three" ] ] ]
+                    ]
+                  ]
+                ]
+              ]
+            ]
+          ]
+        ],
+        [
+          "Enter_clause",
+          [ "Abs_var", [ "Ident", "n" ] ],
+          [ "Abs_var", [ "Ident", "boolZ" ] ],
+          [
+            "Abs_clause",
+            [ "Abs_var", [ "Ident", "condA" ] ],
+            [
+              "Abs_conditional_body",
+              [ "Abs_var", [ "Ident", "boolZ" ] ],
+              [ "Bool_pattern", true ],
+              [
+                "Abs_function_value",
+                [ "Abs_var", [ "Ident", "boolA" ] ],
+                [
+                  "Abs_expr",
+                  [
                     [
                       "Abs_clause",
-                      [ "Abs_var", [ "Ident", "partialsum" ] ],
+                      [ "Abs_var", [ "Ident", "condB" ] ],
                       [
-                        "Abs_appl_body",
-                        [ "Abs_var", [ "Ident", "sum" ] ],
-                        [ "Abs_var", [ "Ident", "numberminus1" ] ]
+                        "Abs_conditional_body",
+                        [ "Abs_var", [ "Ident", "boolA" ] ],
+                        [ "Bool_pattern", false ],
+                        [
+                          "Abs_function_value",
+                          [ "Abs_var", [ "Ident", "c" ] ],
+                          [
+                            "Abs_expr",
+                            [
+                              [
+                                "Abs_clause",
+                                [ "Abs_var", [ "Ident", "d" ] ],
+                                [
+                                  "Abs_var_body",
+                                  [ "Abs_var", [ "Ident", "one" ] ]
+                                ]
+                              ]
+                            ]
+                          ]
+                        ],
+                        [
+                          "Abs_function_value",
+                          [ "Abs_var", [ "Ident", "e" ] ],
+                          [
+                            "Abs_expr",
+                            [
+                              [
+                                "Abs_clause",
+                                [ "Abs_var", [ "Ident", "f" ] ],
+                                [
+                                  "Abs_var_body",
+                                  [ "Abs_var", [ "Ident", "three" ] ]
+                                ]
+                              ]
+                            ]
+                          ]
+                        ]
                       ]
-                    ],
+                    ]
+                  ]
+                ]
+              ],
+              [
+                "Abs_function_value",
+                [ "Abs_var", [ "Ident", "n" ] ],
+                [
+                  "Abs_expr",
+                  [
                     [
                       "Abs_clause",
-                      [
-                        "Abs_var",
-                        [ "Ident", "numberequal0antimatchresult" ]
-                      ],
-                      [
-                        "Abs_binary_operation_body",
-                        [ "Abs_var", [ "Ident", "partialsum" ] ],
-                        "+",
-                        [ "Abs_var", [ "Ident", "number" ] ]
-                      ]
+                      [ "Abs_var", [ "Ident", "m" ] ],
+                      [ "Abs_var_body", [ "Abs_var", [ "Ident", "n" ] ] ]
                     ]
                   ]
                 ]
@@ -2147,94 +1719,77 @@
         ],
         [
           "Exit_clause",
-          [ "Abs_var", [ "Ident", "partialsum" ] ],
-          [ "Abs_var", [ "Ident", "sumresult" ] ],
+          [ "Abs_var", [ "Ident", "condA" ] ],
+          [ "Abs_var", [ "Ident", "condB" ] ],
           [
             "Abs_clause",
-            [ "Abs_var", [ "Ident", "partialsum" ] ],
-            [
-              "Abs_appl_body",
-              [ "Abs_var", [ "Ident", "sum" ] ],
-              [ "Abs_var", [ "Ident", "numberminus1" ] ]
-            ]
-          ]
-        ],
-        [
-          "Exit_clause",
-          [ "Abs_var", [ "Ident", "r" ] ],
-          [ "Abs_var", [ "Ident", "sumresult" ] ],
-          [
-            "Abs_clause",
-            [ "Abs_var", [ "Ident", "r" ] ],
-            [
-              "Abs_appl_body",
-              [ "Abs_var", [ "Ident", "sum" ] ],
-              [ "Abs_var", [ "Ident", "three" ] ]
-            ]
-          ]
-        ],
-        [
-          "Exit_clause",
-          [ "Abs_var", [ "Ident", "sumresult" ] ],
-          [ "Abs_var", [ "Ident", "numberequal0antimatchresult" ] ],
-          [
-            "Abs_clause",
-            [ "Abs_var", [ "Ident", "sumresult" ] ],
+            [ "Abs_var", [ "Ident", "condA" ] ],
             [
               "Abs_conditional_body",
-              [ "Abs_var", [ "Ident", "boolNumberequal0" ] ],
+              [ "Abs_var", [ "Ident", "boolZ" ] ],
               [ "Bool_pattern", true ],
               [
                 "Abs_function_value",
-                [ "Abs_var", [ "Ident", "numberequal0match" ] ],
+                [ "Abs_var", [ "Ident", "boolA" ] ],
                 [
                   "Abs_expr",
                   [
                     [
                       "Abs_clause",
-                      [ "Abs_var", [ "Ident", "numberequal0matchresult" ] ],
-                      [ "Abs_var_body", [ "Abs_var", [ "Ident", "zero" ] ] ]
+                      [ "Abs_var", [ "Ident", "condB" ] ],
+                      [
+                        "Abs_conditional_body",
+                        [ "Abs_var", [ "Ident", "boolA" ] ],
+                        [ "Bool_pattern", false ],
+                        [
+                          "Abs_function_value",
+                          [ "Abs_var", [ "Ident", "c" ] ],
+                          [
+                            "Abs_expr",
+                            [
+                              [
+                                "Abs_clause",
+                                [ "Abs_var", [ "Ident", "d" ] ],
+                                [
+                                  "Abs_var_body",
+                                  [ "Abs_var", [ "Ident", "one" ] ]
+                                ]
+                              ]
+                            ]
+                          ]
+                        ],
+                        [
+                          "Abs_function_value",
+                          [ "Abs_var", [ "Ident", "e" ] ],
+                          [
+                            "Abs_expr",
+                            [
+                              [
+                                "Abs_clause",
+                                [ "Abs_var", [ "Ident", "f" ] ],
+                                [
+                                  "Abs_var_body",
+                                  [ "Abs_var", [ "Ident", "three" ] ]
+                                ]
+                              ]
+                            ]
+                          ]
+                        ]
+                      ]
                     ]
                   ]
                 ]
               ],
               [
                 "Abs_function_value",
-                [ "Abs_var", [ "Ident", "numberequal0antimatch" ] ],
+                [ "Abs_var", [ "Ident", "n" ] ],
                 [
                   "Abs_expr",
                   [
                     [
                       "Abs_clause",
-                      [ "Abs_var", [ "Ident", "numberminus1" ] ],
-                      [
-                        "Abs_binary_operation_body",
-                        [ "Abs_var", [ "Ident", "number" ] ],
-                        "-",
-                        [ "Abs_var", [ "Ident", "one" ] ]
-                      ]
-                    ],
-                    [
-                      "Abs_clause",
-                      [ "Abs_var", [ "Ident", "partialsum" ] ],
-                      [
-                        "Abs_appl_body",
-                        [ "Abs_var", [ "Ident", "sum" ] ],
-                        [ "Abs_var", [ "Ident", "numberminus1" ] ]
-                      ]
-                    ],
-                    [
-                      "Abs_clause",
-                      [
-                        "Abs_var",
-                        [ "Ident", "numberequal0antimatchresult" ]
-                      ],
-                      [
-                        "Abs_binary_operation_body",
-                        [ "Abs_var", [ "Ident", "partialsum" ] ],
-                        "+",
-                        [ "Abs_var", [ "Ident", "number" ] ]
-                      ]
+                      [ "Abs_var", [ "Ident", "m" ] ],
+                      [ "Abs_var_body", [ "Abs_var", [ "Ident", "n" ] ] ]
                     ]
                   ]
                 ]
@@ -2244,66 +1799,77 @@
         ],
         [
           "Exit_clause",
-          [ "Abs_var", [ "Ident", "sumresult" ] ],
-          [ "Abs_var", [ "Ident", "numberequal0matchresult" ] ],
+          [ "Abs_var", [ "Ident", "condA" ] ],
+          [ "Abs_var", [ "Ident", "m" ] ],
           [
             "Abs_clause",
-            [ "Abs_var", [ "Ident", "sumresult" ] ],
+            [ "Abs_var", [ "Ident", "condA" ] ],
             [
               "Abs_conditional_body",
-              [ "Abs_var", [ "Ident", "boolNumberequal0" ] ],
+              [ "Abs_var", [ "Ident", "boolZ" ] ],
               [ "Bool_pattern", true ],
               [
                 "Abs_function_value",
-                [ "Abs_var", [ "Ident", "numberequal0match" ] ],
+                [ "Abs_var", [ "Ident", "boolA" ] ],
                 [
                   "Abs_expr",
                   [
                     [
                       "Abs_clause",
-                      [ "Abs_var", [ "Ident", "numberequal0matchresult" ] ],
-                      [ "Abs_var_body", [ "Abs_var", [ "Ident", "zero" ] ] ]
+                      [ "Abs_var", [ "Ident", "condB" ] ],
+                      [
+                        "Abs_conditional_body",
+                        [ "Abs_var", [ "Ident", "boolA" ] ],
+                        [ "Bool_pattern", false ],
+                        [
+                          "Abs_function_value",
+                          [ "Abs_var", [ "Ident", "c" ] ],
+                          [
+                            "Abs_expr",
+                            [
+                              [
+                                "Abs_clause",
+                                [ "Abs_var", [ "Ident", "d" ] ],
+                                [
+                                  "Abs_var_body",
+                                  [ "Abs_var", [ "Ident", "one" ] ]
+                                ]
+                              ]
+                            ]
+                          ]
+                        ],
+                        [
+                          "Abs_function_value",
+                          [ "Abs_var", [ "Ident", "e" ] ],
+                          [
+                            "Abs_expr",
+                            [
+                              [
+                                "Abs_clause",
+                                [ "Abs_var", [ "Ident", "f" ] ],
+                                [
+                                  "Abs_var_body",
+                                  [ "Abs_var", [ "Ident", "three" ] ]
+                                ]
+                              ]
+                            ]
+                          ]
+                        ]
+                      ]
                     ]
                   ]
                 ]
               ],
               [
                 "Abs_function_value",
-                [ "Abs_var", [ "Ident", "numberequal0antimatch" ] ],
+                [ "Abs_var", [ "Ident", "n" ] ],
                 [
                   "Abs_expr",
                   [
                     [
                       "Abs_clause",
-                      [ "Abs_var", [ "Ident", "numberminus1" ] ],
-                      [
-                        "Abs_binary_operation_body",
-                        [ "Abs_var", [ "Ident", "number" ] ],
-                        "-",
-                        [ "Abs_var", [ "Ident", "one" ] ]
-                      ]
-                    ],
-                    [
-                      "Abs_clause",
-                      [ "Abs_var", [ "Ident", "partialsum" ] ],
-                      [
-                        "Abs_appl_body",
-                        [ "Abs_var", [ "Ident", "sum" ] ],
-                        [ "Abs_var", [ "Ident", "numberminus1" ] ]
-                      ]
-                    ],
-                    [
-                      "Abs_clause",
-                      [
-                        "Abs_var",
-                        [ "Ident", "numberequal0antimatchresult" ]
-                      ],
-                      [
-                        "Abs_binary_operation_body",
-                        [ "Abs_var", [ "Ident", "partialsum" ] ],
-                        "+",
-                        [ "Abs_var", [ "Ident", "number" ] ]
-                      ]
+                      [ "Abs_var", [ "Ident", "m" ] ],
+                      [ "Abs_var_body", [ "Abs_var", [ "Ident", "n" ] ] ]
                     ]
                   ]
                 ]
@@ -2312,25 +1878,55 @@
           ]
         ],
         [
-          "Start_clause",
-          [ "Abs_var", [ "Ident", "numberequal0antimatchresult" ] ]
+          "Exit_clause",
+          [ "Abs_var", [ "Ident", "condB" ] ],
+          [ "Abs_var", [ "Ident", "f" ] ],
+          [
+            "Abs_clause",
+            [ "Abs_var", [ "Ident", "condB" ] ],
+            [
+              "Abs_conditional_body",
+              [ "Abs_var", [ "Ident", "boolA" ] ],
+              [ "Bool_pattern", false ],
+              [
+                "Abs_function_value",
+                [ "Abs_var", [ "Ident", "c" ] ],
+                [
+                  "Abs_expr",
+                  [
+                    [
+                      "Abs_clause",
+                      [ "Abs_var", [ "Ident", "d" ] ],
+                      [ "Abs_var_body", [ "Abs_var", [ "Ident", "one" ] ] ]
+                    ]
+                  ]
+                ]
+              ],
+              [
+                "Abs_function_value",
+                [ "Abs_var", [ "Ident", "e" ] ],
+                [
+                  "Abs_expr",
+                  [
+                    [
+                      "Abs_clause",
+                      [ "Abs_var", [ "Ident", "f" ] ],
+                      [ "Abs_var_body", [ "Abs_var", [ "Ident", "three" ] ] ]
+                    ]
+                  ]
+                ]
+              ]
+            ]
+          ]
         ],
-        [
-          "Start_clause",
-          [ "Abs_var", [ "Ident", "numberequal0matchresult" ] ]
-        ],
-        [ "Start_clause", [ "Abs_var", [ "Ident", "r" ] ] ],
-        [ "Start_clause", [ "Abs_var", [ "Ident", "sumresult" ] ] ],
-        [
-          "End_clause",
-          [ "Abs_var", [ "Ident", "numberequal0antimatchresult" ] ]
-        ],
-        [
-          "End_clause",
-          [ "Abs_var", [ "Ident", "numberequal0matchresult" ] ]
-        ],
-        [ "End_clause", [ "Abs_var", [ "Ident", "r" ] ] ],
-        [ "End_clause", [ "Abs_var", [ "Ident", "sumresult" ] ] ]
+        [ "Start_clause", [ "Abs_var", [ "Ident", "condA" ] ] ],
+        [ "Start_clause", [ "Abs_var", [ "Ident", "condB" ] ] ],
+        [ "Start_clause", [ "Abs_var", [ "Ident", "f" ] ] ],
+        [ "Start_clause", [ "Abs_var", [ "Ident", "m" ] ] ],
+        [ "End_clause", [ "Abs_var", [ "Ident", "condA" ] ] ],
+        [ "End_clause", [ "Abs_var", [ "Ident", "condB" ] ] ],
+        [ "End_clause", [ "Abs_var", [ "Ident", "f" ] ] ],
+        [ "End_clause", [ "Abs_var", [ "Ident", "m" ] ] ]
       ]
     },
     "ddpa_active_non_immediate_nodes": {
@@ -2340,86 +1936,113 @@
           "Unannotated_clause",
           [
             "Abs_clause",
-            [ "Abs_var", [ "Ident", "partialsum" ] ],
-            [
-              "Abs_appl_body",
-              [ "Abs_var", [ "Ident", "sum" ] ],
-              [ "Abs_var", [ "Ident", "numberminus1" ] ]
-            ]
-          ]
-        ],
-        [
-          "Unannotated_clause",
-          [
-            "Abs_clause",
-            [ "Abs_var", [ "Ident", "r" ] ],
-            [
-              "Abs_appl_body",
-              [ "Abs_var", [ "Ident", "sum" ] ],
-              [ "Abs_var", [ "Ident", "three" ] ]
-            ]
-          ]
-        ],
-        [
-          "Unannotated_clause",
-          [
-            "Abs_clause",
-            [ "Abs_var", [ "Ident", "sumresult" ] ],
+            [ "Abs_var", [ "Ident", "condA" ] ],
             [
               "Abs_conditional_body",
-              [ "Abs_var", [ "Ident", "boolNumberequal0" ] ],
+              [ "Abs_var", [ "Ident", "boolZ" ] ],
               [ "Bool_pattern", true ],
               [
                 "Abs_function_value",
-                [ "Abs_var", [ "Ident", "numberequal0match" ] ],
+                [ "Abs_var", [ "Ident", "boolA" ] ],
                 [
                   "Abs_expr",
                   [
                     [
                       "Abs_clause",
-                      [ "Abs_var", [ "Ident", "numberequal0matchresult" ] ],
-                      [ "Abs_var_body", [ "Abs_var", [ "Ident", "zero" ] ] ]
+                      [ "Abs_var", [ "Ident", "condB" ] ],
+                      [
+                        "Abs_conditional_body",
+                        [ "Abs_var", [ "Ident", "boolA" ] ],
+                        [ "Bool_pattern", false ],
+                        [
+                          "Abs_function_value",
+                          [ "Abs_var", [ "Ident", "c" ] ],
+                          [
+                            "Abs_expr",
+                            [
+                              [
+                                "Abs_clause",
+                                [ "Abs_var", [ "Ident", "d" ] ],
+                                [
+                                  "Abs_var_body",
+                                  [ "Abs_var", [ "Ident", "one" ] ]
+                                ]
+                              ]
+                            ]
+                          ]
+                        ],
+                        [
+                          "Abs_function_value",
+                          [ "Abs_var", [ "Ident", "e" ] ],
+                          [
+                            "Abs_expr",
+                            [
+                              [
+                                "Abs_clause",
+                                [ "Abs_var", [ "Ident", "f" ] ],
+                                [
+                                  "Abs_var_body",
+                                  [ "Abs_var", [ "Ident", "three" ] ]
+                                ]
+                              ]
+                            ]
+                          ]
+                        ]
+                      ]
                     ]
                   ]
                 ]
               ],
               [
                 "Abs_function_value",
-                [ "Abs_var", [ "Ident", "numberequal0antimatch" ] ],
+                [ "Abs_var", [ "Ident", "n" ] ],
                 [
                   "Abs_expr",
                   [
                     [
                       "Abs_clause",
-                      [ "Abs_var", [ "Ident", "numberminus1" ] ],
-                      [
-                        "Abs_binary_operation_body",
-                        [ "Abs_var", [ "Ident", "number" ] ],
-                        "-",
-                        [ "Abs_var", [ "Ident", "one" ] ]
-                      ]
-                    ],
+                      [ "Abs_var", [ "Ident", "m" ] ],
+                      [ "Abs_var_body", [ "Abs_var", [ "Ident", "n" ] ] ]
+                    ]
+                  ]
+                ]
+              ]
+            ]
+          ]
+        ],
+        [
+          "Unannotated_clause",
+          [
+            "Abs_clause",
+            [ "Abs_var", [ "Ident", "condB" ] ],
+            [
+              "Abs_conditional_body",
+              [ "Abs_var", [ "Ident", "boolA" ] ],
+              [ "Bool_pattern", false ],
+              [
+                "Abs_function_value",
+                [ "Abs_var", [ "Ident", "c" ] ],
+                [
+                  "Abs_expr",
+                  [
                     [
                       "Abs_clause",
-                      [ "Abs_var", [ "Ident", "partialsum" ] ],
-                      [
-                        "Abs_appl_body",
-                        [ "Abs_var", [ "Ident", "sum" ] ],
-                        [ "Abs_var", [ "Ident", "numberminus1" ] ]
-                      ]
-                    ],
+                      [ "Abs_var", [ "Ident", "d" ] ],
+                      [ "Abs_var_body", [ "Abs_var", [ "Ident", "one" ] ] ]
+                    ]
+                  ]
+                ]
+              ],
+              [
+                "Abs_function_value",
+                [ "Abs_var", [ "Ident", "e" ] ],
+                [
+                  "Abs_expr",
+                  [
                     [
                       "Abs_clause",
-                      [
-                        "Abs_var",
-                        [ "Ident", "numberequal0antimatchresult" ]
-                      ],
-                      [
-                        "Abs_binary_operation_body",
-                        [ "Abs_var", [ "Ident", "partialsum" ] ],
-                        "+",
-                        [ "Abs_var", [ "Ident", "number" ] ]
-                      ]
+                      [ "Abs_var", [ "Ident", "f" ] ],
+                      [ "Abs_var_body", [ "Abs_var", [ "Ident", "three" ] ] ]
                     ]
                   ]
                 ]

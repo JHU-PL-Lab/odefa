@@ -3,7 +3,7 @@
 
 x = input;
 y = 2;
-z = x == y;
-w = z ~ true ? fun n-> (b=n) : fun c-> (d=c);
+boolZ = x == y;
+w = boolZ ~ true ? fun n-> (b=n) : fun c-> (d=c);
 
 q=b;
