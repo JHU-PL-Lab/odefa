@@ -37,10 +37,27 @@ type annotated_clause =
 [@@deriving ord, eq, to_yojson]
 ;;
 
+type program_state = Done of (value * formula list) |
+                     Working of ((var * (clause Stack.t)) Stack.t * annotated_clause * clause Stack.t * (annotated_clause,annotated_clause) Hashtbl.t * formula list) |
+                     Double_working of (program_state * program_state);;
+
 let string_of_var v : string =
   let Var(i, _) = v in
   let Ident(s) = i in
   s
+;;
+
+let rec string_of_map list_of_map : string =
+  match list_of_map with
+  | [] ->
+    ""
+  | head :: tail ->
+    let (key, value) = head in
+    let Ident(a) = key in
+    if List.is_empty tail then
+      a ^ "=" ^ (string_of_var value) ^ (string_of_map tail)
+    else
+      a ^ "=" ^ (string_of_var value) ^ ", " ^ (string_of_map tail)
 ;;
 
 let string_of_value v : string =
@@ -51,6 +68,8 @@ let string_of_value v : string =
     if b then "true" else "false"
   | Value_function(Function_value(f, _)) ->
     "Function " ^ (string_of_var f)
+  | Value_record(Record_value(map)) ->
+    "{" ^ (string_of_map (Ident_map.bindings map)) ^ "}"
   | _ ->
     "some other value"
 ;;
@@ -178,7 +197,7 @@ let rec string_of_formula_2 formula : string =
   | Negated_formula(f1) -> "Not (" ^ string_of_formula_2 f1 ^ ")"
   | Value_formula(v) ->
     (match v with
-     | Value_record(_) -> "record"
+     | Value_record(Record_value(map)) -> "{" ^ (string_of_map (Ident_map.bindings map)) ^ "}"
      | Value_function(_) -> "function"
      | Value_ref(_) -> "ref"
      | Value_int(i) -> string_of_int i
@@ -245,6 +264,27 @@ let print_context_stack stack : unit =
     (
       print_endline "Context";
       Stack.iter (fun c -> print_endline ((string_of_annotated_clause (Unannotated_clause(c))))) stack
+    )
+;;
+
+let rec string_of_program_state state : string =
+  match state with
+  | Done(v, phi) ->
+    "Done(" ^ (string_of_value v) ^ ", " ^ (string_of_phi phi) ^ ")"
+  | Working(l, n, c, _,_) ->
+    print_stack l;
+    "Working(" ^ (string_of_annotated_clause n) ^ ", " ^ (string_of_context_stack c)
+  | Double_working(state1, state2) ->
+    "Double_working(" ^ (string_of_program_state state1) ^ ", " ^ (string_of_program_state state2) ^ ")"
+;;
+
+let print_queue queue : unit =
+  if Queue.is_empty queue then
+    print_endline "Empty queue"
+  else
+    (
+      print_endline "Queue";
+      Queue.iter (fun state -> print_endline ((string_of_program_state state))) queue
     )
 ;;
 

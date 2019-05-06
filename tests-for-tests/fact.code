@@ -1,0 +1,15 @@
+variable1 = fun variable2 -> (
+  variable5 = 0;
+  variable4 = variable2 == variable5;
+  variable3 = variable4 ~ false
+  ? fun variable6 -> (
+    variable10 = 1;
+    variable9 = variable2 - variable10;
+    variable8 = variable1 variable9;
+    variable7 = variable2 + variable8;
+  ) : fun variable11 -> (
+    variable12 = 1;
+  );
+);
+variable13 = 3;
+variable0 = variable1 variable13;

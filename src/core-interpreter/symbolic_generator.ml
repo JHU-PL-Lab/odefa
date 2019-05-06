@@ -7,10 +7,6 @@ open Core_interpreter_utils;;
 open Unix;;
 open Yojson.Basic.Util;;
 
-type program_state = Done of (value * formula list) |
-                     Working of ((var * (clause Stack.t)) Stack.t * annotated_clause * clause Stack.t * (annotated_clause,annotated_clause) Hashtbl.t * formula list) |
-                     Double_working of (program_state * program_state);;
-
 (* returns the last program point of the program *)
 let rv (cls: clause list) : var =
   match cls with
@@ -27,7 +23,7 @@ let rv_of_function (fcn:value) : var =
 ;;
 
 let script formulas_list =
-  execv "/usr/bin/python" [| "python";"/home/theodore/research/odefa/src/core-interpreter/test.py";formulas_list|]
+  execv "/usr/bin/python" [| "python";"/home/theodore/research/odefa/src/core-interpreter/SATsolver.py";formulas_list|]
 ;;
 
 (* note that when we recurse into a function, we add the outermost level declarations first - so when we traverse the graph we go into the function first *)
@@ -361,6 +357,41 @@ let rec lookup (lookup_stack:(var * (clause Stack.t)) Stack.t) (node:annotated_c
             | Binary_operator_index -> failwith "index not done yet"
             | Binary_operator_tilde -> failwith "tilde binop"
           end
+        | Projection_body(var, label) ->
+          (* find record *)
+          let temp_stack = Stack.create () in
+          Stack.push (var, (Stack.copy context_stack)) temp_stack;
+
+          let new_state = Working(temp_stack, node, (Stack.copy context_stack), graph, phi) in
+          let temp_q = Queue.create () in
+          Queue.add new_state temp_q;
+          let record, new_phi = eval_helper temp_q true in
+          (* begin
+            match lookup temp_stack node (Stack.copy context_stack) graph phi with
+            | Done(v, p) ->
+              begin
+                match v with
+                | Value_record(Record_value(r)) ->
+                  r, p
+                | _ ->
+                  failwith "projection on non-record value"
+              end
+            | _ ->
+              failwith "had to make decision looking for record"
+          end *)
+          (* in *)
+          let new_var =
+            begin
+              match record with
+              | Value_record(Record_value(map)) ->
+                Ident_map.find label map
+              | _ ->
+                failwith "Projection on non-record object"
+            end
+          in
+          let _ = Stack.pop lookup_stack in
+          Stack.push (new_var, (Stack.copy context_stack)) lookup_stack;
+          lookup lookup_stack a1 context_stack graph (phi@new_phi)
         | _ ->
           failwith "not implemented yet"
       end
@@ -406,9 +437,47 @@ let rec lookup (lookup_stack:(var * (clause Stack.t)) Stack.t) (node:annotated_c
       | Conditional_body(a, p, Function_value(_, Expr(f1_list)), _) ->
         if cur_var <> param then
           if Stack.is_empty context_stack then
-            let _ = print_endline "just letting it go for now" in
-            lookup lookup_stack a1 context_stack graph phi
-          (* failwith "asdf" *)
+            (* if this is the case then we must have started inside a conditional *)
+            let _ = print_endline "NOT just letting it go for now" in
+            let Clause(xf1, _) = List.hd f1_list in
+            (* let Clause(xf2, _) = List.hd f2_list in *)
+            let cur_node_var =
+              begin
+                match node with
+                | Start_clause(cnv) -> cnv
+                | _ -> failwith "current node is not unannotated"
+              end
+            in
+            let new_formula =
+              (
+                let pattern_formula = Binary_formula(Var_formula(a, (Stack.copy context_stack)), Binary_operator_equal_to, Pattern_formula(p)) in
+                if xf1 = cur_node_var then
+                  Binary_formula(pattern_formula, Binary_operator_equal_to, Value_formula(Value_bool(true)))
+                else
+                  Binary_formula(pattern_formula, Binary_operator_equal_to, Value_formula(Value_bool(false)))
+              )
+            in
+            (* lookup p to get formulas for that *)
+            let temp_lookup_stack = Stack.create () in
+            Stack.push (a, (Stack.copy context_stack)) temp_lookup_stack;
+
+            print_endline "about to lookup";
+            print_stack temp_lookup_stack;
+
+            let new_state = Working(temp_lookup_stack, a1, (Stack.copy context_stack), graph, phi) in
+            let temp_q = Queue.create () in
+            Queue.add new_state temp_q;
+            let _,new_phi = eval_helper temp_q true in
+              (* begin
+                match lookup temp_lookup_stack a1 context_stack graph phi with
+                | Done(_, phi_arg) ->
+                  phi_arg
+                | _ ->
+                  failwith "had to make decision to find arg - can probably solve this by doing eval - but maybe not"
+              end
+            in *)
+            lookup lookup_stack a1 context_stack graph (phi@[new_formula]@new_phi)
+            (* failwith "asdf" *)
           else
             let _ = Stack.pop context_stack in
             lookup lookup_stack a1 context_stack graph phi
@@ -524,17 +593,26 @@ let rec lookup (lookup_stack:(var * (clause Stack.t)) Stack.t) (node:annotated_c
               Stack.push (x, (Stack.copy context_stack)) temp_lookup_stack;
 
               print_endline "about to lookup";
+
+              print_endline "True exit node:";
+              print_endline (string_of_annotated_clause true_exit_node);
+              print_endline "\nFalse exit node";
+              print_endline (string_of_annotated_clause false_exit_node);
+
               print_stack temp_lookup_stack;
 
-              let new_phi =
-                begin
+              let new_state = Working(temp_lookup_stack, a1, (Stack.copy context_stack), graph, phi) in
+              let temp_q = Queue.create () in
+              Queue.add new_state temp_q;
+              let _,new_phi = eval_helper temp_q true in
+                (* begin
                   match lookup temp_lookup_stack a1 context_stack graph phi with
                   | Done(_, phi_arg) ->
                     phi_arg
                   | _ ->
                     failwith "had to make decision to find arg - can probably solve this by doing eval - but maybe not"
                 end
-              in
+              in *)
               print_endline ":LSKFJS:LDKFJSLDKFJSLKDFJLSDFJ";
               print_context_stack original_context_stack_2;
               print_context_stack original_context_stack_3;
@@ -567,7 +645,7 @@ let rec lookup (lookup_stack:(var * (clause Stack.t)) Stack.t) (node:annotated_c
             )
           else
             (* think we don't have to add anything else to the phi b/c dppa found only one option *)
-            let _ = print_endline "only one option" in 
+            let _ = print_endline "only one option" in
             lookup lookup_stack a1 context_stack graph (phi@[Binary_formula(Var_formula(original_program_point, (Stack.copy context_stack)),
                                                                             Binary_operator_equal_to, Var_formula(new_program_point, (Stack.copy context_stack)))])
       | _ ->
@@ -593,10 +671,17 @@ and eval_helper queue prompt_user : Core_ast.value * formula list =
       (v, phi)
     | Working(l, n, c, g, p) ->
       print_endline "Queue interaction";
+      print_queue queue;
+
+
+
       let new_state = lookup l n c g p in
       begin
         match new_state with
         | Done(v, phi) ->
+          print_endline "Ran into a done state";
+          print_endline (string_of_bool prompt_user);
+
           let phi = trim_list phi [] in
           let _ = Sys.command ("python /home/theodore/research/odefa/src/core-interpreter/test.py \"" ^ (string_of_phi phi) ^ "\"") in
           if prompt_user then
@@ -611,7 +696,7 @@ and eval_helper queue prompt_user : Core_ast.value * formula list =
               else
                 v, phi
             )
-          else
+             else
             v,phi (* hmm so if we don't prompt, can only take first guess?... *)
         | Working(_) ->
           (
@@ -686,7 +771,7 @@ let eval (Expr(cls)) : Core_ast.var * value Core_interpreter.Environment.t * for
   print_endline ("Output val: " ^ (string_of_value output_val));
   print_phi phi;
 
-  let _ = Sys.command ("python /home/theodore/research/odefa/src/core-interpreter/test.py \"" ^ (string_of_phi phi) ^ "\"") in
+  (* let _ = Sys.command ("python /home/theodore/research/odefa/src/core-interpreter/test.py \"" ^ (string_of_phi phi) ^ "\"") in *)
 
   (* let _ = handle_unix_error script (string_of_phi phi) in *)
 

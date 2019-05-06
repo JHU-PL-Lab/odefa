@@ -1,25 +1,34 @@
+## Directory overview
+Symbolic_generator is the symbolic version of the test generation algorithm. Core_interpreter_wddpac_native_2 is the concrete version. Utility functions are in Core_interpreter_utils. The other important piece is the script that runs the SAT solver, which is SATsolver.py.
 
-To generate graph json file:
-run ./toploop_main.native --ddpa-logging=result
+## Running test generation
+First we need the cfg from ddpa.
 
-This generates ddpa_graphs.log.json file
+To generate graph json file run:
 
-Rename it to ddpa_graphs.json (yojson doesn't like two periods in the name of the file I think)
-cp ddpa_graphs.log.json ddpa_graphs.json
+`./toploop_main.native --ddpa-logging=result`
+
+Input your program and it will generate a ddpa_graphs.log.json file
+
+If toploop_main.native is not in the repo, or you want to update ddpa, switch branches, make the ddpa binary, and then
+switch branches back.
+
+Rename the cfg json file to ddpa_graphs.json (yojson doesn't filenames with more than one period):
+
+`cp ddpa_graphs.log.json ddpa_graphs.json`
 
 Symbolic_generator.ml will assume the ddpa_graphs.json file is the file is wants to use.
 
-Restrictions:
-a,b,c,d,e vars are assumed to be booleans
+Then run the test-generation:
 
-Notes  
+`./core_toploop_main.native`
 
-Can you have a context stack that has stuff on it, but none of them are the right one?
+and input your program and get your input mappings.
 
-Context annotated on variables is not really implemented at all
+## Restrictions
+* bool variables need to be prefaced by the string 'bool'
+* pattern matching is only defined on booleans
 
-
-Let's take a bit of liberty with the pattern match formulas:
-  * For boolean matches, we can just translate that to 'x=true' or something
-  * We are going to assume all integer matches evaluate to true since the programmer probably messed up if you pattern matched otherwise
-    - Also think we can just convert an integer pattern match to an extra binding then a bool pattern match
+## Problems
+* z3py does not have native syntax for records. So records are implemented but
+I've turned off running the SAT solver because records crash the python script.
