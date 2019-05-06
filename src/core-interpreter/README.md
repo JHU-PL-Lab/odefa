@@ -29,6 +29,11 @@ and input your program and get your input mappings.
 * bool variables need to be prefaced by the string 'bool'
 * pattern matching is only defined on booleans
 
+## Todo
+* Be able to run benchmarks as interpreter
+* Integrate inputs with benchmarks
+
+
 ## Problems
 * z3py does not have native syntax for records. So records are implemented but
 I've turned off running the SAT solver because records crash the python script.
