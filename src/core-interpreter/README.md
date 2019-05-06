@@ -21,11 +21,8 @@ Symbolic_generator.ml will assume the ddpa_graphs.json file is the file is wants
 
 Then run the test-generation:
 
-`
-make
-
-./core_toploop_main.native
-`
+`make`
+`./core_toploop_main.native`
 
 and input your program and get your input mappings.
 
