@@ -23,6 +23,7 @@ Then run the test-generation:
 
 `
 make
+
 ./core_toploop_main.native
 `
 
