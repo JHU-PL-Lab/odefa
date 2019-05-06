@@ -28,6 +28,7 @@ and input your program and get your input mappings.
 ## Restrictions
 * bool variables need to be prefaced by the string 'bool'
 * pattern matching is only defined on booleans
+* Code expects the last line of the program to be an alias. The implementation will start lookup from the program point specified in the last line alias.
 
 ## Todo
 * Be able to run benchmarks as interpreter
