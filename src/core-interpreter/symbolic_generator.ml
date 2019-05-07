@@ -23,7 +23,7 @@ let rv_of_function (fcn:value) : var =
 ;;
 
 let script formulas_list =
-  execv "/usr/bin/python" [| "python";"/home/theodore/research/odefa/src/core-interpreter/SATsolver.py";formulas_list|]
+  execv "python3" [| "python";"src/core-interpreter/SATsolver.py";formulas_list|]
 ;;
 
 (* note that when we recurse into a function, we add the outermost level declarations first - so when we traverse the graph we go into the function first *)
@@ -683,7 +683,7 @@ and eval_helper queue prompt_user : Core_ast.value * formula list =
           print_endline (string_of_bool prompt_user);
 
           let phi = trim_list phi [] in
-          let _ = Sys.command ("python /home/theodore/research/odefa/src/core-interpreter/test.py \"" ^ (string_of_phi phi) ^ "\"") in
+          let _ = Sys.command ("python3 src/core-interpreter/SATsolver.py \"" ^ (string_of_phi phi) ^ "\"") in
           if prompt_user then
             (
               print_endline "Do you want to continue? 1 to continue searching, 2 to take values found";
@@ -771,7 +771,7 @@ let eval (Expr(cls)) : Core_ast.var * value Core_interpreter.Environment.t * for
   print_endline ("Output val: " ^ (string_of_value output_val));
   print_phi phi;
 
-  (* let _ = Sys.command ("python /home/theodore/research/odefa/src/core-interpreter/test.py \"" ^ (string_of_phi phi) ^ "\"") in *)
+  (* let _ = Sys.command ("python src/core-interpreter/SATsolver.py \"" ^ (string_of_phi phi) ^ "\"") in *)
 
   (* let _ = handle_unix_error script (string_of_phi phi) in *)
 

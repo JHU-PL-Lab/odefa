@@ -500,7 +500,7 @@ let rec eval_helper lookup_stack starting_node context_stack graph iota starting
 ;;
 
 let script formula =
-  execv "/usr/bin/python" [| "python";"/home/theodore/research/odefa/src/core-interpreter/test.py";formula|]
+  execv "/usr/bin/python" [| "python";"src/core-interpreter/SATsolver.py";formula|]
 ;;
 
 let eval (Expr(cls)) : Core_ast.var * value Core_interpreter.Environment.t * formula * input_mapping =
