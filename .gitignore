@@ -18,3 +18,6 @@
 
 # Custom build configuration files
 /.local_*
+
+# Temp files
+ddpa_graphs.json
