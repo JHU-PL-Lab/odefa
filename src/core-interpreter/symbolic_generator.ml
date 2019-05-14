@@ -8,6 +8,9 @@ open Unix;;
 open Yojson.Basic.Util;;
 
 (* returns the last program point of the program *)
+
+let _ = Solve.main ()
+
 let rv (cls: clause list) : var =
   match cls with
   | [] -> raise @@ Utils.Invariant_failure "empty function body provided to rv"
