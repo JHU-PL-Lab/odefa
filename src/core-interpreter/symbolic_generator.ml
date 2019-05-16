@@ -205,6 +205,7 @@ let rec lookup (lookup_stack:(var * (clause Stack.t)) Stack.t) (node:annotated_c
     let Clause(x, body) = cl in
     if x <> cur_var then
       (
+        (* Skip *)
         lookup lookup_stack a1 context_stack graph phi
       )
     else
@@ -212,11 +213,14 @@ let rec lookup (lookup_stack:(var * (clause Stack.t)) Stack.t) (node:annotated_c
         match body with
         | Value_body(v) ->
           if Stack.length lookup_stack > 1 then
+            (* Value Discard *)
             let _ = Stack.pop lookup_stack in
             lookup lookup_stack node context_stack graph phi
           else
+            (* Value Discovery *)
             Done(v, phi@[Binary_formula(Var_formula(x, (Stack.copy context_stack)), Binary_operator_equal_to, Value_formula(v))])
         | Var_body(var) ->
+          (* Alias *)
           let context_stack_copy = Stack.copy context_stack in
           print_endline "alsdkfj";
           let context_for_var = find_context var node context_stack_copy graph phi in

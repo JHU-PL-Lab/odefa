@@ -55,8 +55,28 @@ enter point
 15. put `stack` into a `queue`
 16. call the `eval_helper` with the `queue`
 17. get the result `output_val` and `phi` from it
-18. 
+18. add the result to `core_interpreter.Environment`, which is a hash table(`core_ast.Var_hasktbl`).
 
+## wrapping and `eval_helper` details in `symbolic_generator.ml`
+
+1. `eval_helper queue prompt_user : Core_ast.value * formula list`
+2. check `queue` is not empty (return if empty)
+3. match `Done`, print and return
+4. match `Double_working`, add two states in the queue and loop `eval_helper`
+5. match `Working`, `lookup` to get `new_state`
+6. if (5) get `Working` or `Double_working`, loop `eval_helper`
+7. if (5) get `Done`, **call Z3** **What is Double_working?**
+
+## `lookup` details in `symbolic_generator.ml`
+
+1. `lookup (lookup_stack:(var * (clause Stack.t)) Stack.t) (node:annotated_clause) context_stack graph phi: program_state `
+2. `cur_var` is at the top of `lookup_stack`
+3. `a1` is the annotation clause for `node`
+4. case `a1` on `Unannotated_clause` `Enter_clause` `Exit_clause` `Conditional_enter_clause` `Conditional_exit_clause` `Start_clause` `End_clause` `Junk_clause`
+5. These cases are omit `Conditional_enter_clause` `Conditional_exit_clause` `Start_clause` `End_clause` `Junk_clause`
+6. In `Unannotated_clause` case, if `x <> cur_var`, then Skip
+7. comments for other cases are add to the code directly
+8. In `Binary` case, more sub-cases are discussed
 
 # Reading `core_interpreter_utils.ml`
 
@@ -75,6 +95,7 @@ type definition is used.
 Some `string_of_*` and `print_*` are used in `symbolic_generator.ml`.
 
 # Interaction with other files
+
 `symbolic_generator.ml` is required in the library task `core-interpreter`, together with `core_interpreter_utils.ml`.
 
 library `core-interpreter` is required in the library task `core-toploop`, which is for executable `core_toploop`.
