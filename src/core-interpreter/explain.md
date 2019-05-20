@@ -111,6 +111,14 @@ Call trace:
 
 # Todo
 
+`symbolic_generator.ml` line 694, the solver didn't take the output back from the sat solver...
+
+`core_interpreter_utils.ml` line 214, in `string_of_formula_2` when getting string of a var formula, the `freshening_stack` seems ignored.
+
+The definition of `type formala` seems not good since it's not arbitrary nested and it make adding expressions in Z3 harder.
+
+Using parsing in OCaml Z3 may be an alternative (see `Z3.SMT.parse_smtlib2_string `)
+
 `core_toploop.ml` line 52-57
 ```
     if conf.topconf_wddpac_interpreter then

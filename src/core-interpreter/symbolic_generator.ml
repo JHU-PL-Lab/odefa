@@ -690,7 +690,9 @@ and eval_helper queue prompt_user : Core_ast.value * formula list =
           print_endline (string_of_bool prompt_user);
 
           let phi = trim_list phi [] in
-          let _ = Sys.command ("python3 src/core-interpreter/SATsolver.py \"" ^ (string_of_phi phi) ^ "\"") in
+          let _ = print_endline (string_of_phi phi) in 
+          let _ = Solve.check phi in 
+          (* let _ = Sys.command ("python3 src/core-interpreter/SATsolver.py \"" ^ (string_of_phi phi) ^ "\"") in *)
           if prompt_user then
             (
               print_endline "Do you want to continue? 1 to continue searching, 2 to take values found";
