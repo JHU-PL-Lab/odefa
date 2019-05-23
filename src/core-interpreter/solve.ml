@@ -1,10 +1,10 @@
 open Z3
 open Z3.Boolean
 open Z3.Arithmetic
-(* open Z3.Arithmetic.Real *)
-open Core_ast
 open Core_interpreter_utils
 
+open Batteries
+open Core_ast
 
 (* 
 Here is the lists of added formula:

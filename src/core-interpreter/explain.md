@@ -113,9 +113,21 @@ Call trace:
 
 `symbolic_generator.ml` line 694, the solver didn't take the output back from the sat solver...
 
+
 `core_interpreter_utils.ml` line 214, in `string_of_formula_2` when getting string of a var formula, the `freshening_stack` seems ignored.
 
+
 The definition of `type formala` seems not good since it's not arbitrary nested and it make adding expressions in Z3 harder.
+
+In general, we have formula like:
+x = 1
+x = y
+(x <= 1) Or (1 <= x)  # we need to add once in the top formula
+x = not y
+x = x `op` y
+pat = 1
+x = pat
+
 
 Using parsing in OCaml Z3 may be an alternative (see `Z3.SMT.parse_smtlib2_string `)
 

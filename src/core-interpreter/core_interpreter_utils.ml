@@ -37,8 +37,8 @@ type annotated_clause =
 [@@deriving ord, eq, to_yojson]
 ;;
 
-type program_state = Done of (value * formula list) |
-                     Working of ((var * (clause Stack.t)) Stack.t * annotated_clause * clause Stack.t * (annotated_clause,annotated_clause) Hashtbl.t * formula list) |
+type program_state = Done of (value * Formula_type.t_phi) |
+                     Working of ((var * (clause Stack.t)) Stack.t * annotated_clause * clause Stack.t * (annotated_clause,annotated_clause) Hashtbl.t * Formula_type.t_phi) |
                      Double_working of (program_state * program_state);;
 
 let string_of_var v : string =
@@ -270,7 +270,7 @@ let print_context_stack stack : unit =
 let rec string_of_program_state state : string =
   match state with
   | Done(v, phi) ->
-    "Done(" ^ (string_of_value v) ^ ", " ^ (string_of_phi phi) ^ ")"
+    "Done(" ^ (string_of_value v) ^ ", " ^ (Formula_type.string_of_phi phi) ^ ")"
   | Working(l, n, c, _,_) ->
     print_stack l;
     "Working(" ^ (string_of_annotated_clause n) ^ ", " ^ (string_of_context_stack c)
