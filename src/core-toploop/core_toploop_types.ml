@@ -14,7 +14,7 @@ open Core_interpreter;;
     captures exceptional cases and toploop configuration properties. *)
 type evaluation_result =
   (* | Evaluation_completed of value *)
-  | Evaluation_completed of var * evaluation_environment * formula * input_mapping
+  | Evaluation_completed of var * evaluation_environment * Formula_type.t * input_mapping
   (** The case in which evaluation was successful. *)
 
   | Evaluation_failure of string
@@ -26,7 +26,7 @@ type evaluation_result =
 
   | Evaluation_disabled
   (** The case in which the user specifically disabled evaluation. *)
-  [@@deriving show]
+[@@deriving show]
 ;;
 
 (** Represents the result of processing an expression in the toploop. *)
@@ -41,7 +41,7 @@ type result =
         if evaluation was disabled, if error checking was enabled and discovered
         errors, or if the expression was ill-formed. *)
   }
-  [@@deriving show]
+[@@deriving show]
 ;;
 
 (** A record containing the callbacks that the toploop calls during evaluation.
@@ -49,7 +49,7 @@ type result =
     the entire result to be produced. *)
 type callbacks =
   { cb_illformednesses : Core_ast_wellformedness.illformedness list -> unit
-  ; cb_evaluation_result : var -> value Environment.t -> formula -> input_mapping -> unit
+  ; cb_evaluation_result : var -> value Environment.t -> Formula_type.t -> input_mapping -> unit
   ; cb_evaluation_failed : string -> unit
   ; cb_evaluation_disabled : unit -> unit
   }

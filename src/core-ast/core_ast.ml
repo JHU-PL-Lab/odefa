@@ -139,12 +139,12 @@ type record_value =
 
 (** A type to express function values. *)
 and function_value =
-    | Function_value of var * expr
+  | Function_value of var * expr
 [@@deriving eq, ord, to_yojson]
 
 (** A type to express reference values. *)
 and ref_value =
-    | Ref_value of var
+  | Ref_value of var
 [@@deriving eq, ord, to_yojson]
 
 (** A type to express empty value sets. *)
@@ -154,17 +154,17 @@ and ref_value =
 
 (** A type to represent values. *)
 and value =
-    | Value_record of record_value
+  | Value_record of record_value
   | Value_function of function_value
   | Value_ref of ref_value
   | Value_int of int
   | Value_bool of bool
-(* | Value_string of string *)
+  (* | Value_string of string *)
 [@@deriving eq, ord, to_yojson]
 
 (** A type to represent the bodies of clauses. *)
 and clause_body =
-    | Value_body of value
+  | Value_body of value
   | Var_body of var
   | Appl_body of var * var
   | Conditional_body of var * pattern * function_value * function_value
@@ -178,8 +178,8 @@ and clause_body =
 
 (** A type to represent clauses. *)
 and clause =
-    | Clause of var * clause_body
-(* | Hash of var  *)
+  | Clause of var * clause_body
+  (* | Hash of var  *)
 [@@deriving eq, ord, to_yojson]
 
 (** A type to represent expressions. *)
@@ -187,8 +187,8 @@ and expr = Expr of clause list [@@deriving eq, ord, to_yojson]
 
 (** A type representing conditional patterns. *)
 and pattern =
-    (* | Record_pattern of pattern Ident_map.t *)
-    | Fun_pattern
+  (* | Record_pattern of pattern Ident_map.t *)
+  | Fun_pattern
   (* | Ref_pattern *)
   | Int_pattern
   | Bool_pattern of bool

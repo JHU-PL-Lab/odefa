@@ -1,6 +1,6 @@
 open Batteries;;
 
-open Core_ast;;
+(* open Core_ast;; *)
 open Core_ast_pp;;
 open Core_ast_wellformedness;;
 open Core_interpreter_utils;;
@@ -16,8 +16,10 @@ let stdout_illformednesses_callback ills =
   flush stdout
 ;;
 
-let stdout_evaluation_result_callback v env formula _ =
-  print_endline ((show_var v) ^ " where " ^ (show_evaluation_environment env) ^ " with formula " ^ (string_of_formula formula) ^ "\n");
+let stdout_evaluation_result_callback v env _ _ =
+  print_endline ((show_var v) ^ " where " ^ (show_evaluation_environment env) ^ " with formula (not implemented)" ^ 
+                 (* (string_of_formula formula) ^  *)
+                 "\n");
   flush stdout
 ;;
 
