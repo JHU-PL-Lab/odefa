@@ -258,7 +258,7 @@ let rec lookup (lookup_stack:(var * (clause Stack.t)) Stack.t) (node:annotated_c
                 | Value_bool(b) -> Done(Value_bool(not b), 
                                         phi@phi2@
                                         (* [Binary_formula(Var_formula(cur_var, (Stack.copy context_stack)),Binary_operator_equal_to, Negated_formula(Var_formula(v1, (Stack.copy context_stack))))] *)
-                                        [Formula_Not (Formula_type.eq_symbol cur_var context_stack v1 context_stack)]
+                                        [Formula_type.Formula_Not (Formula_type.eq_symbol cur_var context_stack v1 context_stack)]
                                        )
                 | _ -> raise @@ Utils.Invariant_failure "non-bool expr with not operator"
               end
@@ -318,15 +318,14 @@ let rec lookup (lookup_stack:(var * (clause Stack.t)) Stack.t) (node:annotated_c
                 | Value_int(i1), Value_int(i2) ->
                   (* [Binary_formula(Var_formula(cur_var, (Stack.copy original_context_stack)), Binary_operator_equal_to,
                                                                  Binary_formula(Var_formula(v1, (Stack.copy context_for_left)), Binary_operator_plus, Var_formula(v2, (Stack.copy context_for_right))))] *)
-                  Done(Value_int(i1 + i2), phi@[Formula_type.eq_symbol])
+                  Done(Value_int(i1 + i2), phi@[Formula_type.eq_binop cur_var original_context_stack Formula_type.Plus v1 context_for_left v2 context_for_right])
                 | _ -> failwith "tried to add non-int"
               end
             | Binary_operator_int_minus ->
               begin
                 match left_value, right_value with
                 | Value_int(i1), Value_int(i2) ->
-                  Done(Value_int(i1 - i2), phi@[Binary_formula(Var_formula(cur_var, (Stack.copy original_context_stack)), Binary_operator_equal_to,
-                                                               Binary_formula(Var_formula(v1, (Stack.copy context_for_left)), Binary_operator_int_minus, Var_formula(v2, (Stack.copy context_for_right))))])
+                  Done(Value_int(i1 - i2), phi@[Formula_type.eq_binop cur_var original_context_stack Formula_type.Minus v1 context_for_left v2 context_for_right])
                 | _ -> failwith "tried to subtract non-int"
               end
             | Binary_operator_int_less_than ->
@@ -335,18 +334,18 @@ let rec lookup (lookup_stack:(var * (clause Stack.t)) Stack.t) (node:annotated_c
                 | Value_int(i1), Value_int(i2) ->
                   (* Binary_formula(Var_formula(cur_var, (Stack.copy original_context_stack)), Binary_operator_equal_to,
                                                                   Binary_formula(Var_formula(v1, (Stack.copy context_for_left)), Binary_operator_int_less_than, Var_formula(v2, (Stack.copy context_for_right)))) *)
-                  Done(Value_bool(i1 < i2), phi@[Formula_type.Eq_binop cur_var original_context_stack Formula_type.Less_than v1 context_for_left v2 context_for_right])
+                  Done(Value_bool(i1 < i2), phi@[Formula_type.eq_binop cur_var original_context_stack Formula_type.Less_than v1 context_for_left v2 context_for_right])
                 | _ -> failwith "tried to less than non-int"
               end
             | Binary_operator_int_less_than_or_equal_to ->
               begin
                 match left_value, right_value with
                 | Value_int(i1), Value_int(i2) ->
-                  Done(Value_bool(i1 <= i2), phi@[Formula_type.Eq_binop cur_var original_context_stack Formula_type.Less_than_or_equal_to v1 context_for_left v2 context_for_right])
+                  Done(Value_bool(i1 <= i2), phi@[Formula_type.eq_binop cur_var original_context_stack Formula_type.Less_than_or_equal_to v1 context_for_left v2 context_for_right])
                 | _ -> failwith "tried to less or equal than non-int"
               end
             | Binary_operator_equal_to ->
-              let new_formula = phi@[Formula_type.Eq_binop cur_var original_context_stack Formula_type.Equal_to v1 context_for_left v2 context_for_right] in
+              let new_formula = phi@[Formula_type.eq_binop cur_var original_context_stack Formula_type.Equal_to v1 context_for_left v2 context_for_right] in
               begin
                 match left_value, right_value with
                 | Value_int(i1), Value_int(i2) ->
@@ -358,14 +357,14 @@ let rec lookup (lookup_stack:(var * (clause Stack.t)) Stack.t) (node:annotated_c
               begin
                 match left_value, right_value with
                 | Value_bool(b1), Value_bool(b2) ->
-                  Done(Value_bool(b1 && b2), phi@[Formula_type.Eq_binop cur_var original_context_stack Formula_type.And v1 context_for_left v2 context_for_right])
+                  Done(Value_bool(b1 && b2), phi@[Formula_type.eq_binop cur_var original_context_stack Formula_type.And v1 context_for_left v2 context_for_right])
                 | _ -> failwith "tried to and non-booleans"
               end
             | Binary_operator_bool_or ->
               begin
                 match left_value, right_value with
                 | Value_bool(b1), Value_bool(b2) ->
-                  Done(Value_bool(b1 || b2), phi@[Formula_type.Eq_binop cur_var original_context_stack Formula_type.Or v1 context_for_left v2 context_for_right])
+                  Done(Value_bool(b1 || b2), phi@[Formula_type.eq_binop cur_var original_context_stack Formula_type.Or v1 context_for_left v2 context_for_right])
                 | _ -> failwith "tried to or non-booleans"
               end
             | Binary_operator_index -> failwith "index not done yet"
@@ -449,7 +448,7 @@ let rec lookup (lookup_stack:(var * (clause Stack.t)) Stack.t) (node:annotated_c
             Stack.push cur_context context_stack;
             print_endline ("rightnode: " ^ (string_of_annotated_clause right_node));
             lookup lookup_stack node context_stack graph phi
-      | Conditional_body(a, p, Function_value(_, Expr(f1_list)), _) ->
+      | Conditional_body(a, _, Function_value(_, Expr(f1_list)), _) ->
         if cur_var <> param then
           if Stack.is_empty context_stack then
             (* if this is the case then we must have started inside a conditional *)
@@ -464,13 +463,15 @@ let rec lookup (lookup_stack:(var * (clause Stack.t)) Stack.t) (node:annotated_c
               end
             in
             let new_formula =
-              (
-                let pattern_formula = Binary_formula(Var_formula(a, (Stack.copy context_stack)), Binary_operator_equal_to, Pattern_formula(p)) in
-                if xf1 = cur_node_var then
+              (* (
+                 let pattern_formula = Binary_formula(Var_formula(a, (Stack.copy context_stack)), Binary_operator_equal_to, Pattern_formula(p)) 
+                 in
+                 if xf1 = cur_node_var then
                   Binary_formula(pattern_formula, Binary_operator_equal_to, Value_formula(Value_bool(true)))
-                else
+                 else
                   Binary_formula(pattern_formula, Binary_operator_equal_to, Value_formula(Value_bool(false)))
-              )
+                 ) *)
+              Formula_type.eq_value a context_stack (Value_bool(xf1 = cur_node_var))
             in
             (* lookup p to get formulas for that *)
             let temp_lookup_stack = Stack.create () in
@@ -509,13 +510,12 @@ let rec lookup (lookup_stack:(var * (clause Stack.t)) Stack.t) (node:annotated_c
             end
           in
           let new_formula =
-            (
-              let pattern_formula = Binary_formula(Var_formula(a, (Stack.copy context_stack)), Binary_operator_equal_to, Pattern_formula(p)) in
-              if xf1 = cur_node_var then
-                Binary_formula(pattern_formula, Binary_operator_equal_to, Value_formula(Value_bool(true)))
-              else
-                Binary_formula(pattern_formula, Binary_operator_equal_to, Value_formula(Value_bool(false)))
-            )
+            (* let pattern_formula = Binary_formula(Var_formula(a, (Stack.copy context_stack)), Binary_operator_equal_to, Pattern_formula(p)) in
+               if xf1 = cur_node_var then
+               Binary_formula(pattern_formula, Binary_operator_equal_to, Value_formula(Value_bool(true)))
+               else
+               Binary_formula(pattern_formula, Binary_operator_equal_to, Value_formula(Value_bool(false))) *)
+            Formula_type.eq_value a context_stack (Value_bool(xf1 = cur_node_var))
           in
           let _ = Stack.pop lookup_stack in
           Stack.push (arg, (Stack.copy context_stack)) lookup_stack;
@@ -525,8 +525,9 @@ let rec lookup (lookup_stack:(var * (clause Stack.t)) Stack.t) (node:annotated_c
           Stack.push (arg, (Stack.copy context_stack)) lookup_stack;
           let original_context_stack = Stack.copy context_stack in
           let _ = Stack.pop context_stack in
-          lookup lookup_stack a1 context_stack graph (phi@[Binary_formula(Var_formula(cur_var, (Stack.copy original_context_stack)),
-                                                                          Binary_operator_equal_to, Var_formula(arg, (Stack.copy context_stack)))])
+          (* Binary_formula(Var_formula(cur_var, (Stack.copy original_context_stack)),
+                                                                          Binary_operator_equal_to, Var_formula(arg, (Stack.copy context_stack))) *)
+          lookup lookup_stack a1 context_stack graph (phi@[Formula_type.eq_symbol cur_var original_context_stack arg context_stack])
       | _ ->
         failwith "exit clause context is not appl or cond"
     end
@@ -549,12 +550,13 @@ let rec lookup (lookup_stack:(var * (clause Stack.t)) Stack.t) (node:annotated_c
           let _ = Stack.pop lookup_stack in
           Stack.push (new_program_point, (Stack.copy context_stack)) lookup_stack;
           print_endline ("\nFunction found, proceeding");
-          lookup lookup_stack a1 context_stack graph (phi@[Binary_formula(Var_formula(cur_var, (Stack.copy original_context_stack)),Binary_operator_equal_to, Var_formula(new_program_point, (Stack.copy context_stack)))])
+          (* Binary_formula(Var_formula(cur_var, (Stack.copy original_context_stack)),Binary_operator_equal_to, Var_formula(new_program_point, (Stack.copy context_stack))) *)
+          lookup lookup_stack a1 context_stack graph (phi@[Formula_type.eq_symbol cur_var original_context_stack new_program_point context_stack])
         else
           (* if not relevant, skip it *)
           let new_a1 = get_non_exit_clause_node graph node in
           lookup lookup_stack new_a1 context_stack graph phi
-      | Conditional_body(x,p,Function_value(_,Expr(f1)),_) ->
+      | Conditional_body(x,_,Function_value(_,Expr(f1)),_) ->
         let original_context_stack = Stack.copy context_stack in
         Stack.push cl context_stack;
 
@@ -632,37 +634,40 @@ let rec lookup (lookup_stack:(var * (clause Stack.t)) Stack.t) (node:annotated_c
               print_context_stack original_context_stack_2;
               print_context_stack original_context_stack_3;
               print_context_stack original_context_stack_3;
-              print_endline (string_of_formula_2 (Binary_formula(Var_formula(original_program_point, (Stack.copy original_context_stack)),
-                                                                 Binary_operator_equal_to, Var_formula(new_program_point, (Stack.copy original_context_stack_2)))));
+              (* print_endline (string_of_formula_2 (Binary_formula(Var_formula(original_program_point, (Stack.copy original_context_stack)),
+                                                                 Binary_operator_equal_to, Var_formula(new_program_point, (Stack.copy original_context_stack_2))))); *)
 
               (* let new_phi = new_phi@[Binary_formula(Var_formula(original_program_point, original_context_stack), *)
               (* Binary_operator_equal_to, Var_formula(new_program_point, original_context_stack_2))] in *)
 
-              print_phi new_phi;
-              let new_phi_1 = new_phi@[Binary_formula(Var_formula(x, (Stack.copy context_stack)), Binary_operator_equal_to, Pattern_formula(p))]
-                              @[Binary_formula(Var_formula(original_program_point, (Stack.copy original_context_stack)),
-                                               Binary_operator_equal_to, Var_formula(new_program_point, (Stack.copy original_context_stack_2)))]
+              (* print_phi new_phi; *)
+              let new_phi_1 = new_phi@
+                              (* [Binary_formula(Var_formula(x, (Stack.copy context_stack)), Binary_operator_equal_to, Pattern_formula(p))]
+                                              @[Binary_formula(Var_formula(original_program_point, (Stack.copy original_context_stack)),
+                                                               Binary_operator_equal_to, Var_formula(new_program_point, (Stack.copy original_context_stack_2)))] *)
+                              [ Formula_type.eq_symbol original_program_point original_context_stack new_program_point original_context_stack_2]
               in
-              let new_phi_2 = new_phi@[Negated_formula(Binary_formula(Var_formula(x, (Stack.copy context_stack)), Binary_operator_equal_to, Pattern_formula(p)))]
-                              @[Binary_formula(Var_formula(false_branch_original_program_point, (Stack.copy original_context_stack)),
-                                               Binary_operator_equal_to, Var_formula(false_branch_new_program_point, (Stack.copy original_context_stack_3)))]
+              let new_phi_2 = new_phi@
+                              (* [Negated_formula(Binary_formula(Var_formula(x, (Stack.copy context_stack)), Binary_operator_equal_to, Pattern_formula(p)))]
+                                              @[Binary_formula(Var_formula(false_branch_original_program_point, (Stack.copy original_context_stack)),
+                                                               Binary_operator_equal_to, Var_formula(false_branch_new_program_point, (Stack.copy original_context_stack_3)))] *)
+                              [ Formula_type.eq_symbol false_branch_original_program_point original_context_stack false_branch_new_program_point original_context_stack_3]
               in
-
-              print_phi new_phi_1;
-              print_phi new_phi_2;
-
+              (* print_phi new_phi_1;
+                 print_phi new_phi_2; *)
               print_stack new_lookup_stack_1;
               print_stack new_lookup_stack_2;
-
-
               Double_working(Working(new_lookup_stack_1, true_exit_node, original_context_stack_2, new_graph_1, new_phi_1),
                              Working(new_lookup_stack_2, false_exit_node, original_context_stack_3, new_graph_2, new_phi_2))
             )
           else
             (* think we don't have to add anything else to the phi b/c dppa found only one option *)
             let _ = print_endline "only one option" in
-            lookup lookup_stack a1 context_stack graph (phi@[Binary_formula(Var_formula(original_program_point, (Stack.copy context_stack)),
-                                                                            Binary_operator_equal_to, Var_formula(new_program_point, (Stack.copy context_stack)))])
+            lookup lookup_stack a1 context_stack graph (phi@
+                                                        (* [Binary_formula(Var_formula(original_program_point, (Stack.copy context_stack)),
+                                                                                                                        Binary_operator_equal_to, Var_formula(new_program_point, (Stack.copy context_stack)))] *)
+                                                        [Formula_type.eq_symbol original_program_point context_stack new_program_point context_stack]
+                                                       )
       | _ ->
         failwith "exit clause context is not appl or cond"
     end
@@ -677,12 +682,12 @@ let rec lookup (lookup_stack:(var * (clause Stack.t)) Stack.t) (node:annotated_c
   | Junk_clause ->
     failwith "todo"
 
-and eval_helper queue prompt_user : Core_ast.value * formula list =
+and eval_helper queue prompt_user : Core_ast.value * Formula_type.t_phi =
   if Queue.length queue > 0 then
     let state = Queue.take queue in
     match state with
     | Done(v, phi) ->
-      print_endline ("Phi: " ^ (string_of_phi phi));
+      (* print_endline ("Phi: " ^ (string_of_phi phi)); *)
       (v, phi)
     | Working(l, n, c, g, p) ->
       print_endline "Queue interaction";
@@ -698,7 +703,7 @@ and eval_helper queue prompt_user : Core_ast.value * formula list =
           print_endline (string_of_bool prompt_user);
 
           let phi = trim_list phi [] in
-          let _ = print_endline (string_of_phi phi) in 
+          (* let _ = print_endline (string_of_phi phi) in  *)
           let _ = Solve.check phi in 
           (* let _ = Sys.command ("python3 src/core-interpreter/SATsolver.py \"" ^ (string_of_phi phi) ^ "\"") in *)
           if prompt_user then
@@ -740,7 +745,7 @@ and eval_helper queue prompt_user : Core_ast.value * formula list =
     )
 ;;
 
-let eval (Expr(cls)) : Core_ast.var * value Core_interpreter.Environment.t * formula * input_mapping =
+let eval (Expr(cls)) : Core_ast.var * value Core_interpreter.Environment.t * Formula_type.t * input_mapping =
   (* make dictionary *)
   let map = make_map cls (Hashtbl.create 10) in
   (* print_intermediate_map map; *)
@@ -786,7 +791,7 @@ let eval (Expr(cls)) : Core_ast.var * value Core_interpreter.Environment.t * for
   let output_val,phi = eval_helper queue true in
 
   print_endline ("Output val: " ^ (string_of_value output_val));
-  print_phi phi;
+  (* print_phi phi; *)
 
   (* let _ = Sys.command ("python src/core-interpreter/SATsolver.py \"" ^ (string_of_phi phi) ^ "\"") in *)
 
@@ -798,7 +803,4 @@ let eval (Expr(cls)) : Core_ast.var * value Core_interpreter.Environment.t * for
   Core_interpreter.Environment.add env rx output_val;
 
   rx, env, List.hd phi, Iota.create 10
-
-
-
 ;;

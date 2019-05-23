@@ -1,10 +1,10 @@
-type pattern_enum =
-  | Pattern_fun
-  | Pattern_int
-  | Pattern_true
-  | Pattern_false
-  | Pattern_any
-[@@deriving eq, ord]
+(* type pattern_enum =
+   | Pattern_fun
+   | Pattern_int
+   | Pattern_true
+   | Pattern_false
+   | Pattern_any
+   [@@deriving eq, ord] *)
 type binop =
   | Plus
   | Minus
@@ -15,13 +15,13 @@ type binop =
   | Or
   (* | Binary_operator_index
      | Binary_operator_tilde *)
-[@@deriving eq, ord]
 
-type symbol = Symbol of Core_ast.Var.t * Core_ast.clause Batteries.Stack.t
+type symbol = Symbol of Core_ast.Var.t * Core_ast.clause Stack.t
+
 type element =
   | Int of int
   | Bool of bool
-  | Pattern of pattern_enum
+  | Pattern of Core_ast.pattern
 
 (* the sat result of a formula is a bool, like
    x = 1 (Eq_value)
@@ -37,7 +37,10 @@ type formula =
   | Eq_symbol of symbol * symbol
   | Eq_binop of symbol * binop * symbol * symbol
 
+
+
 type t = formula
+
 type t_phi = formula list
 
 let empty_phi : t_phi = []
@@ -53,7 +56,7 @@ let rec string_of_phi phi =
     (string_of_formula head) ^ " , " ^  (string_of_phi tail)
 ;;
 
-let eq_value (x: Core_ast.Var.t) (sx : 'a Batteries.Stack.t) (v : Core_ast.value) : t =
+let eq_value (x : Core_ast.Var.t) (sx : 'a Batteries.Stack.t) (v : Core_ast.value) : t =
   let v' = (match v with 
       | Core_ast.Value_int i -> Int(i)
       | Core_ast.Value_bool b -> Bool(b)
@@ -61,13 +64,17 @@ let eq_value (x: Core_ast.Var.t) (sx : 'a Batteries.Stack.t) (v : Core_ast.value
     ) in
   Eq_value(Symbol(x, Stack.copy sx), v')
 
-let eq_symbol (x: Core_ast.Var.t) (sx : 'a Batteries.Stack.t) (y: Core_ast.Var.t) (sy : 'a Batteries.Stack.t) : t =
+let eq_symbol (x : Core_ast.Var.t) (sx : 'a Batteries.Stack.t) (y : Core_ast.Var.t) (sy : 'a Batteries.Stack.t) : t =
   Eq_symbol(Symbol(x, Stack.copy sx), Symbol(y, Stack.copy sy))
 
-let eq_binop (x: Core_ast.Var.t) (sx : 'a Batteries.Stack.t) (op : binop) (y: Core_ast.Var.t) (sy : 'a Batteries.Stack.t) (z: Core_ast.Var.t) (sz : 'a Batteries.Stack.t) : t
-  = Eq_binop(
+let eq_binop (x : Core_ast.Var.t) (sx : 'a Batteries.Stack.t) (op : binop) (y: Core_ast.Var.t) (sy : 'a Batteries.Stack.t) (z : Core_ast.Var.t) (sz : 'a Batteries.Stack.t) : t =
+  Eq_binop(
     Symbol(x, Stack.copy sx), op,
     Symbol(y, Stack.copy sy),
     Symbol(z, Stack.copy sz))
 
+let eq_pattern (x : Core_ast.Var.t) (sx : 'a Batteries.Stack.t) (p : Core_ast.pattern) =
+  Eq_value(Symbol(x, Stack.copy sx), Pattern(p))
 (* let string_of_formula *)
+
+let pp _ _ = "no pp for formula"
