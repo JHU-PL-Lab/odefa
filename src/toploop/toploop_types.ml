@@ -3,6 +3,7 @@
    types need not be re-declared on in an interface.
 *)
 
+open Batteries;;
 open Jhupllib;;
 
 open Odefa_ast;;
@@ -20,6 +21,50 @@ type analysis_task =
   (* DDPA_context_stack.Context_stack is a type in the module ddpa_context_stack.ml *)
   | DDPA of (module Ddpa_context_stack.Context_stack)
   (* | Plume of (module Plume_context_model.Context_model) *)
+;;
+
+let equal_analysis_task (a1 : analysis_task) (a2 : analysis_task) =
+  match a1, a2 with
+  | DDPA (ctx_stack1), DDPA (ctx_stack2) ->
+    let module C1 = (val ctx_stack1) in
+    let module C2 = (val ctx_stack2) in
+    C1.name = C2.name
+;;
+
+let compare_analysis_task (a1 : analysis_task) (a2 : analysis_task) =
+  match a1, a2 with
+  | DDPA (ctx_stack1), DDPA (ctx_stack2) ->
+    let module C1 = (val ctx_stack1) in
+    let module C2 = (val ctx_stack2) in
+    String.compare C1.name C2.name
+;;
+
+let pp_analysis_task : analysis_task Pp_utils.pretty_printer =
+  fun formatter analysis_task ->
+  match analysis_task with
+  | DDPA (ctx_stack) ->
+    let module C = (val ctx_stack) in
+    Format.pp_print_string formatter "DDPA (";
+    Format.pp_print_string formatter C.name;
+    Format.pp_print_string formatter ")";
+  ;;
+
+type query = Query of string * string option * string list option [@@deriving show];;
+type qna = QnA of query * Abs_filtered_value_set.t [@@deriving show];;
+type analysis_result = Analysis_result of qna list * Toploop_analysis_types.error list [@@deriving show];;
+module Analysis_task = struct
+  type t = analysis_task;;
+  let compare = compare_analysis_task;;
+  let pp = pp_analysis_task;;
+end;;
+
+module Analysis_task_map = struct
+  module M = Map.Make(Analysis_task);;
+  include M;;
+  include Pp_utils.Map_pp(M) (Analysis_task);;
+end;;
+
+type analysis_report = analysis_result Analysis_task_map.t [@@deriving show];;
 
 (** Represents the result of evaluating an expression.  This data type also
     captures exceptional cases and toploop configuration properties. *)
@@ -59,16 +104,9 @@ type result =
     (** A set of ill-formednesses discovered in the expression.  If this set is
         non-empty, then the remaining components of the result will be empty. *)
 
-    analyses : variable_analysis list;
-    (** An association list from each requested variable analysis to the
-        possible values of that variable under those conditions.  If no
-        analyses were requested or if the expression was ill-formed, this
-        list will be empty. *)
-
-    errors : Toploop_analysis_types.error list;
-    (** A list of the errors discovered in the provided expression by the
-        toploop analysis.  If no error checking was requested or if the
-        expression was ill-formed, this list will be empty. *)
+    analysis_report : analysis_report;
+    (** A dictionary between the analysis task and the analysis result *)
+    (*TODO: write better descriptions :) *)
 
     evaluation_result : evaluation_result
     (** The result of evaluating the provided expression.  This will be absent

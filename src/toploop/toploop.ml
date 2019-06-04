@@ -21,6 +21,14 @@ open Toploop_utils;;
 
 exception Invalid_variable_analysis of string;;
 
+type toploop_situation = {
+  ts_expr : expr;
+  ts_conf : configuration;
+  ts_callbacks : callbacks;
+}
+
+(* type analysis_report =  *)
+
 let stdout_illformednesses_callback ills =
   print_string "Provided expression is ill-formed:\n";
   List.iter
@@ -155,7 +163,8 @@ let stdout_callbacks =
 ;;
 
 let ddpaWrapperMaker (context_stack : (module Ddpa_context_stack.Context_stack))
-  : (module Analysis_wrapper) =
+  : (module Analysis_wrapper
+      with type logging_config = ddpa_analysis_logging_config) =
   (
     (* We're finally ready to perform some analyses.  Unpack the context
        stack. *)
@@ -172,12 +181,21 @@ let plumeWrapperMaker (stack : module plume_context_model.Context_model) :
   (plumeWrapper : Analysis_wrapper) =
 ;; *)
 
-let analysis_step_general (conf : configuration) (e : expr) (analysis_wrapper : (module Analysis_wrapper)) =
+let analysis_step_general
+    (type lconfig)
+    (situation : toploop_situation)
+    (logging_config : lconfig option)
+    (analysis_wrapper : (module Analysis_wrapper
+                          with type logging_config = lconfig))
+  : analysis_result =
+  let conf = situation.ts_conf in
+  let callbacks = situation.ts_callbacks in
+  let e = situation.ts_expr in
   (* Create the analysis.  The wrapper performs full closure on it. *)
   let module A = (val analysis_wrapper) in
    let analysis =
      A.create_analysis
-       (* ~logging_config:(Some ddpa_logging_config) *)
+       ~logging_config: logging_config
        e
    in
    (* We'll now define a couple of functions to perform the
@@ -217,7 +235,7 @@ let analysis_step_general (conf : configuration) (e : expr) (analysis_wrapper : 
    in
    (* Given a set of variable analysis requests, this function performs
       them. *)
-   let analyze_variable_values requests =
+   let analyze_variable_values requests : qna list =
      (* We'll need a mapping from variable names to clauses. *)
      let varname_to_clause_map =
        e
@@ -270,7 +288,7 @@ let analysis_step_general (conf : configuration) (e : expr) (analysis_wrapper : 
           in
           callbacks.cb_variable_analysis
             var_name site_name_opt context_opt values;
-          ((var_name,site_name_opt,context_opt),values)
+          QnA(Query(var_name,site_name_opt,context_opt),values)
        )
      |> List.of_enum
    in
@@ -285,16 +303,17 @@ let analysis_step_general (conf : configuration) (e : expr) (analysis_wrapper : 
      A.get_size analysis;
    (* Now we'll call the above routines. *)
    let errors = check_for_errors () in
-   let analyses =
+   let analyses : qna list =
      match standardize_variable_analysis_request () with
      | None -> []
      | Some requests -> analyze_variable_values requests
    in
-   (analyses, errors)
+   Analysis_result(analyses, errors)
 ;;
 
-let do_analysis_steps_ddpa (conf : configuration) (e : expr) (analysis_wrapper : (module Analysis_wrapper)) =
-  let module A = (val analysis_wrapper) in
+let create_ddpa_logging_config (situation : toploop_situation)
+  : ddpa_analysis_logging_config * (unit -> unit) =
+  let conf = situation.ts_conf in
   (* Set up the logging configuration for the analysis. *)
   let ddpa_cfg_logging_level =
     begin
@@ -349,7 +368,7 @@ let do_analysis_steps_ddpa (conf : configuration) (e : expr) (analysis_wrapper :
      file is created, it will be properly closed even if an exception is
      raised.
   *)
-  analysis_wrapper |> finally
+  let close_files =
     (fun () ->
        match !graph_log_file with
        | None -> ()
@@ -357,31 +376,41 @@ let do_analysis_steps_ddpa (conf : configuration) (e : expr) (analysis_wrapper :
          IO.nwrite file "\n]\n";
          IO.close_out file
     )
-    (analysis_step_general conf e)
+  in
+  ddpa_logging_config, close_files
 ;;
 
 
-let do_analysis_steps callbacks conf e =
+let do_analysis_steps (situation : toploop_situation) : analysis_report =
+  let conf = situation.ts_conf in
   (* If no one wants an analysis, don't waste the effort. *)
   if conf.topconf_disable_inconsistency_check &&
      conf.topconf_analyze_vars ==
      Analyze_no_variables &&
      not conf.topconf_report_sizes
-  then ([], [])
+  then Analysis_task_map.empty
   else
-    List.map
-    (fun atask ->
+    List.fold_left
+    (fun ana_rep -> fun atask ->
       match atask with
       | DDPA (stack) ->
         let ddpaWrapper = ddpaWrapperMaker stack in
-        do_analysis_steps_ddpa conf e ddpaWrapper
+        let logging_config, finalize = create_ddpa_logging_config situation in
+        let result =
+          ddpaWrapper |> finally finalize
+            (analysis_step_general situation (Some logging_config))
+        in
+        Analysis_task_map.add atask result ana_rep
       (* | Plume (ctx) ->
          let plumeWrapper = plumeWrapperMaker ctx in do_analysis_steps_plume plumeWrapper *)
-    )
-    conf.analyses
+    ) Analysis_task_map.empty
+    conf.topconf_analyses
 ;;
 
-let do_evaluation callbacks conf e =
+let do_evaluation situation =
+  let callbacks = situation.ts_callbacks in
+  let conf = situation.ts_conf in
+  let e = situation.ts_expr in
   if conf.topconf_disable_evaluation
   then
     begin
@@ -409,11 +438,14 @@ let handle_expression
     check_wellformed_expr e;
     (* Step 2: perform analyses.  This covers both variable analyses and
        error checking. *)
-    let analyses, errors = do_analysis_steps callbacks conf e in
+    let situation = {ts_expr = e; ts_conf = conf; ts_callbacks = callbacks} in
+    let report : analysis_report = do_analysis_steps situation in
     (* Step 3: perform evaluation. *)
     let evaluation_result =
-      if errors = []
-      then do_evaluation callbacks conf e
+      if Analysis_task_map.values report
+         |> Enum.map (fun (Analysis_result(_, errors)) -> List.is_empty errors)
+         |> Enum.for_all identity
+      then do_evaluation situation
       else Evaluation_invalidated
     in
     (* Step 4: perform source statistics counting if requested. *)
@@ -422,16 +454,14 @@ let handle_expression
       Source_statistics.calculate_statistics e;
     (* Generate answer. *)
     { illformednesses = []
-    ; analyses = analyses
-    ; errors = errors
+    ; analysis_report = report
     ; evaluation_result = evaluation_result
     }
   with
   | Illformedness_found(ills) ->
     callbacks.cb_illformednesses ills;
     { illformednesses = ills
-    ; analyses = []
-    ; errors = []
+    ; analysis_report = Analysis_task_map.empty
     ; evaluation_result = Evaluation_invalidated
     }
 ;;

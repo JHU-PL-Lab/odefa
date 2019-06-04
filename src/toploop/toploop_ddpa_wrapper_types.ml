@@ -7,25 +7,17 @@ open Odefa_ast;;
 open Odefa_ddpa;;
 
 open Ast;;
-(* open Ddpa_analysis_logging;; *)
-(* open Ddpa_context_stack;; *)
+open Ddpa_analysis_logging;;
+open Ddpa_context_stack;;
 open Ddpa_abstract_ast;;
 
-module type Wrapper_context = sig
-  type t;;
-  val push: (abstract_clause) -> t -> t;;
-  val empty: t;;
-
-end;;
-
-module type Analysis_wrapper = sig
+module type DDPA_wrapper = sig
   type analysis
 
-  module C : Wrapper_context;;
-  type logging_config;;
+  module C : Context_stack;;
 
   val create_analysis :
-    ?logging_config:(logging_config option) -> expr -> analysis
+    ?logging_config:(ddpa_analysis_logging_config option) -> expr -> analysis
 
   val values_of_variable_from :
     abstract_var -> annotated_clause -> analysis -> Abs_filtered_value_set.t

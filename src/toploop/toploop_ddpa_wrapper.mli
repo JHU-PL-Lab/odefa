@@ -6,6 +6,8 @@
 
 open Odefa_ddpa;;
 
+open Ddpa_analysis_logging;;
 open Toploop_analysis_wrapper_types;;
 
-module Make : functor (A : Ddpa_analysis.Analysis_sig) -> Analysis_wrapper;;
+module Make : functor (A : Ddpa_analysis.Analysis_sig) ->
+  (Analysis_wrapper with type logging_config = ddpa_analysis_logging_config);;

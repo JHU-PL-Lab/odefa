@@ -3,9 +3,13 @@ open Odefa_ddpa;;
 
 open Ast;;
 open Ddpa_analysis;;
+open Ddpa_analysis_logging;;
 open Toploop_analysis_wrapper_types;;
 
-module Make(A : Analysis_sig) : Analysis_wrapper with module C = A.C =
+module Make(A : Analysis_sig) : Analysis_wrapper
+  with module C = A.C
+   and type logging_config = ddpa_analysis_logging_config
+  =
 struct
   type analysis =
     { aref : A.ddpa_analysis ref
@@ -13,6 +17,7 @@ struct
     };;
 
   module C = A.C;;
+  type logging_config = ddpa_analysis_logging_config;;
 
   let create_analysis ?logging_config:(logging_config=None) expr =
     let a =
