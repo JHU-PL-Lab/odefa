@@ -11,7 +11,7 @@ open Odefa_ddpa;;
 
 open Ast;;
 open Ast_pp;;
-open Toploop_ddpa_wrapper_types;;
+open Toploop_analysis_wrapper_types;;
 open Ddpa_abstract_ast;;
 
 type abs_filtered_value_set = Abs_filtered_value_set.t;;
@@ -91,6 +91,6 @@ end;;
 module Error_set = Set.Make(Error_ord);;
 
 module type Analysis_sig = sig
-  module DDPA_wrapper : DDPA_wrapper
-  val find_errors : DDPA_wrapper.analysis -> error Enum.t
+  module Analysis_wrapper : Analysis_wrapper
+  val find_errors : Analysis_wrapper.analysis -> error Enum.t
 end;;

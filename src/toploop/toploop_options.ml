@@ -2,11 +2,12 @@ open Batteries;;
 open Toploop_option_parsers;;
 
 open Odefa_ddpa;;
+open Toploop_types;;
 
 (** This type defines the configuration required by the toploop to evaluate
     an expression. *)
 type configuration =
-  { topconf_context_stack : (module Ddpa_context_stack.Context_stack) option
+  { topconf_analyses: analysis_task list
   ; topconf_log_prefix : string
   ; topconf_ddpa_log_level : Ddpa_analysis_logging.ddpa_logging_level option
   ; topconf_pdr_log_level : Ddpa_analysis_logging.ddpa_logging_level option
@@ -27,8 +28,8 @@ let add_toploop_option_parsers parser=
   (* Add logging options *)
   BatOptParse.OptParser.add parser ~long_name:"log" logging_option;
   (* Add ability to select the context stack. *)
-  BatOptParse.OptParser.add parser ~long_name:"select-context-stack"
-    ~short_name:'S' select_context_stack_option;
+  (* BatOptParse.OptParser.add parser ~long_name:"select-context-stack"
+    ~short_name:'S' select_context_stack_option; *)
   (* Add DDPA graph logging option. *)
   BatOptParse.OptParser.add parser ~long_name:"ddpa-logging"
     ddpa_logging_option;
@@ -61,8 +62,10 @@ let add_toploop_option_parsers parser=
 ;;
 
 let read_parsed_toploop_configuration () =
-  { topconf_context_stack =
-      Option.get @@ select_context_stack_option.BatOptParse.Opt.option_get ()
+  {
+    (* topconf_context_stack =
+       Option.get @@ select_context_stack_option.BatOptParse.Opt.option_get () ; *)
+    topconf_analyses = []
   ; topconf_log_prefix = "_toploop"
   ; topconf_ddpa_log_level = ddpa_logging_option.BatOptParse.Opt.option_get ()
   ; topconf_pdr_log_level = pdr_logging_option.BatOptParse.Opt.option_get ()

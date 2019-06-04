@@ -3,9 +3,9 @@ open Odefa_ddpa;;
 
 open Ast;;
 open Ddpa_analysis;;
-open Toploop_ddpa_wrapper_types;;
+open Toploop_analysis_wrapper_types;;
 
-module Make(A : Analysis_sig) : DDPA_wrapper with module C = A.C =
+module Make(A : Analysis_sig) : Analysis_wrapper with module C = A.C =
 struct
   type analysis =
     { aref : A.ddpa_analysis ref

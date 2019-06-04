@@ -3,9 +3,9 @@
    projection, etc. *)
 
 open Toploop_analysis_types;;
-open Toploop_ddpa_wrapper_types;;
+open Toploop_analysis_wrapper_types;;
 
 module Make :
-  functor (DDPA_wrapper : DDPA_wrapper) ->
-    Analysis_sig with module DDPA_wrapper = DDPA_wrapper
+  functor (Analysis_wrapper : Analysis_wrapper) ->
+    Analysis_sig with module Analysis_wrapper = Analysis_wrapper
 ;;

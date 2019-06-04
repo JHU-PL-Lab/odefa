@@ -6,6 +6,6 @@
 
 open Odefa_ddpa;;
 
-open Toploop_ddpa_wrapper_types;;
+open Toploop_analysis_wrapper_types;;
 
-module Make : functor (A : Ddpa_analysis.Analysis_sig) -> DDPA_wrapper;;
+module Make : functor (A : Ddpa_analysis.Analysis_sig) -> Analysis_wrapper;;

@@ -6,22 +6,22 @@ open Odefa_ddpa;;
 
 open Ast;;
 open Toploop_analysis_types;;
-open Toploop_ddpa_wrapper_types;;
+open Toploop_analysis_wrapper_types;;
 open Toploop_utils;;
 open Ddpa_abstract_ast;;
 open Ddpa_graph;;
 open Ddpa_utils;;
 
-module Make(DDPA_wrapper : DDPA_wrapper) =
+module Make(Analysis_wrapper : Analysis_wrapper) =
 struct
-  module DDPA_wrapper = DDPA_wrapper;;
+  module Analysis_wrapper = Analysis_wrapper;;
 
   let find_errors analysis =
     let open Nondeterminism.Nondeterminism_monad in
     enum @@
     let%bind acl =
       analysis
-      |> DDPA_wrapper.expression_of
+      |> Analysis_wrapper.expression_of
       |> lift_expr
       |> iterate_abstract_clauses
       |> pick_enum
@@ -29,7 +29,7 @@ struct
     let Abs_clause(x_clause,b) = acl in
     let lookup x =
       analysis
-      |> DDPA_wrapper.values_of_variable_from x (Unannotated_clause(acl))
+      |> Analysis_wrapper.values_of_variable_from x (Unannotated_clause(acl))
       |> Abs_filtered_value_set.enum
       |> Enum.map
         (fun ((Abs_filtered_value(v,_,_)) as filtv) -> v,filtv)

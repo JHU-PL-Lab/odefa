@@ -8,13 +8,20 @@ open Odefa_ddpa;;
 
 open Ast;;
 open Ddpa_analysis_logging;;
-open Ddpa_context_stack;;
+(* open Ddpa_context_stack;; *)
 open Ddpa_abstract_ast;;
 
-module type DDPA_wrapper = sig
+module type Wrapper_context = sig
+  type t;;
+  (* val push: (abstract clause) -> t -> t;;
+  val empty: t;; *)
+
+end;;
+
+module type Analysis_wrapper = sig
   type analysis
 
-  module C : Context_stack;;
+  module C : Wrapper_context;;
 
   val create_analysis :
     ?logging_config:(ddpa_analysis_logging_config option) -> expr -> analysis

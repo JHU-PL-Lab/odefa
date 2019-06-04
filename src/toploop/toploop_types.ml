@@ -16,6 +16,11 @@ open Ddpa_abstract_ast;;
 open Interpreter;;
 open Source_statistics;;
 
+type analysis_task =
+  (* DDPA_context_stack.Context_stack is a type in the module ddpa_context_stack.ml *)
+  | DDPA of (module Ddpa_context_stack.Context_stack)
+  (* | Plume of (module Plume_context_model.Context_model) *)
+
 (** Represents the result of evaluating an expression.  This data type also
     captures exceptional cases and toploop configuration properties. *)
 type evaluation_result =
