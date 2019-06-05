@@ -11,8 +11,7 @@
 *)
 
 (* FIXME: purge the term "inconsistency" *)
-
-open Batteries;;
+(* open Batteries;; *)
 (* open Jhupllib;;
 open OUnit2;;
 
@@ -62,7 +61,7 @@ type expectation =
   | Expect_stuck
   | Expect_well_formed
   | Expect_ill_formed
-  | Expect_analysis_inconsistency_at of var
+  | Expect_analysis_inconsistency_at of lookup_var
   | Expect_analysis_no_inconsistencies
 ;;
 

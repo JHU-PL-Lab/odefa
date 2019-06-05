@@ -2,7 +2,7 @@
   open Batteries;;
 
   open Lexing;;
-  open Parser;;
+  open Expectation_parser;;
   open Printf;;
 
   exception LexerError of string;;
@@ -23,10 +23,6 @@ let whitespace = [' ' '\t']+
 rule token = parse
   | whitespace { token lexbuf }
   | '\n' { new_line lexbuf; token lexbuf }
-  | "+" { PLUS }
-  | "-" { MINUS }
-  | "{" { OPEN_CURLY }
-  | "}" { CLOSE_CURLY }
   | "@" { AT }
   | ":" { COLON }
   | ";" { SEMICOLON }
@@ -34,6 +30,8 @@ rule token = parse
   | "=" { EQUAL }
   | "(" { OPEN_PAREN }
   | ")" { CLOSE_PAREN }
+  | "[" { OPEN_BRACKET }
+  | "]" { CLOSE_BRACKET }
   | "QUERY" { QUERY }
   | "ANALYSES" { ANALYSES }
   | "RESULTS" { RESULTS }
@@ -49,7 +47,7 @@ rule token = parse
   | "PLUME" { PLUME }
   | "SPLUME" { SPLUME }
   | "OSPLUME" { OSPLUME }
-  | natural as n { NATURAL n }
+  | natural as n { NATURAL (int_of_string n) }
   | ident as x { IDENTIFIER x }
   | output as str { OUTPUT (String.sub str 1 (String.length str - 2))}
   | eof { EOF }

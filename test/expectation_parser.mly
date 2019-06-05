@@ -2,24 +2,31 @@
   open Test_expectation_types;;
 %}
 
-%token <string> IDENTIFIER
+%token <string> IDENTIFIER OUTPUT
 %token AT COLON SEMICOLON COMMA EQUAL
 %token QUERY ANALYSES RESULTS START END
 %token EVALUATE STUCK WELL_FORMED ILL_FORMED NO_INCONSISTENCIES INCONSISTENCIES_AT
 %token OPEN_PAREN CLOSE_PAREN
+%token DDPA PLUME SPLUME OSPLUME
+%token OPEN_BRACKET CLOSE_BRACKET EOF
+%token <int> NATURAL
 
-%type <Test_expectation_types>.expectations
 
-%start expectations
+%type <Test_expectation_types.expectation_file> expectation_file
+
+%start expectation_file
 
 %%
 
 expectation_file:
-  | analysis_expectation expectation_list { Expectations ((Some $1), $2) }
-  | expectation_list { Expectations (None, $1) }
+  | analysis_expectation expectation_list EOF { Expectations ((Some $1), $2) }
+  | expectation_list EOF { Expectations (None, $1) }
 
 analysis_expectation:
-  | QUERY COLON query_list SEMICOLON ANALYSES COLON analysis_list SEMICOLON RESULTS COLON result_list SEMICOLON { Some (Analysis_Expectation ($3, $7, $11)) }
+  | QUERY COLON query_list SEMICOLON
+    ANALYSES COLON analysis_list SEMICOLON
+    RESULTS COLON result_list SEMICOLON
+    { Analysis_Expectation ($3, $7, $11) }
 
 expectation_list:
   | expectation SEMICOLON expectation_list { $1::$3 }
@@ -46,10 +53,12 @@ analysis_list:
   | analysis { [$1] }
 
 result:
-  | analysis OPEN_PAREN query CLOSE_PAREN EQUAL output { Result ($1, $3, $6) }
+  | analysis OPEN_PAREN query CLOSE_PAREN EQUAL expected_output
+    { Result ($1, $3, $6) }
 
 query:
-  | lookup_var AT graph_position AT context { Query($1, (Some $3), (Some $5)) }
+  | lookup_var AT graph_position AT OPEN_BRACKET context CLOSE_BRACKET
+    { Query($1, (Some $3), (Some $6)) }
   | lookup_var AT graph_position { Query($1, (Some $3), None) }
   | lookup_var { Query($1, None, None) }
 
@@ -68,7 +77,7 @@ graph_position:
   | END { END }
 
 expected_output:
-  | OUTPUT { $1 }
+  | OUTPUT { ResultString($1) }
 
 lookup_var_list:
   | lookup_var { [$1] }

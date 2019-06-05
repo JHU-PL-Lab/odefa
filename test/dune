@@ -1,3 +1,13 @@
+(ocamllex
+  expectation_lexer
+)
+(menhir
+  (flags (--explain))
+  (modules
+    expectation_parser
+  )
+)
+
 (alias
   (name runtest)
   (deps test.exe (glob_files ../test-sources/*))
