@@ -405,6 +405,15 @@ let create_ddpa_logging_config (situation : toploop_situation)
 ;;
 
 
+(* Function that solely performs analysis (variable analyes and error checking)
+   on an expression.
+
+   Parameters
+    situation - toploop_situation (conf, callbacks, expr)
+
+   Return value
+    type analysis_report - dictionary mapping analysis_task to analysis result
+*)
 let do_analysis_steps (situation : toploop_situation) : analysis_report =
   let conf = situation.ts_conf in
   (* If no one wants an analysis, don't waste the effort. *)
@@ -412,19 +421,22 @@ let do_analysis_steps (situation : toploop_situation) : analysis_report =
      conf.topconf_analyze_vars ==
      Analyze_no_variables &&
      not conf.topconf_report_sizes
-  then Analysis_task_map.empty
+  then (* Return an empty analysis_report since we didn't do any analyses *)
+    Analysis_task_map.empty
   else
+    (* We need to build our analysis_report. List.fold_left because we need to
+       do this for every analysis_task that we have. *)
     List.fold_left
-    (fun ana_rep -> fun atask ->
+    (fun analysis_report -> fun atask ->
       match atask with
       | DDPA (stack) ->
         let ddpaWrapper = ddpaWrapperMaker stack in
         let logging_config, finalize = create_ddpa_logging_config situation in
         let result =
-          ddpaWrapper |> finally finalize
+          ddpaWrapper |> finally finalize (* *)
             (analysis_step_general situation (Some logging_config))
         in
-        Analysis_task_map.add atask result ana_rep
+        Analysis_task_map.add atask result analysis_report
       (* | Plume (ctx) ->
          let plumeWrapper = plumeWrapperMaker ctx in do_analysis_steps_plume plumeWrapper *)
     ) Analysis_task_map.empty
@@ -452,7 +464,7 @@ let do_evaluation situation =
       Toploop_types.Evaluation_disabled
     end
   else
-    (* try to  *)
+    (* try to evaluate the extracted expression *)
     begin
       try
         let v, env = Interpreter.eval e in
@@ -485,7 +497,7 @@ let handle_expression
     check_wellformed_expr e;
     (* Step 2: perform analyses.  This covers both variable analyses and
        error checking. *)
-    (* Build situation so that we can pass it around to other functions *)
+    (* Build situation so that we can pass it around to helper functions *)
     let situation = {ts_expr = e; ts_conf = conf; ts_callbacks = callbacks} in
     let report : analysis_report = do_analysis_steps situation in
     (* Step 3: perform evaluation. *)
