@@ -197,6 +197,8 @@ let plumeWrapperMaker (stack : module plume_context_model.Context_model) :
    We're declaring lconfig here, because we want to give the guarantee that the
    analysis wrapper argument contains a logging config declared, and it's the same
    type as the logging_config parameter's type.
+
+   Creates the analysis, checks for inconsistencies, and performs the analysis.
 *)
 let analysis_step_general
     (type lconfig)
@@ -336,6 +338,15 @@ let analysis_step_general
    Analysis_result(analyses, errors)
 ;;
 
+(* Function that creates a logging config specifically for DDPA.
+
+    Parameters
+      situation - toploop_situation to get conf, callbacks, and expr
+
+    Return
+      ddpa_analysis_logging_config - logging configuration details
+      (unit -> unit) - function that allows us to close the log file 
+*)
 let create_ddpa_logging_config (situation : toploop_situation)
   : ddpa_analysis_logging_config * (unit -> unit) =
   let conf = situation.ts_conf in
@@ -407,7 +418,8 @@ let create_ddpa_logging_config (situation : toploop_situation)
 
 
 (* Function that solely performs analysis (variable analyes and error checking)
-   on an expression.
+   on an expression. General function that is supported by ddpaWrapperMaker,
+   create_ddpa_logging_config, analysis_step_general.
 
    Parameters
     situation - toploop_situation (conf, callbacks, expr)
@@ -431,10 +443,13 @@ let do_analysis_steps (situation : toploop_situation) : analysis_report =
     (fun analysis_report -> fun atask ->
       match atask with
       | DDPA (stack) ->
+        (* get information necessary to close the log file *)
         let ddpaWrapper = ddpaWrapperMaker stack in
         let logging_config, finalize = create_ddpa_logging_config situation in
         let result =
-          ddpaWrapper |> finally finalize (* *)
+        (* close the log file regardless of success/failure *)
+          ddpaWrapper |> finally finalize
+            (* create/perform the analysis here *)
             (analysis_step_general situation (Some logging_config))
         in
         Analysis_task_map.add atask result analysis_report
