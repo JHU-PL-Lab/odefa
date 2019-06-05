@@ -162,11 +162,17 @@ let stdout_callbacks =
   }
 ;;
 
+(* This function takes in a DDPA context model, make a DDPA analysis, and produces
+   an analysis wrapper that is more user-friendly.
+   We are specifying the return type with ddpa specific logging config because
+   this function's return value is used by create_ddpa_logging_config, which
+   imposes the constraint that the wrapper must have ddpa logging config.
+*)
 let ddpaWrapperMaker (context_stack : (module Ddpa_context_stack.Context_stack))
   : (module Analysis_wrapper
       with type logging_config = ddpa_analysis_logging_config) =
   (
-    (* We're finally ready to perform some analyses.  Unpack the context
+    (* We're finally ready to perform some analyses. Unpack the context
        stack. *)
     let module Context_stack = (val context_stack) in
     (* Define the analysis module. *)
@@ -176,11 +182,22 @@ let ddpaWrapperMaker (context_stack : (module Ddpa_context_stack.Context_stack))
     (module Wrapped_Analysis)
 )
 ;;
+
+(* TODO: Similar to ddpaWrapperMaker, this function takes in a PLUME context model, make
+   a PLUME analysis, and produces an analysis wrapper that's user friendly.
+   Probably need to specify the return type with PLUME specific logging config.
+*)
 (*
 let plumeWrapperMaker (stack : module plume_context_model.Context_model) :
   (plumeWrapper : Analysis_wrapper) =
 ;; *)
 
+(* This function takes in a situation, which describes the configuration, callbacks,
+   and expression of this query.
+   We're declaring lconfig here, because we want to give the guarantee that the
+   analysis wrapper argument contains a logging config declared, and it's the same
+   type as the logging_config parameter's type.
+*)
 let analysis_step_general
     (type lconfig)
     (situation : toploop_situation)
@@ -188,6 +205,7 @@ let analysis_step_general
     (analysis_wrapper : (module Analysis_wrapper
                           with type logging_config = lconfig))
   : analysis_result =
+  (* Unpacking the specified situation *)
   let conf = situation.ts_conf in
   let callbacks = situation.ts_callbacks in
   let e = situation.ts_expr in
@@ -195,6 +213,7 @@ let analysis_step_general
   let module A = (val analysis_wrapper) in
    let analysis =
      A.create_analysis
+       (* The optional param here will have the type of the logging_config arg *)
        ~logging_config: logging_config
        e
    in
@@ -206,7 +225,7 @@ let analysis_step_general
      then []
      else
        let module Error_analysis =
-         (* FIXME: Doesn't work for PLUME *)
+         (* TODO: Doesn't work for PLUME *)
          Toploop_analysis.Make(A)
        in
        let errors =
