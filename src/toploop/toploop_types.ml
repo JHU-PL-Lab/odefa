@@ -49,21 +49,30 @@ let pp_analysis_task : analysis_task Pp_utils.pretty_printer =
     Format.pp_print_string formatter ")";
   ;;
 
+(* query - stores the variable in question, clause, context *)
 type query = Query of string * string option * string list option [@@deriving show];;
+
+(* qna - stores the query and set of filtered values that apply (Big Phi hat) *)
 type qna = QnA of query * Abs_filtered_value_set.t [@@deriving show];;
+
+(* analysis_result - stores a list of qna, along with a list of errors *)
 type analysis_result = Analysis_result of qna list * Toploop_analysis_types.error list [@@deriving show];;
+
+(* keys for Analysis_task_map with type analysis_task *)
 module Analysis_task = struct
   type t = analysis_task;;
   let compare = compare_analysis_task;;
   let pp = pp_analysis_task;;
 end;;
 
+(* module necessary for creating analysis_report *)
 module Analysis_task_map = struct
   module M = Map.Make(Analysis_task);;
   include M;;
   include Pp_utils.Map_pp(M) (Analysis_task);;
 end;;
 
+(* dictionary mapping analysis task to analysis result *)
 type analysis_report = analysis_result Analysis_task_map.t [@@deriving show];;
 
 (** Represents the result of evaluating an expression.  This data type also
