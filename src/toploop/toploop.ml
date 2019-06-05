@@ -237,7 +237,8 @@ let analysis_step_general
    (* This function takes the configuration option describing the variable
       analysis requested on the command line and standardizes the form of
       the request. *)
-   let standardize_variable_analysis_request () =
+   let standardize_variable_analysis_request ()
+     : (query list) option =
      match conf.topconf_analyze_vars with
      | Analyze_no_variables -> None
      | Analyze_toplevel_variables ->
@@ -247,14 +248,17 @@ let analysis_step_general
          |> List.enum
          |> Enum.map lift_clause
          |> Enum.map
-           (fun (Abs_clause(Abs_var(Ident i), _)) -> (i, None, None))
+           (fun (Abs_clause(Abs_var(Ident i), _)) -> Query(i, None, None))
          |> List.of_enum
        )
-     | Analyze_specific_variables lst -> Some lst
+     | Analyze_specific_variables lst ->
+       (* We got a list of triplets, and we will turn them into Query-s*)
+       Some (List.map
+               (fun (var, clause, ctx) -> Query(var, clause, ctx)) lst)
    in
    (* Given a set of variable analysis requests, this function performs
       them. *)
-   let analyze_variable_values requests : qna list =
+   let analyze_variable_values (requests : query list) : qna list =
      (* We'll need a mapping from variable names to clauses. *)
      let varname_to_clause_map =
        e
@@ -278,7 +282,8 @@ let analysis_step_general
      requests
      |> List.enum
      |> Enum.map
-       (fun (var_name,site_name_opt,context_opt) ->
+       (fun try_query ->
+          let Query(var_name,site_name_opt,context_opt) = try_query in
           let var_ident = Ident var_name in
           let lookup_var = Abs_var var_ident in
           let site =
@@ -426,6 +431,16 @@ let do_analysis_steps (situation : toploop_situation) : analysis_report =
     conf.topconf_analyses
 ;;
 
+
+(* Function that solely evaluates an expression.
+
+   Parameters
+    situation - toploop_situation type to pull out callbacks, conf, e from
+
+   Return
+    type evaluation_result describing the result of evaluating the expression.
+
+*)
 let do_evaluation situation =
   let callbacks = situation.ts_callbacks in
   let conf = situation.ts_conf in
@@ -437,6 +452,7 @@ let do_evaluation situation =
       Toploop_types.Evaluation_disabled
     end
   else
+    (* try to  *)
     begin
       try
         let v, env = Interpreter.eval e in
@@ -448,6 +464,18 @@ let do_evaluation situation =
     end
 ;;
 
+
+(* Function that evaluates an expression after performing wellformedness checks,
+   variable analyses and error checking.
+
+   Paramters
+     callbacks - optional callbacks
+     conf - configuration
+     e - expression
+
+   Return
+    type result describing result of toploop processing
+*)
 let handle_expression
     ?callbacks:(callbacks=no_op_callbacks)
     conf
@@ -457,6 +485,7 @@ let handle_expression
     check_wellformed_expr e;
     (* Step 2: perform analyses.  This covers both variable analyses and
        error checking. *)
+    (* Build situation so that we can pass it around to other functions *)
     let situation = {ts_expr = e; ts_conf = conf; ts_callbacks = callbacks} in
     let report : analysis_report = do_analysis_steps situation in
     (* Step 3: perform evaluation. *)
@@ -477,6 +506,7 @@ let handle_expression
     ; evaluation_result = evaluation_result
     }
   with
+    (* wellformedness check didn't pass - format result type to express this *)
   | Illformedness_found(ills) ->
     callbacks.cb_illformednesses ills;
     { illformednesses = ills
