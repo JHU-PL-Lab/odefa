@@ -283,6 +283,7 @@ let analysis_step_general
      |> List.enum
      |> Enum.map
        (fun try_query ->
+          (* Since the queries are wrapped in a constructor, we need to destruct it *)
           let Query(var_name,site_name_opt,context_opt) = try_query in
           let var_ident = Ident var_name in
           let lookup_var = Abs_var var_ident in
