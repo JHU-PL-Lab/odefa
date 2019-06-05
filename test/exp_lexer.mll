@@ -1,25 +1,32 @@
 {
-    open Batteries;;
+  open Batteries;;
 
-    open Lexing;;
-    open Parser;;
-    open Printf;;
+  open Lexing;;
+  open Parser;;
+  open Printf;;
 
-    exception LexerError of string;;
+  exception LexerError of string;;
 }
 
 let digit = ['0'-'9']
-let integer = digit+
+let natural = digit+
 
 let ident_start = ['a'-'z' 'A'-'Z' '_']
 let ident_cont = ident_start | ['0'-'9']
-let ident = ident_start  ident_cont*
+let ident = ident_start ident_cont*
+
+let output_char = [ ^'`' ]
+let output = '`' output_char+ '`'
 
 let whitespace = [' ' '\t']+
 
 rule token = parse
   | whitespace { token lexbuf }
   | '\n' { new_line lexbuf; token lexbuf }
+  | "+" { PLUS }
+  | "-" { MINUS }
+  | "{" { OPEN_CURLY }
+  | "}" { CLOSE_CURLY }
   | "@" { AT }
   | ":" { COLON }
   | ";" { SEMICOLON }
@@ -33,9 +40,17 @@ rule token = parse
   | "START" { START }
   | "END" { END }
   | "EVALUATE" { EVALUATE }
-  | "WELL-FORMED" { WELL_FORMED }
-  | "ILL-FORMED" { ILL_FORMED }
+  | "WELL_FORMED" { WELL_FORMED }
+  | "ILL_FORMED" { ILL_FORMED }
   | "STUCK" { STUCK }
-  | "NO-INCONSISTENCIES" { NO_INCONSISTENCIES }
+  | "NO_INCONSISTENCIES" { NO_INCONSISTENCIES }
   | "INCONSISTENCIES_AT" { INCONSISTENCIES_AT }
+  | "DDPA" { DDPA }
+  | "PLUME" { PLUME }
+  | "SPLUME" { SPLUME }
+  | "OSPLUME" { OSPLUME }
+  | natural as n { NATURAL n }
   | ident as x { IDENTIFIER x }
+  | output as str { OUTPUT (String.sub str 1 (String.length str - 2))}
+  | eof { EOF }
+  | _ as c { raise (LexerError (sprintf "unrecognized character: %c" c)) }
