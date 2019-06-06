@@ -79,7 +79,7 @@ type expectation_stack_decision =
   | Default_stack
   | Chosen_stack of (module Ddpa_context_stack.Context_stack) option
 ;;
-
+(*
 let parse_expectation str =
   let assert_no_args lst =
     if List.is_empty lst
@@ -150,7 +150,7 @@ let parse_expectation str =
   with
   | Expectation_parse_failure s -> Some (Failure s)
   | Expectation_not_found -> None
-;;
+;; *)
 
 let observe_evaluated expectation =
   match expectation with
@@ -375,6 +375,7 @@ let make_test filename expectations =
       then observation @@ observe_well_formed
       else observation @@ observe_ill_formed result.illformednesses;
       (* Report each discovered error *)
+
       result.errors
       |> List.iter
         (fun error -> observation @@ observe_inconsistency error);
@@ -417,6 +418,26 @@ let make_test filename expectations =
                           (List.enum @@
                            List.map name_of_expectation expectations')
 ;;
+(* 
+let make_expectations_from filename =
+  let contents = FileUtils.read_file filename in
+  let expectations =
+    try
+      Expectation_parser_tool.parse filename contents
+    with
+    | Expectation_parser_tool.ParseFailure msg -> raise (Failure msg)
+  in
+  match expectations with
+  | Expectations (analysis_expects, gen_expects) ->
+    match analysis_expects with
+    | Some (expectation_list) ->
+      ( match expectation_list with
+        | Analysis_Expectation (q_list, at_list, result_list) ->
+
+      )
+        make_test filename gen_expects
+    | None -> *)
+
 
 let make_test_from filename =
   let expectations =

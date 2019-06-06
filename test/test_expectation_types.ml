@@ -30,21 +30,6 @@ open Ddpa_abstract_ast;;
 open Odefa_toploop;;
 open Toploop_types;;
 
-type lookup_var = Var of string;;
-
-type graph_position =
-  | ProgramPoint of string
-  | START
-  | END
-;;
-
-type context = lookup_var list;;
-
-(* TODO: Unify this type with the one in toploops? *)
-type query =
-  | Query of lookup_var * graph_position option * context option
-;;
-
 type result_string = ResultString of string
 ;;
 
@@ -67,3 +52,14 @@ type analysis_expectation =
 type expectation_file =
   | Expectations of analysis_expectation option * expectation list
 ;;
+
+(* here are modules for (query list * analysis_task list) that contains the
+   cartesian product *)
+(* TODO: include a pretty printer if we need one? *)
+module Query_analysis_task =
+struct
+  type t = (query * analysis_task) [@@deriving eq, ord];;
+  let compare = compare;;
+end;;
+
+module QA_set = Set.Make(Query_analysis_task);;

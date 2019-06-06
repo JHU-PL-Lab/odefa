@@ -73,9 +73,20 @@ type analysis_task =
   [@@deriving show, ord, eq]
 ;;
 
+type lookup_var = LUVar of string [@@deriving show];;
 
-(* query - stores the variable in question, clause, context *)
-type query = Query of string * string option * string list option [@@deriving show];;
+type graph_position =
+  | ProgramPoint of string
+  | END
+  [@@deriving show]
+;;
+
+type context = lookup_var list [@@deriving show];;
+
+(* TODO: Unify this type with the one in toploops? *)
+type query =
+  | Query of lookup_var * graph_position option * context option [@@deriving show]
+;;
 
 (* qna - stores the query and set of filtered values that apply (Big Phi hat) *)
 type qna = QnA of query * Abs_filtered_value_set.t [@@deriving show];;

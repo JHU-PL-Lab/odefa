@@ -181,7 +181,7 @@ let ddpaWrapperMaker (context_stack : (module Ddpa_context_stack.Context_stack))
     (* Define the convenience wrapper. *)
     let module Wrapped_Analysis = Toploop_ddpa_wrapper.Make(Analysis) in
     (module Wrapped_Analysis)
-)
+  )
 ;;
 
 (* TODO: Similar to ddpaWrapperMaker, this function takes in a PLUME context model, make
@@ -214,130 +214,154 @@ let analysis_step_general
   let e = situation.ts_expr in
   (* Create the analysis.  The wrapper performs full closure on it. *)
   let module A = (val analysis_wrapper) in
-   let analysis =
-     A.create_analysis
-       (* The optional param here will have the type of the logging_config arg *)
-       ~logging_config: logging_config
-       e
-   in
-   (* We'll now define a couple of functions to perform the
-      analysis-related tasks and then call them below. *)
-   (* This function performs a simple error check. *)
-   let check_for_errors () =
-     if conf.topconf_disable_inconsistency_check
-     then []
-     else
-       let module Error_analysis =
-         (* TODO: Doesn't work for PLUME *)
-         Toploop_analysis.Make(A)
-       in
-       let errors =
-         List.of_enum @@ Error_analysis.find_errors analysis
-       in
-       callbacks.cb_errors errors;
-       errors
-   in
-   (* This function takes the configuration option describing the variable
-      analysis requested on the command line and standardizes the form of
-      the request. *)
-   let standardize_variable_analysis_request ()
-     : (query list) option =
-     match conf.topconf_analyze_vars with
-     | Analyze_no_variables -> None
-     | Analyze_toplevel_variables ->
-       Some(
-         e
-         |> (fun (Expr(cls)) -> cls)
-         |> List.enum
-         |> Enum.map lift_clause
-         |> Enum.map
-           (fun (Abs_clause(Abs_var(Ident i), _)) -> Query(i, None, None))
-         |> List.of_enum
-       )
-     | Analyze_specific_variables lst ->
-       (* We got a list of triplets, and we will turn them into Query-s*)
-       Some (List.map
-               (fun (var, clause, ctx) -> Query(var, clause, ctx)) lst)
-   in
-   (* Given a set of variable analysis requests, this function performs
-      them. *)
-   let analyze_variable_values (requests : query list) : qna list =
-     (* We'll need a mapping from variable names to clauses. *)
-     let varname_to_clause_map =
-       e
-       |> Ast_tools.flatten
-       |> List.map lift_clause
-       |> List.map
-         (fun (Abs_clause(Abs_var i,_) as c) -> (i, c))
-       |> List.enum
-       |> Ident_map.of_enum
-     in
-     (* This utility function helps us use the mapping. *)
-     let lookup_clause_by_ident ident =
-       try
-         Ident_map.find ident varname_to_clause_map
-       with
-       | Not_found -> raise @@
-         Invalid_variable_analysis(
-           Printf.sprintf "No such variable: %s" (show_ident ident))
-     in
-     (* Perform each of the requested analyses. *)
-     requests
-     |> List.enum
-     |> Enum.map
-       (fun try_query ->
-          (* Since the queries are wrapped in a constructor, we need to destruct it *)
-          let Query(var_name,site_name_opt,context_opt) = try_query in
-          let var_ident = Ident var_name in
-          let lookup_var = Abs_var var_ident in
-          let site =
-            match site_name_opt with
-            | None -> End_clause (lift_var @@ last_var_of e)
-            | Some site_name ->
-              Unannotated_clause(
-                lookup_clause_by_ident (Ident site_name))
-          in
-          let context_stack =
-            match context_opt with
-            | None -> A.C.empty
-            | Some context_vars ->
-              context_vars
-              |> List.enum
-              |> Enum.fold
-                (fun a e ->
-                   let c = lookup_clause_by_ident (Ident e) in
-                   A.C.push c a
-                )
-                A.C.empty
-          in
-          let values =
-            A.contextual_values_of_variable_from
-              lookup_var site context_stack analysis
-          in
-          let analysis_name = A.name in
-          callbacks.cb_variable_analysis
-            var_name site_name_opt context_opt values analysis_name;
-          QnA(Query(var_name,site_name_opt,context_opt),values)
-       )
-     |> List.of_enum
-   in
-   (* At this point, dump the analysis to debugging if appropriate. *)
-   lazy_logger `trace
-     (* FIXME: Generalize print statement *)
-     (fun () -> Printf.sprintf "DDPA analysis: %s"
-         (A.show_analysis analysis));
-   (* If reporting has been requested, do that too. *)
-   if conf.topconf_report_sizes
-   then callbacks.cb_size_report_callback @@
-     A.get_size analysis;
-   (* Now we'll call the above routines. *)
-   let errors = check_for_errors () in
-   let analyses : qna list =
-     match standardize_variable_analysis_request () with
-     | None -> []
-     | Some requests -> analyze_variable_values requests
-   in
-   Analysis_result(analyses, errors)
+  let analysis =
+    A.create_analysis
+      (* The optional param here will have the type of the logging_config arg *)
+      ~logging_config: logging_config
+      e
+  in
+  (* We'll now define a couple of functions to perform the
+     analysis-related tasks and then call them below. *)
+  (* This function performs a simple error check. *)
+  let check_for_errors () =
+    if conf.topconf_disable_inconsistency_check
+    then []
+    else
+      let module Error_analysis =
+        (* TODO: Doesn't work for PLUME *)
+        Toploop_analysis.Make(A)
+      in
+      let errors =
+        List.of_enum @@ Error_analysis.find_errors analysis
+      in
+      callbacks.cb_errors errors;
+      errors
+  in
+  (* This function takes the configuration option describing the variable
+     analysis requested on the command line and standardizes the form of
+     the request. *)
+  let standardize_variable_analysis_request ()
+    : (query list) option =
+    match conf.topconf_analyze_vars with
+    | Analyze_no_variables -> None
+    | Analyze_toplevel_variables ->
+      Some(
+        e
+        |> (fun (Expr(cls)) -> cls)
+        |> List.enum
+        |> Enum.map lift_clause
+        |> Enum.map
+          (fun (Abs_clause(Abs_var(Ident i), _)) ->
+             Query(LUVar(i), None, None))
+        |> List.of_enum
+      )
+    | Analyze_specific_variables lst ->
+      (* We got a list of triplets, and we will turn them into Query-s*)
+      Some (List.map
+              (fun (var, clause, ctx) ->
+                 let new_ctx =
+                   (
+                     match ctx with
+                     | Some (ctx_list) ->
+                       let some_ctx = List.map (fun c -> LUVar(c)) ctx_list in
+                       Some (some_ctx)
+                     | None -> None
+                   )
+                 in
+                 let new_clause =
+                   (
+                     match clause with
+                     | Some (inner_clause) -> Some (ProgramPoint(inner_clause))
+                     | None -> Some(END)
+                   )
+                 in
+                 Query(LUVar(var), new_clause, new_ctx))
+              lst)
+  in
+  (* Given a set of variable analysis requests, this function performs
+     them. *)
+  let analyze_variable_values (requests : query list) : qna list =
+    (* We'll need a mapping from variable names to clauses. *)
+    let varname_to_clause_map =
+      e
+      |> Ast_tools.flatten
+      |> List.map lift_clause
+      |> List.map
+        (fun (Abs_clause(Abs_var i,_) as c) -> (i, c))
+      |> List.enum
+      |> Ident_map.of_enum
+    in
+    (* This utility function helps us use the mapping. *)
+    let lookup_clause_by_ident ident =
+      try
+        Ident_map.find ident varname_to_clause_map
+      with
+      | Not_found -> raise @@
+        Invalid_variable_analysis(
+          Printf.sprintf "No such variable: %s" (show_ident ident))
+    in
+    (* Perform each of the requested analyses. *)
+    requests
+    |> List.enum
+    |> Enum.map
+      (fun try_query ->
+         (* Since the queries are wrapped in a constructor, we need to destruct it *)
+         let Query(var_name,site_name_opt,context_opt) = try_query in
+         let LUVar(var_ident) = var_name in
+         let lookup_var = Abs_var (Ident var_ident) in
+         let site =
+           match site_name_opt with
+           | None -> raise (Failure "END - this should never happen ")
+           | Some wrapped_site_name ->
+             (
+             match wrapped_site_name with
+               | ProgramPoint site_name_str -> Unannotated_clause(
+                   lookup_clause_by_ident (Ident (site_name_str)))
+               | END -> End_clause (lift_var @@ last_var_of e)
+             )
+         in
+         let context_stack =
+           match context_opt with
+           | None -> A.C.empty
+           | Some context_vars ->
+             context_vars
+             |> List.map (fun (LUVar(wrapped_context)) -> wrapped_context)
+             |> List.enum
+             |> Enum.fold
+               (fun a e ->
+                  let c = lookup_clause_by_ident (Ident e) in
+                  A.C.push c a
+               )
+               A.C.empty
+         in
+         let values =
+           A.contextual_values_of_variable_from
+             lookup_var site context_stack analysis
+         in
+         let analysis_name = A.name in
+         callbacks.cb_variable_analysis
+           var_ident site_name_opt context_opt values analysis_name;
+         QnA(Query(var_name,site_name_opt,context_opt),values)
+      )
+    |> List.of_enum
+  in
+  (* At this point, dump the analysis to debugging if appropriate. *)
+  lazy_logger `trace
+    (* FIXME: Generalize print statement *)
+    (fun () -> Printf.sprintf "DDPA analysis: %s"
+        (A.show_analysis analysis));
+  (* If reporting has been requested, do that too. *)
+  if conf.topconf_report_sizes
+  then callbacks.cb_size_report_callback @@
+    A.get_size analysis;
+  (* Now we'll call the above routines. *)
+  let errors = check_for_errors () in
+  let analyses : qna list =
+    match standardize_variable_analysis_request () with
+    | None -> []
+    | Some requests -> analyze_variable_values requests
+  in
+  Analysis_result(analyses, errors)
 ;;
 
 (* Function that creates a logging config specifically for DDPA.
@@ -442,27 +466,27 @@ let do_analysis_steps (situation : toploop_situation) : analysis_report =
     (* We need to build our analysis_report. List.fold_left because we need to
        do this for every analysis_task that we have. *)
     List.fold_left
-    (fun analysis_report -> fun atask ->
-      match atask with
-      | DDPA (_) ->
-        (* get information necessary to close the log file *)
-        let stack = ddpa_analysis_to_stack atask in
-        let ddpaWrapper = ddpaWrapperMaker stack in
-        let logging_config, finalize = create_ddpa_logging_config situation in
-        let result =
-        (* close the log file regardless of success/failure *)
-          ddpaWrapper |> finally finalize
-            (* create/perform the analysis here *)
-            (analysis_step_general situation
-               (Some logging_config))
-        in
-        Analysis_task_map.add atask result analysis_report
-      (* TODO: fill this out after implementing plume *)
-      | _ -> raise Not_found
-      (* | Plume (ctx) ->
-         let plumeWrapper = plumeWrapperMaker ctx in do_analysis_steps_plume plumeWrapper *)
-    ) Analysis_task_map.empty
-    conf.topconf_analyses
+      (fun analysis_report -> fun atask ->
+         match atask with
+         | DDPA (_) ->
+           (* get information necessary to close the log file *)
+           let stack = ddpa_analysis_to_stack atask in
+           let ddpaWrapper = ddpaWrapperMaker stack in
+           let logging_config, finalize = create_ddpa_logging_config situation in
+           let result =
+             (* close the log file regardless of success/failure *)
+             ddpaWrapper |> finally finalize
+               (* create/perform the analysis here *)
+               (analysis_step_general situation
+                  (Some logging_config))
+           in
+           Analysis_task_map.add atask result analysis_report
+         (* TODO: fill this out after implementing plume *)
+         | _ -> raise Not_found
+         (* | Plume (ctx) ->
+            let plumeWrapper = plumeWrapperMaker ctx in do_analysis_steps_plume plumeWrapper *)
+      ) Analysis_task_map.empty
+      conf.topconf_analyses
 ;;
 
 
@@ -540,7 +564,7 @@ let handle_expression
     ; evaluation_result = evaluation_result
     }
   with
-    (* wellformedness check didn't pass - format result type to express this *)
+  (* wellformedness check didn't pass - format result type to express this *)
   | Illformedness_found(ills) ->
     callbacks.cb_illformednesses ills;
     { illformednesses = ills

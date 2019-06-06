@@ -35,8 +35,6 @@ rule token = parse
   | "QUERY" { QUERY }
   | "ANALYSES" { ANALYSES }
   | "RESULTS" { RESULTS }
-  | "START" { START }
-  | "END" { END }
   | "EVALUATE" { EVALUATE }
   | "WELL_FORMED" { WELL_FORMED }
   | "ILL_FORMED" { ILL_FORMED }
