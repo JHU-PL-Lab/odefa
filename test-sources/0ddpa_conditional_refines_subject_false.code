@@ -1,9 +1,3 @@
-# EXPECT-WELL-FORMED
-# EXPECT-EVALUATE
-# EXPECT-ANALYSIS-STACK-IS 0ddpa
-# EXPECT-ANALYSIS-LOOKUP-FROM-END z {{b=e}}
-# EXPECT-ANALYSIS-NO-INCONSISTENCIES
-
 # We're testing to make sure that the zftr branch can't be reached.
 
 i = fun ip -> ( ir = ip );

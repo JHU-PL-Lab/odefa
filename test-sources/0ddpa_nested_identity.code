@@ -1,9 +1,3 @@
-# EXPECT-WELL-FORMED
-# EXPECT-EVALUATE
-# EXPECT-ANALYSIS-STACK-IS 0ddpa
-# EXPECT-ANALYSIS-LOOKUP-FROM-END s2 {{a=empty}, {b=empty}}
-# EXPECT-ANALYSIS-NO-INCONSISTENCIES
-
 f = fun x -> ( ident = fun y -> ( r1 = y ); r0 = ident x; );
 empty = {};
 a = {a=empty};

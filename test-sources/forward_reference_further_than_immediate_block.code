@@ -1,5 +1,3 @@
-# EXPECT-ILL-FORMED
-
 f = fun a -> (
   ar = fun b -> (
     br = c; # => ILL-FORMED: `c' is a forward reference for a variable outside the immediate block.

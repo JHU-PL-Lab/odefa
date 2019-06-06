@@ -1,0 +1,14 @@
+QUERY: spatternmatch, s0cpatternmatch, s0spacepatternmatch,
+       s6spacepatternmatch, s12hpatternmatch, s13emptypatternmatch,
+       schunckytempehpatternmatch;
+ANALYSES: 0DDPA;
+RESULTS: `0DDPA(spatternmatch) = { {int} },
+          0DDPA(s0cpatternmatch) = { {int, false} },
+          0DDPA(s0spacepatternmatch) = { {int, false} },
+          0DDPA(s6spacepatternmatch) = { {int, false} },
+          0DDPA(s12hpatternmatch) = { {int, false} },
+          0DDPA(s13emptypatternmatch) = { {int, false} },
+          0DDPA(schunckytempehpatternmatch) = { {int, false} }`;
+WELL_FORMED;
+EVALUATE;
+NO_INCONSISTENCIES;

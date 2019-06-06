@@ -1,0 +1,6 @@
+QUERY: e, r;
+ANALYSES: 0DDPA;
+RESULTS: `0DDPA(e) = { {{}} },
+          0DDPA(r) = { {{a=e, b=e}} }`;
+WELL_FORMED;
+INCONSISTENCIES_AT z;

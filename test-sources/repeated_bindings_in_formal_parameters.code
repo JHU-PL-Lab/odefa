@@ -1,5 +1,3 @@
-# EXPECT-ILL-FORMED
-
 f = fun x -> (
   fr = 0
 );

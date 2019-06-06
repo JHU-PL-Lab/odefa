@@ -1,0 +1,7 @@
+QUERY: z1, z2;
+ANALYSES: 0DDPA;
+RESULTS: `0DDPA(z1) = { {{}} },
+          0DDPA(z2) = { {{q=empty}} }`;
+WELL_FORMED;
+EVALUATE;
+NO_INCONSISTENCIES;

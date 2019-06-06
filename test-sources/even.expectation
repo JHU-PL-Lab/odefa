@@ -1,0 +1,11 @@
+QUERY: evenzero, oddzero, eventhree, oddthree, evensix, oddsix;
+ANALYSES: 0DDPA;
+RESULTS: ` 0DDPA(evenzero) = {false, true},
+           0DDPA(oddzero) = {false, true},
+           0DDPA(eventhree) =  {false, true},
+           0DDPA(oddthree) = {false, true},
+           0DDPA(evensix) =  {false, true},
+           0DDPA(oddsix) = {false, true}`;
+WELL_FORMED;
+EVALUATE;
+NO_INCONSISTENCIES;

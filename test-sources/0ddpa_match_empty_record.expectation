@@ -1,0 +1,7 @@
+QUERY: r1, r2;
+ANALYSES: 0DDPA;
+RESULTS: `0DDPA(r1) = { {{}} },
+          0DDPA(r2) = { {int} }`;
+WELL_FORMED;
+EVALUATE;
+NO_INCONSISTENCIES;

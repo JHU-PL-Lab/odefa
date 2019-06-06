@@ -1,10 +1,3 @@
-# EXPECT-WELL-FORMED
-# EXPECT-EVALUATE
-# EXPECT-ANALYSIS-STACK-IS 1ddpa
-# EXPECT-ANALYSIS-LOOKUP-FROM-END ia {{a=e}:(+{{a={}}},-{})}
-# EXPECT-ANALYSIS-LOOKUP-FROM-END ib {{b=e}}
-# EXPECT-ANALYSIS-NO-INCONSISTENCIES
-
 e = {};
 i = fun ip -> (
   ir = ip ~ {a={}} ? fun ipm -> ( ipmr = ipm; ) : fun ipa -> ( ipar = ipa; );
