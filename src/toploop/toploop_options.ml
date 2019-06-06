@@ -27,6 +27,8 @@ type configuration =
 let add_toploop_option_parsers parser=
   (* Add logging options *)
   BatOptParse.OptParser.add parser ~long_name:"log" logging_option;
+  BatOptParse.OptParser.add parser ~long_name:"select-analysis"
+     ~short_name:'S' select_analysis_option;
   (* Add ability to select the context stack. *)
   (* BatOptParse.OptParser.add parser ~long_name:"select-context-stack"
     ~short_name:'S' select_context_stack_option; *)
@@ -65,7 +67,7 @@ let read_parsed_toploop_configuration () =
   {
     (* topconf_context_stack =
        Option.get @@ select_context_stack_option.BatOptParse.Opt.option_get () ; *)
-    topconf_analyses = []
+    topconf_analyses = Option.get @@ select_analysis_option.BatOptParse.Opt.option_get ()
   ; topconf_log_prefix = "_toploop"
   ; topconf_ddpa_log_level = ddpa_logging_option.BatOptParse.Opt.option_get ()
   ; topconf_pdr_log_level = pdr_logging_option.BatOptParse.Opt.option_get ()

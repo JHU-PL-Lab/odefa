@@ -1,13 +1,17 @@
 open Odefa_ddpa;;
+open Toploop_types;;
 
 (** This logging option sets the global logging state of the application.  It
     "produces" a unit but, as each argument is parsed, has the side effect of
     configuring the logger. *)
 val logging_option : unit BatOptParse.Opt.t
 
+val select_analysis_option :
+  (analysis_task list) BatOptParse.Opt.t
+
 (** This logging option selects a particular DDPA analysis to perform. *)
-val select_context_stack_option :
-  (module Ddpa_context_stack.Context_stack) option BatOptParse.Opt.t
+(* val select_context_stack_option :
+  (module Ddpa_context_stack.Context_stack) option BatOptParse.Opt.t *)
 
 (** This logging option configures how DDPA DOT graphs are logged. *)
 val ddpa_logging_option :

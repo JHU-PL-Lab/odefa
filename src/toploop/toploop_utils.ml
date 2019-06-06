@@ -2,6 +2,7 @@ open Batteries;;
 
 open Odefa_ast;;
 open Odefa_ddpa;;
+open Toploop_types;;
 
 open Ast;;
 open Ddpa_abstract_ast;;
@@ -10,18 +11,23 @@ module type Stack = Ddpa_context_stack.Context_stack;;
 
 let name_parsing_functions =
   [
+    (* TODO: After implementing PLUME, include PLUME *)
     (* A function for the literally-named modules. *)
     (fun name ->
        match name with
        | "0ddpa" ->
-         Some (module Ddpa_unit_stack.Stack : Stack)
+         DDPA (module Ddpa_unit_stack.Stack : Stack)
        | "1ddpa" ->
-         Some (module Ddpa_single_element_stack.Stack : Stack)
+         DDPA (module Ddpa_single_element_stack.Stack : Stack)
        | "2ddpa" ->
-         Some (module Ddpa_two_element_stack.Stack : Stack)
+         DDPA (module Ddpa_two_element_stack.Stack : Stack)
        | "ddpaNR" ->
-         Some (module Ddpa_nonrepeating_stack.Stack : Stack)
-       | "none" -> None
+         DDPA (module Ddpa_nonrepeating_stack.Stack : Stack)
+       (* | "none" -> None *)
+       (* | "splume" ->
+          Plume (module Plume_context_model.Context_model)
+          | "osplume" ->
+          Plume (module Plume_context_model.Context_model) *)
        | _ -> raise Not_found
     )
     ;
@@ -37,13 +43,29 @@ let name_parsing_functions =
          end
          in
          let module NStack = Ddpa_n_element_stack.Make(Spec) in
-         Some (module NStack : Stack)
+         DDPA (module NStack : Stack)
        with
        | Failure _ -> raise Not_found
-    )
+    );
+    (* TODO: Parising kplume *)
+    (* (fun name ->
+       if not @@ String.ends_with name "plume" then raise Not_found;
+       let num_str = String.sub name 0 @@ String.length name - 4 in
+       try
+         let num = int_of_string num_str in
+         let module Spec : Ddpa_n_element_stack.Spec =
+         struct
+           let size = num
+         end
+         in
+         let module NStack = Ddpa_n_element_stack.Make(Spec) in
+         DDPA (module NStack : Stack)
+       with
+       | Failure _ -> raise Not_found
+    ) *)
   ];;
 
-let stack_from_name name =
+let analysis_from_name name =
   let rec loop fns =
     match fns with
     | [] -> raise Not_found
@@ -57,6 +79,21 @@ let stack_from_name name =
   in
   loop name_parsing_functions
 ;;
+(*
+let stack_from_name name =
+  let rec loop fns =
+    match fns with
+    | [] -> raise Not_found
+    | fn::fns' ->
+      begin
+        try
+          fn name
+        with
+        | Not_found -> loop fns'
+      end
+  in
+  loop name_parsing_functions
+;; *)
 
 (** Iterate recursively over all clauses in an expression. *)
 let rec iterate_abstract_clauses (Abs_expr(acls)) =

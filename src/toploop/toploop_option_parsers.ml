@@ -49,6 +49,51 @@ let logging_option:unit BatOptParse.Opt.t =
 
 module type Stack = Ddpa_context_stack.Context_stack;;
 
+let select_analysis_option =
+  let analysis_module_ref =
+    ref ([])
+  in
+  {
+    option_set = (fun option_name args ->
+        (
+          match args with
+          | [] -> (* TODO: Check whether we allow empty string under this option? *)
+            raise @@ Option_error (option_name,
+                                   Printf.sprintf "You must specify an analysis!")
+          | [analyses] ->
+            let analysis_list = (BatString.split_on_char ',' analyses) in
+            let find_analysis = fun analysis_str ->
+              (
+                try
+                  Toploop_utils.analysis_from_name analysis_str
+                with
+                | Not_found ->
+                  raise @@ Option_error (option_name,
+                                         Printf.sprintf "Invalid analysis name: %s" analysis_str)
+              )
+            in
+            if not (List.is_empty (!analysis_module_ref))
+            then raise @@ Option_error (option_name,
+                                        Printf.sprintf "Duplicate definition of analysis task!")
+            else analysis_module_ref := (List.map find_analysis analysis_list)
+          | _ ->
+            raise @@ Option_error (option_name,
+                                   Printf.sprintf "Invalid argument count: %d" (List.length args))
+        )
+      );
+    option_set_value = (fun analysis_module_option ->
+        analysis_module_ref := analysis_module_option
+      )
+    ;
+    option_get = (fun () -> Some (!analysis_module_ref))
+    ;
+    option_metavars = ["ANALYSIS"]
+    ;
+    option_defhelp = Some "Selects an analysis (0ddpa,1ddpa,2ddpa,ddpaNR,none)."
+    ;
+  }
+;;
+(*
 let select_context_stack_option =
   (* This ref contains a module option.  If the option is None, no analysis is
      to be performed. *)
@@ -83,7 +128,7 @@ let select_context_stack_option =
     ;
     option_defhelp = Some("Selects an analysis (0ddpa,1ddpa,2ddpa,ddpaNR,none).")
     ;
-  };;
+  };; *)
 
 let ddpa_logging_level_option name =
   let logging_level = ref None in
@@ -141,7 +186,7 @@ type analyze_variables_selection =
   | Analyze_toplevel_variables
   | Analyze_specific_variables of
       (string * string option * string list option) list
-  [@@deriving eq, ord, show]
+[@@deriving eq, ord, show]
 ;;
 
 let analyze_variables_option =
