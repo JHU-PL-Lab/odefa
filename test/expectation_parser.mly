@@ -58,9 +58,9 @@ result:
 
 query:
   | lookup_var AT graph_position AT OPEN_BRACKET context CLOSE_BRACKET
-    { Query($1, (Some $3), (Some $6)) }
-  | lookup_var AT graph_position { Query($1, (Some $3), None) }
-  | lookup_var { Query($1, None, None) }
+    { Query($1, $3, $6) }
+  | lookup_var AT graph_position { Query($1, $3, []) }
+  | lookup_var { Query($1, END, []) }
 
 analysis:
   | NATURAL DDPA { DDPA($1) }
@@ -82,4 +82,4 @@ lookup_var_list:
   | lookup_var COMMA lookup_var_list { $1::$3 }
 
 lookup_var:
-  | IDENTIFIER { Var $1}
+  | IDENTIFIER { LUVar $1}

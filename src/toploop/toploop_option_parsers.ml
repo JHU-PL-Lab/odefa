@@ -2,6 +2,8 @@ open Batteries;;
 open Jhupllib;;
 open BatOptParse.Opt;;
 
+open Toploop_types;;
+
 open Odefa_ddpa;;
 
 open Logger_utils;;
@@ -185,7 +187,7 @@ type analyze_variables_selection =
   | Analyze_no_variables
   | Analyze_toplevel_variables
   | Analyze_specific_variables of
-      (string * string option * string list option) list
+      (lookup_var * graph_position * context) list
 [@@deriving eq, ord, show]
 ;;
 
@@ -210,15 +212,17 @@ let analyze_variables_option =
                 let parse_component component =
                   begin
                     match String.nsplit component ~by:"@" with
-                    | [name] -> (name, None, None)
+                    | [name] -> (LUVar name, END, [])
                     | [name;rest] ->
                       begin
                         match String.nsplit rest ~by:":" with
-                        | [loc] -> (name, Some loc, None)
+                        | [loc] -> (LUVar name, ProgramPoint loc, [])
                         | [loc;stack] ->
                           begin
-                            let stack_elements = String.nsplit stack ~by:"|" in
-                            (name, Some loc, Some stack_elements)
+                            let stack_parsed = String.nsplit stack ~by:"|" in
+                            let stack_elements =
+                              List.map (fun var -> LUVar var) stack_parsed
+                            in (LUVar name, ProgramPoint loc, stack_elements)
                           end
                         | _ -> raise @@ Option_error (option_name,
                                                       Printf.sprintf "Invalid component string: %s"

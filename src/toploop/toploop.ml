@@ -38,32 +38,33 @@ let stdout_illformednesses_callback ills =
 ;;
 
 let stdout_variable_analysis_callback
-    var_name site_name_opt context_opt values analysis_name =
+    var_name site_name context values analysis_name =
+  let (LUVar var_str) = var_name in
   print_string ("\n" ^ analysis_name ^ ": ");
   print_string "Lookup of variable ";
-  print_string var_name;
+  print_string var_str;
   begin
-    match site_name_opt with
-    | Some site_name ->
+    match site_name with
+    | ProgramPoint site_name_str ->
       print_string " from clause ";
-      print_string site_name;
-    | None -> ()
+      print_string site_name_str;
+    | END -> ()
   end;
   begin
-    match context_opt with
-    | Some context ->
+    match context with
+    | [] -> ()
+    | context_list ->
       print_string " in context ";
       let rec loop ss =
         match ss with
         | [] -> print_string "[]"
-        | s::[] -> print_string s
-        | s::ss' ->
+        | LUVar s::[] -> print_string s
+        | LUVar s::ss' ->
           print_string s;
           print_string "|";
           loop ss'
       in
-      loop context
-    | None -> ()
+      loop context_list
   end;
   print_endline " yields values:";
   print_string "    ";
@@ -252,30 +253,14 @@ let analysis_step_general
         |> Enum.map lift_clause
         |> Enum.map
           (fun (Abs_clause(Abs_var(Ident i), _)) ->
-             Query(LUVar(i), None, None))
+             Query(LUVar(i), END, []))
         |> List.of_enum
       )
     | Analyze_specific_variables lst ->
       (* We got a list of triplets, and we will turn them into Query-s*)
       Some (List.map
               (fun (var, clause, ctx) ->
-                 let new_ctx =
-                   (
-                     match ctx with
-                     | Some (ctx_list) ->
-                       let some_ctx = List.map (fun c -> LUVar(c)) ctx_list in
-                       Some (some_ctx)
-                     | None -> None
-                   )
-                 in
-                 let new_clause =
-                   (
-                     match clause with
-                     | Some (inner_clause) -> Some (ProgramPoint(inner_clause))
-                     | None -> Some(END)
-                   )
-                 in
-                 Query(LUVar(var), new_clause, new_ctx))
+                 Query(var, clause, ctx))
               lst)
   in
   (* Given a set of variable analysis requests, this function performs
@@ -306,24 +291,19 @@ let analysis_step_general
     |> Enum.map
       (fun try_query ->
          (* Since the queries are wrapped in a constructor, we need to destruct it *)
-         let Query(var_name,site_name_opt,context_opt) = try_query in
+         let Query(var_name,site_name,context) = try_query in
          let LUVar(var_ident) = var_name in
          let lookup_var = Abs_var (Ident var_ident) in
          let site =
-           match site_name_opt with
-           | None -> raise (Failure "END - this should never happen ")
-           | Some wrapped_site_name ->
-             (
-             match wrapped_site_name with
-               | ProgramPoint site_name_str -> Unannotated_clause(
-                   lookup_clause_by_ident (Ident (site_name_str)))
-               | END -> End_clause (lift_var @@ last_var_of e)
-             )
+           match site_name with
+           | ProgramPoint site_name_str ->
+             Unannotated_clause(lookup_clause_by_ident (Ident (site_name_str)))
+           | END -> End_clause (lift_var @@ last_var_of e)
          in
          let context_stack =
-           match context_opt with
-           | None -> A.C.empty
-           | Some context_vars ->
+           match context with
+           | [] -> A.C.empty
+           | context_vars ->
              context_vars
              |> List.map (fun (LUVar(wrapped_context)) -> wrapped_context)
              |> List.enum
@@ -340,8 +320,8 @@ let analysis_step_general
          in
          let analysis_name = A.name in
          callbacks.cb_variable_analysis
-           var_ident site_name_opt context_opt values analysis_name;
-         QnA(Query(var_name,site_name_opt,context_opt),values)
+           var_name site_name context values analysis_name;
+         QnA(Query(var_name,site_name,context),values)
       )
     |> List.of_enum
   in

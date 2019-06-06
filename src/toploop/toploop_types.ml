@@ -73,19 +73,18 @@ type analysis_task =
   [@@deriving show, ord, eq]
 ;;
 
-type lookup_var = LUVar of string [@@deriving show];;
+type lookup_var = LUVar of string [@@deriving show, eq, ord];;
 
 type graph_position =
   | ProgramPoint of string
   | END
-  [@@deriving show]
+  [@@deriving show, eq, ord]
 ;;
 
-type context = lookup_var list [@@deriving show];;
+type context = lookup_var list [@@deriving show, eq, ord];;
 
-(* TODO: Unify this type with the one in toploops? *)
 type query =
-  | Query of lookup_var * graph_position option * context option [@@deriving show]
+  | Query of lookup_var * graph_position * context [@@deriving show, eq, ord]
 ;;
 
 (* qna - stores the query and set of filtered values that apply (Big Phi hat) *)
@@ -167,7 +166,7 @@ type result =
 type callbacks =
   { cb_illformednesses : Ast_wellformedness.illformedness list -> unit
   ; cb_variable_analysis :
-      string -> string option -> string list option ->
+      lookup_var -> graph_position -> context ->
       Abs_filtered_value_set.t -> string -> unit
   ; cb_errors : Toploop_analysis_types.error list -> unit
   ; cb_evaluation_result : var -> value Environment.t -> unit

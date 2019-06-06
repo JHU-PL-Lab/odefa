@@ -37,7 +37,7 @@ type analyze_variables_selection =
     (** Performs analysis on all top-level variables.  Each such variable is
         examined starting from the end clause and in the empty context. *)
   | Analyze_specific_variables of
-      (string * string option * string list option) list
+      (lookup_var * graph_position * context) list
     (** Performs analysis on a specific set of variables.  The first component
         of each triple is the name of the variable.  The second component is the
         unique variable name of the clause at which the analysis starts; if

@@ -338,7 +338,7 @@ let make_test filename expectations =
             else
               Toploop_option_parsers.Analyze_specific_variables
                 (variables_to_analyze
-                 |> List.map (fun (Ident s, _) -> (s, None, None)))
+                 |> List.map (fun (LUVar s, _) -> (s, END, [])))
         ; topconf_disable_evaluation =
             not @@ have_expectation
               (function
@@ -418,7 +418,7 @@ let make_test filename expectations =
                           (List.enum @@
                            List.map name_of_expectation expectations')
 ;;
-(* 
+(*
 let make_expectations_from filename =
   let contents = FileUtils.read_file filename in
   let expectations =
