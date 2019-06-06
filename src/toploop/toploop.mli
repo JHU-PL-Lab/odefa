@@ -34,7 +34,7 @@ val stdout_illformednesses_callback :
 (** A variable analysis callback which prints messages to stdout. *)
 val stdout_variable_analysis_callback :
   string -> string option -> string list option -> Abs_filtered_value_set.t ->
-  unit
+  string -> unit
 
 (** An error-reporting callback which prints messages to stdout. *)
 val stdout_errors_callback : error list -> unit

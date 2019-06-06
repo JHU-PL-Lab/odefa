@@ -38,8 +38,9 @@ let stdout_illformednesses_callback ills =
 ;;
 
 let stdout_variable_analysis_callback
-    var_name site_name_opt context_opt values =
-  print_string "\nLookup of variable ";
+    var_name site_name_opt context_opt values analysis_name =
+  print_string ("\n" ^ analysis_name ^ ": ");
+  print_string "Lookup of variable ";
   print_string var_name;
   begin
     match site_name_opt with
@@ -140,7 +141,7 @@ let stdout_source_statistics_callback stats =
 
 let no_op_callbacks =
   { cb_illformednesses = (fun _ -> ())
-  ; cb_variable_analysis = (fun _ _ _ _ -> ())
+  ; cb_variable_analysis = (fun _ _ _ _ _ -> ())
   ; cb_errors = (fun _ -> ())
   ; cb_evaluation_result = (fun _ _ -> ())
   ; cb_evaluation_failed = (fun _ -> ())
@@ -313,8 +314,9 @@ let analysis_step_general
             A.contextual_values_of_variable_from
               lookup_var site context_stack analysis
           in
+          let analysis_name = A.name in
           callbacks.cb_variable_analysis
-            var_name site_name_opt context_opt values;
+            var_name site_name_opt context_opt values analysis_name;
           QnA(Query(var_name,site_name_opt,context_opt),values)
        )
      |> List.of_enum
@@ -345,7 +347,7 @@ let analysis_step_general
 
     Return
       ddpa_analysis_logging_config - logging configuration details
-      (unit -> unit) - function that allows us to close the log file 
+      (unit -> unit) - function that allows us to close the log file
 *)
 let create_ddpa_logging_config (situation : toploop_situation)
   : ddpa_analysis_logging_config * (unit -> unit) =
@@ -442,17 +444,21 @@ let do_analysis_steps (situation : toploop_situation) : analysis_report =
     List.fold_left
     (fun analysis_report -> fun atask ->
       match atask with
-      | DDPA (stack) ->
+      | DDPA (_) ->
         (* get information necessary to close the log file *)
+        let stack = ddpa_analysis_to_stack atask in
         let ddpaWrapper = ddpaWrapperMaker stack in
         let logging_config, finalize = create_ddpa_logging_config situation in
         let result =
         (* close the log file regardless of success/failure *)
           ddpaWrapper |> finally finalize
             (* create/perform the analysis here *)
-            (analysis_step_general situation (Some logging_config))
+            (analysis_step_general situation
+               (Some logging_config))
         in
         Analysis_task_map.add atask result analysis_report
+      (* TODO: fill this out after implementing plume *)
+      | _ -> raise Not_found
       (* | Plume (ctx) ->
          let plumeWrapper = plumeWrapperMaker ctx in do_analysis_steps_plume plumeWrapper *)
     ) Analysis_task_map.empty

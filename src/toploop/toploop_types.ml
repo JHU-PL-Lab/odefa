@@ -17,6 +17,7 @@ open Ddpa_abstract_ast;;
 open Interpreter;;
 open Source_statistics;;
 
+(*
 (* This type describes different families of analyses the users may choose at
    the toploop; this will enable them to run more than one analyses at one
    session.
@@ -62,7 +63,16 @@ let pp_analysis_task : analysis_task Pp_utils.pretty_printer =
     Format.pp_print_string formatter C.name;
     Format.pp_print_string formatter ")";
     (* TODO: After PLUME is implemented, this function needs to be expanded.*)
-  ;;
+  ;; *)
+
+type analysis_task =
+  | DDPA of int
+  | PLUME of int
+  | SPLUME
+  | OSPLUME
+  [@@deriving show, ord, eq]
+;;
+
 
 (* query - stores the variable in question, clause, context *)
 type query = Query of string * string option * string list option [@@deriving show];;
@@ -147,7 +157,7 @@ type callbacks =
   { cb_illformednesses : Ast_wellformedness.illformedness list -> unit
   ; cb_variable_analysis :
       string -> string option -> string list option ->
-      Abs_filtered_value_set.t -> unit
+      Abs_filtered_value_set.t -> string -> unit
   ; cb_errors : Toploop_analysis_types.error list -> unit
   ; cb_evaluation_result : var -> value Environment.t -> unit
   ; cb_evaluation_failed : string -> unit

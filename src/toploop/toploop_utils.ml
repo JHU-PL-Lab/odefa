@@ -9,6 +9,31 @@ open Ddpa_abstract_ast;;
 
 module type Stack = Ddpa_context_stack.Context_stack;;
 
+let ddpa_analysis_to_stack (task : analysis_task) : (module Stack) =
+  match task with
+  | DDPA (num) ->
+    if (num = 0) then
+      (module Ddpa_unit_stack.Stack : Stack)
+    else if (num = 1) then
+      (module Ddpa_single_element_stack.Stack : Stack)
+    else if (num = 2) then
+      (module Ddpa_two_element_stack.Stack : Stack)
+    else
+    ( let module Spec : Ddpa_n_element_stack.Spec =
+         struct
+           let size = num
+         end
+      in
+      let module NStack = Ddpa_n_element_stack.Make(Spec) in
+      (module NStack : Stack)
+    )
+  | _ ->
+    (* Since this function is only expecting DDPA analyses, throw an error *)
+    raise Not_found
+;;
+
+
+
 let name_parsing_functions =
   [
     (* TODO: After implementing PLUME, include PLUME *)
@@ -16,13 +41,11 @@ let name_parsing_functions =
     (fun name ->
        match name with
        | "0ddpa" ->
-         DDPA (module Ddpa_unit_stack.Stack : Stack)
+         DDPA (0)
        | "1ddpa" ->
-         DDPA (module Ddpa_single_element_stack.Stack : Stack)
+         DDPA (1)
        | "2ddpa" ->
-         DDPA (module Ddpa_two_element_stack.Stack : Stack)
-       | "ddpaNR" ->
-         DDPA (module Ddpa_nonrepeating_stack.Stack : Stack)
+         DDPA (2)
        (* | "none" -> None *)
        (* | "splume" ->
           Plume (module Plume_context_model.Context_model)
@@ -37,13 +60,7 @@ let name_parsing_functions =
        let num_str = String.sub name 0 @@ String.length name - 4 in
        try
          let num = int_of_string num_str in
-         let module Spec : Ddpa_n_element_stack.Spec =
-         struct
-           let size = num
-         end
-         in
-         let module NStack = Ddpa_n_element_stack.Make(Spec) in
-         DDPA (module NStack : Stack)
+         DDPA (num)
        with
        | Failure _ -> raise Not_found
     );

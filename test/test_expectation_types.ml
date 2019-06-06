@@ -26,7 +26,9 @@ open Ast_wellformedness;;
 open Toploop_options;;
 open Toploop_types;;
 open Ddpa_abstract_ast;;
-open String_utils;; *)
+   open String_utils;; *)
+open Odefa_toploop;;
+open Toploop_types;;
 
 type lookup_var = Var of string;;
 
@@ -38,13 +40,6 @@ type graph_position =
 
 type context = lookup_var list;;
 
-type analysis =
-  | DDPA of int
-  | PLUME of int
-  | SPLUME
-  | OSPLUME
-;;
-
 (* TODO: Unify this type with the one in toploops? *)
 type query =
   | Query of lookup_var * graph_position option * context option
@@ -53,7 +48,7 @@ type query =
 type result_string = ResultString of string
 ;;
 
-type result = Result of analysis * query * result_string
+type result = Result of analysis_task * query * result_string
 ;;
 
 type expectation =
@@ -66,7 +61,7 @@ type expectation =
 ;;
 
 type analysis_expectation =
-    Analysis_Expectation of query list * analysis list * result list
+    Analysis_Expectation of query list * analysis_task list * result list
 ;;
 
 type expectation_file =

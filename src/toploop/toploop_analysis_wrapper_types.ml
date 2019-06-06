@@ -22,6 +22,9 @@ module type Analysis_wrapper = sig
   type analysis
 
   module C : Wrapper_context;;
+
+  val name : string;;
+
   type logging_config;;
 
   val create_analysis :
@@ -39,4 +42,5 @@ module type Analysis_wrapper = sig
   val show_analysis : analysis -> string
 
   val get_size : analysis -> int * int * int * int * int
+
 end;;

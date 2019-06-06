@@ -249,7 +249,7 @@ let analyze_variables_option =
     ;
     option_defhelp =
       Some("Selects variables to analyze.  Valid options are \"none\" (to \
-            perform no variable-specific analysis), \"top\" (to analyze all \
+            perform no variable-specific analysis), \"all\" (to analyze all \
             top-level variables from the end of the program), or \"only\".  \
             If \"only\" is given, it must be followed by a colon and then a \
             comma-separated list of specifications.  A specification is the \

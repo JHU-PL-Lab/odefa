@@ -17,6 +17,9 @@ struct
     };;
 
   module C = A.C;;
+
+  let name = C.name;;
+
   type logging_config = ddpa_analysis_logging_config;;
 
   let create_analysis ?logging_config:(logging_config=None) expr =
