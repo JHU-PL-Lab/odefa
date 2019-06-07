@@ -1,11 +1,11 @@
 open Jhupllib;;
 open OUnit2;;
 open Batteries;;
-open Odefa_toploop;;
+(* open Odefa_toploop;; *)
 
 open String_utils;;
-open Toploop_types;;
-
+(* open Toploop_types;; *)
+(*
 let aq_pair_creation (a_list : analysis_task list) (q_list : query list)
   :  Analysis_task_query.t =
   (* TODO: delete this comment. MONADS are COOL *)
@@ -16,9 +16,7 @@ let aq_pair_creation (a_list : analysis_task list) (q_list : query list)
   return (a, q)
   in
   Analysis_task_query.of_list qa_list
-;;
-
-let results_
+;; *)
 
 let natural_compare_seq_returns_0_for_empty_list _ =
   assert_equal 0 (Utils.natural_compare_seq [])

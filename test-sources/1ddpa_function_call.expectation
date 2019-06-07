@@ -1,6 +1,7 @@
 QUERY: x, z;
 ANALYSES: 1DDPA;
-RESULTS: `1DDPA(x) = { {{}} }`;
+RESULTS: 1DDPA(x) = `{{}}`,
+         1DDPA(z) = `{{}}`;
 WELL_FORMED;
 EVALUATE;
 NO_INCONSISTENCIES;

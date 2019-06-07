@@ -1,6 +1,6 @@
 QUERY: z;
 ANALYSES: 0DDPA;
-RESULTS: `0DDPA(z) = { {{a=empty}, {b=empty}} }`;
+RESULTS: 0DDPA(z) = `{{a=empty}, {b=empty}}`;
 WELL_FORMED;
 EVALUATE;
 NO_INCONSISTENCIES;

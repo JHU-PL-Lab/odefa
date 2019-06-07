@@ -14,23 +14,37 @@ ignore @@ Expectation_parser_tool.parse;; *)
 (* FIXME: purge the term "inconsistency" *)
 
 open Batteries;;
-open Jhupllib;;
-open OUnit2;;
+(* open Jhupllib;;
+open OUnit2;; *)
 
-open Odefa_ast;;
+(* open Expectation_parser_tool;; *)
+(* open Odefa_ast;;
 open Odefa_ddpa;;
-open Odefa_parser;;
-open Odefa_toploop;;
-
+open Odefa_parser;; *)
+(* open Odefa_toploop;; *)
+(*
 open Ast;;
 open Ast_pp;;
 open Ast_wellformedness;;
 open Toploop_options;;
 open Toploop_types;;
 open Ddpa_abstract_ast;;
-open String_utils;;
+open String_utils;; *)
 
-let lazy_logger = Logger_utils.make_lazy_logger "Test_files";;
+let () =
+  let filename = "test-sources/0ddpa_addition.expectation" in
+  let contents = File.with_file_in filename IO.read_all in
+  let expectations =
+    try
+      Expectation_parser_tool.parse filename contents
+    with
+    | _ -> failwith "Unknown"
+  in
+  if expectations = expectations then
+    ()
+  else ()
+
+(* let lazy_logger = Logger_utils.make_lazy_logger "Test_files";;
 
 exception File_test_creation_failure of string;;
 
@@ -518,4 +532,4 @@ let make_all_tests pathname =
         "Test file directory " ^ pathname ^ " is missing"))
 ;;
 
-let tests = "Test_source_files" >::: make_all_tests "test-sources";;
+let tests = "Test_source_files" >::: make_all_tests "test-sources";; *)

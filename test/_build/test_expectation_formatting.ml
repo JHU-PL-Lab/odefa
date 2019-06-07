@@ -1,25 +1,26 @@
 open Batteries;;
-(* open Jhupllib;;
-open OUnit2;; *)
-
-
-let () =
-  let filename = "test-sources/0ddpa_bad_projection.expectation" in
-  let contents = File.with_file_in filename IO.read_all in
-  let expectations = Expectation_parser_tool.parse filename contents
-  in
-  if expectations = expectations then
-    ()
-  else ()
+open Jhupllib;;
+open OUnit2;;
+open Expectation_parser_tool;;
+open Odefa_toploop;;
 
 (*
 let all_tests =
-  [ (*Test_files.tests
-  ;*) Test_utils.tests
-  ];;
+  [ test_success "test-sources/0ddpa_addition.expectation"
+  ; Test_utils.tests
+  ];; *)
 
 let () =
-  begin
+  let filename = "test-sources/0ddpa_addition.expectation" in
+  let contents = FileUtils.read_file filename in
+  let expectations =
+    try
+      Expectation_parser_tool.parse filename contents
+    with
+    | _ -> failwith "Unknown"
+  in
+  ()
+  (* begin
     try
       let logging_instructions = Sys.getenv "LOG" in
       let parse_module_level module_level_str =
@@ -39,5 +40,5 @@ let () =
     with
     | Not_found -> ()
   end;
-  run_test_tt_main ("Tests" >::: all_tests)
-;; *)
+  run_test_tt_main ("Tests" >::: all_tests) *)
+;;

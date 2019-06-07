@@ -33,7 +33,7 @@ analysis_expectation:
     { Analysis_Expectation ([], $6, [])}
 expectation_list:
   | expectation SEMICOLON expectation_list { $1::$3 }
-  | expectation SEMICOLON { [$1] }
+  | expectation { [$1] }
 
 expectation:
   | EVALUATE { Expect_evaluate }

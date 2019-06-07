@@ -1,0 +1,22 @@
+### Starting build.
+# Target: test_expectation_formatting.ml.depends, tags: { extension:ml, file:test_expectation_formatting.ml, ocaml, ocamldep, quiet }
+/home/ayaka/.opam/4.07.1/bin/ocamldep.opt -modules test_expectation_formatting.ml > test_expectation_formatting.ml.depends
+# Target: expectation_parser_tool.ml.depends, tags: { extension:ml, file:expectation_parser_tool.ml, ocaml, ocamldep, quiet }
+/home/ayaka/.opam/4.07.1/bin/ocamldep.opt -modules expectation_parser_tool.ml > expectation_parser_tool.ml.depends # cached
+# Target: expectation_lexer.mll, tags: { extension:mll, file:expectation_lexer.mll, lexer, ocaml, ocamllex, quiet }
+/home/ayaka/.opam/4.07.1/bin/ocamllex.opt -q expectation_lexer.mll # cached
+# Target: expectation_lexer.ml.depends, tags: { extension:ml, file:expectation_lexer.ml, ocaml, ocamldep, quiet }
+/home/ayaka/.opam/4.07.1/bin/ocamldep.opt -modules expectation_lexer.ml > expectation_lexer.ml.depends # cached
+# Target: expectation_parser.mly, tags: { extension:mly, file:expectation_parser.mly, infer, ocaml, ocamlyacc, parser, quiet }
+/home/ayaka/.opam/4.07.1/bin/ocamlyacc expectation_parser.mly # cached
+# Target: expectation_parser.mli.depends, tags: { extension:mli, file:expectation_parser.mli, ocaml, ocamldep, quiet }
+/home/ayaka/.opam/4.07.1/bin/ocamldep.opt -modules expectation_parser.mli > expectation_parser.mli.depends # cached
+# Target: test_expectation_types.ml.depends, tags: { extension:ml, file:test_expectation_types.ml, ocaml, ocamldep, quiet }
+/home/ayaka/.opam/4.07.1/bin/ocamldep.opt -modules test_expectation_types.ml > test_expectation_types.ml.depends # cached
+# Target: test_expectation_types.cmo, tags: { byte, compile, extension:cmo, extension:ml, file:test_expectation_types.cmo, file:test_expectation_types.ml, implem, ocaml, quiet }
+/home/ayaka/.opam/4.07.1/bin/ocamlc.opt -c -o test_expectation_types.cmo test_expectation_types.ml
++ /home/ayaka/.opam/4.07.1/bin/ocamlc.opt -c -o test_expectation_types.cmo test_expectation_types.ml
+File "test_expectation_types.ml", line 30, characters 5-18:
+Error: Unbound module Odefa_toploop
+Command exited with code 2.
+# Compilation unsuccessful.

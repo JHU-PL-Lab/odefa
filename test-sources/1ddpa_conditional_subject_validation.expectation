@@ -1,7 +1,7 @@
 QUERY: ra, rb;
 ANALYSES: 1DDPA;
-RESULTS: `1DDPA(ra) = { {{}} },
-          1DDPA(rb) = {int}`;
+RESULTS: 1DDPA(ra) = `{{}}`,
+         1DDPA(rb) = `{int}`;
 WELL_FORMED;
 EVALUATE;
 NO_INCONSISTENCIES;
