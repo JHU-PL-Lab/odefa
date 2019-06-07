@@ -9,14 +9,15 @@ open Toploop_types;;
 open Test_expectation_types;;
 
 let aq_set_creation (a_list : analysis_task list) (q_list : query list)
-  :  Analysis_task_query.t =
-  let aq_list =
-  let open Nondeterminism_monad in
-  let%bind a = pick_enum @@ List.enum a_list in
-  let%bind q = pick_enum @@ List.enum q_list in
-  return (a, q)
+  :  AQ_set.t =
+  let aq_monad =
+    (let open Nondeterminism_monad in
+     let%bind a = pick_enum @@ List.enum a_list in
+     let%bind q = pick_enum @@ List.enum q_list in
+     return (a, q))
   in
-  QA_set.of_list aq_list
+  let aq_list = List.of_enum (Nondeterminism_monad.enum aq_monad) in
+  AQ_set.of_list aq_list
 ;;
 
 let natural_compare_seq_returns_0_for_empty_list _ =

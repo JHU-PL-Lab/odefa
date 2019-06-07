@@ -62,4 +62,4 @@ struct
   let compare = compare;;
 end;;
 
-module QA_set = Set.Make(Analysis_task_query);;
+module AQ_set = Set.Make(Analysis_task_query);;

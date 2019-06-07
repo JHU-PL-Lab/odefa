@@ -279,19 +279,19 @@ let make_test filename gen_expectations analysis_expectation =
       let expr = File.with_file_in filename Parser.parse_program in
       (* Decide what kind of analysis to perform. *)
       let analysis_list =
-        if List.is_empty analysis_expectation
-        then []
-        else
-          let (Analysis_Expectation (_, at_list, _)) = analysis_expectation
-          in at_list
+        let (Analysis_Expectation (_, at_list, _)) = analysis_expectation in
+        if List.is_empty at_list then []
+        else at_list
       in
       (* Configure the toploop *)
       let variables_to_analyze =
-        if List.is_empty analysis_expectation
-        then []
+        let (Analysis_Expectation (q_list, _, _)) = analysis_expectation in
+        if List.is_empty q_list then []
         else
-          let (Analysis_Expectation (q_list, _, _)) = analysis_expectation
-          in q_list
+          let unpacked_q_list =
+            List.map (fun (Query(lookup_var, graph_pos, context)) ->
+                (lookup_var, graph_pos, context)) q_list in
+          unpacked_q_list
       in
       let configuration =
         { topconf_analyses = analysis_list
@@ -341,7 +341,7 @@ let make_test filename gen_expectations analysis_expectation =
       then observation @@ observe_well_formed
       else observation @@ observe_ill_formed result.illformednesses;
       (* Report each discovered error *)
-(*
+(* 
       result.errors
       |> List.iter
         (fun error -> observation @@ observe_inconsistency error);
@@ -386,19 +386,19 @@ let make_test filename gen_expectations analysis_expectation =
                            List.map name_of_gen_expectation expectations')
 ;;
 
-
-
 let make_expectations_from filename =
   let contents = File.with_file_in filename IO.read_all in
   let expectations =
     try
       Expectation_parser_tool.parse filename contents
     with
+    (*TODO: Give a proper error msg *)
     | Expectation_parser_tool.ParseFailure msg -> raise (Failure msg)
   in
   match expectations with
   | Expectations (analysis_expects, gen_expects) ->
-    let test_file_name = BatString.sub filename 0 ((BatString.length filename) - 12) in
+    let test_file_name = BatString.sub filename 0 ((BatString.length filename) - 12)
+    in let test_file_name_with_ext = test_file_name ^ ".code" in
     (match analysis_expects with
      | Some (expectation_list) ->
        (
@@ -406,18 +406,17 @@ let make_expectations_from filename =
          | Analysis_Expectation (q_list, at_list, result_list) ->
            let actual_aq_set = aq_set_creation at_list q_list in
            let res_aq_list =
-             List.map (fun Result(at, qry, _) -> (at, qry)) result_list in
-           let res_aq_set = Analysis_task_query.of_list res_aq_list in
+             List.map (fun (Result(at, qry, _)) -> (at, qry)) result_list in
+           let res_aq_set = AQ_set.of_list res_aq_list in
            let coverage = Analysis_task_query.equal actual_aq_set res_aq_set in
            if coverage
            then
-             let analyses_expected = Expect_analysis_type at_list in
              make_test (test_file_name)
-               (analyses_expected :: gen_expects) expectation_list
+               (gen_expects) expectation_list
            else raise (Expectation_parse_failure "Result list is not exhaustive.
             Please provide full specification for each analysis-query pair.")
        )
-     | None -> make_test test_file_name gen_expects []
+     | None -> make_test test_file_name gen_expects (Analysis_Expectation([], [], []))
     )
 ;;
 (*
@@ -492,7 +491,7 @@ let make_all_tests pathname =
     Sys.files_of pathname
     |> Enum.map (fun f -> pathname ^ Filename.dir_sep ^ f)
     |> Enum.filter (fun f -> not @@ Sys.is_directory f)
-    |> Enum.filter (fun f -> String.ends_with f ".code")
+    |> Enum.filter (fun f -> String.ends_with f ".expectation")
     |> Enum.map wrap_make_test_from
     |> List.of_enum
   else

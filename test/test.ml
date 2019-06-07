@@ -1,18 +1,18 @@
 open Batteries;;
-(* open Jhupllib;;
-open OUnit2;; *)
+open Jhupllib;;
+open OUnit2;;
 
 
-let () =
+(* let () =
   let filename = "test-sources/0ddpa_bad_projection.expectation" in
   let contents = File.with_file_in filename IO.read_all in
   let expectations = Expectation_parser_tool.parse filename contents
   in
   if expectations = expectations then
     ()
-  else ()
+  else () *)
 
-(*
+
 let all_tests =
   [ (*Test_files.tests
   ;*) Test_utils.tests
@@ -40,4 +40,4 @@ let () =
     | Not_found -> ()
   end;
   run_test_tt_main ("Tests" >::: all_tests)
-;; *)
+;;
