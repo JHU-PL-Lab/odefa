@@ -24,6 +24,7 @@ rule token = parse
   | whitespace { token lexbuf }
   | '\n' { new_line lexbuf; token lexbuf }
   | "@" { AT }
+  | "&" { AMPERSAND }
   | ":" { COLON }
   | ";" { SEMICOLON }
   | "," { COMMA }
@@ -35,6 +36,7 @@ rule token = parse
   | "QUERY" { QUERY }
   | "ANALYSES" { ANALYSES }
   | "RESULTS" { RESULTS }
+  | "CONSISTENCIES" { CONSISTENCIES }
   | "EVALUATE" { EVALUATE }
   | "WELL_FORMED" { WELL_FORMED }
   | "ILL_FORMED" { ILL_FORMED }

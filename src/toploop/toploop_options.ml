@@ -4,6 +4,12 @@ open Toploop_option_parsers;;
 open Odefa_ddpa;;
 open Toploop_types;;
 
+type evaluation_mode =
+  | Never_evaluate
+  | Safely_evaluate
+  | Always_evaluate
+;;
+
 (** This type defines the configuration required by the toploop to evaluate
     an expression. *)
 type configuration =
@@ -14,7 +20,7 @@ type configuration =
   ; topconf_pdr_log_deltas : bool
   ; topconf_graph_log_file_name : string
   ; topconf_analyze_vars : analyze_variables_selection
-  ; topconf_disable_evaluation : bool
+  ; topconf_evaluation_mode : evaluation_mode
   ; topconf_disable_inconsistency_check : bool
   ; topconf_disable_analysis : bool
   ; topconf_report_sizes : bool
@@ -28,10 +34,10 @@ let add_toploop_option_parsers parser=
   (* Add logging options *)
   BatOptParse.OptParser.add parser ~long_name:"log" logging_option;
   BatOptParse.OptParser.add parser ~long_name:"select-analysis"
-     ~short_name:'S' select_analysis_option;
+    ~short_name:'S' select_analysis_option;
   (* Add ability to select the context stack. *)
   (* BatOptParse.OptParser.add parser ~long_name:"select-context-stack"
-    ~short_name:'S' select_context_stack_option; *)
+     ~short_name:'S' select_context_stack_option; *)
   (* Add DDPA graph logging option. *)
   BatOptParse.OptParser.add parser ~long_name:"ddpa-logging"
     ddpa_logging_option;
@@ -79,8 +85,11 @@ let read_parsed_toploop_configuration () =
       Option.get @@ graph_log_file_option.BatOptParse.Opt.option_get ()
   ; topconf_analyze_vars = Option.get @@
       analyze_variables_option.BatOptParse.Opt.option_get ()
-  ; topconf_disable_evaluation = Option.get @@
-      disable_evaluation_option.BatOptParse.Opt.option_get ()
+  ; topconf_evaluation_mode =
+      (let disable = Option.get @@
+         disable_evaluation_option.BatOptParse.Opt.option_get () in
+       if disable then Never_evaluate else
+         Safely_evaluate)
   ; topconf_disable_inconsistency_check = Option.get @@
       disable_inconsistency_check_option.BatOptParse.Opt.option_get ()
   ; topconf_disable_analysis = Option.get @@

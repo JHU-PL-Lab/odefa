@@ -4,7 +4,7 @@ open OUnit2;;
 
 
 (* let () =
-  let filename = "test-sources/0ddpa_bad_projection.expectation" in
+  let filename = "test-sources/0ddpa_addition.expectation" in
   let contents = File.with_file_in filename IO.read_all in
   let expectations = Expectation_parser_tool.parse filename contents
   in
@@ -12,10 +12,9 @@ open OUnit2;;
     ()
   else () *)
 
-
 let all_tests =
-  [ (*Test_files.tests
-  ;*) Test_utils.tests
+  [ Test_files.tests
+  ; Test_utils.tests
   ];;
 
 let () =

@@ -9,9 +9,6 @@
    - [EXPECT-STUCK] (which requires that the code gets stuck)
      FIXME: update this documentation
 *)
-(* open OUnit2;;
-   ignore @@ Expectation_parser_tool.parse;; *)
-(* FIXME: purge the term "inconsistency" *)
 
 open Batteries;;
 open Jhupllib;;
@@ -23,7 +20,6 @@ open Odefa_parser;;
 open Odefa_toploop;;
 
 open Ast;;
-open Ast_pp;;
 open Ast_wellformedness;;
 open Ddpa_abstract_ast;;
 open String_utils;;
@@ -31,7 +27,6 @@ open Test_expectation_types;;
 open Test_utils;;
 open Toploop_options;;
 open Toploop_types;;
-open Toploop_utils;;
 
 let lazy_logger = Logger_utils.make_lazy_logger "Test_files";;
 
@@ -52,14 +47,6 @@ let pp_test_expectation formatter expectation =
   | Expect_stuck -> Format.pp_print_string formatter "Expect_stuck"
   | Expect_well_formed -> Format.pp_print_string formatter "Expect_well_formed"
   | Expect_ill_formed -> Format.pp_print_string formatter "Expect_ill_formed"
-  | Expect_analysis_inconsistency_at(x) ->
-    let LUVar x_str = x in
-    let x_ident = Ident x_str in
-    Format.fprintf formatter
-      "Expect_analysis_inconsistency_at(%a)"
-      pp_ident x_ident
-  | Expect_analysis_no_inconsistencies ->
-    Format.pp_print_string formatter "Expect_analysis_no_inconsistencies"
 ;;
 
 (*
@@ -222,7 +209,7 @@ let observe_inconsistency inconsistency expectation =
     if site_of_inconsistency = ident_var
     then None
     else Some expectation
-  | _ -> Some expectation
+    (* | _ -> Some expectation *)
 ;;
 
 let observe_no_inconsistency expectation =
@@ -238,11 +225,6 @@ let make_test filename gen_expectations analysis_expectation =
     | Expect_stuck -> "should get stuck"
     | Expect_well_formed -> "should be well-formed"
     | Expect_ill_formed -> "should be ill-formed"
-    | Expect_analysis_inconsistency_at (LUVar x) ->
-      let ident = Ident x in
-      "should be inconsistent at " ^ show_ident ident
-    | Expect_analysis_no_inconsistencies ->
-      "should be consistent"
   in
   let test_name = filename ^ ": (" ^
                   string_of_list name_of_gen_expectation gen_expectations ^ ")"
@@ -279,19 +261,30 @@ let make_test filename gen_expectations analysis_expectation =
       let expr = File.with_file_in filename Parser.parse_program in
       (* Decide what kind of analysis to perform. *)
       let analysis_list =
-        let (Analysis_Expectation (_, at_list, _)) = analysis_expectation in
+        let (Analysis_Expectation (_, at_list, _, _)) = analysis_expectation in
         if List.is_empty at_list then []
         else at_list
       in
       (* Configure the toploop *)
       let variables_to_analyze =
-        let (Analysis_Expectation (q_list, _, _)) = analysis_expectation in
+        let (Analysis_Expectation (q_list, _, _, _)) = analysis_expectation in
         if List.is_empty q_list then []
         else
           let unpacked_q_list =
             List.map (fun (Query(lookup_var, graph_pos, context)) ->
                 (lookup_var, graph_pos, context)) q_list in
           unpacked_q_list
+      in
+      let consistency_checks =
+        let (Analysis_Expectation (_, _, _, c_list)) = analysis_expectation in
+        if List.is_empty c_list then AC_Map.empty
+        else
+          let consistency_dict =
+            List.fold_left
+              (fun dict -> fun (analysis, consistencies) ->
+                 AC_Map.add analysis consistencies dict
+              ) AC_Map.empty c_list
+          in consistency_dict
       in
       let configuration =
         { topconf_analyses = analysis_list
@@ -305,18 +298,22 @@ let make_test filename gen_expectations analysis_expectation =
             then Toploop_option_parsers.Analyze_no_variables
             else
               Toploop_option_parsers.Analyze_specific_variables variables_to_analyze
-        ; topconf_disable_evaluation =
-            not @@ have_expectation
-              (function
-                | Expect_evaluate -> true
-                | Expect_stuck -> true
-                | _ -> false)
+        ; topconf_evaluation_mode =
+            (
+              let has_evaluation_expectation =
+                have_expectation
+                  (function
+                    | Expect_evaluate -> true
+                    | Expect_stuck -> true
+                    | _ -> false)
+              in
+              if has_evaluation_expectation then
+                Always_evaluate
+              else
+                Never_evaluate
+            )
         ; topconf_disable_inconsistency_check =
-            not @@ have_expectation
-              (function
-                | Expect_analysis_no_inconsistencies -> true
-                | Expect_analysis_inconsistency_at _ -> true
-                | _ -> false)
+            AC_Map.is_empty consistency_checks
         ; topconf_disable_analysis = false
         ; topconf_report_sizes = false
         ; topconf_report_source_statistics = false
@@ -337,25 +334,28 @@ let make_test filename gen_expectations analysis_expectation =
             filename (Pp_utils.pp_to_string pp_result result)
         );
       (* Report well-formedness or ill-formedness as appropriate. *)
+      lazy_logger `trace (fun () ->
+          show_result result
+        );
       if result.illformednesses = []
       then observation @@ observe_well_formed
       else observation @@ observe_ill_formed result.illformednesses;
       (* Report each discovered error *)
-      result.errors
-      |> List.iter
-        (fun error -> observation @@ observe_inconsistency error);
-      (* If there are no errors, report that. *)
-      if result.errors = [] then observation observe_no_inconsistency;
-      (* Report each resulting variable analysis. *)
-      result.analyses
-      |> List.iter
-        (fun ((varname,_,_),values) ->
+      (* result.errors
+         |> List.iter
+         (fun error -> observation @@ observe_inconsistency error);
+         (* If there are no errors, report that. *)
+         if result.errors = [] then observation observe_no_inconsistency;
+         (* Report each resulting variable analysis. *)
+         result.analyses
+         |> List.iter
+         (fun ((varname,_,_),values) ->
            let repr =
              Pp_utils.pp_to_string Ddpa_abstract_ast.Abs_filtered_value_set.pp values
            in
            observation @@ observe_analysis_variable_lookup_from_end
              (Ident varname) repr
-        );
+         ); *)
       (* Now report the result of evaluation. *)
       begin
         match result.evaluation_result with
@@ -368,10 +368,9 @@ let make_test filename gen_expectations analysis_expectation =
       !expectations_left
       |> List.iter
         (function
-          | Expect_analysis_inconsistency_at LUVar x ->
-            let x_ident = Ident x in
-            assert_failure @@ "Expected error at " ^
-                              show_ident x_ident ^ " which did not occur"
+          (* | Expect_analysis_inconsistency_at ident ->
+             assert_failure @@ "Expected error at " ^
+                              show_ident ident ^ " which did not occur" *)
           | _ -> ()
         );
     end;
@@ -402,20 +401,20 @@ let make_expectations_from filename =
      | Some (expectation_list) ->
        (
          match expectation_list with
-         | Analysis_Expectation (q_list, at_list, result_list) ->
+         | Analysis_Expectation (q_list, at_list, result_list, _) ->
            let actual_aq_set = aq_set_creation at_list q_list in
            let res_aq_list =
              List.map (fun (Result(at, qry, _)) -> (at, qry)) result_list in
            let res_aq_set = AQ_set.of_list res_aq_list in
-           let coverage = Analysis_task_query.equal actual_aq_set res_aq_set in
+           let coverage = AQ_set.equal actual_aq_set res_aq_set in
            if coverage
            then
-             make_test (test_file_name)
+             make_test (test_file_name_with_ext)
                (gen_expects) expectation_list
            else raise (Expectation_parse_failure "Result list is not exhaustive.
             Please provide full specification for each analysis-query pair.")
        )
-     | None -> make_test test_file_name gen_expects (Analysis_Expectation([], [], []))
+     | None -> make_test test_file_name_with_ext gen_expects (Analysis_Expectation([], [], [], []))
     )
 ;;
 (*

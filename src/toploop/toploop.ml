@@ -479,17 +479,19 @@ let do_analysis_steps (situation : toploop_situation) : analysis_report =
     type evaluation_result describing the result of evaluating the expression.
 
 *)
-let do_evaluation situation =
+let do_evaluation situation has_errors =
   let callbacks = situation.ts_callbacks in
   let conf = situation.ts_conf in
   let e = situation.ts_expr in
-  if conf.topconf_disable_evaluation
-  then
+  match conf.topconf_evaluation_mode with
+  | Never_evaluate ->
     begin
       callbacks.cb_evaluation_disabled ();
       Toploop_types.Evaluation_disabled
     end
-  else
+  | Safely_evaluate when has_errors ->
+    Toploop_types.Evaluation_invalidated
+  | Safely_evaluate | Always_evaluate ->
     (* try to evaluate the extracted expression *)
     begin
       try
@@ -528,11 +530,12 @@ let handle_expression
     let report : analysis_report = do_analysis_steps situation in
     (* Step 3: perform evaluation. *)
     let evaluation_result =
-      if Analysis_task_map.values report
-         |> Enum.map (fun (Analysis_result(_, errors)) -> List.is_empty errors)
-         |> Enum.for_all identity
-      then do_evaluation situation
-      else Evaluation_invalidated
+      let error_free =
+        Analysis_task_map.values report
+        |> Enum.map (fun (Analysis_result(_, errors)) -> List.is_empty errors)
+        |> Enum.for_all identity
+      in
+      do_evaluation situation (not error_free)
     in
     (* Step 4: perform source statistics counting if requested. *)
     if conf.topconf_report_source_statistics

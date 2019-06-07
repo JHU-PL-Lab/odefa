@@ -8,7 +8,6 @@ open String_utils;;
 open Toploop_types;;
 open Test_expectation_types;;
 
-
 let aq_set_creation (a_list : analysis_task list) (q_list : query list)
   :  AQ_set.t =
   let aq_monad =

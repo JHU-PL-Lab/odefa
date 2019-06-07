@@ -5,9 +5,10 @@
 %token <string> IDENTIFIER OUTPUT
 %token AT COLON SEMICOLON COMMA EQUAL
 %token QUERY ANALYSES RESULTS
-%token EVALUATE STUCK WELL_FORMED ILL_FORMED NO_INCONSISTENCIES INCONSISTENCIES_AT
+%token EVALUATE STUCK WELL_FORMED ILL_FORMED NO_INCONSISTENCIES INCONSISTENCIES_AT CONSISTENCIES
 %token OPEN_PAREN CLOSE_PAREN
 %token DDPA PLUME SPLUME OSPLUME
+%token AMPERSAND
 %token OPEN_BRACKET CLOSE_BRACKET EOF
 %token <int> NATURAL
 
@@ -26,11 +27,23 @@ analysis_expectation:
   | QUERY COLON query_list SEMICOLON
     ANALYSES COLON analysis_list SEMICOLON
     RESULTS COLON result_list SEMICOLON
-    { Analysis_Expectation ($3, $7, $11) }
+    CONSISTENCIES COLON analysis_consistency_expectation_list SEMICOLON
+    { Analysis_Expectation ($3, $7, $11, $15) }
   | QUERY COLON SEMICOLON
     ANALYSES COLON analysis_list SEMICOLON
     RESULTS COLON SEMICOLON
-    { Analysis_Expectation ([], $6, [])}
+    CONSISTENCIES COLON analysis_consistency_expectation_list SEMICOLON
+    { Analysis_Expectation ([], $6, [], $13)}
+  | QUERY COLON query_list SEMICOLON
+    ANALYSES COLON analysis_list SEMICOLON
+    RESULTS COLON result_list SEMICOLON
+    CONSISTENCIES COLON SEMICOLON
+    { Analysis_Expectation ($3, $7, $11, [])}
+  | QUERY COLON SEMICOLON
+    ANALYSES COLON analysis_list SEMICOLON
+    RESULTS COLON SEMICOLON
+    CONSISTENCIES COLON SEMICOLON
+    { Analysis_Expectation ([], $6, [], [])}
 
 expectation_list:
   | expectation SEMICOLON expectation_list { $1::$3 }
@@ -41,8 +54,15 @@ expectation:
   | STUCK { Expect_stuck }
   | WELL_FORMED { Expect_well_formed }
   | ILL_FORMED { Expect_ill_formed }
-  | NO_INCONSISTENCIES { Expect_analysis_no_inconsistencies }
-  | INCONSISTENCIES_AT lookup_var { Expect_analysis_inconsistency_at($2) }
+
+analysis_consistency_expectation_list:
+  | analysis_consistency_expectation
+  AMPERSAND analysis_consistency_expectation_list { $1 :: $3 }
+  | analysis_consistency_expectation { [$1] }
+
+inconsistensies_list:
+  | inconsistency COMMA inconsistensies_list { $1 :: $3 }
+  | inconsistency { [$1] }
 
 result_list:
   | result COMMA result_list { $1::$3 }
@@ -55,6 +75,16 @@ query_list:
 analysis_list:
   | analysis COMMA analysis_list { $1::$3 }
   | analysis { [$1] }
+
+analysis_consistency_expectation:
+  | analysis EQUAL consistency { ($1, $3) }
+
+inconsistency:
+  | INCONSISTENCIES_AT lookup_var { Expect_analysis_inconsistency_at($2) }
+
+consistency:
+  | NO_INCONSISTENCIES { Expect_analysis_no_inconsistencies }
+  | inconsistensies_list { Expect_analysis_inconsistencies $1 }
 
 result:
   | analysis OPEN_PAREN query CLOSE_PAREN EQUAL expected_output
