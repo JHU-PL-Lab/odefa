@@ -5,83 +5,38 @@
    Each file is expected to contain a comment describing the expected test
    result.  The comment should be of one of the following forms:
 
-    - [EXPECT-EVALUATE] (which requires that the code evaluates to completion)
-    - [EXPECT-STUCK] (which requires that the code gets stuck)
-   FIXME: update this documentation
+   - [EXPECT-EVALUATE] (which requires that the code evaluates to completion)
+   - [EXPECT-STUCK] (which requires that the code gets stuck)
+     FIXME: update this documentation
 *)
 (* open OUnit2;;
-ignore @@ Expectation_parser_tool.parse;; *)
+   ignore @@ Expectation_parser_tool.parse;; *)
 (* FIXME: purge the term "inconsistency" *)
 
 open Batteries;;
-(* open Jhupllib;;
-open OUnit2;; *)
+open Jhupllib;;
+open OUnit2;;
 
-(* open Expectation_parser_tool;; *)
-(* open Odefa_ast;;
+open Odefa_ast;;
 open Odefa_ddpa;;
-open Odefa_parser;; *)
-(* open Odefa_toploop;; *)
-(*
+open Odefa_parser;;
+open Odefa_toploop;;
+
 open Ast;;
 open Ast_pp;;
 open Ast_wellformedness;;
+open Ddpa_abstract_ast;;
+open String_utils;;
+open Test_expectation_types;;
+open Test_utils;;
 open Toploop_options;;
 open Toploop_types;;
-open Ddpa_abstract_ast;;
-open String_utils;; *)
+open Toploop_utils;;
 
-let () =
-  let filename = "test-sources/0ddpa_addition.expectation" in
-  let contents = File.with_file_in filename IO.read_all in
-  let expectations =
-    try
-      Expectation_parser_tool.parse filename contents
-    with
-    | _ -> failwith "Unknown"
-  in
-  if expectations = expectations then
-    ()
-  else ()
-
-(* let lazy_logger = Logger_utils.make_lazy_logger "Test_files";;
-
-exception File_test_creation_failure of string;;
-
-type test_expectation =
-  | Expect_evaluate
-  | Expect_stuck
-  | Expect_well_formed
-  | Expect_ill_formed
-  | Expect_analysis_stack_is of
-      (module Ddpa_context_stack.Context_stack) option
-  | Expect_analysis_variable_lookup_from_end of ident * string
-  | Expect_analysis_inconsistency_at of ident
-  | Expect_analysis_no_inconsistencies
-;;
-
-let pp_test_expectation formatter expectation =
-  match expectation with
-  | Expect_evaluate -> Format.pp_print_string formatter "Expect_evaluate"
-  | Expect_stuck -> Format.pp_print_string formatter "Expect_stuck"
-  | Expect_well_formed -> Format.pp_print_string formatter "Expect_well_formed"
-  | Expect_ill_formed -> Format.pp_print_string formatter "Expect_ill_formed"
-  | Expect_analysis_stack_is _ ->
-    Format.pp_print_string formatter "Expect_analysis_stack_is(...)"
-  | Expect_analysis_variable_lookup_from_end(x,expected) ->
-    Format.fprintf formatter
-      "Expect_analysis_variable_lookup_from_end(%a,\"%s\")"
-      pp_ident x expected
-  | Expect_analysis_inconsistency_at(x) ->
-    Format.fprintf formatter
-      "Expect_analysis_inconsistency_at(%a)"
-      pp_ident x
-  | Expect_analysis_no_inconsistencies ->
-    Format.pp_print_string formatter "Expect_analysis_no_inconsistencies"
-;;
+let lazy_logger = Logger_utils.make_lazy_logger "Test_files";;
 
 type expectation_parse =
-  | Success of test_expectation
+  | Success of expectation
   | Failure of string
 ;;
 
@@ -89,10 +44,24 @@ exception Expectation_parse_failure of string;;
 
 exception Expectation_not_found;;
 
-type expectation_stack_decision =
-  | Default_stack
-  | Chosen_stack of (module Ddpa_context_stack.Context_stack) option
+exception File_test_creation_failure of string;;
+
+let pp_test_expectation formatter expectation =
+  match expectation with
+  | Expect_evaluate -> Format.pp_print_string formatter "Expect_evaluate"
+  | Expect_stuck -> Format.pp_print_string formatter "Expect_stuck"
+  | Expect_well_formed -> Format.pp_print_string formatter "Expect_well_formed"
+  | Expect_ill_formed -> Format.pp_print_string formatter "Expect_ill_formed"
+  | Expect_analysis_inconsistency_at(x) ->
+    let LUVar x_str = x in
+    let x_ident = Ident x_str in
+    Format.fprintf formatter
+      "Expect_analysis_inconsistency_at(%a)"
+      pp_ident x_ident
+  | Expect_analysis_no_inconsistencies ->
+    Format.pp_print_string formatter "Expect_analysis_no_inconsistencies"
 ;;
+
 (*
 let parse_expectation str =
   let assert_no_args lst =
@@ -201,9 +170,9 @@ let observe_ill_formed illformednesses expectation =
   | _ -> Some expectation
 ;;
 
-let observe_analysis_stack_selection chosen_stack_ref expectation =
-  match expectation with
-  | Expect_analysis_stack_is module_option ->
+(* let observe_analysis_stack_selection chosen_stack_ref expectation =
+   match expectation with
+   | Expect_analysis_stack_is module_option ->
     begin
       chosen_stack_ref :=
         begin
@@ -214,12 +183,12 @@ let observe_analysis_stack_selection chosen_stack_ref expectation =
         end;
       None
     end
-  | _ -> Some expectation
-;;
+   | _ -> Some expectation
+   ;;
 
-let observe_analysis_variable_lookup_from_end ident repr expectation =
-  match expectation with
-  | Expect_analysis_variable_lookup_from_end(ident',repr') ->
+   let observe_analysis_variable_lookup_from_end ident repr expectation =
+   match expectation with
+   | Expect_analysis_variable_lookup_from_end(ident',repr') ->
     if ident = ident'
     then
       begin
@@ -230,8 +199,8 @@ let observe_analysis_variable_lookup_from_end ident repr expectation =
             (show_ident ident) repr' repr
       end
     else Some expectation
-  | _ -> Some expectation
-;;
+   | _ -> Some expectation
+   ;; *)
 
 let observe_inconsistency inconsistency expectation =
   let site_of_inconsistency =
@@ -248,8 +217,9 @@ let observe_inconsistency inconsistency expectation =
     | Invalid_indexing_argument (Abs_var ident,_,_) -> ident
   in
   match expectation with
-  | Expect_analysis_inconsistency_at expected_site ->
-    if site_of_inconsistency = expected_site
+  | Expect_analysis_inconsistency_at (LUVar expected_site) ->
+    let ident_var = Ident expected_site in
+    if site_of_inconsistency = ident_var
     then None
     else Some expectation
   | _ -> Some expectation
@@ -261,32 +231,21 @@ let observe_no_inconsistency expectation =
   | _ -> Some expectation
 ;;
 
-let make_test filename expectations =
-  let name_of_expectation expectation = match expectation with
+let make_test filename gen_expectations analysis_expectation =
+  let name_of_gen_expectation gen_expect =
+    match gen_expect with
     | Expect_evaluate -> "should evaluate"
     | Expect_stuck -> "should get stuck"
     | Expect_well_formed -> "should be well-formed"
     | Expect_ill_formed -> "should be ill-formed"
-    | Expect_analysis_stack_is stack_option ->
-      let name =
-        match stack_option with
-        | Some stack ->
-          let module Stack =
-            (val stack : Ddpa_context_stack.Context_stack)
-          in
-          Stack.name
-        | None -> "none"
-      in
-      "should use analysis stack " ^ name
-    | Expect_analysis_variable_lookup_from_end(ident,_) ->
-      "should have particular values for variable " ^ (show_ident ident)
-    | Expect_analysis_inconsistency_at ident ->
+    | Expect_analysis_inconsistency_at (LUVar x) ->
+      let ident = Ident x in
       "should be inconsistent at " ^ show_ident ident
     | Expect_analysis_no_inconsistencies ->
       "should be consistent"
   in
   let test_name = filename ^ ": (" ^
-                  string_of_list name_of_expectation expectations ^ ")"
+                  string_of_list name_of_gen_expectation gen_expectations ^ ")"
   in
   (* Create the test in a thunk. *)
   test_name >::
@@ -295,10 +254,10 @@ let make_test filename expectations =
         Printf.sprintf "Performing test for %s with expectations: %s"
           filename
           (Pp_utils.pp_to_string (Pp_utils.pp_list pp_test_expectation)
-             expectations)
+             gen_expectations)
       );
     (* Using a mutable list of not-yet-handled expectations. *)
-    let expectations_left = ref expectations in
+    let expectations_left = ref gen_expectations in
     (* This routine takes an observation function and applies it to all of the
        not-yet-handled expectations. *)
     let observation f =
@@ -319,28 +278,23 @@ let make_test filename expectations =
     begin
       let expr = File.with_file_in filename Parser.parse_program in
       (* Decide what kind of analysis to perform. *)
-      let module_choice = ref Default_stack in
-      observation (observe_analysis_stack_selection module_choice);
-      let chosen_module_option =
-        match !module_choice with
-        | Default_stack ->
-          Some (module Ddpa_single_element_stack.Stack :
-                 Ddpa_context_stack.Context_stack)
-        | Chosen_stack value -> value
+      let analysis_list =
+        if List.is_empty analysis_expectation
+        then []
+        else
+          let (Analysis_Expectation (_, at_list, _)) = analysis_expectation
+          in at_list
       in
       (* Configure the toploop *)
       let variables_to_analyze =
-        !expectations_left
-        |> List.enum
-        |> Enum.filter_map
-          (function
-            | Expect_analysis_variable_lookup_from_end(ident,expected) ->
-              Some(ident,expected)
-            | _ -> None)
-        |> List.of_enum
+        if List.is_empty analysis_expectation
+        then []
+        else
+          let (Analysis_Expectation (q_list, _, _)) = analysis_expectation
+          in q_list
       in
       let configuration =
-        { topconf_context_stack = chosen_module_option
+        { topconf_analyses = analysis_list
         ; topconf_log_prefix = filename ^ "_"
         ; topconf_ddpa_log_level = None
         ; topconf_pdr_log_level = None
@@ -350,9 +304,7 @@ let make_test filename expectations =
             if variables_to_analyze = []
             then Toploop_option_parsers.Analyze_no_variables
             else
-              Toploop_option_parsers.Analyze_specific_variables
-                (variables_to_analyze
-                 |> List.map (fun (LUVar s, _) -> (s, END, [])))
+              Toploop_option_parsers.Analyze_specific_variables variables_to_analyze
         ; topconf_disable_evaluation =
             not @@ have_expectation
               (function
@@ -389,7 +341,7 @@ let make_test filename expectations =
       then observation @@ observe_well_formed
       else observation @@ observe_ill_formed result.illformednesses;
       (* Report each discovered error *)
-
+(*
       result.errors
       |> List.iter
         (fun error -> observation @@ observe_inconsistency error);
@@ -404,7 +356,7 @@ let make_test filename expectations =
            in
            observation @@ observe_analysis_variable_lookup_from_end
              (Ident varname) repr
-        );
+        ); *)
       (* Now report the result of evaluation. *)
       begin
         match result.evaluation_result with
@@ -417,9 +369,10 @@ let make_test filename expectations =
       !expectations_left
       |> List.iter
         (function
-          | Expect_analysis_inconsistency_at ident ->
+          | Expect_analysis_inconsistency_at LUVar x ->
+            let x_ident = Ident x in
             assert_failure @@ "Expected error at " ^
-                              show_ident ident ^ " which did not occur"
+                              show_ident x_ident ^ " which did not occur"
           | _ -> ()
         );
     end;
@@ -430,11 +383,13 @@ let make_test filename expectations =
       assert_failure @@ "The following expectations could not be met:" ^
                         "\n    * " ^ concat_sep "\n    * "
                           (List.enum @@
-                           List.map name_of_expectation expectations')
+                           List.map name_of_gen_expectation expectations')
 ;;
-(*
+
+
+
 let make_expectations_from filename =
-  let contents = FileUtils.read_file filename in
+  let contents = File.with_file_in filename IO.read_all in
   let expectations =
     try
       Expectation_parser_tool.parse filename contents
@@ -443,16 +398,29 @@ let make_expectations_from filename =
   in
   match expectations with
   | Expectations (analysis_expects, gen_expects) ->
-    match analysis_expects with
-    | Some (expectation_list) ->
-      ( match expectation_list with
-        | Analysis_Expectation (q_list, at_list, result_list) ->
-
-      )
-        make_test filename gen_expects
-    | None -> *)
-
-
+    let test_file_name = BatString.sub filename 0 ((BatString.length filename) - 12) in
+    (match analysis_expects with
+     | Some (expectation_list) ->
+       (
+         match expectation_list with
+         | Analysis_Expectation (q_list, at_list, result_list) ->
+           let actual_aq_set = aq_set_creation at_list q_list in
+           let res_aq_list =
+             List.map (fun Result(at, qry, _) -> (at, qry)) result_list in
+           let res_aq_set = Analysis_task_query.of_list res_aq_list in
+           let coverage = Analysis_task_query.equal actual_aq_set res_aq_set in
+           if coverage
+           then
+             let analyses_expected = Expect_analysis_type at_list in
+             make_test (test_file_name)
+               (analyses_expected :: gen_expects) expectation_list
+           else raise (Expectation_parse_failure "Result list is not exhaustive.
+            Please provide full specification for each analysis-query pair.")
+       )
+     | None -> make_test test_file_name gen_expects []
+    )
+;;
+(*
 let make_test_from filename =
   let expectations =
     filename
@@ -508,11 +476,11 @@ let make_test_from filename =
         (fun msg err -> msg ^ "\n    " ^ err) message
     in
     raise (File_test_creation_failure message')
-;;
+;; *)
 
 let wrap_make_test_from filename =
   try
-    make_test_from filename
+    make_expectations_from filename
   with
   | File_test_creation_failure s ->
     filename >:: function _ -> assert_failure s
@@ -532,4 +500,4 @@ let make_all_tests pathname =
         "Test file directory " ^ pathname ^ " is missing"))
 ;;
 
-let tests = "Test_source_files" >::: make_all_tests "test-sources";; *)
+let tests = "Test_source_files" >::: make_all_tests "test-sources";;

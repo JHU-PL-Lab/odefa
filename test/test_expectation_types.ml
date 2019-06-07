@@ -56,10 +56,10 @@ type expectation_file =
 (* here are modules for (query list * analysis_task list) that contains the
    cartesian product *)
 (* TODO: include a pretty printer if we need one? *)
-module Query_analysis_task =
+module Analysis_task_query =
 struct
-  type t = (query * analysis_task) [@@deriving eq, ord];;
+  type t = (analysis_task * query) [@@deriving eq, ord];;
   let compare = compare;;
 end;;
 
-module QA_set = Set.Make(Query_analysis_task);;
+module QA_set = Set.Make(Analysis_task_query);;

@@ -9,6 +9,20 @@ open Ddpa_abstract_ast;;
 
 module type Stack = Ddpa_context_stack.Context_stack;;
 
+let analysis_task_to_name (task : analysis_task) : string =
+  match task with
+  | DDPA (num) ->
+    if (num = 0) then
+      "0ddpa"
+    else if (num = 1) then
+      "1ddpa"
+    else if (num = 2) then
+      "2ddpa"
+    else
+      (string_of_int num) ^ "ddpa"
+  | _ ->
+    raise Not_found
+
 let ddpa_analysis_to_stack (task : analysis_task) : (module Stack) =
   match task with
   | DDPA (num) ->
