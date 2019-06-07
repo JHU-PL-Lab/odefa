@@ -6,6 +6,6 @@ RESULTS:   0DDPA(evenzero) = `{false, true}`,
            0DDPA(oddthree) = `{false, true}`,
            0DDPA(evensix) =  `{false, true}`,
            0DDPA(oddsix) = `{false, true}`;
+CONSISTENCIES: 0DDPA = NO_INCONSISTENCIES;
 WELL_FORMED;
 EVALUATE;
-NO_INCONSISTENCIES;

@@ -2,6 +2,6 @@ QUERY: z, r;
 ANALYSES: 0DDPA;
 RESULTS: 0DDPA(z) = `{false, true}`,
          0DDPA(r) = `{{no=empty}, {yes=empty}}`;
+CONSISTENCIES: 0DDPA = NO_INCONSISTENCIES;
 WELL_FORMED;
 EVALUATE;
-NO_INCONSISTENCIES;
