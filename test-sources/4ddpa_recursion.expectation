@@ -1,6 +1,6 @@
 QUERY: z;
 ANALYSES: 4DDPA;
-RESULTS: `4DDPA(z) = {{}:(+{{}},-{})}`;
+RESULTS: 4DDPA(z) = `{}:(+{{}},-{})`;
 WELL_FORMED;
 EVALUATE;
 NO_INCONSISTENCIES;
