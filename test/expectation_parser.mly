@@ -27,7 +27,10 @@ analysis_expectation:
     ANALYSES COLON analysis_list SEMICOLON
     RESULTS COLON result_list SEMICOLON
     { Analysis_Expectation ($3, $7, $11) }
-
+  | QUERY COLON SEMICOLON
+    ANALYSES COLON analysis_list SEMICOLON
+    RESULTS COLON SEMICOLON
+    { Analysis_Expectation ([], $6, [])}
 expectation_list:
   | expectation SEMICOLON expectation_list { $1::$3 }
   | expectation { [$1] }

@@ -1,0 +1,7 @@
+QUERY: ia, ib;
+ANALYSES: 1DDPA;
+RESULTS: `1DDPA(ia) = { {{a=e}:(+{{a={}}},-{})} },
+          1DDPA(ib) = { {{b=e}} }`;
+WELL_FORMED;
+EVALUATE;
+NO_INCONSISTENCIES;

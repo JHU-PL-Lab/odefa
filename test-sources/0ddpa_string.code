@@ -1,15 +1,3 @@
-# EXPECT-WELL-FORMED
-# EXPECT-EVALUATE
-# EXPECT-ANALYSIS-STACK-IS 0ddpa
-# EXPECT-ANALYSIS-LOOKUP-FROM-END spatternmatch {int}
-# EXPECT-ANALYSIS-LOOKUP-FROM-END s0cpatternmatch {int, false}
-# EXPECT-ANALYSIS-LOOKUP-FROM-END s0spacepatternmatch {int, false}
-# EXPECT-ANALYSIS-LOOKUP-FROM-END s6spacepatternmatch {int, false}
-# EXPECT-ANALYSIS-LOOKUP-FROM-END s12hpatternmatch {int, false}
-# EXPECT-ANALYSIS-LOOKUP-FROM-END s13emptypatternmatch {int, false}
-# EXPECT-ANALYSIS-LOOKUP-FROM-END schunckytempehpatternmatch {int, false}
-# EXPECT-ANALYSIS-NO-INCONSISTENCIES
-
 # String pattern match.
 
 #    0123456789012

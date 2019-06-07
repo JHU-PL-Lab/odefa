@@ -1,0 +1,6 @@
+QUERY: s2;
+ANALYSES: 0DDPA;
+RESULTS: `0DDPA(s2) = { {{a=empty}, {b=empty}} }`;
+WELL_FORMED;
+EVALUATE;
+NO_INCONSISTENCIES;

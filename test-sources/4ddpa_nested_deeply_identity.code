@@ -1,9 +1,3 @@
-# EXPECT-WELL-FORMED
-# EXPECT-EVALUATE
-# EXPECT-ANALYSIS-STACK-IS 4ddpa
-# EXPECT-ANALYSIS-LOOKUP-FROM-END s2 {{a=empty}, {b=empty}}
-# EXPECT-ANALYSIS-NO-INCONSISTENCIES
-
 f = fun x -> (
     f1 = fun x1 -> (
         f2 = fun x2 -> (

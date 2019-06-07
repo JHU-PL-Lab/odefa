@@ -1,0 +1,7 @@
+QUERY: z, r;
+ANALYSES: 0DDPA;
+RESULTS: `0DDPA(z) = {{false, true}},
+          0DDPA(r) = { {{no=empty}, {yes=empty}} }`;
+WELL_FORMED;
+EVALUATE;
+NO_INCONSISTENCIES;
