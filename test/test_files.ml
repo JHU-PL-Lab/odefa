@@ -341,7 +341,6 @@ let make_test filename gen_expectations analysis_expectation =
       then observation @@ observe_well_formed
       else observation @@ observe_ill_formed result.illformednesses;
       (* Report each discovered error *)
-(* 
       result.errors
       |> List.iter
         (fun error -> observation @@ observe_inconsistency error);
@@ -356,7 +355,7 @@ let make_test filename gen_expectations analysis_expectation =
            in
            observation @@ observe_analysis_variable_lookup_from_end
              (Ident varname) repr
-        ); *)
+        );
       (* Now report the result of evaluation. *)
       begin
         match result.evaluation_result with
