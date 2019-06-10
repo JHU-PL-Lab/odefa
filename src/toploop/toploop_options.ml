@@ -1,7 +1,8 @@
 open Batteries;;
 open Toploop_option_parsers;;
 
-open Odefa_ddpa;;
+(* NOTE/FIXME: Commented out for easier plume testing *)
+(* open Odefa_ddpa;; *)
 open Toploop_types;;
 
 type evaluation_mode =

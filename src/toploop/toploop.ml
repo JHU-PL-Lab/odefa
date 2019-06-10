@@ -354,7 +354,26 @@ let analysis_step_general
       ddpa_analysis_logging_config - logging configuration details
       (unit -> unit) - function that allows us to close the log file
 *)
-let create_ddpa_logging_config (situation : toploop_situation)
+let dummy_create_ddpa_logging_config ()
+  : ddpa_analysis_logging_config * (unit -> unit) =
+  let ddpa_logging_config =
+    { ddpa_pdr_logging_level = Log_nothing
+    ; ddpa_cfg_logging_level = Log_nothing
+    ; ddpa_pdr_deltas = false
+    ; ddpa_json_logger = fun _ -> ()
+    }
+  in
+  (* The rest of this is wrapped in a finally so that, if a JSON graph log
+     file is created, it will be properly closed even if an exception is
+     raised.
+  *)
+  let close_files = fun () -> ()
+  in
+  ddpa_logging_config, close_files
+;;
+
+(* NOTE/FIXME: Commented out for easier plume testing *)
+(* let create_ddpa_logging_config (situation : toploop_situation)
   : ddpa_analysis_logging_config * (unit -> unit) =
   let conf = situation.ts_conf in
   (* Set up the logging configuration for the analysis. *)
@@ -421,7 +440,7 @@ let create_ddpa_logging_config (situation : toploop_situation)
     )
   in
   ddpa_logging_config, close_files
-;;
+;; *)
 
 
 (* Function that solely performs analysis (variable analyes and error checking)
@@ -453,7 +472,10 @@ let do_analysis_steps (situation : toploop_situation) : analysis_report =
            (* get information necessary to close the log file *)
            let stack = ddpa_analysis_to_stack atask in
            let ddpaWrapper = ddpaWrapperMaker stack in
-           let logging_config, finalize = create_ddpa_logging_config situation in
+           (* NOTE/FIXME: Commented out for easier plume testing *)
+           (* let logging_config, finalize = create_ddpa_logging_config situation in *)
+           (* NOTE: Currently, this means all of our DDPA analyses log nothing *)
+           let logging_config, finalize = dummy_create_ddpa_logging_config () in
            let result =
              (* close the log file regardless of success/failure *)
              ddpaWrapper |> finally finalize

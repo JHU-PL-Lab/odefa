@@ -290,10 +290,11 @@ let make_test filename gen_expectations analysis_expectation =
       let configuration =
         { topconf_analyses = analysis_list
         ; topconf_log_prefix = filename ^ "_"
-        ; topconf_ddpa_log_level = None
-        ; topconf_pdr_log_level = None
-        ; topconf_pdr_log_deltas = false
-        ; topconf_graph_log_file_name = "ddpa_test.log.yojson"
+        (* NOTE/FIXME: Commented out for easier plume testing *)
+        (* ; topconf_ddpa_log_level = None
+           ; topconf_pdr_log_level = None
+           ; topconf_pdr_log_deltas = false
+           ; topconf_graph_log_file_name = "ddpa_test.log.yojson" *)
         ; topconf_analyze_vars =
             if variables_to_analyze = []
             then Toploop_option_parsers.Analyze_no_variables
@@ -368,15 +369,15 @@ let make_test filename gen_expectations analysis_expectation =
       end;
       (* If there are any expectations of errors left, they're a problem. *)
       (* !expectations_left
-      |> List.iter
-        (function x ->
+         |> List.iter
+         (function x ->
 
            (* match x with
           | Expect_analysis_inconsistency_at ident ->
              assert_failure @@ "Expected error at " ^
                               show_ident ident ^ " which did not occur"
           | _ -> () *)
-        ); *)
+         ); *)
     end;
     (* Now assert that every expectation has been addressed. *)
     match !expectations_left with
