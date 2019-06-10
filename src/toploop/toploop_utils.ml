@@ -9,6 +9,26 @@ open Ddpa_abstract_ast;;
 
 module type Stack = Ddpa_context_stack.Context_stack;;
 
+let string_of_query (q : query) : string =
+  let Query(lu_var, g_pos, c) = q in
+  let LUVar(lu_var_name) = lu_var in
+  let g_pos_name =
+  begin
+    match g_pos with
+    | ProgramPoint (pp_name) -> pp_name
+    | END -> "END"
+  end
+  in
+  let c_list =
+    "[" ^ (List.fold_left (fun acc -> fun var ->
+        let LUVar(name) = var in
+        acc ^ name
+      ) "" c) ^ "]"
+  in
+  lu_var_name ^ "@" ^ g_pos_name ^ "@" ^  c_list
+;;
+
+
 let analysis_task_to_name (task : analysis_task) : string =
   match task with
   | DDPA (num) ->
