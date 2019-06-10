@@ -8,6 +8,32 @@ open String_utils;;
 open Toploop_types;;
 open Test_expectation_types;;
 
+let make_checklist (gen_expects : expectation list)
+    (analysis_expects : analysis_expectation)
+  : (checklist_items list) =
+  let gen_items =
+    List.map
+      (fun gen_expect ->
+         (match gen_expect with
+         | Expect_evaluate -> CLExpect_evaluate
+         | Expect_stuck -> CLExpect_stuck
+         | Expect_well_formed -> CLExpect_well_formed
+         | Expect_ill_formed -> CLExpect_ill_formed)
+      )
+      gen_expects
+  in
+  let specific_items =
+    let Analysis_Expectation(_, _, r_list, c_list) = analysis_expects in
+    let res_items =
+      List.map (fun res -> CLExpect_result res) r_list
+    in
+    let cons_items =
+      List.map (fun cons -> CLExpect_consistency cons) c_list
+    in
+    res_items @ cons_items
+  in
+  gen_items @ specific_items
+;;
 let aq_set_creation (a_list : analysis_task list) (q_list : query list)
   :  AQ_set.t =
   let aq_monad =
@@ -25,7 +51,7 @@ let ac_tuple_list_to_dict (tuple_list : analysis_consistency_expectation list)
   let mapper =
     (fun ac_dict -> fun ac_tuple ->
        let (a_task, c_list) = ac_tuple in
-         AC_Map.add a_task c_list ac_dict
+       AC_Map.add a_task c_list ac_dict
     )
   in
   List.fold_left mapper AC_Map.empty tuple_list
