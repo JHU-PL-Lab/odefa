@@ -3,13 +3,14 @@
 (copy_files# types/*.{ml,mli})
 (copy_files# utils/*.{ml,mli})
 (library
-  (name odefa_ddpa)
-  (public_name odefa.ddpa)
-  (synopsis "DDPA analysis for Odefa")
+  (name odefa_plume)
+  (public_name odefa.plume)
+  (synopsis "Plume analysis for Odefa")
   (libraries
     batteries
     jhupllib
     monadlib
+    odefa.abstractAst
     odefa.ast
     odefa.utils
     pds-reachability

@@ -2,7 +2,8 @@ open Batteries;;
 open Jhupllib;;
 
 open Odefa_abstract_ast;;
-open Ddpa_context_stack;;
+open Abstract_ast;;
+open Plume_context_stack;;
 open Pp_utils;;
 
 module Stack : Context_stack =
@@ -31,5 +32,5 @@ struct
       | S(None) -> []
     )
   ;;
-  let name = "1ddpa";;
+  let name = "1plume";;
 end;;

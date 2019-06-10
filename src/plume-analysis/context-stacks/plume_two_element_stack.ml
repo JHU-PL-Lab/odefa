@@ -2,7 +2,8 @@ open Batteries;;
 open Jhupllib;;
 
 open Odefa_abstract_ast;;
-open Ddpa_context_stack;;
+open Abstract_ast;;
+open Plume_context_stack;;
 open Pp_utils;;
 
 module Stack : Context_stack =
@@ -34,5 +35,5 @@ struct
   let to_yojson (S(lst)) =
     `List (List.map abstract_clause_to_yojson lst)
   ;;
-  let name = "2ddpa";;
+  let name = "2plume";;
 end;;

@@ -2,21 +2,22 @@ open Batteries;;
 open Jhupllib;;
 
 open Odefa_ast;;
-
-open Ast;;
 open Odefa_abstract_ast;;
-open Ddpa_context_stack;;
-open Ddpa_utils;;
+
+open Abstract_ast;;
+open Ast;;
+open Plume_context_stack;;
+open Plume_utils;;
 open Nondeterminism;;
 open Pds_reachability_types_stack;;
 
-let logger = Logger_utils.make_logger "Ddpa_pds_dynamic_pop_handler";;
-let lazy_logger = Logger_utils.make_lazy_logger "Ddpa_pds_dynamic_pop_handler";;
+let logger = Logger_utils.make_logger "Plume_pds_dynamic_pop_handler";;
+let lazy_logger = Logger_utils.make_lazy_logger "Plume_pds_dynamic_pop_handler";;
 
 module Make
     (C : Context_stack)
-    (S : (module type of Ddpa_pds_structure_types.Make(C)) with module C = C)
-    (T : (module type of Ddpa_pds_dynamic_pop_types.Make(C)(S))
+    (S : (module type of Plume_pds_structure_types.Make(C)) with module C = C)
+    (T : (module type of Plume_pds_dynamic_pop_types.Make(C)(S))
      with module C = C
       and module S = S)
 =

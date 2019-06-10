@@ -2,11 +2,12 @@ open Batteries;;
 open Jhupllib;;
 
 open Odefa_ast;;
+open Odefa_abstract_ast;;
 
+open Abstract_ast;;
 open Ast;;
 open Ast_pp;;
-open Odefa_abstract_ast;;
-open Ddpa_graph;;
+open Plume_graph;;
 open Nondeterminism;;
 
 exception Non_record_projection of string;;
@@ -131,12 +132,12 @@ let wire site_cl func x1 x2 graph =
   let end_acl = End_clause (rv body) in
   let wire_out_acl = Exit_clause(x2,rv body,site_cl) in
   let pred_edges =
-    Ddpa_graph.preds site_acl graph
-    |> Enum.map (fun acl' -> Ddpa_edge(acl',wire_in_acl))
+    Plume_graph.preds site_acl graph
+    |> Enum.map (fun acl' -> Plume_edge(acl',wire_in_acl))
   in
   let succ_edges =
-    Ddpa_graph.succs site_acl graph
-    |> Enum.map (fun acl' -> Ddpa_edge(wire_out_acl,acl'))
+    Plume_graph.succs site_acl graph
+    |> Enum.map (fun acl' -> Plume_edge(wire_out_acl,acl'))
   in
   let inner_edges =
     List.enum body
@@ -146,7 +147,7 @@ let wire site_cl func x1 x2 graph =
     |> flip Enum.append (Enum.singleton end_acl)
     |> flip Enum.append (Enum.singleton wire_out_acl)
     |> Utils.pairwise_enum_fold
-      (fun acl1 acl2 -> Ddpa_edge(acl1,acl2))
+      (fun acl1 acl2 -> Plume_edge(acl1,acl2))
   in
   Enum.append pred_edges @@ Enum.append inner_edges succ_edges
 ;;

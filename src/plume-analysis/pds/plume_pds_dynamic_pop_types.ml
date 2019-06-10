@@ -1,15 +1,16 @@
 open Batteries;;
 
 open Odefa_ast;;
+open Odefa_abstract_ast;;
 
+open Abstract_ast;;
 open Ast;;
 open Ast_pp;;
-open Odefa_abstract_ast;;
-open Ddpa_context_stack;;
+open Plume_context_stack;;
 
 module Make
     (C : Context_stack)
-    (S : (module type of Ddpa_pds_structure_types.Make(C)) with module C = C) =
+    (S : (module type of Plume_pds_structure_types.Make(C)) with module C = C) =
 struct
   module C = C;;
   module S = S;;
@@ -312,13 +313,13 @@ struct
         binary operation.  The first variable above must be the
         current target of lookup.  The next two variables are the operands
         of the operation.  The remaining two pairs of values represent the
-        source and target states of the DDPA edge. *)
+        source and target states of the Plume edge. *)
     | Unary_operator_lookup_init of
         abstract_var * abstract_var * annotated_clause * C.t
     (** Represents the kickstart of a process which looks up values for a
         unary operation.  The first variable above must be the
         current target of lookup.  The second variable is the operand
-        of the operation.  The state is the source states of the DDPA edge. *)
+        of the operation.  The state is the source states of the Plume edge. *)
     | Binary_operator_resolution_1_of_4 of abstract_var * binary_operator
     (** Represents the start of the resolution of a binary operator after its
         operands have been found.  The variable is the one defined by the

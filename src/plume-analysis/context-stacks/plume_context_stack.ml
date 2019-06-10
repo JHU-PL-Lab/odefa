@@ -1,6 +1,7 @@
 (** A module defining the interface of a context stack. *)
 
 open Odefa_abstract_ast;;
+open Abstract_ast;;
 
 module type Context_stack =
 sig

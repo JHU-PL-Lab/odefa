@@ -2,7 +2,8 @@ open Batteries;;
 open Jhupllib;;
 
 open Odefa_abstract_ast;;
-open Ddpa_context_stack;;
+open Abstract_ast;;
+open Plume_context_stack;;
 open Pp_utils;;
 
 type 'a dq = 'a Deque.dq;;
@@ -42,5 +43,5 @@ struct
   let to_yojson c =
     `List (List.map abstract_clause_to_yojson @@ Deque.to_list c)
   ;;
-  let name = string_of_int S.size ^ "ddpa";;
+  let name = string_of_int S.size ^ "plume";;
 end;;
