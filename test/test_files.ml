@@ -222,7 +222,7 @@ let observe_inconsistencies analysis_task inconsistencies expectations =
     let non_option_filtered_res = Expect_analysis_inconsistencies
         (List.map Option.get filtered_res)
     in
-  Some (CLExpect_consistency (analysis_task, non_option_filtered_res))
+    Some (CLExpect_consistency (analysis_task, non_option_filtered_res))
 ;;
 
 let observe_no_inconsistency expectation =
@@ -352,24 +352,29 @@ let make_test filename gen_expectations analysis_expectation =
       then observation @@ observe_well_formed
       else observation @@ observe_ill_formed result.illformednesses;
       (* Report each discovered error *)
-      let errors =
         let report = result.analysis_report in
-        
-        result.errors
-        |> List.iter
-          (fun error -> observation @@ observe_inconsistency error);
-        (* If there are no errors, report that. *)
-        if result.errors = [] then observation observe_no_inconsistency;
-        (* Report each resulting variable analysis. *)
-        result.analyses
-        |> List.iter
-          (fun ((varname,_,_),values) ->
-             let repr =
-               Pp_utils.pp_to_string Ddpa_abstract_ast.Abs_filtered_value_set.pp values
-             in
-             observation @@ observe_analysis_variable_lookup_from_end
-               (Ident varname) repr
-          );
+        let keys = List.of_enum (Analysis_task_map.keys report) in
+        let checking_for_one_key unit (key : analysis_task) =
+          let result_for_this_analysis_task =
+            (* TODO: take care of errors *)
+            Analysis_task_map.find key report
+          in
+          let Analysis_result(qnas, errors) = result_for_this_analysis_task
+          in
+          errors
+          |> List.iter
+            (fun error -> observation @@ observe_inconsistencies error);
+          (* If there are no errors, report that. *)
+          if errors = [] then observation observe_no_inconsistency;
+          (* Report each resulting variable analysis. *)
+          qnas
+          |> List.iter
+            (fun actual_qna ->
+               observation @@ observe_queries actual_qna
+            );
+        in
+        List.fold_left checking_for_one_key () keys;
+
         (* Now report the result of evaluation. *)
         begin
           match result.evaluation_result with
