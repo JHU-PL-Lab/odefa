@@ -18,53 +18,10 @@ open Abstract_ast;;
 open Interpreter;;
 open Source_statistics;;
 
-(*
 (* This type describes different families of analyses the users may choose at
    the toploop; this will enable them to run more than one analyses at one
    session.
 *)
-type analysis_task =
-  (* DDPA_context_stack.Context_stack is a type in the module ddpa_context_stack.ml *)
-  | DDPA of (module Ddpa_context_stack.Context_stack)
-  (* TODO: After PLUME is implemented here, add it in.*)
-  (* | Plume of (module Plume_context_model.Context_model) *)
-;;
-
-(* This function describes how to tell whether two analysis_task's are equal by
-   doing pattern match and then compare the names of the analyses.
-*)
-let equal_analysis_task (a1 : analysis_task) (a2 : analysis_task) =
-  match a1, a2 with
-  | DDPA (ctx_stack1), DDPA (ctx_stack2) ->
-    let module C1 = (val ctx_stack1) in
-    let module C2 = (val ctx_stack2) in
-    C1.name = C2.name
-    (* TODO: After PLUME is implemented, this function needs to be expanded.*)
-;;
-
-(* This function describes how to compare two analysis_task's by
-   doing pattern match and then compare the names of the analyses.
-*)
-let compare_analysis_task (a1 : analysis_task) (a2 : analysis_task) =
-  match a1, a2 with
-  | DDPA (ctx_stack1), DDPA (ctx_stack2) ->
-    let module C1 = (val ctx_stack1) in
-    let module C2 = (val ctx_stack2) in
-    String.compare C1.name C2.name
-    (* TODO: After PLUME is implemented, this function needs to be expanded.*)
-;;
-
-(* This function describes how to pretty print analysis task. *)
-let pp_analysis_task : analysis_task Pp_utils.pretty_printer =
-  fun formatter analysis_task ->
-  match analysis_task with
-  | DDPA (ctx_stack) ->
-    let module C = (val ctx_stack) in
-    Format.pp_print_string formatter "DDPA (";
-    Format.pp_print_string formatter C.name;
-    Format.pp_print_string formatter ")";
-    (* TODO: After PLUME is implemented, this function needs to be expanded.*)
-  ;; *)
 
 type analysis_task =
   | DDPA of int

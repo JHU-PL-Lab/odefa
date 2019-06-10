@@ -15,10 +15,11 @@ type evaluation_mode =
 type configuration =
   { topconf_analyses: analysis_task list
   ; topconf_log_prefix : string
-  ; topconf_ddpa_log_level : Ddpa_analysis_logging.ddpa_logging_level option
-  ; topconf_pdr_log_level : Ddpa_analysis_logging.ddpa_logging_level option
-  ; topconf_pdr_log_deltas : bool
-  ; topconf_graph_log_file_name : string
+  (* NOTE/FIXME: Commented out for easier plume testing *)
+  (* ; topconf_ddpa_log_level : Ddpa_analysis_logging.ddpa_logging_level option
+     ; topconf_pdr_log_level : Ddpa_analysis_logging.ddpa_logging_level option
+     ; topconf_pdr_log_deltas : bool
+     ; topconf_graph_log_file_name : string *)
   ; topconf_analyze_vars : analyze_variables_selection
   ; topconf_evaluation_mode : evaluation_mode
   ; topconf_disable_inconsistency_check : bool
@@ -33,22 +34,21 @@ type configuration =
 let add_toploop_option_parsers parser=
   (* Add logging options *)
   BatOptParse.OptParser.add parser ~long_name:"log" logging_option;
+  (* Add ability to select analysis *)
   BatOptParse.OptParser.add parser ~long_name:"select-analysis"
     ~short_name:'S' select_analysis_option;
-  (* Add ability to select the context stack. *)
-  (* BatOptParse.OptParser.add parser ~long_name:"select-context-stack"
-     ~short_name:'S' select_context_stack_option; *)
+  (* NOTE/FIXME: Commented out for easier plume testing *)
   (* Add DDPA graph logging option. *)
-  BatOptParse.OptParser.add parser ~long_name:"ddpa-logging"
-    ddpa_logging_option;
-  (* Add PDS reachability graph logging option. *)
-  BatOptParse.OptParser.add parser ~long_name:"pdr-logging" pdr_logging_option;
-  (* Add option to log PDS reachability graphs as deltas. *)
-  BatOptParse.OptParser.add parser
-    ~long_name:"pdr-deltas" pdr_logging_deltas_option;
-  (* Adds control over graph log file name. *)
-  BatOptParse.OptParser.add parser
-    ~long_name:"graph-log-file" graph_log_file_option;
+  (* BatOptParse.OptParser.add parser ~long_name:"ddpa-logging"
+     ddpa_logging_option;
+     (* Add PDS reachability graph logging option. *)
+     BatOptParse.OptParser.add parser ~long_name:"pdr-logging" pdr_logging_option;
+     (* Add option to log PDS reachability graphs as deltas. *)
+     BatOptParse.OptParser.add parser
+     ~long_name:"pdr-deltas" pdr_logging_deltas_option;
+     (* Adds control over graph log file name. *)
+     BatOptParse.OptParser.add parser
+     ~long_name:"graph-log-file" graph_log_file_option; *)
   (* Add control over variables used in toploop analysis. *)
   BatOptParse.OptParser.add parser ~long_name:"analyze-variables"
     analyze_variables_option;
@@ -75,6 +75,8 @@ let read_parsed_toploop_configuration () =
        Option.get @@ select_context_stack_option.BatOptParse.Opt.option_get () ; *)
     topconf_analyses = Option.get @@ select_analysis_option.BatOptParse.Opt.option_get ()
   ; topconf_log_prefix = "_toploop"
+  (* NOTE/FIXME: Commented out for easier plume testing *)
+  (*
   ; topconf_ddpa_log_level = ddpa_logging_option.BatOptParse.Opt.option_get ()
   ; topconf_pdr_log_level = pdr_logging_option.BatOptParse.Opt.option_get ()
   ; topconf_pdr_log_deltas =
@@ -82,7 +84,7 @@ let read_parsed_toploop_configuration () =
        | Some b -> b
        | None -> false)
   ; topconf_graph_log_file_name =
-      Option.get @@ graph_log_file_option.BatOptParse.Opt.option_get ()
+      Option.get @@ graph_log_file_option.BatOptParse.Opt.option_get () *)
   ; topconf_analyze_vars = Option.get @@
       analyze_variables_option.BatOptParse.Opt.option_get ()
   ; topconf_evaluation_mode =
