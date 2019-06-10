@@ -54,11 +54,11 @@ type expectation =
   | Expect_ill_formed
 ;;
 
-type checklist =
+type checklist_items =
   | CLExpect_evaluate
-  | Expect_stuck
-  | Expect_well_formed
-  | Expect_ill_formed
+  | CLExpect_stuck
+  | CLExpect_well_formed
+  | CLExpect_ill_formed
   | CLExpect_result of result
   | CLExpect_consistency of analysis_consistency_expectation
 ;;
