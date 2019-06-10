@@ -124,36 +124,36 @@ let parse_expectation str =
 
 let observe_evaluated expectation =
   match expectation with
-  | Expect_evaluate -> None
-  | Expect_stuck ->
+  | CLExpect_evaluate -> None
+  | CLExpect_stuck ->
     assert_failure @@ "Evaluation completed but was expected to become stuck."
   | _ -> Some expectation
 ;;
 
 let observe_stuck failure expectation =
   match expectation with
-  | Expect_evaluate ->
+  | CLExpect_evaluate ->
     assert_failure @@ "Evaluation became stuck: " ^ failure
-  | Expect_stuck -> None
+  | CLExpect_stuck -> None
   | _ -> Some expectation
 ;;
 
 let observe_well_formed expectation =
   match expectation with
-  | Expect_well_formed -> None
-  | Expect_ill_formed ->
+  | CLExpect_well_formed -> None
+  | CLExpect_ill_formed ->
     assert_failure @@ "Well-formedness check passed but was expect to fail."
   | _ -> Some expectation
 ;;
 
 let observe_ill_formed illformednesses expectation =
   match expectation with
-  | Expect_well_formed ->
+  | CLExpect_well_formed ->
     assert_failure @@ "Expression was unexpectedly ill-formed.  Causes:" ^
                       "\n    * " ^ concat_sep "\n    *"
                         (List.enum @@
                          List.map show_illformedness illformednesses)
-  | Expect_ill_formed -> None
+  | CLExpect_ill_formed -> None
   | _ -> Some expectation
 ;;
 
@@ -189,27 +189,40 @@ let observe_ill_formed illformednesses expectation =
    | _ -> Some expectation
    ;; *)
 
-let observe_inconsistency inconsistency expectation =
-  let site_of_inconsistency =
-    let open Toploop_analysis_types in
-    match inconsistency with
-    | Application_of_non_function (Abs_var ident,_,_,_) -> ident
-    | Projection_of_non_record (Abs_var ident,_,_) -> ident
-    | Projection_of_absent_label (Abs_var ident,_,_,_) -> ident
-    | Deref_of_non_ref (Abs_var ident,_,_) -> ident
-    | Update_of_non_ref (Abs_var ident,_,_) -> ident
-    | Invalid_binary_operation (Abs_var ident,_,_,_,_,_) -> ident
-    | Invalid_unary_operation (Abs_var ident,_,_,_) -> ident
-    | Invalid_indexing_subject (Abs_var ident,_,_) -> ident
-    | Invalid_indexing_argument (Abs_var ident,_,_) -> ident
+let observe_inconsistencies analysis_task inconsistencies expectations =
+  let single_inconsistency_check = (fun inconsistency ->
+      let site_of_inconsistency =
+        let open Toploop_analysis_types in
+        (
+          match inconsistency with
+          | Application_of_non_function (Abs_var ident,_,_,_) -> ident
+          | Projection_of_non_record (Abs_var ident,_,_) -> ident
+          | Projection_of_absent_label (Abs_var ident,_,_,_) -> ident
+          | Deref_of_non_ref (Abs_var ident,_,_) -> ident
+          | Update_of_non_ref (Abs_var ident,_,_) -> ident
+          | Invalid_binary_operation (Abs_var ident,_,_,_,_,_) -> ident
+          | Invalid_unary_operation (Abs_var ident,_,_,_) -> ident
+          | Invalid_indexing_subject (Abs_var ident,_,_) -> ident
+          | Invalid_indexing_argument (Abs_var ident,_,_) -> ident
+        )
+      in (List.map (fun expect ->
+          match expect with
+          | Expect_analysis_inconsistency_at (LUVar expected_site) ->
+            let ident_var = Ident expected_site in
+            if site_of_inconsistency = ident_var
+            then None
+            else Some expect
+        ) expectations))
   in
-  match expectation with
-  | Expect_analysis_inconsistency_at (LUVar expected_site) ->
-    let ident_var = Ident expected_site in
-    if site_of_inconsistency = ident_var
-    then None
-    else Some expectation
-    (* | _ -> Some expectation *)
+  let res = List.concat @@ List.map single_inconsistency_check inconsistencies
+  in
+  let filtered_res = List.filter Option.is_some res in
+  if List.is_empty filtered_res then None
+  else
+    let non_option_filtered_res = Expect_analysis_inconsistencies
+        (List.map Option.get filtered_res)
+    in
+  Some (CLExpect_consistency (analysis_task, non_option_filtered_res))
 ;;
 
 let observe_no_inconsistency expectation =
@@ -238,8 +251,10 @@ let make_test filename gen_expectations analysis_expectation =
           (Pp_utils.pp_to_string (Pp_utils.pp_list pp_test_expectation)
              gen_expectations)
       );
+    let checklist_expectations =
+      make_checklist gen_expectations analysis_expectation in
     (* Using two mutable lists of not-yet-handled expectations. *)
-    let expectations_left = ref gen_expectations in
+    let expectations_left = ref checklist_expectations in
     (* let ana_expectations_left = ref analysis_expectation in  *)
     (* This routine takes an observation function and applies it to all of the
        not-yet-handled expectations. *)
@@ -339,39 +354,39 @@ let make_test filename gen_expectations analysis_expectation =
       (* Report each discovered error *)
       let errors =
         let report = result.analysis_report in
-
-      result.errors
-         |> List.iter
-         (fun error -> observation @@ observe_inconsistency error);
-         (* If there are no errors, report that. *)
-         if result.errors = [] then observation observe_no_inconsistency;
-         (* Report each resulting variable analysis. *)
-         result.analyses
-         |> List.iter
-         (fun ((varname,_,_),values) ->
-           let repr =
-             Pp_utils.pp_to_string Ddpa_abstract_ast.Abs_filtered_value_set.pp values
-           in
-           observation @@ observe_analysis_variable_lookup_from_end
-             (Ident varname) repr
-         );
-      (* Now report the result of evaluation. *)
-      begin
-        match result.evaluation_result with
-        | Evaluation_completed _ -> observation observe_evaluated
-        | Evaluation_failure failure -> observation (observe_stuck failure)
-        | Evaluation_invalidated -> ()
-        | Evaluation_disabled -> ()
-      end;
-      (* If there are any expectations of errors left, they're a problem. *)
-      !expectations_left
-      |> List.iter
-        (function
-          (* | Expect_analysis_inconsistency_at ident ->
-             assert_failure @@ "Expected error at " ^
-                              show_ident ident ^ " which did not occur" *)
-          | _ -> ()
-        );
+        
+        result.errors
+        |> List.iter
+          (fun error -> observation @@ observe_inconsistency error);
+        (* If there are no errors, report that. *)
+        if result.errors = [] then observation observe_no_inconsistency;
+        (* Report each resulting variable analysis. *)
+        result.analyses
+        |> List.iter
+          (fun ((varname,_,_),values) ->
+             let repr =
+               Pp_utils.pp_to_string Ddpa_abstract_ast.Abs_filtered_value_set.pp values
+             in
+             observation @@ observe_analysis_variable_lookup_from_end
+               (Ident varname) repr
+          );
+        (* Now report the result of evaluation. *)
+        begin
+          match result.evaluation_result with
+          | Evaluation_completed _ -> observation observe_evaluated
+          | Evaluation_failure failure -> observation (observe_stuck failure)
+          | Evaluation_invalidated -> ()
+          | Evaluation_disabled -> ()
+        end;
+        (* If there are any expectations of errors left, they're a problem. *)
+        !expectations_left
+        |> List.iter
+          (function
+            (* | Expect_analysis_inconsistency_at ident ->
+               assert_failure @@ "Expected error at " ^
+                                show_ident ident ^ " which did not occur" *)
+            | _ -> ()
+          );
     end;
     (* Now assert that every expectation has been addressed. *)
     match !expectations_left with
