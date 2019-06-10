@@ -4,6 +4,7 @@ open Jhupllib;;
 open Odefa_abstract_ast;;
 
 open Abstract_ast;;
+open Abstract_ast_utils;;
 open Ddpa_context_stack;;
 open Ddpa_graph;;
 open Ddpa_utils;;

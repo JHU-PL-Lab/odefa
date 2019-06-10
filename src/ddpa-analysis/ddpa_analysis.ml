@@ -10,6 +10,7 @@ open Odefa_abstract_ast;;
 open Odefa_ast;;
 
 open Abstract_ast;;
+open Abstract_ast_utils;;
 open Ast;;
 open Ddpa_analysis_logging;;
 open Ddpa_context_stack;;
