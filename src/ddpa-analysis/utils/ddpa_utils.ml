@@ -2,10 +2,11 @@ open Batteries;;
 open Jhupllib;;
 
 open Odefa_ast;;
+open Odefa_abstract_ast;;
 
 open Ast;;
 open Ast_pp;;
-open Ddpa_abstract_ast;;
+open Abstract_ast;;
 open Ddpa_graph;;
 open Nondeterminism;;
 

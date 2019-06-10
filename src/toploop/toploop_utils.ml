@@ -5,7 +5,8 @@ open Odefa_ddpa;;
 open Toploop_types;;
 
 open Ast;;
-open Ddpa_abstract_ast;;
+open Odefa_abstract_ast;;
+open Abstract_ast;;
 
 module type Stack = Ddpa_context_stack.Context_stack;;
 

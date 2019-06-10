@@ -2,15 +2,16 @@
    This module defines the primary functions for the toploop.
 *)
 
+open Odefa_abstract_ast;;
 open Odefa_ast;;
-open Odefa_ddpa;;
+(* open Odefa_ddpa;; *)
 open Odefa_interpreter;;
 
 open Ast;;
+open Abstract_ast;;
 open Interpreter;;
 open Toploop_analysis_types;;
 open Toploop_types;;
-open Ddpa_abstract_ast;;
 
 (** This function processes a AST expression.  This function accepts
     callback functions which are invoked when various steps of the expression

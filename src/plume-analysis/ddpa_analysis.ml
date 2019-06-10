@@ -9,7 +9,7 @@ open Jhupllib;;
 open Odefa_ast;;
 
 open Ast;;
-open Ddpa_abstract_ast;;
+open Odefa_abstract_ast;;
 open Ddpa_analysis_logging;;
 open Ddpa_context_stack;;
 open Ddpa_graph;;

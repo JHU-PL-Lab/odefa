@@ -1,5 +1,6 @@
 open Batteries;;
 
+open Odefa_abstract_ast;;
 open Odefa_ast;;
 open Odefa_ddpa;;
 open Odefa_interpreter;;
@@ -7,9 +8,9 @@ open Odefa_statistics;;
 
 open Ast;;
 open Ast_pp;;
+open Abstract_ast;;
 open Ast_wellformedness;;
 open Interpreter;;
-open Ddpa_abstract_ast;;
 open Ddpa_analysis_logging;;
 open Ddpa_graph;;
 open Source_statistics;;

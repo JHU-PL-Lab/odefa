@@ -4,12 +4,13 @@
 *)
 
 open Odefa_ast;;
-open Odefa_ddpa;;
+open Odefa_abstract_ast;;
+(* open Odefa_ddpa;; *)
 
+open Abstract_ast;;
 open Ast;;
 (* open Ddpa_analysis_logging;; *)
 (* open Ddpa_context_stack;; *)
-open Ddpa_abstract_ast;;
 
 module type Wrapper_context = sig
   type t;;

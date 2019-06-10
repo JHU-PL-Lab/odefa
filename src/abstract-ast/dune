@@ -1,0 +1,21 @@
+(library
+  (name odefa_abstract_ast)
+  (public_name odefa.abstractAst)
+  (synopsis "Abstract AST for Odefa")
+  (libraries
+    batteries
+    jhupllib
+    odefa.ast
+    odefa.utils
+    ppx_deriving_yojson.runtime
+  )
+  (preprocess
+    (pps
+      ppx_deriving.std
+      ppx_deriving_yojson
+    )
+  )
+  (flags
+    (:standard -w -39) ;for ppx_deriving_yojson, which generates extra rec flags
+  )
+)

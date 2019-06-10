@@ -1,14 +1,15 @@
 open Batteries;;
 open Jhupllib;;
 
+open Odefa_abstract_ast;;
 open Odefa_ast;;
 open Odefa_ddpa;;
 
+open Abstract_ast;;
 open Ast;;
 open Toploop_analysis_types;;
 open Toploop_analysis_wrapper_types;;
 open Toploop_utils;;
-open Ddpa_abstract_ast;;
 open Ddpa_graph;;
 open Ddpa_utils;;
 
@@ -51,7 +52,7 @@ struct
             lookup xa
             |> Nondeterminism.Nondeterminism_monad.enum
             |> Enum.map snd
-            |> Ddpa_abstract_ast.Abs_filtered_value_set.of_enum
+            |> Abs_filtered_value_set.of_enum
           in
           return @@ Application_of_non_function(x_clause,xf,filtv,filtvs)
       end

@@ -8,7 +8,7 @@ open Jhupllib;;
 open Odefa_ast;;
 
 open Ast;;
-open Ddpa_abstract_ast;;
+open Odefa_abstract_ast;;
 open Pp_utils;;
 
 type ddpa_edge =

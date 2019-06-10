@@ -11,6 +11,7 @@
     jhupllib
     monadlib
     odefa.ast
+    odefa.abstractAst
     odefa.utils
     pds-reachability
     ppx_deriving_yojson

@@ -6,13 +6,14 @@
 open Batteries;;
 open Jhupllib;;
 
+open Odefa_abstract_ast;;
 open Odefa_ast;;
-open Odefa_ddpa;;
+(* open Odefa_ddpa;; *)
 
 open Ast;;
 open Ast_pp;;
 open Toploop_analysis_wrapper_types;;
-open Ddpa_abstract_ast;;
+open Abstract_ast;;
 
 type abs_filtered_value_set = Abs_filtered_value_set.t;;
 let pp_abs_filtered_value_set =

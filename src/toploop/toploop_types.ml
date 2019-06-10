@@ -6,14 +6,15 @@
 open Batteries;;
 open Jhupllib;;
 
+open Odefa_abstract_ast;;
 open Odefa_ast;;
-open Odefa_ddpa;;
+(* open Odefa_ddpa;; *)
 open Odefa_interpreter;;
 open Odefa_statistics;;
 
 open Ast;;
 open Ast_pp;;
-open Ddpa_abstract_ast;;
+open Abstract_ast;;
 open Interpreter;;
 open Source_statistics;;
 
@@ -138,7 +139,7 @@ let pp_variable_analysis =
        Format.pp_print_string
        (Pp_utils.pp_option Format.pp_print_string)
        (Pp_utils.pp_option @@ Pp_utils.pp_list Format.pp_print_string))
-    Ddpa_abstract_ast.Abs_filtered_value_set.pp
+    Abs_filtered_value_set.pp
 ;;
 
 (** Represents the result of processing an expression in the toploop. *)

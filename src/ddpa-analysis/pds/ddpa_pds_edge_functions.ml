@@ -1,7 +1,9 @@
 open Batteries;;
 open Jhupllib;;
 
-open Ddpa_abstract_ast;;
+open Odefa_abstract_ast;;
+
+open Abstract_ast;;
 open Ddpa_context_stack;;
 open Ddpa_graph;;
 open Ddpa_utils;;

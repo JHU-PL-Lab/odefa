@@ -15,13 +15,14 @@ open Jhupllib;;
 open OUnit2;;
 
 open Odefa_ast;;
-open Odefa_ddpa;;
+(* open Odefa_ddpa;; *)
 open Odefa_parser;;
 open Odefa_toploop;;
 
 open Ast;;
 open Ast_wellformedness;;
-open Ddpa_abstract_ast;;
+open Odefa_abstract_ast;;
+open Abstract_ast;;
 open Printf;;
 open String_utils;;
 open Test_expectation_types;;
@@ -123,7 +124,7 @@ let observe_queries reprs expectation =
             | QnA (actual_q, actual_res) ->
               if (expect_q = actual_q) then
                 let pp_res_str =
-                  Pp_utils.pp_to_string Ddpa_abstract_ast.Abs_filtered_value_set.pp actual_res
+                  Pp_utils.pp_to_string Abs_filtered_value_set.pp actual_res
                 in
                 if (expect_res = pp_res_str) then true
                 else assert_failure @@

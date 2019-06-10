@@ -5,7 +5,7 @@ open Odefa_ast;;
 
 open Ast;;
 open Ast_pp;;
-open Ddpa_abstract_ast;;
+open Odefa_abstract_ast;;
 open Ddpa_graph;;
 open Nondeterminism;;
 
