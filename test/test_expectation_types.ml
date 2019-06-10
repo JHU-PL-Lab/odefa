@@ -31,6 +31,7 @@ open Odefa_toploop;;
 open Toploop_types;;
 
 
+
 type result_string = ResultString of string
 ;;
 
@@ -51,6 +52,15 @@ type expectation =
   | Expect_stuck
   | Expect_well_formed
   | Expect_ill_formed
+;;
+
+type checklist =
+  | CLExpect_evaluate
+  | Expect_stuck
+  | Expect_well_formed
+  | Expect_ill_formed
+  | CLExpect_result of result
+  | CLExpect_consistency of analysis_consistency_expectation
 ;;
 
 type analysis_expectation =

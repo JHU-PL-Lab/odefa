@@ -238,8 +238,9 @@ let make_test filename gen_expectations analysis_expectation =
           (Pp_utils.pp_to_string (Pp_utils.pp_list pp_test_expectation)
              gen_expectations)
       );
-    (* Using a mutable list of not-yet-handled expectations. *)
+    (* Using two mutable lists of not-yet-handled expectations. *)
     let expectations_left = ref gen_expectations in
+    (* let ana_expectations_left = ref analysis_expectation in  *)
     (* This routine takes an observation function and applies it to all of the
        not-yet-handled expectations. *)
     let observation f =
@@ -279,12 +280,7 @@ let make_test filename gen_expectations analysis_expectation =
         let (Analysis_Expectation (_, _, _, c_list)) = analysis_expectation in
         if List.is_empty c_list then AC_Map.empty
         else
-          let consistency_dict =
-            List.fold_left
-              (fun dict -> fun (analysis, consistencies) ->
-                 AC_Map.add analysis consistencies dict
-              ) AC_Map.empty c_list
-          in consistency_dict
+          ac_tuple_list_to_dict c_list
       in
       let configuration =
         { topconf_analyses = analysis_list
@@ -341,7 +337,10 @@ let make_test filename gen_expectations analysis_expectation =
       then observation @@ observe_well_formed
       else observation @@ observe_ill_formed result.illformednesses;
       (* Report each discovered error *)
-      (* result.errors
+      let errors =
+        let report = result.analysis_report in
+
+      result.errors
          |> List.iter
          (fun error -> observation @@ observe_inconsistency error);
          (* If there are no errors, report that. *)
@@ -355,7 +354,7 @@ let make_test filename gen_expectations analysis_expectation =
            in
            observation @@ observe_analysis_variable_lookup_from_end
              (Ident varname) repr
-         ); *)
+         );
       (* Now report the result of evaluation. *)
       begin
         match result.evaluation_result with

@@ -20,6 +20,17 @@ let aq_set_creation (a_list : analysis_task list) (q_list : query list)
   AQ_set.of_list aq_list
 ;;
 
+let ac_tuple_list_to_dict (tuple_list : analysis_consistency_expectation list)
+  : consistency AC_Map.t =
+  let mapper =
+    (fun ac_dict -> fun ac_tuple ->
+       let (a_task, c_list) = ac_tuple in
+         AC_Map.add a_task c_list ac_dict
+    )
+  in
+  List.fold_left mapper AC_Map.empty tuple_list
+;;
+
 let natural_compare_seq_returns_0_for_empty_list _ =
   assert_equal 0 (Utils.natural_compare_seq [])
 
