@@ -1,6 +1,6 @@
 QUERY: s2;
 ANALYSES: 4DDPA;
-RESULTS: 4DDPA(s2) = `{{a=empty},{b=empty}}`;
+RESULTS: 4DDPA(s2) = `{{a=empty}, {b=empty}}`;
 CONSISTENCIES: 4DDPA = NO_INCONSISTENCIES;
 WELL_FORMED;
 EVALUATE;
