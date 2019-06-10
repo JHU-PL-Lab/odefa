@@ -22,11 +22,13 @@ open Odefa_toploop;;
 open Ast;;
 open Ast_wellformedness;;
 open Ddpa_abstract_ast;;
+open Printf;;
 open String_utils;;
 open Test_expectation_types;;
 open Test_utils;;
 open Toploop_options;;
 open Toploop_types;;
+open Toploop_utils;;
 
 let lazy_logger = Logger_utils.make_lazy_logger "Test_files";;
 
@@ -43,84 +45,37 @@ exception File_test_creation_failure of string;;
 
 let pp_test_expectation formatter expectation =
   match expectation with
-  | Expect_evaluate -> Format.pp_print_string formatter "Expect_evaluate"
-  | Expect_stuck -> Format.pp_print_string formatter "Expect_stuck"
-  | Expect_well_formed -> Format.pp_print_string formatter "Expect_well_formed"
-  | Expect_ill_formed -> Format.pp_print_string formatter "Expect_ill_formed"
+  | CLExpect_evaluate -> Format.pp_print_string formatter "Expect_evaluate"
+  | CLExpect_stuck -> Format.pp_print_string formatter "Expect_stuck"
+  | CLExpect_well_formed -> Format.pp_print_string formatter "Expect_well_formed"
+  | CLExpect_ill_formed -> Format.pp_print_string formatter "Expect_ill_formed"
+  | CLExpect_consistency (analysis, consistency_expect) ->
+    begin
+      match consistency_expect with
+      | Expect_analysis_no_inconsistencies ->
+        Format.pp_print_string formatter @@
+        sprintf "Expect %s to have no inconsistencies."
+          (analysis_task_to_name analysis)
+      | Expect_analysis_inconsistencies inconsistencies_list ->
+        let incons_list =
+          List.fold_left
+            (fun acc -> fun inconsistency ->
+               let Expect_analysis_inconsistency_at (LUVar site) = inconsistency
+               in
+               let res_str = acc ^ "Inconsistent at site: " ^ site ^ ";" in res_str)
+            "" inconsistencies_list
+        in
+        let str_to_print =
+          (sprintf "Expect %s to have the following inconsistencies: "
+             (analysis_task_to_name analysis)) ^ incons_list
+        in Format.pp_print_string formatter @@ str_to_print
+    end
+  | CLExpect_result res ->
+    let Result (a, q, ResultString res_str) = res in
+    let str_to_print = (sprintf "Expect query result for %s using %s as: "
+                          (show_query q)(analysis_task_to_name a)) ^ res_str
+    in Format.pp_print_string formatter @@ str_to_print
 ;;
-
-(*
-let parse_expectation str =
-  let assert_no_args lst =
-    if List.is_empty lst
-    then ()
-    else raise @@ Expectation_parse_failure "expected no arguments"
-  in
-  let assert_one_arg lst =
-    match lst with
-    | [x] -> x
-    | _ ->
-      raise @@
-      Expectation_parse_failure ("expected one argument; got " ^
-                                 string_of_int (List.length lst))
-  in
-  let assert_two_args lst =
-    match lst with
-    | [x;y] -> (x,y)
-    | _ ->
-      raise @@
-      Expectation_parse_failure ("expected two arguments; got " ^
-                                 string_of_int (List.length lst))
-  in
-  try
-    let expectation =
-      match String_utils.whitespace_split ~max:2 str with
-      | "EXPECT-EVALUATE"::args_part ->
-        assert_no_args args_part;
-        Expect_evaluate
-      | "EXPECT-STUCK"::args_part ->
-        assert_no_args args_part;
-        Expect_stuck
-      | "EXPECT-WELL-FORMED"::args_part ->
-        assert_no_args args_part;
-        Expect_well_formed
-      | "EXPECT-ILL-FORMED"::args_part ->
-        assert_no_args args_part;
-        Expect_ill_formed
-      | "EXPECT-ANALYSIS-STACK-IS"::args_part ->
-        let args_str = String.join "" args_part in
-        let args = whitespace_split args_str in
-        let name = assert_one_arg args in
-        begin
-          try
-            let stack_module = Toploop_utils.stack_from_name name in
-            Expect_analysis_stack_is stack_module
-          with
-          | Not_found ->
-            raise @@ Expectation_parse_failure "invalid stack name"
-        end
-      | "EXPECT-ANALYSIS-LOOKUP-FROM-END"::args_part ->
-        let args_str = String.join "" args_part in
-        let args = whitespace_split ~max:2 args_str in
-        let (ident_str, pp_expectation) = assert_two_args args in
-        let ident = Ident(ident_str) in
-        Expect_analysis_variable_lookup_from_end(ident,pp_expectation)
-      | "EXPECT-ANALYSIS-INCONSISTENCY-AT"::args_part ->
-        let args_str = String.join "" args_part in
-        let args = whitespace_split args_str in
-        let call_site = assert_one_arg args in
-        Expect_analysis_inconsistency_at (Ident(call_site))
-      | "EXPECT-ANALYSIS-NO-INCONSISTENCIES"::args_part ->
-        assert_no_args args_part;
-        Expect_analysis_no_inconsistencies
-      | _ ->
-        raise @@ Expectation_not_found
-    in
-    Some (Success expectation)
-  with
-  | Expectation_parse_failure s -> Some (Failure s)
-  | Expectation_not_found -> None
-;; *)
 
 let observe_evaluated expectation =
   match expectation with
@@ -157,77 +112,84 @@ let observe_ill_formed illformednesses expectation =
   | _ -> Some expectation
 ;;
 
-(* let observe_analysis_stack_selection chosen_stack_ref expectation =
-   match expectation with
-   | Expect_analysis_stack_is module_option ->
-    begin
-      chosen_stack_ref :=
-        begin
-          match !chosen_stack_ref with
-          | Default_stack -> Chosen_stack module_option
-          | Chosen_stack _ ->
-            assert_failure @@ "multiple expectations of analysis stack"
-        end;
-      None
-    end
-   | _ -> Some expectation
-   ;;
-
-   let observe_analysis_variable_lookup_from_end ident repr expectation =
-   match expectation with
-   | Expect_analysis_variable_lookup_from_end(ident',repr') ->
-    if ident = ident'
-    then
-      begin
-        if repr = repr'
-        then None
-        else assert_failure @@
-          Printf.sprintf "for variable %s, expected %s but got %s"
-            (show_ident ident) repr' repr
-      end
-    else Some expectation
-   | _ -> Some expectation
-   ;; *)
-
-let observe_inconsistencies analysis_task inconsistencies expectations =
-  let single_inconsistency_check = (fun inconsistency ->
-      let site_of_inconsistency =
-        let open Toploop_analysis_types in
-        (
-          match inconsistency with
-          | Application_of_non_function (Abs_var ident,_,_,_) -> ident
-          | Projection_of_non_record (Abs_var ident,_,_) -> ident
-          | Projection_of_absent_label (Abs_var ident,_,_,_) -> ident
-          | Deref_of_non_ref (Abs_var ident,_,_) -> ident
-          | Update_of_non_ref (Abs_var ident,_,_) -> ident
-          | Invalid_binary_operation (Abs_var ident,_,_,_,_,_) -> ident
-          | Invalid_unary_operation (Abs_var ident,_,_,_) -> ident
-          | Invalid_indexing_subject (Abs_var ident,_,_) -> ident
-          | Invalid_indexing_argument (Abs_var ident,_,_) -> ident
+let observe_queries reprs expectation =
+  match expectation with
+  | CLExpect_result expect ->
+    let Result (a, expect_q, ResultString expect_res) = expect in
+    let filter_res =
+      List.filter_map
+        (fun repr ->
+           (match repr with
+            | QnA (actual_q, actual_res) ->
+              if (expect_q = actual_q) then
+                let pp_res_str =
+                  Pp_utils.pp_to_string Ddpa_abstract_ast.Abs_filtered_value_set.pp actual_res
+                in
+                if (expect_res = pp_res_str) then None
+                else assert_failure @@
+                  Printf.sprintf
+                    "for analysis %s, the look up %s expected %s but got %s"
+                    (Toploop_utils.analysis_task_to_name a) (show_query expect_q) expect_res pp_res_str
+              else Some expectation)
         )
-      in (List.map (fun expect ->
-          match expect with
-          | Expect_analysis_inconsistency_at (LUVar expected_site) ->
-            let ident_var = Ident expected_site in
-            if site_of_inconsistency = ident_var
-            then None
-            else Some expect
-        ) expectations))
-  in
-  let res = List.concat @@ List.map single_inconsistency_check inconsistencies
-  in
-  let filtered_res = List.filter Option.is_some res in
-  if List.is_empty filtered_res then None
-  else
-    let non_option_filtered_res = Expect_analysis_inconsistencies
-        (List.map Option.get filtered_res)
-    in
-    Some (CLExpect_consistency (analysis_task, non_option_filtered_res))
+        reprs
+    in if List.is_empty filter_res then None else Some expectation
+  | _ -> Some expectation
+;;
+
+let observe_inconsistencies inconsistencies expectation =
+  match expectation with
+  | CLExpect_consistency (a, expects) ->
+    (
+      match expects with
+      | Expect_analysis_inconsistencies expectations ->
+        let single_inconsistency_check =
+          (fun inconsistency ->
+             let site_of_inconsistency =
+               let open Toploop_analysis_types in
+               match inconsistency with
+               | Application_of_non_function (Abs_var ident,_,_,_) -> ident
+               | Projection_of_non_record (Abs_var ident,_,_) -> ident
+               | Projection_of_absent_label (Abs_var ident,_,_,_) -> ident
+               | Deref_of_non_ref (Abs_var ident,_,_) -> ident
+               | Update_of_non_ref (Abs_var ident,_,_) -> ident
+               | Invalid_binary_operation (Abs_var ident,_,_,_,_,_) -> ident
+               | Invalid_unary_operation (Abs_var ident,_,_,_) -> ident
+               | Invalid_indexing_subject (Abs_var ident,_,_) -> ident
+               | Invalid_indexing_argument (Abs_var ident,_,_) -> ident
+             in
+             (List.map
+                (fun expect ->
+                   let Expect_analysis_inconsistency_at (LUVar expected_site) = expect
+                   in
+                   let ident_var = Ident expected_site in
+                   if site_of_inconsistency = ident_var
+                   then None
+                   else Some expect)
+                expectations))
+        in
+        let res = List.concat @@ List.map single_inconsistency_check inconsistencies
+        in
+        let filtered_res = List.filter Option.is_some res in
+        if List.is_empty filtered_res then None
+        else
+          let non_option_filtered_res = Expect_analysis_inconsistencies
+              (List.map Option.get filtered_res)
+          in
+          Some (CLExpect_consistency (a, non_option_filtered_res))
+      | Expect_analysis_no_inconsistencies -> Some expectation
+    )
+  | _ -> Some expectation
 ;;
 
 let observe_no_inconsistency expectation =
   match expectation with
-  | Expect_analysis_no_inconsistencies -> None
+  | CLExpect_consistency (_, expects) ->
+    (
+      match expects with
+      | Expect_analysis_inconsistencies _ -> Some expectation
+      | Expect_analysis_no_inconsistencies -> None
+    )
   | _ -> Some expectation
 ;;
 
@@ -239,20 +201,22 @@ let make_test filename gen_expectations analysis_expectation =
     | Expect_well_formed -> "should be well-formed"
     | Expect_ill_formed -> "should be ill-formed"
   in
+  let name_of_analysis_expectation analysis_expectation =
+    
   let test_name = filename ^ ": (" ^
                   string_of_list name_of_gen_expectation gen_expectations ^ ")"
   in
   (* Create the test in a thunk. *)
+  let checklist_expectations =
+    make_checklist gen_expectations analysis_expectation in
   test_name >::
   function _ ->
     lazy_logger `trace (fun () ->
         Printf.sprintf "Performing test for %s with expectations: %s"
           filename
           (Pp_utils.pp_to_string (Pp_utils.pp_list pp_test_expectation)
-             gen_expectations)
+             checklist_expectations)
       );
-    let checklist_expectations =
-      make_checklist gen_expectations analysis_expectation in
     (* Using two mutable lists of not-yet-handled expectations. *)
     let expectations_left = ref checklist_expectations in
     (* let ana_expectations_left = ref analysis_expectation in  *)
@@ -261,6 +225,7 @@ let make_test filename gen_expectations analysis_expectation =
     let observation f =
       expectations_left := List.filter_map f @@ !expectations_left;
       lazy_logger `trace (fun () ->
+          (* TODO: THIS IS NOT THE WAY TO GO, FOR TESTING ONLY *)
           Printf.sprintf "In test for %s, expectations remaining after an observation: %s"
             filename
             (Pp_utils.pp_to_string (Pp_utils.pp_list pp_test_expectation)
@@ -314,8 +279,8 @@ let make_test filename gen_expectations analysis_expectation =
               let has_evaluation_expectation =
                 have_expectation
                   (function
-                    | Expect_evaluate -> true
-                    | Expect_stuck -> true
+                    | CLExpect_evaluate -> true
+                    | CLExpect_stuck -> true
                     | _ -> false)
               in
               if has_evaluation_expectation then
@@ -352,55 +317,52 @@ let make_test filename gen_expectations analysis_expectation =
       then observation @@ observe_well_formed
       else observation @@ observe_ill_formed result.illformednesses;
       (* Report each discovered error *)
-        let report = result.analysis_report in
-        let keys = List.of_enum (Analysis_task_map.keys report) in
-        let checking_for_one_key unit (key : analysis_task) =
-          let result_for_this_analysis_task =
-            (* TODO: take care of errors *)
-            Analysis_task_map.find key report
-          in
-          let Analysis_result(qnas, errors) = result_for_this_analysis_task
-          in
-          errors
-          |> List.iter
-            (fun error -> observation @@ observe_inconsistencies error);
-          (* If there are no errors, report that. *)
-          if errors = [] then observation observe_no_inconsistency;
-          (* Report each resulting variable analysis. *)
-          qnas
-          |> List.iter
-            (fun actual_qna ->
-               observation @@ observe_queries actual_qna
-            );
+      let report = result.analysis_report in
+      let keys = List.of_enum (Analysis_task_map.keys report) in
+      let checking_for_one_key () (key : analysis_task) =
+        let result_for_this_analysis_task =
+          (* TODO: take care of errors *)
+          Analysis_task_map.find key report
         in
-        List.fold_left checking_for_one_key () keys;
+        let Analysis_result(qnas, errors) = result_for_this_analysis_task
+        in
+        observation @@ observe_inconsistencies errors;
+        (* If there are no errors, report that. *)
+        if errors = [] then observation observe_no_inconsistency;
+        (* Report each resulting variable analysis. *)
+        observation @@ observe_queries qnas;
+      in
+      List.fold_left checking_for_one_key () keys;
 
-        (* Now report the result of evaluation. *)
-        begin
-          match result.evaluation_result with
-          | Evaluation_completed _ -> observation observe_evaluated
-          | Evaluation_failure failure -> observation (observe_stuck failure)
-          | Evaluation_invalidated -> ()
-          | Evaluation_disabled -> ()
-        end;
-        (* If there are any expectations of errors left, they're a problem. *)
-        !expectations_left
-        |> List.iter
-          (function
-            (* | Expect_analysis_inconsistency_at ident ->
-               assert_failure @@ "Expected error at " ^
-                                show_ident ident ^ " which did not occur" *)
-            | _ -> ()
-          );
+      (* Now report the result of evaluation. *)
+      begin
+        match result.evaluation_result with
+        | Evaluation_completed _ -> observation observe_evaluated
+        | Evaluation_failure failure -> observation (observe_stuck failure)
+        | Evaluation_invalidated -> ()
+        | Evaluation_disabled -> ()
+      end;
+      (* If there are any expectations of errors left, they're a problem. *)
+      !expectations_left
+      |> List.iter
+        (function
+          (* | Expect_analysis_inconsistency_at ident ->
+             assert_failure @@ "Expected error at " ^
+                              show_ident ident ^ " which did not occur" *)
+          | _ -> ()
+        );
     end;
     (* Now assert that every expectation has been addressed. *)
     match !expectations_left with
     | [] -> ()
-    | expectations' ->
-      assert_failure @@ "The following expectations could not be met:" ^
-                        "\n    * " ^ concat_sep "\n    * "
-                          (List.enum @@
-                           List.map name_of_gen_expectation expectations')
+    | _ ->
+      (* | expectations' -> *)
+      assert_failure @@ "The following expectations could not be met:"
+      (* TODO: Not the proper way; figure out how to print expects *)
+      ^
+         "\n    * " ^ concat_sep "\n    * "
+         (List.enum @@
+         List.map pp_ expectations')
 ;;
 
 let make_expectations_from filename =
