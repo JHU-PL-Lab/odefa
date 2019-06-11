@@ -3,7 +3,7 @@ open Jhupllib;;
 
 open Odefa_abstract_ast;;
 open Abstract_ast;;
-open Plume_context_stack;;
+open Plume_context_model;;
 open Pp_utils;;
 
 type 'a dq = 'a Deque.dq;;
@@ -13,7 +13,7 @@ sig
   val size : int
 end;;
 
-module Make(S : Spec) : Context_stack =
+module Make(S : Spec) : Context_model =
 struct
   type t = abstract_clause dq;;
   let equal x y = compare x y == 0;;

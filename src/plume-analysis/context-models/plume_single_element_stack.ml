@@ -3,10 +3,10 @@ open Jhupllib;;
 
 open Odefa_abstract_ast;;
 open Abstract_ast;;
-open Plume_context_stack;;
+open Plume_context_model;;
 open Pp_utils;;
 
-module Stack : Context_stack =
+module Stack : Context_model =
 struct
   type t = S of abstract_clause option;;
   let equal x y = compare x y == 0;;

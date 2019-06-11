@@ -1,0 +1,8 @@
+empty = {};
+a = empty;
+cell = ref a;
+z1 = !cell;
+b = {q=empty};
+cell2 = cell;
+junk = cell2 <- b;
+z2 = !cell;

@@ -2,10 +2,10 @@
 
 open Jhupllib;;
 
-open Plume_context_stack;;
+open Plume_context_model;;
 open Pp_utils;;
 
-module Stack : Context_stack =
+module Stack : Context_model =
 struct
   type t = unit;;
   let equal () () = true;;

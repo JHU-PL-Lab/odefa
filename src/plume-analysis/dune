@@ -1,4 +1,4 @@
-(copy_files# context-stacks/*.{ml,mli})
+(copy_files# context-models/*.{ml,mli})
 (copy_files# pds/*.{ml,mli})
 (copy_files# types/*.{ml,mli})
 (copy_files# utils/*.{ml,mli})

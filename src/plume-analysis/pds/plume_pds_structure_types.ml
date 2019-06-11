@@ -8,7 +8,7 @@ open Odefa_utils;;
 open Abstract_ast;;
 open Ast;;
 open Ast_pp;;
-open Plume_context_stack;;
+open Plume_context_model;;
 open Interface_utils;;
 
 module type Bounded_capture_size_sig =
@@ -18,7 +18,7 @@ sig
   val to_int : t -> int
 end;;
 
-module Make(C : Context_stack) =
+module Make(C : Context_model) =
 struct
   module C = C;;
   (** This module is meant to verify that the system never attempts to create

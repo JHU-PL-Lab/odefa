@@ -4,7 +4,7 @@ open Jhupllib;;
 open Odefa_abstract_ast;;
 
 open Abstract_ast;;
-open Plume_context_stack;;
+open Plume_context_model;;
 open Plume_graph;;
 open Plume_utils;;
 
@@ -12,7 +12,7 @@ let logger = Logger_utils.make_logger "Plume_pds_edge_functions";;
 let lazy_logger = Logger_utils.make_lazy_logger "Plume_pds_edge_functions";;
 
 module Make
-    (C : Context_stack)
+    (C : Context_model)
     (S : (module type of Plume_pds_structure_types.Make(C)) with module C = C)
     (T : (module type of Plume_pds_dynamic_pop_types.Make(C)(S))
      with module C = C

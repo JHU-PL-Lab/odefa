@@ -6,7 +6,7 @@ open Odefa_abstract_ast;;
 
 open Abstract_ast;;
 open Ast;;
-open Plume_context_stack;;
+open Plume_context_model;;
 open Plume_utils;;
 open Nondeterminism;;
 open Pds_reachability_types_stack;;
@@ -15,7 +15,7 @@ let logger = Logger_utils.make_logger "Plume_pds_dynamic_pop_handler";;
 let lazy_logger = Logger_utils.make_lazy_logger "Plume_pds_dynamic_pop_handler";;
 
 module Make
-    (C : Context_stack)
+    (C : Context_model)
     (S : (module type of Plume_pds_structure_types.Make(C)) with module C = C)
     (T : (module type of Plume_pds_dynamic_pop_types.Make(C)(S))
      with module C = C

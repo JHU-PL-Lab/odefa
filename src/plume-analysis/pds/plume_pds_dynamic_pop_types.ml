@@ -6,10 +6,10 @@ open Odefa_abstract_ast;;
 open Abstract_ast;;
 open Ast;;
 open Ast_pp;;
-open Plume_context_stack;;
+open Plume_context_model;;
 
 module Make
-    (C : Context_stack)
+    (C : Context_model)
     (S : (module type of Plume_pds_structure_types.Make(C)) with module C = C) =
 struct
   module C = C;;

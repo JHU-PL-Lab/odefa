@@ -13,7 +13,7 @@ open Abstract_ast;;
 (* open Abstract_ast_utils;; *)
 open Ast;;
 open Plume_analysis_logging;;
-open Plume_context_stack;;
+open Plume_context_model;;
 open Plume_graph;;
 open Plume_utils;;
 open Nondeterminism;;
@@ -28,7 +28,7 @@ sig
   type plume_analysis
 
   (** The context stack module for this analysis. *)
-  module C : Context_stack;;
+  module C : Context_model;;
 
   (** The initial, unclosed analysis derived from an expression. *)
   val create_initial_analysis :
@@ -70,7 +70,7 @@ end;;
 (**
    A functor which constructs a Plume analysis module.
 *)
-module Make(C : Context_stack)
+module Make(C : Context_model)
   : Analysis_sig with module C = C =
 struct
   module C = C;;

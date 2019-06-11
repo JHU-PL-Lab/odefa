@@ -9,6 +9,7 @@
     odefa.ddpa
     odefa.interpreter
     odefa.parser
+    odefa.plume
     odefa.statistics
     odefa.utils
   )

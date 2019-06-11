@@ -2,23 +2,26 @@ open Batteries;;
 
 open Odefa_ast;;
 open Odefa_ddpa;;
-open Toploop_types;;
-
-open Ast;;
+open Odefa_plume;;
 open Odefa_abstract_ast;;
+
+open Toploop_types;;
+open Ast;;
 open Abstract_ast;;
 
 module type Stack = Ddpa_context_stack.Context_stack;;
+
+module type Model = Plume_context_model.Context_model;;
 
 let string_of_query (q : query) : string =
   let Query(lu_var, g_pos, c) = q in
   let LUVar(lu_var_name) = lu_var in
   let g_pos_name =
-  begin
-    match g_pos with
-    | ProgramPoint (pp_name) -> pp_name
-    | END -> "END"
-  end
+    begin
+      match g_pos with
+      | ProgramPoint (pp_name) -> pp_name
+      | END -> "END"
+    end
   in
   let c_list =
     "[" ^ (List.fold_left (fun acc -> fun var ->
@@ -41,8 +44,20 @@ let analysis_task_to_name (task : analysis_task) : string =
       "2ddpa"
     else
       (string_of_int num) ^ "ddpa"
-  | _ ->
-    raise Not_found
+  | PLUME (num) ->
+    if (num = 0) then
+      "0plume"
+    else if (num = 1) then
+      "1plume"
+    else if (num = 2) then
+      "2plume"
+    else
+      (string_of_int num) ^ "plume"
+  | SPLUME ->
+    "Set plume"
+  | OSPLUME ->
+    "Ordered-set plume"
+;;
 
 let ddpa_analysis_to_stack (task : analysis_task) : (module Stack) =
   match task with
@@ -54,19 +69,44 @@ let ddpa_analysis_to_stack (task : analysis_task) : (module Stack) =
     else if (num = 2) then
       (module Ddpa_two_element_stack.Stack : Stack)
     else
-    ( let module Spec : Ddpa_n_element_stack.Spec =
-         struct
-           let size = num
-         end
-      in
-      let module NStack = Ddpa_n_element_stack.Make(Spec) in
-      (module NStack : Stack)
-    )
+      ( let module Spec : Ddpa_n_element_stack.Spec =
+        struct
+          let size = num
+        end
+        in
+        let module NStack = Ddpa_n_element_stack.Make(Spec) in
+        (module NStack : Stack)
+      )
   | _ ->
     (* Since this function is only expecting DDPA analyses, throw an error *)
     raise Not_found
 ;;
 
+let plume_analysis_to_stack (task : analysis_task) : (module Model) =
+  match task with
+  | PLUME (num) ->
+    if (num = 0) then
+      (module Plume_unit_stack.Stack : Model)
+    else if (num = 1) then
+      (module Plume_single_element_stack.Stack : Model)
+    else if (num = 2) then
+      (module Plume_two_element_stack.Stack : Model)
+    else
+      ( let module Spec : Plume_n_element_stack.Spec =
+        struct
+          let size = num
+        end
+        in
+        let module NStack = Plume_n_element_stack.Make(Spec) in
+        (module NStack : Model)
+      )
+  (*NOTE/FIXME: implement SPLUME and OSPLUME!!! *)
+  (* | SPLUME ->
+     | OSPLUME -> *)
+  | _ ->
+    (* Since this function is only expecting DDPA analyses, throw an error *)
+    raise Not_found
+;;
 
 
 let name_parsing_functions =
@@ -81,6 +121,12 @@ let name_parsing_functions =
          DDPA (1)
        | "2ddpa" ->
          DDPA (2)
+       | "0plume" ->
+         PLUME (0)
+       | "1plume" ->
+         PLUME (1)
+       | "2plume" ->
+         PLUME (2)
        (* | "none" -> None *)
        (* | "splume" ->
           Plume (module Plume_context_model.Context_model)
@@ -99,22 +145,16 @@ let name_parsing_functions =
        with
        | Failure _ -> raise Not_found
     );
-    (* TODO: Parising kplume *)
-    (* (fun name ->
+    (* A function for parsing kplume *)
+    (fun name ->
        if not @@ String.ends_with name "plume" then raise Not_found;
-       let num_str = String.sub name 0 @@ String.length name - 4 in
+       let num_str = String.sub name 0 @@ String.length name - 5 in
        try
          let num = int_of_string num_str in
-         let module Spec : Ddpa_n_element_stack.Spec =
-         struct
-           let size = num
-         end
-         in
-         let module NStack = Ddpa_n_element_stack.Make(Spec) in
-         DDPA (module NStack : Stack)
+         PLUME (num)
        with
        | Failure _ -> raise Not_found
-    ) *)
+    )
   ];;
 
 let analysis_from_name name =

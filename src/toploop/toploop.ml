@@ -5,12 +5,15 @@ open Odefa_ast;;
 open Odefa_ddpa;;
 open Odefa_interpreter;;
 open Odefa_statistics;;
+open Odefa_plume;;
 
 open Ast;;
 open Ast_pp;;
 open Abstract_ast;;
 open Ast_wellformedness;;
 open Interpreter;;
+open Plume_analysis_logging;;
+(* open Plume_graph;; *)
 open Ddpa_analysis_logging;;
 open Ddpa_graph;;
 open Source_statistics;;
@@ -190,10 +193,19 @@ let ddpaWrapperMaker (context_stack : (module Ddpa_context_stack.Context_stack))
    a PLUME analysis, and produces an analysis wrapper that's user friendly.
    Probably need to specify the return type with PLUME specific logging config.
 *)
-(*
-let plumeWrapperMaker (stack : module plume_context_model.Context_model) :
-  (plumeWrapper : Analysis_wrapper) =
-;; *)
+
+let plumeWrapperMaker (context : (module Plume_context_model.Context_model))
+  : (module Analysis_wrapper
+      with type logging_config = plume_analysis_logging_config) =
+  (* We're finally ready to perform some analyses. Unpack the context
+     stack. *)
+  let module Context_model = (val context) in
+  (* Define the analysis module. *)
+  let module Analysis = Plume_analysis.Make(Context_model) in
+  (* Define the convenience wrapper. *)
+  let module Wrapped_Analysis = Toploop_plume_wrapper.Make(Analysis) in
+  (module Wrapped_Analysis)
+;;
 
 (* This function takes in a situation, which describes the configuration, callbacks,
    and expression of this query.
@@ -372,32 +384,59 @@ let dummy_create_ddpa_logging_config ()
   ddpa_logging_config, close_files
 ;;
 
+(* Function that creates a logging config specifically for Plume.
+
+    Parameters
+      situation - toploop_situation to get conf, callbacks, and expr
+
+    Return
+      ddpa_analysis_logging_config - logging configuration details
+      (unit -> unit) - function that allows us to close the log file
+*)
+let dummy_create_plume_logging_config ()
+  : plume_analysis_logging_config * (unit -> unit) =
+  let plume_logging_config =
+    { plume_pdr_logging_level = Log_nothing
+    ; plume_cfg_logging_level = Log_nothing
+    ; plume_pdr_deltas = false
+    ; plume_json_logger = fun _ -> ()
+    }
+  in
+  (* The rest of this is wrapped in a finally so that, if a JSON graph log
+     file is created, it will be properly closed even if an exception is
+     raised.
+  *)
+  let close_files = fun () -> ()
+  in
+  plume_logging_config, close_files
+;;
+
 (* NOTE/FIXME: Commented out for easier plume testing *)
 (* let create_ddpa_logging_config (situation : toploop_situation)
-  : ddpa_analysis_logging_config * (unit -> unit) =
-  let conf = situation.ts_conf in
-  (* Set up the logging configuration for the analysis. *)
-  let ddpa_cfg_logging_level =
+   : ddpa_analysis_logging_config * (unit -> unit) =
+   let conf = situation.ts_conf in
+   (* Set up the logging configuration for the analysis. *)
+   let ddpa_cfg_logging_level =
     begin
       match conf.topconf_ddpa_log_level with
       | Some level -> level
       | None -> Ddpa_analysis_logging.Log_nothing;
     end
-  in
-  let ddpa_pdr_logging_level =
+   in
+   let ddpa_pdr_logging_level =
     begin
       match conf.topconf_pdr_log_level with
       | Some level -> level
       | None -> Ddpa_analysis_logging.Log_nothing;
     end
-  in
-  let ddpa_graph_log_file_name = conf.topconf_graph_log_file_name in
-  (* Set up the DDPA logging configuration.  This includes the function
+   in
+   let ddpa_graph_log_file_name = conf.topconf_graph_log_file_name in
+   (* Set up the DDPA logging configuration.  This includes the function
      which will write JSON records to a file as they are reported.  For
      cleanup, we keep the file in an option ref.
   *)
-  let graph_log_file = ref None in
-  let ddpa_logging_config =
+   let graph_log_file = ref None in
+   let ddpa_logging_config =
     { ddpa_pdr_logging_level = ddpa_pdr_logging_level
     ; ddpa_cfg_logging_level = ddpa_cfg_logging_level
     ; ddpa_pdr_deltas = conf.topconf_pdr_log_deltas
@@ -425,12 +464,12 @@ let dummy_create_ddpa_logging_config ()
              IO.nwrite file json_string
           )
     }
-  in
-  (* The rest of this is wrapped in a finally so that, if a JSON graph log
+   in
+   (* The rest of this is wrapped in a finally so that, if a JSON graph log
      file is created, it will be properly closed even if an exception is
      raised.
   *)
-  let close_files =
+   let close_files =
     (fun () ->
        match !graph_log_file with
        | None -> ()
@@ -438,9 +477,9 @@ let dummy_create_ddpa_logging_config ()
          IO.nwrite file "\n]\n";
          IO.close_out file
     )
-  in
-  ddpa_logging_config, close_files
-;; *)
+   in
+   ddpa_logging_config, close_files
+   ;; *)
 
 
 (* Function that solely performs analysis (variable analyes and error checking)
@@ -485,9 +524,22 @@ let do_analysis_steps (situation : toploop_situation) : analysis_report =
            in
            Analysis_task_map.add atask result analysis_report
          (* TODO: fill this out after implementing plume *)
-         | _ -> raise Not_found
-         (* | Plume (ctx) ->
-            let plumeWrapper = plumeWrapperMaker ctx in do_analysis_steps_plume plumeWrapper *)
+         | PLUME (_) ->
+           let model = plume_analysis_to_stack atask in
+           let plumeWrapper = plumeWrapperMaker model in
+           let logging_config, finalize = dummy_create_plume_logging_config () in
+           let result =
+             (* close the log file regardless of success/failure *)
+             plumeWrapper |> finally finalize
+               (* create/perform the analysis here *)
+               (analysis_step_general situation
+                  (Some logging_config))
+           in
+           Analysis_task_map.add atask result analysis_report
+         | SPLUME ->
+           failwith "Not yet implemented :("
+         | OSPLUME ->
+           failwith "Not yet implemented :("
       ) Analysis_task_map.empty
       conf.topconf_analyses
 ;;
