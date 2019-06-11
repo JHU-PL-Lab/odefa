@@ -34,10 +34,10 @@ end;;
 module type Graph_sig =
 sig
   module E : Edge_sig
+
   type t
   type edge = E.t
-  type node
-
+  type node = E.node
 
   val empty : t
 

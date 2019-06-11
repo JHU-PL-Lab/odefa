@@ -4,9 +4,9 @@ open Jhupllib;;
 open Odefa_ast;;
 open Odefa_abstract_ast;;
 
-open Ast;;
 open Abstract_ast;;
 open Abstract_ast_utils;;
+open Ast;;
 open Ddpa_graph;;
 
 let is_immediate acl =
