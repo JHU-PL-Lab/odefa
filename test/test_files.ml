@@ -5,9 +5,7 @@
    Each file is expected to contain a comment describing the expected test
    result.  The comment should be of one of the following forms:
 
-   - [EXPECT-EVALUATE] (which requires that the code evaluates to completion)
-   - [EXPECT-STUCK] (which requires that the code gets stuck)
-     FIXME: update this documentation
+    NOTE: AYAKA HELPPPPPPPPP
 *)
 
 open Batteries;;
@@ -44,6 +42,9 @@ exception Expectation_not_found;;
 
 exception File_test_creation_failure of string;;
 
+(* This function will pretty print general expectations and analysis specific
+   expectations.
+*)
 let pp_test_expectation formatter expectation =
   match expectation with
   | CLExpect_evaluate -> Format.pp_print_string formatter "Expect_evaluate"
@@ -77,6 +78,11 @@ let pp_test_expectation formatter expectation =
                           (show_query q)(analysis_task_to_name a)) ^ res_str
     in Format.pp_print_string formatter @@ str_to_print
 ;;
+
+
+(* The following set of functions will filter through the ref cell containing
+   different checklist items (expectations), and change them to None if the
+   expecatations of the test are in fact met. *)
 
 let observe_evaluated expectation =
   match expectation with
@@ -194,7 +200,11 @@ let observe_no_inconsistency expectation =
   | _ -> Some expectation
 ;;
 
+(* This function takes in a test file, the list of expectations, and generate
+   the unit test routine for it.
+*)
 let make_test filename gen_expectations analysis_expectation =
+  (* This function will print the checklist items. *)
   let name_of_checklist_item ch_item =
     match ch_item with
     | CLExpect_evaluate -> "should evaluate"
@@ -242,15 +252,13 @@ let make_test filename gen_expectations analysis_expectation =
           (Pp_utils.pp_to_string (Pp_utils.pp_list pp_test_expectation)
              checklist_expectations)
       );
-    (* Using two mutable lists of not-yet-handled expectations. *)
+    (* Using a ref cell to hold not-yet-handled expectations. *)
     let expectations_left = ref checklist_expectations in
-    (* let ana_expectations_left = ref analysis_expectation in  *)
     (* This routine takes an observation function and applies it to all of the
        not-yet-handled expectations. *)
     let observation f =
       expectations_left := List.filter_map f @@ !expectations_left;
       lazy_logger `trace (fun () ->
-          (* TODO: THIS IS NOT THE WAY TO GO, FOR TESTING ONLY *)
           Printf.sprintf "In test for %s, expectations remaining after an observation: %s"
             filename
             (Pp_utils.pp_to_string (Pp_utils.pp_list pp_test_expectation)
@@ -367,38 +375,29 @@ let make_test filename gen_expectations analysis_expectation =
         | Evaluation_invalidated -> ()
         | Evaluation_disabled -> ()
       end;
-      (* If there are any expectations of errors left, they're a problem. *)
-      (* !expectations_left
-         |> List.iter
-         (function x ->
-
-           (* match x with
-          | Expect_analysis_inconsistency_at ident ->
-             assert_failure @@ "Expected error at " ^
-                              show_ident ident ^ " which did not occur"
-          | _ -> () *)
-         ); *)
     end;
     (* Now assert that every expectation has been addressed. *)
     match !expectations_left with
     | [] -> ()
     | expectations' ->
-      assert_failure @@ "The following expectations could not be met:"
-                        (* TODO: Not the proper way; figure out how to print expects *)
-                        ^
+      assert_failure @@ "The following expectations could not be met:" ^
                         "\n    * " ^ concat_sep "\n    * "
                           (List.enum @@
                            List.map name_of_checklist_item expectations')
 ;;
 
+(* This function will take in an .expectation file corresponding to a test, and
+   parse the expectations in it. It also checks for well-formedness of expectations,
+   where the user has to specify full specification of expected query result for
+   each analysis.
+*)
 let make_expectations_from filename =
   let contents = File.with_file_in filename IO.read_all in
   let expectations =
     try
       Expectation_parser_tool.parse filename contents
     with
-    (*TODO: Give a proper error msg *)
-    | Expectation_parser_tool.ParseFailure msg -> raise (Failure msg)
+    | Expectation_parser_tool.ParseFailure msg -> raise (Expectation_parse_failure msg)
   in
   match expectations with
   | Expectations (analysis_expects, gen_expects) ->
@@ -424,63 +423,6 @@ let make_expectations_from filename =
      | None -> make_test test_file_name_with_ext gen_expects (Analysis_Expectation([], [], [], []))
     )
 ;;
-(*
-let make_test_from filename =
-  let expectations =
-    filename
-    |> File.lines_of
-    |> Enum.filter_map
-      (fun str ->
-         let str' = String.trim str in
-         if String.starts_with str' "#"
-         then
-           let str'' = String.trim @@ String.tail str' 1 in
-           match parse_expectation str'' with
-           | Some (Success expectation) -> Some(Success expectation)
-           | Some (Failure s) -> Some(Failure(
-               Printf.sprintf
-                 "Error parsing expectation:\n        Error: %s\n        Text:  %s"
-                 s str''))
-           | None -> None
-         else None
-      )
-    |> List.of_enum
-  in
-  let failures =
-    expectations
-    |> List.filter_map
-      (function
-        | Success _ -> None
-        | Failure s -> Some s
-      )
-  in
-  match failures with
-  | [] ->
-    let successes =
-      expectations
-      |> List.filter_map
-        (function
-          | Success expectation -> Some expectation
-          | Failure _ -> None
-        )
-    in
-    begin
-      match successes with
-      | [] -> raise (File_test_creation_failure(
-          "Could not create test from file " ^ filename ^
-          ": no expectations found"))
-      | _ ->
-        make_test filename successes
-    end
-  | _ ->
-    let message = "Could not create test from file " ^ filename ^ ":" in
-    let message' =
-      failures
-      |> List.fold_left
-        (fun msg err -> msg ^ "\n    " ^ err) message
-    in
-    raise (File_test_creation_failure message')
-;; *)
 
 let wrap_make_test_from filename =
   try
