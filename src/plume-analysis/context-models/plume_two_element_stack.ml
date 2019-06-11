@@ -17,16 +17,6 @@ struct
       | [] -> S([c])
       | h::_ -> S([c;h])
   ;;
-  let pop (S(lst)) =
-    match lst with
-      | [] -> S([])
-      | _::t -> S(t)
-  ;;
-  let is_top c (S(c_option)) =
-    match c_option with
-    | h::_ -> c = h
-    | [] -> true
-  ;;
   let pp formatter (S(lst)) =
     List.iter ((pp_suffix pp_var_of_abstract_clause "|") formatter) lst;
     Format.pp_print_string formatter "?"

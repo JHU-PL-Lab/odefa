@@ -10,21 +10,22 @@ open Odefa_ast;;
 
 open Abstract_ast;;
 open Ast;;
+open Plume_context_model;;
 open Pp_utils;;
 
-type plume_edge =
-  | Plume_edge of annotated_clause * annotated_clause
-  [@@deriving ord, show, to_yojson]
-;;
-
-module Plume_edge =
-struct
-  type t = plume_edge
-  let compare = compare_plume_edge
-  let pp = pp_plume_edge
-  let to_yojson = plume_edge_to_yojson
+module type Edge_sig = sig
+  module C : Context_model;;
+  type node =
+    | Node of annotated_clause * (C.t);;
+  type t =
+    | Edge of node * node
+  ;;
+  (* type t;; *)
+  val compare : t -> t -> int;;
+  val pp : t pretty_printer;;
+  val show : t -> string;;
+  val to_yojson : t -> Yojson.Safe.json;;
 end;;
-
 (*
   Creating the graph data type inside of a module.  This allows us to keep the
   graph data type intentionally abstract, thus permitting safe indexing and
@@ -32,74 +33,122 @@ end;;
 *)
 module type Graph_sig =
 sig
-  type plume_graph
+  module E : Edge_sig
+  type t
+  type edge = E.t
+  type node
 
-  val empty : plume_graph
 
-  val add_edge : plume_edge -> plume_graph -> plume_graph
+  val empty : t
 
-  val edges_of : plume_graph -> plume_edge Enum.t
+  val add_edge : edge -> t -> t
 
-  val has_edge : plume_edge -> plume_graph -> bool
+  val edges_of : t -> edge Enum.t
 
-  val edges_from : annotated_clause -> plume_graph -> plume_edge Enum.t
+  val has_edge : edge -> t -> bool
 
-  val edges_to : annotated_clause -> plume_graph -> plume_edge Enum.t
+  val edges_from : node -> t -> edge Enum.t
 
-  val preds : annotated_clause -> plume_graph -> annotated_clause Enum.t
+  val edges_to : node -> t -> edge Enum.t
 
-  val succs : annotated_clause -> plume_graph -> annotated_clause Enum.t
+  val preds : node -> t -> node Enum.t
 
-  val to_yojson : plume_graph -> Yojson.Safe.json
+  val succs : node -> t -> node Enum.t
+
+  val to_yojson : t -> Yojson.Safe.json
+
+  val pp : t pretty_printer
+
+  val show : t -> string
+
 end;;
 
 (* TODO: improve the performance of this implementation! *)
-module Graph_impl : Graph_sig =
+module Graph_impl (C : Context_model) : Graph_sig =
 struct
-  module Plume_edge_set =
+  module C = C;;
+
+  module E =
   struct
-    module Impl = Set.Make(Plume_edge);;
-    include Impl;;
-    include Pp_utils.Set_pp(Impl)(Plume_edge);;
-    include Yojson_utils.Set_to_yojson(Impl)(Plume_edge);;
+    module C = C;;
+    type node =
+      | Node of annotated_clause * (C.t)
+    [@@deriving ord, show, to_yojson]
+    ;;
+
+    let _ = show_node;;
+
+    type t =
+      | Edge of node * node
+    [@@deriving ord, show, to_yojson]
+    ;;
+
   end;;
 
-  type plume_graph = Graph of Plume_edge_set.t [@@deriving to_yojson];;
+  open E;;
 
-  let empty = Graph(Plume_edge_set.empty);;
+  type node = E.node;;
 
-  let add_edge edge (Graph(s)) = Graph(Plume_edge_set.add edge s);;
+  type edge = E.t;;
 
-  let edges_of (Graph(s)) = Plume_edge_set.enum s;;
 
-  let has_edge edge (Graph(s)) = Plume_edge_set.mem edge s;;
+  module Edge_set =
+  struct
+    module Impl = Set.Make(E);;
+    include Impl;;
+    include Pp_utils.Set_pp(Impl)(E);;
+    include Yojson_utils.Set_to_yojson(Impl)(E);;
+  end;;
 
-  let edges_from acl (Graph(s)) =
-    Plume_edge_set.enum s
-    |> Enum.filter (fun (Plume_edge(acl',_)) -> equal_annotated_clause acl acl')
+  type t = Graph of Edge_set.t [@@deriving to_yojson];;
+
+  let empty = Graph(Edge_set.empty);;
+
+  let add_edge edge (Graph(s)) = Graph(Edge_set.add edge s);;
+
+  let edges_of (Graph(s)) = Edge_set.enum s;;
+
+  let has_edge edge (Graph(s)) = Edge_set.mem edge s;;
+
+  let edges_from node (Graph(s)) =
+    let Node(acl, c) = node in
+    Edge_set.enum s
+    |> Enum.filter (fun (Edge(n1, _)) ->
+        let Node(acl', c') = n1 in
+        let acl_check = equal_annotated_clause acl acl' in
+        let c_check = C.equal c c' in
+        acl_check && c_check
+      )
   ;;
 
-  let succs acl g =
-    edges_from acl g |> Enum.map (fun (Plume_edge(_,acl)) -> acl)
+  let succs node g =
+    edges_from node g |> Enum.map (fun (Edge(_,node)) -> node)
   ;;
 
-  let edges_to acl (Graph(s)) =
-    Plume_edge_set.enum s
-    |> Enum.filter (fun (Plume_edge(_,acl')) -> equal_annotated_clause acl acl')
+  let edges_to node (Graph(s)) =
+    let Node(acl, c) = node in
+    Edge_set.enum s
+    |> Enum.filter (fun (Edge(_, n1)) ->
+        let Node(acl', c') = n1 in
+        let acl_check = equal_annotated_clause acl acl' in
+        let c_check = C.equal c c' in
+        acl_check && c_check
+      )
   ;;
 
-  let preds acl g =
-    edges_to acl g |> Enum.map (fun (Plume_edge(acl,_)) -> acl)
+  let preds node g =
+    edges_to node g |> Enum.map (fun (Edge(node, _)) -> node)
   ;;
 
-  let to_yojson = plume_graph_to_yojson;;
+  let pp formatter g =
+    (* pp_concat_sep_delim "{" "}" ", " pp_edge formatter @@ edges_of g *)
+    pp_concat_sep_delim "{" "}" ", " (E.pp) formatter @@ edges_of g
+  ;;
+
+  let show = pp_to_string pp;;
+
 end;;
 
-include Graph_impl;;
-
-let pp_plume_graph formatter g =
-  pp_concat_sep_delim "{" "}" ", " pp_plume_edge formatter @@ edges_of g
-;;
 
 let rec lift_expr (Expr(cls)) =
   Abs_expr(List.map lift_clause cls)

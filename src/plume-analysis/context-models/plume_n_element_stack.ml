@@ -25,16 +25,6 @@ struct
     then fst @@ Option.get @@ Deque.rear x'
     else x'
   ;;
-  let pop x =
-    match Deque.front x with
-    | None -> Deque.empty
-    | Some(_,x') -> x'
-  ;;
-  let is_top c x =
-    match Deque.front x with
-    | None -> true
-    | Some(c',_) -> c = c'
-  ;;
   let pp formatter x =
     pp_concat_sep_delim "" "|?" "|" pp_var_of_abstract_clause formatter @@
     Deque.enum x

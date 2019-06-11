@@ -12,8 +12,6 @@ struct
   let compare () () = 0;;
   let empty = ();;
   let push _ () = ();;
-  let pop () = ();;
-  let is_top _ () = true;;
   let pp formatter () = Format.pp_print_string formatter "-";;
   let show = pp_to_string pp;;
   let to_yojson _ = `List [];;
