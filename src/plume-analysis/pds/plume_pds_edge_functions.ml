@@ -12,10 +12,10 @@ let logger = Logger_utils.make_logger "Plume_pds_edge_functions";;
 let lazy_logger = Logger_utils.make_lazy_logger "Plume_pds_edge_functions";;
 
 module Make
-    (C : Context_model)
-    (S : (module type of Plume_pds_structure_types.Make(C)) with module C = C)
-    (T : (module type of Plume_pds_dynamic_pop_types.Make(C)(S))
-     with module C = C
+    (G : Graph_sig)
+    (S : (module type of Plume_pds_structure_types.Make(G)) with module G = G)
+    (T : (module type of Plume_pds_dynamic_pop_types.Make(G)(S))
+     with module G = G
       and module S = S)
     (B : Pds_reachability_basis.Basis)
     (R : Pds_reachability_analysis.Analysis
@@ -23,6 +23,7 @@ module Make
       and type Targeted_dynamic_pop_action.t = T.pds_targeted_dynamic_pop_action)
 =
 struct
+  open G;;
   open S;;
   open T;;
   open R.Stack_action.T;;
@@ -39,11 +40,11 @@ struct
       (edge : plume_edge) (state : R.State.t)
     : (R.Stack_action.t list * R.Terminus.t) Enum.t =
     (* Unpack the edge *)
-    let Plume_edge(acl1, acl0) = edge in
+    let Edge(n1, n0) = edge in
     (* Generate PDS edge functions for this Plume edge *)
     Logger_utils.lazy_bracket_log (lazy_logger `trace)
       (fun () -> Printf.sprintf "Plume %s edge function at state %s"
-          (show_plume_edge edge) (Pds_state.show state))
+          (show_edge edge) (Pds_state.show state))
       (fun edges ->
          let string_of_output (actions,target) =
            String_utils.string_of_tuple
@@ -56,10 +57,10 @@ struct
             List.of_enum @@ Enum.clone edges)) @@
     fun () ->
     let zero = Enum.empty in
-    let%orzero Program_point_state(acl0',ctx) = state in
+    let%orzero Program_point_state(n0') = state in
     (* TODO: There should be a way to associate each edge function with
              its corresponding acl0 rather than using this guard. *)
-    [%guard (compare_annotated_clause acl0 acl0' == 0) ];
+    [%guard (compare_node n0 n0' == 0) ];
     let open Option.Monad in
     let zero () = None in
     (* TODO: It'd be nice if we had a terser way to represent stack
@@ -70,25 +71,25 @@ struct
           (* ********** Variable Discovery ********** *)
           (* Intermediate Value *)
           begin
-            return (Value_drop, Program_point_state(acl0,ctx))
+            return (Value_drop, Program_point_state(n0))
           end
           ;
           (* ********** Variable Search ********** *)
           (* Value Alias *)
           begin
             let%orzero
-              (Unannotated_clause(Abs_clause(x, Abs_var_body x'))) = acl1
+              Node(Unannotated_clause(Abs_clause(x, Abs_var_body x')), ctx) = n1
             in
             (* x = x' *)
-            return (Variable_aliasing(x,x'),Program_point_state(acl1,ctx))
+            return (Variable_aliasing(x,x'),Program_point_state(n1))
           end
           ;
-          (* Stateless Clause Skip *)
+          (* Clause Skip *)
           begin
-            let%orzero (Unannotated_clause(Abs_clause(x,_))) = acl1 in
+            let%orzero Node(Unannotated_clause(Abs_clause(x,_)), ctx) = n1 in
             (* x' = b *)
             return ( Stateless_nonmatching_clause_skip_1_of_2 x
-                   , Program_point_state(acl1,ctx)
+                   , Program_point_state(n1)
                    )
           end
           ;
@@ -99,7 +100,7 @@ struct
           (* Capture *)
           begin
             return ( Value_capture_1_of_3
-                   , Program_point_state(acl0, ctx)
+                   , Program_point_state(n0)
                    )
           end
           ;
@@ -108,7 +109,7 @@ struct
           (* ********** Function Wiring ********** *)
           (* Function Top: Parameter Variable *)
           begin
-            let%orzero (Enter_clause(x,x',c)) = acl1 in
+            let%orzero Node(Enter_clause(x,x',c), ctx) = n1 in
             let%orzero (Abs_clause(_,Abs_appl_body (_,x3''))) = c in
             begin
               if not (equal_abstract_var x' x3'') then
@@ -116,14 +117,12 @@ struct
               else
                 ()
             end;
-            (* x =(down)c x' *)
-            [%guard C.is_top c ctx];
-            let ctx' = C.pop ctx in
-            return (Variable_aliasing(x,x'),Program_point_state(acl1,ctx'))
+            return (Variable_aliasing(x,x'),Program_point_state(n1))
           end
           ;
+          (* NOTE: if provided clause is gone, this is gone *)
           (* Function Bottom: Flow Check *)
-          begin
+          (* begin
             let%orzero (Exit_clause(x,_,c)) = acl1 in
             let%orzero (Abs_clause(x1'',Abs_appl_body(x2'',x3''))) = c in
             begin
@@ -137,10 +136,10 @@ struct
                    , Program_point_state(Unannotated_clause(c),ctx)
                    )
           end
-          ;
+          ; *)
           (* Function Bottom: Return Variable *)
           begin
-            let%orzero (Exit_clause(x,x',c)) = acl1 in
+            let%orzero Node(Exit_clause(x,x',c), ctx) = n1 in
             let%orzero (Abs_clause(x1'',Abs_appl_body _)) = c in
             begin
               if not (equal_abstract_var x x1'') then
@@ -148,16 +147,14 @@ struct
               else
                 ()
             end;
-            (* x =(up)c x' *)
-            let ctx' = C.push c ctx in
-            return ( Function_call_flow_validation_resolution_1_of_2(x,x')
-                   , Program_point_state(acl1,ctx')
+            return ( Variable_aliasing(x,x')
+                   , Program_point_state(n1)
                    )
           end
           ;
           (* Function Top: Non-Local Variable *)
           begin
-            let%orzero (Enter_clause(x'',x',c)) = acl1 in
+            let%orzero Node(Enter_clause(x'',x',c), ctx) = n1 in
             let%orzero (Abs_clause(_,Abs_appl_body(x2'',x3''))) = c in
             begin
               if not (equal_abstract_var x' x3'') then
@@ -165,11 +162,10 @@ struct
               else
                 ()
             end;
-            (* x'' =(down)c x' *)
-            [%guard C.is_top c ctx];
-            let ctx' = C.pop ctx in
+            (* NOTE: check if Function_closure_lookup is truly what we want
+            to use here *)
             return ( Function_closure_lookup(x'',x2'')
-                   , Program_point_state(acl1,ctx')
+                   , Program_point_state(n1)
                    )
           end
           ;
@@ -180,7 +176,7 @@ struct
           begin
             (* This block represents *all* conditional closure handling on
                the entering side. *)
-            let%orzero (Enter_clause(x',x1,c)) = acl1 in
+            let%orzero Node(Enter_clause(x',x1,c), ctx) = n1 in
             let%orzero
               (Abs_clause(_,Abs_conditional_body(x1',p,f1,_))) = c
             in
@@ -192,17 +188,19 @@ struct
             end;
             let Abs_function_value(f1x,_) = f1 in
             (* x'' =(down)c x' for conditionals *)
+            (* checking if var was var in the wiring node *)
             let closure_for_positive_path = equal_abstract_var f1x x' in
             return ( Conditional_closure_lookup
                        (x',x1,p,closure_for_positive_path)
-                   , Program_point_state(acl1,ctx)
+                   , Program_point_state(n1)
                    )
           end
           ;
           (* Conditional Bottom: Return Positive
              Conditional Bottom: Return Negative *)
+          (* FIXME: VERY confused!!! *)
           begin
-            let%orzero (Exit_clause(x,x',c)) = acl1 in
+            let%orzero Node(Exit_clause(x,x',c), ctx) = n1 in
             let%orzero
               (Abs_clause(x2,Abs_conditional_body(x1,pat,f1,_))) = c
             in
@@ -215,7 +213,8 @@ struct
             (* x =(up) x' for conditionals *)
             let Abs_function_value(_,Abs_expr(cls)) = f1 in
             let f1ret = rv cls in
-            let then_branch = equal_abstract_var f1ret x' in
+            (* whether or not we're in the then branch *)
+            let then_branch : bool = equal_abstract_var f1ret x' in
             return ( Conditional_subject_validation(
                 x,x',x1,pat,then_branch,acl1,ctx)
                    , Program_point_state(Unannotated_clause(c),ctx)
@@ -226,19 +225,19 @@ struct
           (* Record Projection Start *)
           begin
             let%orzero
-              (Unannotated_clause(
-                  Abs_clause(x,Abs_projection_body(x',l)))) = acl1
+              Node(Unannotated_clause(
+                  Abs_clause(x,Abs_projection_body(x',l))), _) = n1
             in
             (* x = x'.l *)
             return ( Record_projection_lookup(x,x',l)
-                   , Program_point_state(acl1,ctx)
+                   , Program_point_state(n1)
                    )
           end
           ;
           (* Record Projection Stop *)
           begin
             return ( Record_projection_1_of_2
-                   , Program_point_state(acl0,ctx)
+                   , Program_point_state(n0)
                    )
           end
           ;
@@ -246,12 +245,12 @@ struct
           (* Filter Immediate *)
           begin
             let%orzero
-              (Unannotated_clause(Abs_clause(x,Abs_value_body v))) = acl1
+              Node(Unannotated_clause(Abs_clause(x,Abs_value_body v)), _) = n1
             in
             (* x = v *)
             let%orzero (Some immediate_patterns) = immediately_matched_by v in
             return ( Immediate_filter_validation(x, immediate_patterns, v)
-                   , Program_point_state(acl1, ctx)
+                   , Program_point_state(n1)
                    )
           end
           ;
@@ -262,7 +261,7 @@ struct
                   Abs_clause(x,Abs_value_body(Abs_value_record(r))))) = acl1
             in
             (* x = r *)
-            let target_state = Program_point_state(acl1,ctx) in
+            let target_state = Program_point_state(n1) in
             return ( Record_filter_validation(x,r,acl1,ctx), target_state )
           end
           ;

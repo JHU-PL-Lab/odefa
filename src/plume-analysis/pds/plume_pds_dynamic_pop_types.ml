@@ -10,7 +10,7 @@ open Plume_context_model;;
 
 module Make
     (C : Context_model)
-    (S : (module type of Plume_pds_structure_types.Make(C)) with module C = C) =
+    (S : (module type of Plume_pds_structure_types.Make(G)) with module G = G) =
 struct
   module C = C;;
   module S = S;;

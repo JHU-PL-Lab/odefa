@@ -141,6 +141,7 @@ struct
       return [ Push(element)
              ; Push(Lookup_var(xf,Pattern_set.empty,Pattern_set.empty))
              ]
+(* applying filter if the var is part of conditional *)
     | Conditional_closure_lookup(x',x1,pat,positive_side) ->
       let%orzero (Lookup_var(x,patsp,patsn)) = element in
       if not @@ (equal_abstract_var x x' || equal_abstract_var x x1)

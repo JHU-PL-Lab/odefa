@@ -17,6 +17,7 @@ module type Edge_sig = sig
   module C : Context_model;;
   type node =
     | Node of annotated_clause * (C.t);;
+
   type t =
     | Edge of node * node
   ;;
@@ -38,6 +39,16 @@ sig
   type t
   type edge = E.t
   type node = E.node
+
+  val equal_node : node -> node -> bool
+
+  val compare_node : node -> node -> int
+
+  val pp_node : node pretty_printer
+
+  val show_node : node -> string
+
+  val node_to_yojson : node -> Yojson.Safe.json 
 
   val empty : t
 
@@ -87,9 +98,17 @@ struct
 
   open E;;
 
-  type node = E.node;;
+  type node = E.node[@@deriving ord, show, to_yojson];;
 
   type edge = E.t;;
+
+  let equal_node node1 node2 : bool =
+    let Node(acl1, c1) = node1 in
+    let Node(acl2, c2) = node2 in
+    let acl_check = equal_annotated_clause acl1 acl2 in
+    let c_check = C.equal c1 c2 in
+    acl_check && c_check
+  ;;
 
 
   module Edge_set =
@@ -111,13 +130,9 @@ struct
   let has_edge edge (Graph(s)) = Edge_set.mem edge s;;
 
   let edges_from node (Graph(s)) =
-    let Node(acl, c) = node in
     Edge_set.enum s
     |> Enum.filter (fun (Edge(n1, _)) ->
-        let Node(acl', c') = n1 in
-        let acl_check = equal_annotated_clause acl acl' in
-        let c_check = C.equal c c' in
-        acl_check && c_check
+        equal_node node n1
       )
   ;;
 
@@ -126,13 +141,9 @@ struct
   ;;
 
   let edges_to node (Graph(s)) =
-    let Node(acl, c) = node in
     Edge_set.enum s
     |> Enum.filter (fun (Edge(_, n1)) ->
-        let Node(acl', c') = n1 in
-        let acl_check = equal_annotated_clause acl acl' in
-        let c_check = C.equal c c' in
-        acl_check && c_check
+        equal_node node n1
       )
   ;;
 

@@ -8,7 +8,8 @@ open Odefa_utils;;
 open Abstract_ast;;
 open Ast;;
 open Ast_pp;;
-open Plume_context_model;;
+(* open Plume_context_model;; *)
+open Plume_graph;;
 open Interface_utils;;
 
 module type Bounded_capture_size_sig =
@@ -18,9 +19,33 @@ sig
   val to_int : t -> int
 end;;
 
-module Make(C : Context_model) =
+module Make(G : Graph_sig) =
 struct
-  module C = C;;
+  module G = G;;
+
+  open G;;
+
+  module E = G.E;;
+  module C = G.E.C;;
+
+  type pds_state =
+    | Program_point_state of node
+    (** A state in the PDS representing a specific program point and
+        context. *)
+    | Result_state of abs_filtered_value
+    (** A state in the PDS representing a value result. *)
+  [@@deriving eq, ord, show, to_yojson]
+  ;;
+
+  module Pds_state =
+  struct
+    type t = pds_state;;
+    let equal = equal_pds_state;;
+    let compare = compare_pds_state;;
+    let pp = pp_pds_state;;
+    let show = show_pds_state;;
+    let to_yojson = pds_state_to_yojson;;
+  end;;
   (** This module is meant to verify that the system never attempts to create
    *  a capture size larger than a fixed maximum (here, 4).  This property is
    *  necessary to argue that the analysis is decidable.
@@ -49,16 +74,10 @@ struct
         for empty continuation stacks. *)
     | Lookup_var of abstract_var * Pattern_set.t * Pattern_set.t
     | Project of ident * Pattern_set.t * Pattern_set.t
-    | Jump of annotated_clause * C.t
-    | Deref of Pattern_set.t * Pattern_set.t
+        (* NOTE: not too sure about this - used to be called node*)
+    | Jump of node
     | Capture of Bounded_capture_size.t
     | Continuation_value of abs_filtered_value
-    | Real_flow_huh
-    | Alias_huh
-    | Side_effect_search_start
-    | Side_effect_search_escape of abstract_var
-    | Side_effect_lookup_var of
-        abstract_var * Pattern_set.t * Pattern_set.t * annotated_clause * C.t
     | Binary_operation
     | Unary_operation
   [@@deriving eq, ord, show, to_yojson]
@@ -74,22 +93,4 @@ struct
     let to_yojson = pds_continuation_to_yojson;;
   end;;
 
-  type pds_state =
-    | Program_point_state of annotated_clause * C.t
-    (** A state in the PDS representing a specific program point and
-        context. *)
-    | Result_state of abs_filtered_value
-    (** A state in the PDS representing a value result. *)
-  [@@deriving eq, ord, show, to_yojson]
-  ;;
-
-  module Pds_state =
-  struct
-    type t = pds_state;;
-    let equal = equal_pds_state;;
-    let compare = compare_pds_state;;
-    let pp = pp_pds_state;;
-    let show = show_pds_state;;
-    let to_yojson = pds_state_to_yojson;;
-  end;;
 end;;
