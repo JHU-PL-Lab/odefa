@@ -11,22 +11,7 @@
 *)
 
 (* FIXME: purge the term "inconsistency" *)
-(* open Batteries;; *)
-(* open Jhupllib;;
-   open OUnit2;;
 
-   open Odefa_ast;;
-   open Odefa_ddpa;;
-   open Odefa_parser;;
-   open Odefa_toploop;;
-
-   open Ast;;
-   open Ast_pp;;
-   open Ast_wellformedness;;
-   open Toploop_options;;
-   open Toploop_types;;
-   open Odefa_abstract_ast;;
-   open String_utils;; *)
 open Odefa_toploop;;
 open Toploop_types;;
 
@@ -73,7 +58,6 @@ type expectation_file =
 
 (* here are modules for (query list * analysis_task list) that contains the
    cartesian product *)
-(* TODO: include a pretty printer if we need one? *)
 module Analysis_task_query =
 struct
   type t = (analysis_task * query) [@@deriving eq, ord];;

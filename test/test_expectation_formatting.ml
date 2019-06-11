@@ -6,6 +6,10 @@ open Expectation_parser_tool;;
 open Odefa_toploop;;
 open Odefa_ast;;
 
+(* File testing the formatting of the analysis expectations.
+   NOTE: Might not be needed in the future?
+*)
+
 (*
 let all_tests =
   [ test_success "test-sources/0ddpa_addition.expectation"

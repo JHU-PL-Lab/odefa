@@ -8,6 +8,17 @@ open String_utils;;
 open Toploop_types;;
 open Test_expectation_types;;
 
+(* Function that creates a list of checklist_items given expectations.
+   (checklist_items type needed to be able to store both kinds of expectations)
+
+   Params:
+    gen_expects - list of general expectations
+    analysis_expects - expectations pertaining to analyses
+
+   Return:
+    type checklist_items list
+      a list that incorporates both kinds of expectations
+*)
 let make_checklist (gen_expects : expectation list)
     (analysis_expects : analysis_expectation)
   : (checklist_items list) =
@@ -35,6 +46,9 @@ let make_checklist (gen_expects : expectation list)
   gen_items @ specific_items
 ;;
 
+(* Function that creates the AQ_Set (set of (analysis_task * query)) containing
+   the cartesian product of the inputted analysis_task list and query list.
+*)
 let aq_set_creation (a_list : analysis_task list) (q_list : query list)
   :  AQ_set.t =
   let aq_monad =
@@ -47,6 +61,10 @@ let aq_set_creation (a_list : analysis_task list) (q_list : query list)
   AQ_set.of_list aq_list
 ;;
 
+(* Function that takes a list of analysis_consistency_expectation and
+   creates a map that binds the analysis_task to the corresponding
+   consistency.
+*)
 let ac_tuple_list_to_dict (tuple_list : analysis_consistency_expectation list)
   : consistency AC_Map.t =
   let mapper =
