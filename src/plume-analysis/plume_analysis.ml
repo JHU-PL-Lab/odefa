@@ -10,7 +10,7 @@ open Odefa_abstract_ast;;
 open Odefa_ast;;
 
 open Abstract_ast;;
-(* open Abstract_ast_utils;; *)
+open Abstract_ast_utils;;
 open Ast;;
 open Plume_analysis_logging;;
 open Plume_context_model;;
@@ -74,12 +74,17 @@ module Make(C : Context_model)
   : Analysis_sig with module C = C =
 struct
   module C = C;;
-  module Structure_types = Plume_pds_structure_types.Make(C);;
+  module G = Graph_impl(C);;
+
+  open G;;
+  open G.E;;
+
+  module Structure_types = Plume_pds_structure_types.Make(G);;
   module Dynamic_pop_types =
-    Plume_pds_dynamic_pop_types.Make(C)(Structure_types)
+    Plume_pds_dynamic_pop_types.Make(G)(Structure_types)
   ;;
   module Dynamic_pop_handler =
-    Plume_pds_dynamic_pop_handler.Make(C)(Structure_types)(Dynamic_pop_types)
+    Plume_pds_dynamic_pop_handler.Make(G)(Structure_types)(Dynamic_pop_types)
   ;;
 
   module Plume_pds_reachability_basis =
@@ -100,7 +105,7 @@ struct
 
   module Edge_functions =
     Plume_pds_edge_functions.Make
-      (C)
+      (G)
       (Structure_types)
       (Dynamic_pop_types)
       (Plume_pds_reachability_basis)
@@ -116,7 +121,7 @@ struct
   let _ = show_plume_analysis_logging_data;;
 
   type plume_analysis =
-    { plume_graph : plume_graph
+    { plume_graph : G.t
     ; plume_graph_fully_closed : bool
     ; pds_reachability : Plume_pds_reachability.analysis
     ; plume_active_nodes : Annotated_clause_set.t
@@ -134,7 +139,7 @@ struct
   let dump_yojson analysis =
     `Assoc
       [ ( "plume_graph"
-        , Plume_graph.to_yojson analysis.plume_graph
+        , G.to_yojson analysis.plume_graph
         )
       ; ( "plume_graph_fully_closed"
         , `Bool analysis.plume_graph_fully_closed
@@ -271,7 +276,7 @@ struct
     let edges =
       edges_in
       |> Enum.filter
-        (fun edge -> not @@ Plume_graph.has_edge edge analysis.plume_graph)
+        (fun edge -> not @@ has_edge edge analysis.plume_graph)
     in
     if Enum.is_empty edges then (analysis,false) else
       (* ***
@@ -294,7 +299,7 @@ struct
       *)
       let plume_graph' =
         Enum.clone edges
-        |> Enum.fold (flip Plume_graph.add_edge) analysis.plume_graph
+        |> Enum.fold (flip add_edge) analysis.plume_graph
       in
       (* ***
          Now, perform closure over the active node set.  This function uses a
@@ -316,16 +321,16 @@ struct
               let results_so_far' =
                 Annotated_clause_set.add from_acl results_so_far
               in
-              let from_here = plume_graph' |> Plume_graph.succs from_acl in
+              let from_here = plume_graph' |> succs from_acl in
               find_new_active_nodes (from_here::from_acls_enums) results_so_far'
       in
       let (plume_active_nodes',plume_active_non_immediate_nodes') =
         let new_active_root_nodes =
           Enum.clone edges
           |> Enum.filter_map
-            (fun (Plume_edge(acl_left,acl_right)) ->
-               if Annotated_clause_set.mem acl_left analysis.plume_active_nodes
-               then Some acl_right
+            (fun (Edge(node_left,node_right)) ->
+               if Annotated_clause_set.mem node_left analysis.plume_active_nodes
+               then Some node_right
                else None)
           |> Enum.filter
             (fun acl ->

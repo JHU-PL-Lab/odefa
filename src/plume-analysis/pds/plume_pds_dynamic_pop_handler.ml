@@ -5,8 +5,9 @@ open Odefa_ast;;
 open Odefa_abstract_ast;;
 
 open Abstract_ast;;
+open Abstract_ast_utils;;
 open Ast;;
-open Plume_context_model;;
+open Plume_graph;;
 open Plume_utils;;
 open Nondeterminism;;
 open Pds_reachability_types_stack;;
@@ -15,10 +16,10 @@ let logger = Logger_utils.make_logger "Plume_pds_dynamic_pop_handler";;
 let lazy_logger = Logger_utils.make_lazy_logger "Plume_pds_dynamic_pop_handler";;
 
 module Make
-    (C : Context_model)
-    (S : (module type of Plume_pds_structure_types.Make(C)) with module C = C)
-    (T : (module type of Plume_pds_dynamic_pop_types.Make(C)(S))
-     with module C = C
+    (G : Graph_sig)
+    (S : (module type of Plume_pds_structure_types.Make(G)) with module G = G)
+    (T : (module type of Plume_pds_dynamic_pop_types.Make(G)(S))
+     with module G = G
       and module S = S)
 =
 struct
@@ -77,10 +78,10 @@ struct
     | Stateless_nonmatching_clause_skip_2_of_2 element' ->
       begin
         match element with
-        | Deref(_,_) ->
+        (* | Deref(_,_) ->
           (* This means we're in a stateful mode.  Stateless non-matching
              clause skip is inappropriate here. *)
-          zero ()
+          zero () *)
         | _ ->
           (* We're not in a stateful mode, so we can skip the clause.  We
              still have to put these elements back on the stack, though. *)
@@ -110,7 +111,7 @@ struct
           in
           return @@ (Push (Continuation_value fv))::pushes
         end
-    | Function_call_flow_validation(x2'',x3'',acl0,ctx0,c,ctxc,x) ->
+    (* | Function_call_flow_validation(x2'',x3'',acl0,ctx0,c,ctxc,x) ->
       let%orzero (Lookup_var(x',_,_)) = element in
       [%guard (equal_abstract_var x x')];
       return [ Push(element)
@@ -132,7 +133,7 @@ struct
         Abs_value_function(Abs_function_value(_,Abs_expr(acls))) = v'
       in
       [%guard (equal_abstract_var x' @@ rv acls)];
-      return [ Pop_dynamic_targeted(Variable_aliasing(x,x')) ]
+      return [ Pop_dynamic_targeted(Variable_aliasing(x,x')) ] *)
     | Function_closure_lookup(x'',xf) ->
       let%orzero (Lookup_var(x,_,_)) = element in
       [%guard (not @@ equal_abstract_var x x'')];
@@ -153,7 +154,7 @@ struct
           else (patsp,Pattern_set.add pat patsn)
         in
         return [Push(Lookup_var(x1,patsp',patsn'))]
-    | Conditional_subject_validation(x,x',x1,pat,then_branch,acl1,ctx) ->
+    (* | Conditional_subject_validation(x,x',x1,pat,then_branch,acl1,ctx) ->
       let%orzero (Lookup_var(x0,patsp,patsn)) = element in
       [%guard (equal_abstract_var x0 x)];
       let patsp',patsn' =
@@ -164,7 +165,7 @@ struct
       return [ Push(Lookup_var(x',patsp,patsn))
              ; Push(Jump(acl1,ctx))
              ; Push(Lookup_var(x1,patsp',patsn'))
-             ]
+             ] *)
     | Record_projection_lookup(x,x',l) ->
       let%orzero (Lookup_var(x0,patsp,patsn)) = element in
       [%guard (equal_abstract_var x0 x)];
@@ -200,7 +201,7 @@ struct
         Abs_filtered_value(v,Pattern_set.empty,Pattern_set.empty)
       in
       return [ Push(Continuation_value abs_filtered_value) ]
-    | Record_filter_validation(x,r,acl1,ctx1) ->
+    | Record_filter_validation(x,r,n1) ->
       (* Make sure we're looking for this variable. *)
       let%orzero (Lookup_var(x0,patsp0,patsn0)) = element in
       [% guard (equal_abstract_var x x0) ];
@@ -216,13 +217,13 @@ struct
         List.enum [ Push(Lookup_var( x''
                                    , pattern_set_projection patsp0 l
                                    , pattern_set_projection patsn2 l))
-                  ; Push(Jump(acl1,ctx1))
+                  ; Push(Jump(n1))
                   ]
       in
       let first_pushes =
         List.enum [ Push(Continuation_value(Abs_filtered_value(
             Abs_value_record(r), patsp0, patsn2)))
-                  ; Push(Jump(acl1,ctx1))
+                  ; Push(Jump(n1))
           ]
       in
       let all_pushes =
@@ -242,13 +243,13 @@ struct
       [% guard [empty_record_pattern; Any_pattern] |> List.for_all (fun pattern -> (not @@ Pattern_set.mem pattern patsn)) ];
       return [ Push(Continuation_value(Abs_filtered_value(
           empty_record,Pattern_set.empty,Pattern_set.empty))) ]
-    | Dereference_lookup(x,x') ->
+    (* | Dereference_lookup(x,x') ->
       let%orzero (Lookup_var(x0,patsp,patsn)) = element in
       [% guard (equal_abstract_var x x0) ];
       return [ Push(Deref(patsp, patsn))
              ; Push(Lookup_var(x', Pattern_set.empty, Pattern_set.empty))
-             ]
-    | Cell_dereference_1_of_2 ->
+             ] *)
+    (* | Cell_dereference_1_of_2 ->
       let%orzero
         (Continuation_value(Abs_filtered_value(
              Abs_value_ref(cell),patsp,patsn))) = element
@@ -518,8 +519,8 @@ struct
           Side_effect_search_escape_base_4_of_4(x')) ]
     | Side_effect_search_escape_base_4_of_4(x') ->
       let%orzero Deref(patsp,patsn) = element in
-      return [ Push (Lookup_var(x',patsp,patsn)) ]
-    | Binary_operator_lookup_init(x1,x2,x3,acl1,ctx1,acl0,ctx0) ->
+      return [ Push (Lookup_var(x',patsp,patsn)) ] *)
+    | Binary_operator_lookup_init(x1,x2,x3,n1,n0) ->
       let%orzero Lookup_var(x1',_,_) = element in
       [%guard (equal_abstract_var x1 x1') ];
       (* The lists below are in reverse order of their presentation in the
@@ -532,11 +533,11 @@ struct
                  ] in
       let k2'' = [ Capture capture_size_2
                  ; Lookup_var(x3,Pattern_set.empty,Pattern_set.empty)
-                 ; Jump(acl1, ctx1) ] in
-      let k3'' = [ Binary_operation ; Jump(acl0,ctx0) ] in
+                 ; Jump(n1) ] in
+      let k3'' = [ Binary_operation ; Jump(n0) ] in
       let k0 = [ element ] in
       return @@ List.map (fun x -> Push x) @@ k0 @ k3'' @ k2'' @ k1''
-    | Unary_operator_lookup_init(x1,x2,acl0,ctx0) ->
+    (* | Unary_operator_lookup_init(x1,x2,n0) ->
       let%orzero Lookup_var(x1',_,_) = element in
       [%guard (equal_abstract_var x1 x1') ];
       (* The lists below are in reverse order of their presentation in the
@@ -546,9 +547,9 @@ struct
       let k1'' = [ Capture capture_size_2
                  ; Lookup_var(x2,Pattern_set.empty,Pattern_set.empty)
                  ] in
-      let k2'' = [ Unary_operation ; Jump(acl0,ctx0) ] in
+      let k2'' = [ Unary_operation ; Jump(n0) ] in
       let k0 = [ element ] in
-      return @@ List.map (fun x -> Push x) @@ k0 @ k2'' @ k1''
+      return @@ List.map (fun x -> Push x) @@ k0 @ k2'' @ k1'' *)
     | Binary_operator_resolution_1_of_4(x1,op) ->
       let%orzero Binary_operation = element in
       return [ Pop_dynamic_targeted(
@@ -590,7 +591,7 @@ struct
         Pattern_set.is_empty @@ Pattern_set.inter immediate_patterns patsn ];
       return [ Push (Continuation_value(Abs_filtered_value(
           result_value, Pattern_set.empty, Pattern_set.empty))) ]
-    | Unary_operator_resolution_1_of_3(x1,op) ->
+    (* | Unary_operator_resolution_1_of_3(x1,op) ->
       let%orzero Unary_operation = element in
       return [ Pop_dynamic_targeted(
           Unary_operator_resolution_2_of_3(x1,op)) ]
@@ -616,7 +617,7 @@ struct
       [%guard
         Pattern_set.is_empty @@ Pattern_set.inter immediate_patterns patsn ];
       return [ Push (Continuation_value(Abs_filtered_value(
-          result_value, Pattern_set.empty, Pattern_set.empty))) ]
+          result_value, Pattern_set.empty, Pattern_set.empty))) ] *)
   ;;
 
   let perform_untargeted_dynamic_pop element action =
@@ -624,8 +625,8 @@ struct
     let open Nondeterminism_monad in
     match action with
     | Do_jump ->
-      let%orzero (Jump(acl1,ctx)) = element in
-      return ([], Static_terminus(Program_point_state(acl1,ctx)))
+      let%orzero (Jump(n1)) = element in
+      return ([], Static_terminus(Program_point_state(n1)))
     | Value_discovery_1_of_2 ->
       let%orzero (Continuation_value abs_filtered_value) = element in
       return ( [ Pop_dynamic_targeted(Value_discovery_2_of_2) ]
