@@ -1,7 +1,12 @@
 QUERY: z1, z2;
-ANALYSES: 0DDPA;
+ANALYSES: 0DDPA, 0PLUME;
 RESULTS: 0DDPA(z1) = `{{}}`,
-         0DDPA(z2) = `{{l=x}}`;
-CONSISTENCIES: 0DDPA = NO_INCONSISTENCIES;
+         0DDPA(z2) = `{{l=x}}`,
+         0PLUME(z1) = `{{}}`,
+         0PLUME(z2) = `{{l=x}}`
+;
+CONSISTENCIES: 0DDPA = NO_INCONSISTENCIES &
+               0PLUME = NO_INCONSISTENCIES
+;
 WELL_FORMED;
 EVALUATE;

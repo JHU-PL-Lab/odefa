@@ -5,5 +5,7 @@ RESULTS: 0DDPA(e) = `{{}}`,
          0PLUME(e) = `{{}}`,
          0PLUME(r) = `{{a=e, b=e}}`
 ;
-CONSISTENCIES: 0DDPA = INCONSISTENCIES_AT z;
+CONSISTENCIES: 0DDPA = INCONSISTENCIES_AT z &
+               0PLUME = INCONSISTENCIES_AT z
+;
 WELL_FORMED;

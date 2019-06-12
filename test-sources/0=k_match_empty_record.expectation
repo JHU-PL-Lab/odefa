@@ -1,7 +1,12 @@
 QUERY: r1, r2;
-ANALYSES: 0DDPA;
+ANALYSES: 0DDPA, 0PLUME;
 RESULTS: 0DDPA(r1) = `{{}}`,
-         0DDPA(r2) = `{int}`;
-CONSISTENCIES: 0DDPA = NO_INCONSISTENCIES;
+         0DDPA(r2) = `{int}`,
+         0PLUME(r1) = `{{}}`,
+         0PLUME(r2) = `{int}`
+;
+CONSISTENCIES: 0DDPA = NO_INCONSISTENCIES &
+               0PLUME = NO_INCONSISTENCIES
+;
 WELL_FORMED;
 EVALUATE;

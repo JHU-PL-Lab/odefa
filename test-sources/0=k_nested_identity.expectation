@@ -1,6 +1,10 @@
 QUERY: s2;
-ANALYSES: 0DDPA;
-RESULTS: 0DDPA(s2) = `{{a=empty}, {b=empty}}`;
-CONSISTENCIES: 0DDPA = NO_INCONSISTENCIES;
+ANALYSES: 0DDPA, 0PLUME;
+RESULTS: 0DDPA(s2) = `{{a=empty}, {b=empty}}`,
+         0PLUME(s2) = `{{a=empty}, {b=empty}}`
+;
+CONSISTENCIES: 0DDPA = NO_INCONSISTENCIES &
+               0PLUME = NO_INCONSISTENCIES
+;
 WELL_FORMED;
 EVALUATE;
