@@ -26,7 +26,7 @@ struct
   open G;;
 
   module E = G.E;;
-  module C = G.E.C;;
+  module C = E.C;;
 
   type pds_state =
     | Program_point_state of node

@@ -30,6 +30,9 @@ sig
   (** The context stack module for this analysis. *)
   module C : Context_model;;
 
+  (** NOTE: refer to below comment about concern. *)
+  (* module G : Graph_sig;; *)
+
   (** The initial, unclosed analysis derived from an expression. *)
   val create_initial_analysis :
     ?plume_logging_config:(plume_analysis_logging_config option) ->
@@ -58,6 +61,12 @@ sig
       but it is guaranteed to be conservative if the analysis is fully closed.
       The returned analysis contains a cache structure to accelerate answering
       of this question in the future. *)
+(* FIXME: not sure what the input to these functions should be -
+   if we wanted to input a G.node, we would probably get rid of one of these
+   functions, but not too sure if we wanted to give the user the power of
+   being able to pass in a graph node raw.
+   NOTE: for now we will construct the graph node inside the functions.
+*)
   val values_of_variable :
     abstract_var -> annotated_clause -> plume_analysis ->
     Abs_filtered_value_set.t * plume_analysis
@@ -124,7 +133,7 @@ struct
     { plume_graph : G.t
     ; plume_graph_fully_closed : bool
     ; pds_reachability : Plume_pds_reachability.analysis
-    ; plume_active_nodes : Annotated_clause_set.t
+    ; plume_active_nodes : Node_set.t
     (** The active nodes in the Plume graph.  This set is maintained
             incrementally as edges are added. *)
     ; plume_active_non_immediate_nodes : Annotated_clause_set.t
@@ -145,10 +154,10 @@ struct
         , `Bool analysis.plume_graph_fully_closed
         )
       ; ( "plume_active_nodes"
-        , Annotated_clause_set.to_yojson analysis.plume_active_nodes
+        , Node_set.to_yojson analysis.plume_active_nodes
         )
       ; ("plume_active_non_immediate_nodes"
-        , Annotated_clause_set.to_yojson
+        , Node_set.to_yojson
             analysis.plume_active_non_immediate_nodes
         )
       ]
@@ -306,35 +315,35 @@ struct
          list of enumerations of nodes to explore.  This reduces the cost of
          managing the work queue.
       *)
-      let rec find_new_active_nodes from_acls_enums results_so_far =
-        match from_acls_enums with
+      let rec find_new_active_nodes from_nodes_enums results_so_far =
+        match from_nodes_enums with
         | [] -> results_so_far
-        | from_acls_enum::from_acls_enums' ->
-          if Enum.is_empty from_acls_enum
-          then find_new_active_nodes from_acls_enums' results_so_far
+        | from_nodes_enum::from_nodes_enums' ->
+          if Enum.is_empty from_nodes_enum
+          then find_new_active_nodes from_nodes_enums' results_so_far
           else
-            let from_acl = Enum.get_exn from_acls_enum in
-            if Annotated_clause_set.mem from_acl analysis.plume_active_nodes ||
-               Annotated_clause_set.mem from_acl results_so_far
-            then find_new_active_nodes from_acls_enums results_so_far
+            let from_node = Enum.get_exn from_nodes_enum in
+            if Node_set.mem from_node analysis.plume_active_nodes ||
+               Node_set.mem from_node results_so_far
+            then find_new_active_nodes from_nodes_enums results_so_far
             else
               let results_so_far' =
-                Annotated_clause_set.add from_acl results_so_far
+                Annotated_clause_set.add from_node results_so_far
               in
-              let from_here = plume_graph' |> succs from_acl in
-              find_new_active_nodes (from_here::from_acls_enums) results_so_far'
+              let from_here = plume_graph' |> succs from_node in
+              find_new_active_nodes (from_here::from_nodes_enums) results_so_far'
       in
       let (plume_active_nodes',plume_active_non_immediate_nodes') =
         let new_active_root_nodes =
           Enum.clone edges
           |> Enum.filter_map
             (fun (Edge(node_left,node_right)) ->
-               if Annotated_clause_set.mem node_left analysis.plume_active_nodes
+               if Node_set.mem node_left analysis.plume_active_nodes
                then Some node_right
                else None)
           |> Enum.filter
-            (fun acl ->
-               not @@ Annotated_clause_set.mem acl analysis.plume_active_nodes)
+            (fun node ->
+               not @@ Node_set.mem node analysis.plume_active_nodes)
         in
         let new_active_nodes =
           find_new_active_nodes [new_active_root_nodes]
@@ -424,7 +433,7 @@ struct
       ; plume_graph_fully_closed = true
       ; pds_reachability = initial_reachability
       ; plume_active_nodes =
-          Annotated_clause_set.singleton (Start_clause rx)
+          Node_set.singleton Node((Start_clause rx), C.empty)
       ; plume_active_non_immediate_nodes = Annotated_clause_set.empty
       ; plume_logging_data = logging_data_opt
       }
@@ -457,7 +466,8 @@ struct
       )
     @@ fun () ->
     let open Structure_types in
-    let start_state = Program_point_state(acl,ctx) in
+    let node = Node(acl, ctx) in
+    let start_state = Program_point_state(node) in
     let start_actions =
       [Push Bottom_of_stack; Push (Lookup_var(x,patsp,patsn))]
     in
