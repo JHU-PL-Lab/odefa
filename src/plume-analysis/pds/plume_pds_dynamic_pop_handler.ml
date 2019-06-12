@@ -537,7 +537,7 @@ struct
       let k3'' = [ Binary_operation ; Jump(n0) ] in
       let k0 = [ element ] in
       return @@ List.map (fun x -> Push x) @@ k0 @ k3'' @ k2'' @ k1''
-    (* | Unary_operator_lookup_init(x1,x2,n0) ->
+    | Unary_operator_lookup_init(x1,x2,n0) ->
       let%orzero Lookup_var(x1',_,_) = element in
       [%guard (equal_abstract_var x1 x1') ];
       (* The lists below are in reverse order of their presentation in the
@@ -549,7 +549,7 @@ struct
                  ] in
       let k2'' = [ Unary_operation ; Jump(n0) ] in
       let k0 = [ element ] in
-      return @@ List.map (fun x -> Push x) @@ k0 @ k2'' @ k1'' *)
+      return @@ List.map (fun x -> Push x) @@ k0 @ k2'' @ k1''
     | Binary_operator_resolution_1_of_4(x1,op) ->
       let%orzero Binary_operation = element in
       return [ Pop_dynamic_targeted(
@@ -591,7 +591,7 @@ struct
         Pattern_set.is_empty @@ Pattern_set.inter immediate_patterns patsn ];
       return [ Push (Continuation_value(Abs_filtered_value(
           result_value, Pattern_set.empty, Pattern_set.empty))) ]
-    (* | Unary_operator_resolution_1_of_3(x1,op) ->
+    | Unary_operator_resolution_1_of_3(x1,op) ->
       let%orzero Unary_operation = element in
       return [ Pop_dynamic_targeted(
           Unary_operator_resolution_2_of_3(x1,op)) ]
@@ -617,7 +617,7 @@ struct
       [%guard
         Pattern_set.is_empty @@ Pattern_set.inter immediate_patterns patsn ];
       return [ Push (Continuation_value(Abs_filtered_value(
-          result_value, Pattern_set.empty, Pattern_set.empty))) ] *)
+          result_value, Pattern_set.empty, Pattern_set.empty))) ]
   ;;
 
   let perform_untargeted_dynamic_pop element action =

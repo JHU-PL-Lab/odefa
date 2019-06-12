@@ -313,9 +313,9 @@ struct
         current target of lookup.  The next two variables are the operands
         of the operation.  The remaining two pairs of values represent the
         source and target states of the Plume edge. *)
-    (* | Unary_operator_lookup_init of
-        abstract_var * abstract_var * annotated_clause * C.t
-    (** Represents the kickstart of a process which looks up values for a *)
+     | Unary_operator_lookup_init of
+        abstract_var * abstract_var * G.node
+    (** Represents the kickstart of a process which looks up values for a
         unary operation.  The first variable above must be the
         current target of lookup.  The second variable is the operand
         of the operation.  The state is the source states of the Plume edge. *)
@@ -341,16 +341,16 @@ struct
         collects and checks the lookup variable. The `abstract_value' is
         the result of the operation. A check guarantees that the given result
         is valid for the given operation. *)
-    (* | Unary_operator_resolution_1_of_3 of abstract_var * unary_operator *)
+    | Unary_operator_resolution_1_of_3 of abstract_var * unary_operator
     (** Represents the start of the resolution of a unary operator after its
         operands have been found.  The variable here is the one under
         lookup. *)
-    (* | Unary_operator_resolution_2_of_3 of abstract_var * unary_operator *)
+    | Unary_operator_resolution_2_of_3 of abstract_var * unary_operator
     (** The second step of unary operator resolution.  This step collects the
         operand if it is a valid operand for the given kind of
         operation. *)
-    (* | Unary_operator_resolution_3_of_3 of
-        abstract_var * abstract_value *)
+     | Unary_operator_resolution_3_of_3 of
+        abstract_var * abstract_value
     (** The third step of binary operator resolution.  This step
         collects and checks the lookup variable. The `abstract_value' is
         the result of the operation. A check guarantees that the given result

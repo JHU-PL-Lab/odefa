@@ -23,8 +23,11 @@ sig
 
   module G : Graph_sig;;
 
-  val wire : G.node -> abstract_function_value -> abstract_var ->
+  val wire_fun : G.node -> abstract_function_value -> abstract_var ->
     abstract_var -> G.t -> (G.edge Enum.t);;
+  val wire_cond : G.node -> abstract_function_value -> abstract_var ->
+    abstract_var -> G.t -> (G.edge Enum.t);;
+
 end;;
 
 module Graph_construct (G : Graph_sig) : Graph_wiring with module G = G =
@@ -40,39 +43,74 @@ struct
 
   open E;;
 
-  let wire site_node func x1 x2 graph =
+
+  let wire_fun site_node func x1 x2 graph =
     let Node(acl, ctx) = site_node in
     begin
-    match acl with
-    | Unannotated_clause abcl ->
-    let new_context = C.push abcl ctx in
-    let Abs_function_value(x0, Abs_expr(body)) = func in
-    let wire_in_node = Node(Enter_clause(x0, x1, abcl), new_context) in
-    let start_node = Node(Start_clause (rv body), new_context) in
-    let end_node = Node(End_clause (rv body), new_context) in
-    let wire_out_node = Node(Exit_clause(x2,rv body, abcl), new_context) in
-    let pred_edges =
-      preds site_node graph
-      |> Enum.map (fun node' -> Edge(node', wire_in_node))
-    in
-    let succ_edges =
-      G.succs site_node graph
-      |> Enum.map (fun node' -> Edge(wire_out_node, node'))
-    in
-    let inner_edges =
-      List.enum body
-      |> Enum.map (fun cl -> Node(Unannotated_clause(cl), new_context))
-      |> Enum.append (Enum.singleton start_node)
-      |> Enum.append (Enum.singleton wire_in_node)
-      |> flip Enum.append (Enum.singleton end_node)
-      |> flip Enum.append (Enum.singleton wire_out_node)
-      |> Utils.pairwise_enum_fold
-        (fun node1 node2 -> Edge(node1, node2))
-    in
-    Enum.append pred_edges @@ Enum.append inner_edges succ_edges
-    | _ -> raise @@
-      Jhupllib.Utils.Invariant_failure "Error: Call site should be Unannotated_clause"
-  end
+      match acl with
+      | Unannotated_clause abcl ->
+        let new_context = C.push abcl ctx in
+        let Abs_function_value(x0, Abs_expr(body)) = func in
+        let wire_in_node = Node(Enter_clause(x0, x1, abcl), new_context) in
+        let start_node = Node(Start_clause (rv body), new_context) in
+        let end_node = Node(End_clause (rv body), new_context) in
+        let wire_out_node = Node(Exit_clause(x2,rv body, abcl), new_context) in
+        let pred_edges =
+          preds site_node graph
+          |> Enum.map (fun node' -> Edge(node', wire_in_node))
+        in
+        let succ_edges =
+          succs site_node graph
+          |> Enum.map (fun node' -> Edge(wire_out_node, node'))
+        in
+        let inner_edges =
+          List.enum body
+          |> Enum.map (fun cl -> Node(Unannotated_clause(cl), new_context))
+          |> Enum.append (Enum.singleton start_node)
+          |> Enum.append (Enum.singleton wire_in_node)
+          |> flip Enum.append (Enum.singleton end_node)
+          |> flip Enum.append (Enum.singleton wire_out_node)
+          |> Utils.pairwise_enum_fold
+            (fun node1 node2 -> Edge(node1, node2))
+        in
+        Enum.append pred_edges @@ Enum.append inner_edges succ_edges
+      | _ -> raise @@
+        Jhupllib.Utils.Invariant_failure "Error: Call site should be Unannotated_clause"
+    end
+  ;;
+
+  let wire_cond site_node func x1 x2 graph =
+    let Node(acl, ctx) = site_node in
+    begin
+      match acl with
+      | Unannotated_clause abcl ->
+        let Abs_function_value(x0, Abs_expr(body)) = func in
+        let wire_in_node = Node(Enter_clause(x0, x1, abcl), ctx) in
+        let start_node = Node(Start_clause (rv body), ctx) in
+        let end_node = Node(End_clause (rv body), ctx) in
+        let wire_out_node = Node(Exit_clause(x2,rv body, abcl), ctx) in
+        let pred_edges =
+          preds site_node graph
+          |> Enum.map (fun node' -> Edge(node', wire_in_node))
+        in
+        let succ_edges =
+          succs site_node graph
+          |> Enum.map (fun node' -> Edge(wire_out_node, node'))
+        in
+        let inner_edges =
+          List.enum body
+          |> Enum.map (fun cl -> Node(Unannotated_clause(cl), ctx))
+          |> Enum.append (Enum.singleton start_node)
+          |> Enum.append (Enum.singleton wire_in_node)
+          |> flip Enum.append (Enum.singleton end_node)
+          |> flip Enum.append (Enum.singleton wire_out_node)
+          |> Utils.pairwise_enum_fold
+            (fun node1 node2 -> Edge(node1, node2))
+        in
+        Enum.append pred_edges @@ Enum.append inner_edges succ_edges
+      | _ -> raise @@
+        Jhupllib.Utils.Invariant_failure "Error: Call site should be Unannotated_clause"
+    end
   ;;
 
 end;;

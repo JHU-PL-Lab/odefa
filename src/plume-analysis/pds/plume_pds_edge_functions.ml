@@ -285,29 +285,29 @@ struct
           end
           ;
           (* Unary Operation Start *)
-          (* begin
+          begin
             let%orzero
-              (Unannotated_clause(Abs_clause(x1,
-                                             Abs_unary_operation_body(_,x2)))) = acl1
+              Node(Unannotated_clause(Abs_clause(x1,
+                                             Abs_unary_operation_body(_,x2))), _) = n1
             in
             (* x1 = op x2 *)
             return ( Unary_operator_lookup_init(
-                x1,x2,acl0,ctx)
-                   , Program_point_state(acl1,ctx)
+                x1,x2,n0)
+                   , Program_point_state(n1)
               )
           end
           ;
           (* Unary Operation Evaluation *)
           begin
             let%orzero
-              (Unannotated_clause(Abs_clause(x1,
-                                             Abs_unary_operation_body(op,_)))) = acl1
+              Node(Unannotated_clause(Abs_clause(x1,
+                                             Abs_unary_operation_body(op,_))), _) = n1
             in
             (* x1 = op x2 *)
             return ( Unary_operator_resolution_1_of_3(x1,op)
-                   , Program_point_state(acl1,ctx)
+                   , Program_point_state(n1)
                    )
-          end *)
+          end
         ]
     in
     let nop_states =

@@ -558,7 +558,7 @@ struct
           let has_values x patsp patsn =
             let (values,analysis') =
               restricted_values_of_variable
-                x acl C.empty patsp patsn !analysis_ref
+                x acl ctx patsp patsn !analysis_ref
             in
             analysis_ref := analysis';
             not @@ Enum.is_empty values
@@ -574,7 +574,7 @@ struct
             (* Get each of the function values. *)
             let (x2_values,analysis_2) =
               restricted_values_of_variable
-                x2 acl C.empty Pattern_set.empty Pattern_set.empty !analysis_ref
+                x2 acl ctx Pattern_set.empty Pattern_set.empty !analysis_ref
             in
             analysis_ref := analysis_2;
             let%bind x2_value = pick_enum x2_values in
@@ -582,7 +582,7 @@ struct
               Abs_filtered_value(Abs_value_function(fn),_,_) = x2_value
             in
             (* Wire each one in. *)
-            return @@ wire (Node(acl, ctx)) fn x3 x1 analysis_2.plume_graph
+            return @@ wire_fun (Node(acl, ctx)) fn x3 x1 analysis_2.plume_graph
           | Unannotated_clause(
               Abs_clause(x1,Abs_conditional_body(x2,p,f1,f2)) as cl) ->
             lazy_logger `trace
@@ -599,7 +599,7 @@ struct
             |> Enum.filter_map
               (fun (patsp,patsn,f) ->
                  if has_values x2 patsp patsn then Some f else None)
-            |> Enum.map (fun f -> wire (Node(acl, ctx))
+            |> Enum.map (fun f -> wire_cond (Node(acl, ctx))
                             f x2 x1 (!analysis_ref).plume_graph)
             |> Nondeterminism_monad.pick_enum
           | _ ->
