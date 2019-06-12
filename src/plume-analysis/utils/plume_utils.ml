@@ -27,7 +27,7 @@ sig
     abstract_var -> G.t -> (G.edge Enum.t);;
 end;;
 
-module Graph_construct (G : Graph_sig) : Graph_wiring =
+module Graph_construct (G : Graph_sig) : Graph_wiring with module G = G =
 struct
 
   module G = G;;

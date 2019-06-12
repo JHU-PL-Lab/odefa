@@ -88,6 +88,27 @@ struct
   open G;;
   open G.E;;
 
+  (* TODO: check with zach whether this should be here *)
+  module Node =
+  struct
+    type t = node
+    let compare = compare_node
+    let pp = pp_node
+    let to_yojson = node_to_yojson
+  end;;
+
+  (* Set for nodes - used in plume_analysis.ml *)
+  module Node_set =
+  struct
+    module Impl = Set.Make(Node);;
+    include Impl;;
+    include Pp_utils.Set_pp(Impl)(Node);;
+    include Yojson_utils.Set_to_yojson(Impl)(Node);;
+    (* let pp = Pp_utils.pp_set pp_node enum;; *)
+    (* let show = Pp_utils.pp_to_string pp;;
+    let to_yojson = Yojson_utils.set_to_yojson node_to_yojson enum;; *)
+  end;;
+
   module Structure_types = Plume_pds_structure_types.Make(G);;
   module Dynamic_pop_types =
     Plume_pds_dynamic_pop_types.Make(G)(Structure_types)
@@ -258,16 +279,17 @@ struct
     in
     let filter_inferrable_nodes nodes =
       nodes
-      |> Annotated_clause_set.filter (
+      |> Node_set.filter (
         fun node ->
-          match node with
+          let Node(acl, _) = node in
+          match acl with
           | Enter_clause _
           | Exit_clause _ -> false
           | _ -> true
       )
     in
-    Annotated_clause_set.cardinal (filter_inferrable_nodes analysis.plume_active_nodes),
-    Annotated_clause_set.cardinal (filter_inferrable_nodes analysis.plume_active_non_immediate_nodes),
+    Node_set.cardinal (filter_inferrable_nodes analysis.plume_active_nodes),
+    Node_set.cardinal (filter_inferrable_nodes analysis.plume_active_non_immediate_nodes),
     analysis.plume_graph
     |> edges_of
     |> List.of_enum
@@ -391,8 +413,8 @@ struct
     let nodes =
       List.enum cls
       |> Enum.map (fun x -> Node(Unannotated_clause x, C.empty))
-      |> Enum.append (Enum.singleton Node(Start_clause rx, C.empty))
-      |> flip Enum.append (Enum.singleton Node(End_clause rx, C.empty))
+      |> Enum.append (Enum.singleton (Node(Start_clause rx, C.empty)))
+      |> flip Enum.append (Enum.singleton (Node(End_clause rx, C.empty)))
     in
     (* For each pair, produce a Plume edge. *)
     let rec mk_edges nodes' =
@@ -402,7 +424,7 @@ struct
         match Enum.peek nodes' with
         | None -> []
         | Some n2 ->
-          Plume_edge(n1,n2) :: mk_edges nodes'
+          Edge(n1,n2) :: mk_edges nodes'
     in
     let edges = List.enum @@ mk_edges nodes in
     (* Construct an empty analysis. *)
@@ -433,12 +455,12 @@ struct
         )
     in
     let empty_analysis =
-      { plume_graph = Plume_graph.empty
+      { plume_graph = G.empty
       ; plume_graph_fully_closed = true
       ; pds_reachability = initial_reachability
       ; plume_active_nodes =
-          Node_set.singleton Node((Start_clause rx), C.empty)
-      ; plume_active_non_immediate_nodes = Annotated_clause_set.empty
+          Node_set.singleton (Node((Start_clause rx), C.empty))
+      ; plume_active_non_immediate_nodes = Node_set.empty
       ; plume_logging_data = logging_data_opt
       }
     in
@@ -525,11 +547,14 @@ struct
     let analysis_ref = ref analysis in
     let new_edges_enum = Nondeterminism_monad.enum
         (
+          let module Wiring = Graph_construct(G) in
+          let open Wiring in
           let open Nondeterminism_monad in
-          let%bind acl =
+          let%bind node =
             pick_enum @@
-            Annotated_clause_set.enum analysis.plume_active_non_immediate_nodes
+            Node_set.enum analysis.plume_active_non_immediate_nodes
           in
+          let Node(acl, ctx) = node in
           let has_values x patsp patsn =
             let (values,analysis') =
               restricted_values_of_variable
@@ -557,7 +582,7 @@ struct
               Abs_filtered_value(Abs_value_function(fn),_,_) = x2_value
             in
             (* Wire each one in. *)
-            return @@ wire cl fn x3 x1 analysis_2.plume_graph
+            return @@ wire (Node(acl, ctx)) fn x3 x1 analysis_2.plume_graph
           | Unannotated_clause(
               Abs_clause(x1,Abs_conditional_body(x2,p,f1,f2)) as cl) ->
             lazy_logger `trace
@@ -574,7 +599,8 @@ struct
             |> Enum.filter_map
               (fun (patsp,patsn,f) ->
                  if has_values x2 patsp patsn then Some f else None)
-            |> Enum.map (fun f -> wire cl f x2 x1 (!analysis_ref).plume_graph)
+            |> Enum.map (fun f -> wire (Node(acl, ctx))
+                            f x2 x1 (!analysis_ref).plume_graph)
             |> Nondeterminism_monad.pick_enum
           | _ ->
             raise @@ Utils.Invariant_failure
