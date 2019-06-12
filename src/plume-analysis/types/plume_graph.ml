@@ -28,7 +28,12 @@ module type Edge_sig = sig
   val to_yojson : t -> Yojson.Safe.json;;
 end;;
 
-
+module type Node_Set = sig
+  type t;;
+  val pp : t pretty_printer;;
+  val show : t -> string;;
+  val to_yojson : t -> Yojson.Safe.json;;
+end;;
 (*
   Creating the graph data type inside of a module.  This allows us to keep the
   graph data type intentionally abstract, thus permitting safe indexing and
@@ -43,13 +48,11 @@ sig
 
   module E : Edge_sig with module C = C
 
+  module Node_set : Node_Set
+
   type t
   type edge = E.t
   type node = E.node
-
-  (* module Node = struct;; *)
-
-  module Node_set : BatSet.S;;
 
   val equal_node : node -> node -> bool
 
@@ -113,6 +116,8 @@ struct
 
   open E;;
 
+  type node = E.node[@@deriving ord, show, to_yojson];;
+
   (* TODO: check with zach whether this should be here *)
   module Node =
   struct
@@ -124,15 +129,18 @@ struct
 
   (* Set for nodes - used in plume_analysis.ml *)
   (* TODO : we left off here - compiler error bc somehow we cannot
-  pretty-print *)
+     pretty-print *)
   module Node_set =
   struct
     module Impl = Set.Make(Node);;
     include Impl;;
     include Pp_utils.Set_pp(Impl)(Node);;
     include Yojson_utils.Set_to_yojson(Impl)(Node);;
+    let pp = Pp_utils.pp_set pp_node enum;;
+    (* let show = Pp_utils.pp_to_string pp;;
+    let to_yojson = Yojson_utils.set_to_yojson node_to_yojson enum;; *)
   end;;
-  type node = E.node[@@deriving ord, show, to_yojson];;
+
 
   type edge = E.t;;
 

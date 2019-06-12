@@ -61,12 +61,12 @@ sig
       but it is guaranteed to be conservative if the analysis is fully closed.
       The returned analysis contains a cache structure to accelerate answering
       of this question in the future. *)
-(* FIXME: not sure what the input to these functions should be -
-   if we wanted to input a G.node, we would probably get rid of one of these
-   functions, but not too sure if we wanted to give the user the power of
-   being able to pass in a graph node raw.
-   NOTE: for now we will construct the graph node inside the functions.
-*)
+  (* FIXME: not sure what the input to these functions should be -
+     if we wanted to input a G.node, we would probably get rid of one of these
+     functions, but not too sure if we wanted to give the user the power of
+     being able to pass in a graph node raw.
+     NOTE: for now we will construct the graph node inside the functions.
+  *)
   val values_of_variable :
     abstract_var -> annotated_clause -> plume_analysis ->
     Abs_filtered_value_set.t * plume_analysis
@@ -136,7 +136,7 @@ struct
     ; plume_active_nodes : Node_set.t
     (** The active nodes in the Plume graph.  This set is maintained
             incrementally as edges are added. *)
-    ; plume_active_non_immediate_nodes : Annotated_clause_set.t
+    ; plume_active_non_immediate_nodes : Node_set.t
     (** A subset of [plume_active_nodes] which only contains the
         non-immediate nodes.  This is useful during closure. *)
     ; plume_logging_data : plume_analysis_logging_data option
@@ -328,7 +328,7 @@ struct
             then find_new_active_nodes from_nodes_enums results_so_far
             else
               let results_so_far' =
-                Annotated_clause_set.add from_node results_so_far
+                Node_set.add from_node results_so_far
               in
               let from_here = plume_graph' |> succs from_node in
               find_new_active_nodes (from_here::from_nodes_enums) results_so_far'
@@ -347,13 +347,17 @@ struct
         in
         let new_active_nodes =
           find_new_active_nodes [new_active_root_nodes]
-            Annotated_clause_set.empty
+            Node_set.empty
         in
-        ( Annotated_clause_set.union analysis.plume_active_nodes
+        let is_node_immediate node =
+          let G.E.Node(acl, _) = node in
+          is_annotated_clause_immediate acl
+        in
+        ( Node_set.union analysis.plume_active_nodes
             new_active_nodes
-        , Annotated_clause_set.union analysis.plume_active_non_immediate_nodes
-            ( new_active_nodes |> Annotated_clause_set.filter
-                (not % is_annotated_clause_immediate) )
+        , Node_set.union analysis.plume_active_non_immediate_nodes
+            ( new_active_nodes |> Node_set.filter
+                (not % is_node_immediate) )
         )
       in
       (
@@ -384,23 +388,23 @@ struct
     let Abs_expr(cls) = lift_expr e in
     (* Put the annotated clauses together. *)
     let rx = rv cls in
-    let acls =
+    let nodes =
       List.enum cls
-      |> Enum.map (fun x -> Unannotated_clause x)
-      |> Enum.append (Enum.singleton (Start_clause rx))
-      |> flip Enum.append (Enum.singleton (End_clause rx))
+      |> Enum.map (fun x -> Node(Unannotated_clause x, C.empty))
+      |> Enum.append (Enum.singleton Node(Start_clause rx, C.empty))
+      |> flip Enum.append (Enum.singleton Node(End_clause rx, C.empty))
     in
     (* For each pair, produce a Plume edge. *)
-    let rec mk_edges acls' =
-      match Enum.get acls' with
+    let rec mk_edges nodes' =
+      match Enum.get nodes' with
       | None -> []
-      | Some acl1 ->
-        match Enum.peek acls' with
+      | Some n1 ->
+        match Enum.peek nodes' with
         | None -> []
-        | Some acl2 ->
-          Plume_edge(acl1,acl2) :: mk_edges acls'
+        | Some n2 ->
+          Plume_edge(n1,n2) :: mk_edges nodes'
     in
-    let edges = List.enum @@ mk_edges acls in
+    let edges = List.enum @@ mk_edges nodes in
     (* Construct an empty analysis. *)
     let pdr_log_fn_opt =
       match logging_data_opt with
