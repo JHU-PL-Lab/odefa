@@ -1,7 +1,9 @@
 QUERY: ia, ib;
-ANALYSES: 1DDPA;
+ANALYSES: 1DDPA, 1PLUME;
 RESULTS: 1DDPA(ia) = `{{a=e}:(+{{a={}}},-{})}`,
-         1DDPA(ib) = `{{b=e}}`;
-CONSISTENCIES: 1DDPA = NO_INCONSISTENCIES;
+         1DDPA(ib) = `{{b=e}}`,
+         1PLUME(ia) = `{{a=e}:(+{{a={}}},-{})}`,
+         1PLUME(ib) = `{{b=e}}`;
+CONSISTENCIES: 1DDPA = NO_INCONSISTENCIES & 1PLUME = NO_INCONSISTENCIES;
 WELL_FORMED;
 EVALUATE;

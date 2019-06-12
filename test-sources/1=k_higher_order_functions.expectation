@@ -1,7 +1,9 @@
 QUERY: ra, rb;
-ANALYSES: 1DDPA;
+ANALYSES: 1DDPA, 1PLUME;
 RESULTS: 1DDPA(ra) = `{int}`,
-         1DDPA(rb) = `{{}}`;
-CONSISTENCIES: 1DDPA = NO_INCONSISTENCIES;
+         1DDPA(rb) = `{{}}`,
+         1PLUME(ra) = `{int}`,
+         1PLUME(rb) = `{{}}`;
+CONSISTENCIES: 1DDPA = NO_INCONSISTENCIES & 1PLUME = NO_INCONSISTENCIES;
 WELL_FORMED;
 EVALUATE;

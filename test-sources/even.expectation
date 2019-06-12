@@ -1,11 +1,23 @@
 QUERY: evenzero, oddzero, eventhree, oddthree, evensix, oddsix;
-ANALYSES: 0DDPA;
+ANALYSES: 0DDPA, 0PLUME, 1PLUME;
 RESULTS:   0DDPA(evenzero) = `{false, true}`,
            0DDPA(oddzero) = `{false, true}`,
            0DDPA(eventhree) =  `{false, true}`,
            0DDPA(oddthree) = `{false, true}`,
            0DDPA(evensix) =  `{false, true}`,
-           0DDPA(oddsix) = `{false, true}`;
-CONSISTENCIES: 0DDPA = NO_INCONSISTENCIES;
+           0DDPA(oddsix) = `{false, true}`,
+           0PLUME(evenzero) = `{false, true}`,
+           0PLUME(oddzero) = `{false, true}`,
+           0PLUME(eventhree) =  `{false, true}`,
+           0PLUME(oddthree) = `{false, true}`,
+           0PLUME(evensix) =  `{false, true}`,
+           0PLUME(oddsix) = `{false, true}`,
+           1PLUME(evenzero) = `{false, true}`,
+           1PLUME(oddzero) = `{false, true}`,
+           1PLUME(eventhree) =  `{false, true}`,
+           1PLUME(oddthree) = `{false, true}`,
+           1PLUME(evensix) =  `{false, true}`,
+           1PLUME(oddsix) = `{false, true}`;
+CONSISTENCIES: 0DDPA = NO_INCONSISTENCIES & 0PLUME = NO_INCONSISTENCIES & 1PLUME = NO_INCONSISTENCIES;
 WELL_FORMED;
 EVALUATE;
