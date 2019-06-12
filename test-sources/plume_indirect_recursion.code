@@ -1,0 +1,4 @@
+f = fun fp -> (
+  fr = a;
+);
+a = f; # => ILL-FORMED

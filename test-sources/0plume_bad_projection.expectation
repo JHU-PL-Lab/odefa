@@ -1,0 +1,6 @@
+QUERY: e, r;
+ANALYSES: 0PLUME;
+RESULTS: 0PLUME(e) = `{{}}`,
+         0PLUME(r) = `{{a=e, b=e}}`;
+CONSISTENCIES: 0PLUME = INCONSISTENCIES_AT z;
+WELL_FORMED;

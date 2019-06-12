@@ -1,0 +1,5 @@
+empty = {};
+f1 = fun i1 -> ( r1=i1 );
+f2 = fun i2 -> ( r2=i2 );
+x = f1 empty;
+y = f2 empty;

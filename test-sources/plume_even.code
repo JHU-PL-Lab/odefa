@@ -1,0 +1,73 @@
+# let rec even n =
+#   if n = 0 then true
+#   else odd (n - 1)
+# and odd n =
+#   if n = 0 then false
+#   else even (n - 1)
+# ;;
+#
+# even 0;; (* => true *)
+# odd 0;; (* => false *)
+#
+# even 3;; (* => false *)
+# odd 3;; (* => true *)
+#
+# even 6;; (* => true *)
+# odd 6;; (* => false *)
+
+zero = 0;
+one = 1;
+three = 3;
+six = 6;
+
+even0 =
+  fun evenparameven -> (
+    evenret1 = fun evenparamodd -> (
+      evenret2 = fun evennumber -> (
+        evennumberiszero = evennumber == zero;
+        evenresult = evennumberiszero ~ true ?
+                     fun evennumberiszeromatch -> (
+                       evennumberiszeromatchreturn = true;
+                     ) :
+                     fun evennumberiszeroantimatch -> (
+                       evennumberminusone = evennumber - one;
+                       evenodd0 = evenparamodd evenparameven;
+                       evenodd1 = evenodd0 evenparamodd;
+                       evennumberiszeroantimatchreturn = evenodd1 evennumberminusone;
+                     );
+    );
+  );
+);
+
+odd0 =
+  fun oddparameven -> (
+    oddret1 = fun oddparamodd -> (
+      oddret2 = fun oddnumber -> (
+        oddnumberiszero = oddnumber == zero;
+        oddresult = oddnumberiszero ~ true ?
+                     fun oddnumberiszeromatch -> (
+                       oddnumberiszeromatchreturn = false;
+                     ) :
+                     fun oddnumberiszeroantimatch -> (
+                       oddnumberminusone = oddnumber - one;
+                       oddeven0 = oddparameven oddparameven;
+                       oddeven1 = oddeven0 oddparamodd;
+                       oddnumberiszeroantimatchreturn = oddeven1 oddnumberminusone;
+                     );
+    );
+  );
+);
+
+even1 = even0 even0;
+even = even1 odd0;
+odd1 = odd0 even0;
+odd = odd1 odd0;
+
+evenzero = even zero; # => true
+oddzero = odd zero; # => false
+
+eventhree = even three; # => false
+oddthree = odd three; # => true
+
+evensix = even six; # => true
+oddsix = odd six; # => false

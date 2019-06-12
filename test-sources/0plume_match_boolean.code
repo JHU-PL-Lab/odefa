@@ -1,0 +1,6 @@
+empty = {};
+x = 1;
+y = 2;
+z = x == y;
+r = z ~ true ? fun ap -> ( ar = {yes=empty} )
+           : fun bp -> ( br = {no=empty} )

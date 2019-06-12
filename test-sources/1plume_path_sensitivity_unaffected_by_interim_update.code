@@ -1,0 +1,8 @@
+val = {};
+cell = ref val;
+empty = {};
+x = {a=empty};
+junk = cell <- x;
+z = x ~ {a={}} ?
+        fun j1 -> ( r1 = {} ) :
+        fun j2 -> ( r2 = {b=empty} );

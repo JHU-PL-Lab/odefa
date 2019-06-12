@@ -1,0 +1,12 @@
+h = fun f -> (
+    e = {};
+    hr = f e;
+    n0 = hr;
+);
+
+fa = fun ia -> ( a = 0; );
+fb = fun ib -> ( b = {}; );
+
+ra = h fa;
+n1 = {};
+rb = h fb;

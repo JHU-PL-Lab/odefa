@@ -1,7 +1,6 @@
-QUERY: x, z;
+QUERY: s2;
 ANALYSES: 1DDPA;
-RESULTS: 1DDPA(x) = `{{}}`,
-         1DDPA(z) = `{{}}`;
+RESULTS: 1DDPA(s2) = `{{a=empty}, {b=empty}}`;
 CONSISTENCIES: 1DDPA = NO_INCONSISTENCIES;
 WELL_FORMED;
 EVALUATE;

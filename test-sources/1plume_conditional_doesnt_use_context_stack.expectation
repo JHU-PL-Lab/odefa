@@ -1,0 +1,7 @@
+QUERY: ia, ib;
+ANALYSES: 1PLUME;
+RESULTS: 1PLUME(ia) = `{{a=e}:(+{{a={}}},-{})}`,
+         1PLUME(ib) = `{{b=e}}`;
+CONSISTENCIES: 1PLUME = NO_INCONSISTENCIES;
+WELL_FORMED;
+EVALUATE;

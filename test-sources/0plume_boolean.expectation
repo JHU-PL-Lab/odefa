@@ -1,0 +1,8 @@
+QUERY: numberpatternmatch, nott, torf;
+ANALYSES: 0PLUME;
+RESULTS: 0PLUME(numberpatternmatch) = `{int}`,
+         0PLUME(nott) = `{false}`,
+         0PLUME(torf) = `{true}`;
+CONSISTENCIES: 0PLUME = NO_INCONSISTENCIES;
+WELL_FORMED;
+EVALUATE;

@@ -1,0 +1,5 @@
+empty = {};
+x = {a=empty};
+z = x ~ {b={}} ?
+        fun j1 -> ( r1 = {b=empty} ) :
+        fun j2 -> ( r2 = {} );

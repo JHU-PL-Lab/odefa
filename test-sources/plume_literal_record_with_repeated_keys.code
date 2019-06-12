@@ -1,0 +1,3 @@
+zero = 0;
+one = 1;
+r = { l = zero, l = one }; # => { l = one }

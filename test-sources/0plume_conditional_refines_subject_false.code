@@ -1,0 +1,14 @@
+# We're testing to make sure that the zftr branch can't be reached.
+
+i = fun ip -> ( ir = ip );
+e = {};
+a = {a=e};
+b = {b=e};
+u1 = i a;
+u2 = i b;
+z = u2 ~ {a={}} ?
+         fun ztp -> ( ztr = b ) :
+         fun zfp -> ( zfr = u2 ~ {a={}} ?
+                                 fun zftp -> ( zftr = a ) :
+                                 fun zffp -> ( zffr = b )
+                    );

@@ -1,0 +1,6 @@
+f = fun x -> ( ident = fun y -> ( r1 = y ); r0 = ident x; );
+empty = {};
+a = {a=empty};
+s1 = f a;
+b = {b=empty};
+s2 = f b;
