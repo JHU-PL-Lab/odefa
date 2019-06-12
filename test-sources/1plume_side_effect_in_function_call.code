@@ -1,8 +1,0 @@
-# NOTE: the above could be improved with a must-alias analysis
-
-x = {};
-q = {a=x};
-c = ref q;
-y = fun i -> ( r=c<-x );
-z = y x;
-d = !c;

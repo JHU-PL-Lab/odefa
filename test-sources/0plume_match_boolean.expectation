@@ -1,7 +1,0 @@
-QUERY: z, r;
-ANALYSES: 0PLUME;
-RESULTS: 0PLUME(z) = `{false, true}`,
-         0PLUME(r) = `{{no=empty}, {yes=empty}}`;
-CONSISTENCIES: 0PLUME = NO_INCONSISTENCIES;
-WELL_FORMED;
-EVALUATE;

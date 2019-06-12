@@ -1,5 +1,0 @@
-f = fun i -> ( r = i );
-empty = {};
-z = f ~ {} ?
-        fun j1 -> ( r1 = {j=empty} ) :
-        fun j2 -> ( r2 = {} );

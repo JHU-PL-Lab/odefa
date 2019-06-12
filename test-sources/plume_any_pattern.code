@@ -1,8 +1,0 @@
-a = 0;
-
-r = a ~ any ? fun am -> (
-              ra = 0;
-            ) : fun aa -> (
-              br = {};
-              aar = br br;
-            );

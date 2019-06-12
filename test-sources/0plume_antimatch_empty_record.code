@@ -1,5 +1,0 @@
-e = {};
-r1 = e ~ {a={}} ? fun ap -> ( ar = {} )
-                : fun bp -> ( br = 0 );
-r2 = e ~ {a={}} ? fun cp -> ( cr = 0 )
-                : fun dp -> ( dr = {} );

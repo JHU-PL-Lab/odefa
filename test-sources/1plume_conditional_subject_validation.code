@@ -1,8 +1,0 @@
-f = fun b -> (
-        r = b ~ {} ? fun Tp -> ( Tr = {} )
-                   : fun Fp -> ( Fr = 0 )
-    );
-T = {};
-F = 0;
-ra = f T;
-rb = f F;
