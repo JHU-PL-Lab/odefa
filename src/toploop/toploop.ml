@@ -395,18 +395,37 @@ let dummy_create_ddpa_logging_config ()
 *)
 let dummy_create_plume_logging_config ()
   : plume_analysis_logging_config * (unit -> unit) =
+  let graph_log_file = ref None in
   let plume_logging_config =
     { plume_pdr_logging_level = Log_nothing
-    ; plume_cfg_logging_level = Log_nothing
+    ; plume_cfg_logging_level = Log_result
     ; plume_pdr_deltas = false
-    ; plume_json_logger = fun _ -> ()
+    ; plume_json_logger =
+        fun _ -> ()
+        (* (fun json ->
+           let file =
+             begin
+               let file = File.open_out "ddpa_graph.log" in
+               graph_log_file := Some file;
+               IO.nwrite file "[\n";
+               file
+             end
+           in
+           let json_string =
+             Yojson.Safe.pretty_to_string ~std:true json
+           in
+           IO.nwrite file json_string
+        ) *)
     }
   in
   (* The rest of this is wrapped in a finally so that, if a JSON graph log
      file is created, it will be properly closed even if an exception is
      raised.
   *)
+  (* FIXME: this is terrible :((((( *)
   let close_files = fun () -> ()
+    (* (IO.nwrite (Option.get !graph_log_file) "\n]\n" ) ;
+    IO.close_out @@ Option.get !graph_log_file *)
   in
   plume_logging_config, close_files
 ;;

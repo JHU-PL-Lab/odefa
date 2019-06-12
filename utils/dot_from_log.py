@@ -284,17 +284,24 @@ def abbrv_clause(clause):
     elif clause[0] == "End_clause":
         return "end(%s)" % clause[1]
     elif clause[0] == "Enter_clause" or clause[0] == "Exit_clause":
-        form = "+" if clause[0] == "Enter_caluse" else "-"
+        form = "+" if clause[0] == "Enter_clause" else "-"
         return "%s=%s@%s%s" % (clause[1], clause[2], form, clause[3][1])
     else:
         raise InvariantFailure("Unrecognized clause for abbreviation: %s" %
                                str(clause))
 
-def write_cfg_file(cfg, work_count, file_prefix, options):
+def abbrv_cfg_node(node):
+    if node[0] == "Node" :
+        return "%s in %s" % (abbrv_clause(node[1]), node[2])
+    else :
+        raise InvariantFailure("Unrecognized cfg node for abbreviation: %s" %
+                               str(node))
+
+def write_ddpa_cfg_file(cfg, work_count, file_prefix, options):
     clauses = {}
     with codecs.open("%s_%d.dot" % (file_prefix, work_count), 'w', encoding="utf8") as f:
         f.write("strict digraph analysis {\n    rankdir=\"LR\"\n")
-        g = cfg["ddpa_graph"][1]
+        g = (cfg.get("ddpa_graph"))[1]
         for edge in g:
             source = abbrv_clause(edge[1])
             target = abbrv_clause(edge[2])
@@ -305,6 +312,23 @@ def write_cfg_file(cfg, work_count, file_prefix, options):
             f.write("    \"%s\"[style=filled,fillcolor=\"%s\"];\n" %
                     (k,v.color))
         f.write("}\n")
+
+def write_plume_cfg_file(cfg, work_count, file_prefix, options):
+    clauses = {}
+    with codecs.open("%s_%d.dot" % (file_prefix, work_count), 'w', encoding="utf8") as f:
+        f.write("strict digraph analysis {\n    rankdir=\"LR\"\n")
+        g = (cfg.get("plume_graph"))[1]
+        for edge in g:
+            source = abbrv_cfg_node(edge[1])
+            target = abbrv_cfg_node(edge[2])
+            f.write("    \"%s\" -> \"%s\";\n" % (source,target))
+            clauses[source] = ClauseType.of_clause(edge[1][1])
+            clauses[target] = ClauseType.of_clause(edge[2][1])
+        for k,v in clauses.items():
+            f.write("    \"%s\"[style=filled,fillcolor=\"%s\"];\n" %
+                    (k,v.color))
+        f.write("}\n")
+
 
 def abbrv_value(value):
     if value[0] == "Abs_value_record":
@@ -630,6 +654,7 @@ def generate_graph_files(conversion, work, data):
                      work_order.options)
             work_order.have_generated(work_count)
     last_cfg = None
+    last_cfg_analysis = None
     last_pdr = None
     last_work_count = -1
     data.reverse()
@@ -647,9 +672,17 @@ def generate_graph_files(conversion, work, data):
         if event["element_type"] == "ddpa_graph":
             is_first_cfg = (last_cfg is None)
             last_cfg = conversion.convert(event["graph"])
+            last_cfg_analysis = "ddpa"
             conversion.sanity_check(last_cfg)
             check_generate_graph_file(
-                last_cfg, work.cfgs, last_work_count, False, write_cfg_file)
+                last_cfg, work.cfgs, last_work_count, False, write_ddpa_cfg_file)
+        elif event["element_type"] == "plume_graph":
+            is_first_cfg = (last_cfg is None)
+            last_cfg = conversion.convert(event["graph"])
+            last_cfg_analysis = "plume"
+            conversion.sanity_check(last_cfg)
+            check_generate_graph_file(
+                last_cfg, work.cfgs, last_work_count, False, write_plume_cfg_file)
         elif event["element_type"] == "pds_reachability_graph":
             is_first_pdr = (last_pdr is None)
             last_pdr = conversion.convert(event["graph"])
@@ -668,7 +701,8 @@ def generate_graph_files(conversion, work, data):
             raise InvariantFailure("Unrecognized element type: %s" %
                                    event["element_type"])
     check_generate_graph_file(
-        last_cfg, work.cfgs, last_work_count, True, write_cfg_file)
+        last_cfg, work.cfgs, last_work_count, True,
+        write_ddpa_cfg_file if last_cfg_analysis == "ddpa" else write_plume_cfg_file)
     check_generate_graph_file(
         last_pdr, work.pdrs, last_work_count, True, write_pdr_file)
 
