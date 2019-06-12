@@ -395,7 +395,7 @@ let dummy_create_ddpa_logging_config ()
 *)
 let dummy_create_plume_logging_config ()
   : plume_analysis_logging_config * (unit -> unit) =
-  let graph_log_file = ref None in
+  (* let graph_log_file = ref None in *)
   let plume_logging_config =
     { plume_pdr_logging_level = Log_nothing
     ; plume_cfg_logging_level = Log_result
