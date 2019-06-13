@@ -1,6 +1,8 @@
 QUERY: s2;
-ANALYSES: 4DDPA, 4PLUME;
-RESULTS: 4DDPA(s2) = `{{a=empty}, {b=empty}}`, 4PLUME(s2) = `{{a=empty}, {b=empty}}`;
-CONSISTENCIES: 4DDPA = NO_INCONSISTENCIES & 4PLUME = NO_INCONSISTENCIES;
+ANALYSES: 4DDPA, 4PLUME, SPLUME;
+RESULTS: 4DDPA(s2) = `{{a=empty}, {b=empty}}`,
+         4PLUME(s2) = `{{a=empty}, {b=empty}}`,
+         SPLUME(s2) = `{{a=empty}, {b=empty}}`;
+CONSISTENCIES: 4DDPA = NO_INCONSISTENCIES & 4PLUME = NO_INCONSISTENCIES & SPLUME = NO_INCONSISTENCIES;
 WELL_FORMED;
 EVALUATE;
