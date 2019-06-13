@@ -1,14 +1,18 @@
 QUERY: z, r;
-ANALYSES: 0DDPA, 0PLUME, 1PLUME;
+ANALYSES: 0DDPA, 0PLUME, 1PLUME, SPLUME;
 RESULTS: 0DDPA(z) = `{false, true}`,
          0DDPA(r) = `{{no=empty}, {yes=empty}}`,
          0PLUME(z) = `{false, true}`,
          0PLUME(r) = `{{no=empty}, {yes=empty}}`,
          1PLUME(z) = `{false, true}`,
-         1PLUME(r) = `{{no=empty}, {yes=empty}}`
+         1PLUME(r) = `{{no=empty}, {yes=empty}}`,
+         SPLUME(z) = `{false, true}`,
+         SPLUME(r) = `{{no=empty}, {yes=empty}}`
 ;
 CONSISTENCIES: 0DDPA = NO_INCONSISTENCIES &
-               0PLUME = NO_INCONSISTENCIES
+               0PLUME = NO_INCONSISTENCIES &
+               1PLUME = NO_INCONSISTENCIES &
+               SPLUME = NO_INCONSISTENCIES
 ;
 WELL_FORMED;
 EVALUATE;

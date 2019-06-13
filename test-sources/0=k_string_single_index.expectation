@@ -1,10 +1,12 @@
 QUERY: s0;
-ANALYSES: 0DDPA, 0PLUME;
+ANALYSES: 0DDPA, 0PLUME, SPLUME;
 RESULTS: 0DDPA(s0) = `{string}`,
-         0PLUME(s0) = `{string}`
+         0PLUME(s0) = `{string}`,
+         SPLUME(s0) = `{string}`
 ;
 CONSISTENCIES: 0DDPA = NO_INCONSISTENCIES &
-               0PLUME = NO_INCONSISTENCIES
+               0PLUME = NO_INCONSISTENCIES &
+               SPLUME = NO_INCONSISTENCIES
 ;
 WELL_FORMED;
 EVALUATE;

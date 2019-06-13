@@ -1,10 +1,12 @@
 QUERY: rr;
-ANALYSES: 0DDPA, 0PLUME;
+ANALYSES: 0DDPA, 0PLUME, SPLUME;
 RESULTS: 0DDPA(rr) = `{int}`,
-         0PLUME(rr) = `{int}`
+         0PLUME(rr) = `{int}`,
+         SPLUME(rr) = `{int}`
 ;
 CONSISTENCIES: 0DDPA = NO_INCONSISTENCIES &
-               0PLUME = NO_INCONSISTENCIES
+               0PLUME = NO_INCONSISTENCIES &
+               SPLUME = NO_INCONSISTENCIES
 ;
 WELL_FORMED;
 EVALUATE;

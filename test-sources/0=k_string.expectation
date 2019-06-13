@@ -1,7 +1,7 @@
 QUERY: spatternmatch, s0cpatternmatch, s0spacepatternmatch,
        s6spacepatternmatch, s12hpatternmatch, s13emptypatternmatch,
        schunckytempehpatternmatch;
-ANALYSES: 0DDPA, 0PLUME;
+ANALYSES: 0DDPA, 0PLUME, SPLUME;
 RESULTS: 0DDPA(spatternmatch) = `{int}`,
          0DDPA(s0cpatternmatch) = `{int, false}`,
          0DDPA(s0spacepatternmatch) = `{int, false}`,
@@ -15,10 +15,18 @@ RESULTS: 0DDPA(spatternmatch) = `{int}`,
          0PLUME(s6spacepatternmatch) = `{int, false}`,
          0PLUME(s12hpatternmatch) = `{int, false}`,
          0PLUME(s13emptypatternmatch) = `{int, false}`,
-         0PLUME(schunckytempehpatternmatch) = `{int, false}`
+         0PLUME(schunckytempehpatternmatch) = `{int, false}`,
+         SPLUME(spatternmatch) = `{int}`,
+         SPLUME(s0cpatternmatch) = `{int, false}`,
+         SPLUME(s0spacepatternmatch) = `{int, false}`,
+         SPLUME(s6spacepatternmatch) = `{int, false}`,
+         SPLUME(s12hpatternmatch) = `{int, false}`,
+         SPLUME(s13emptypatternmatch) = `{int, false}`,
+         SPLUME(schunckytempehpatternmatch) = `{int, false}`
 ;
 CONSISTENCIES: 0DDPA = NO_INCONSISTENCIES &
-               0PLUME = NO_INCONSISTENCIES
+               0PLUME = NO_INCONSISTENCIES &
+               SPLUME = NO_INCONSISTENCIES
 ;
 WELL_FORMED;
 EVALUATE;

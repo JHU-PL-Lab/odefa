@@ -1,10 +1,12 @@
 QUERY: junk;
-ANALYSES: 0DDPA, 0PLUME;
+ANALYSES: 0DDPA, 0PLUME, SPLUME;
 RESULTS: 0DDPA(junk) = `{{}}`,
-         0PLUME(junk) = `{{}}`
+         0PLUME(junk) = `{{}}`,
+         SPLUME(junk) = `{{}}`
 ;
 CONSISTENCIES: 0DDPA = NO_INCONSISTENCIES &
-               0PLUME = NO_INCONSISTENCIES
+               0PLUME = NO_INCONSISTENCIES &
+               SPLUME = NO_INCONSISTENCIES
 ;
 WELL_FORMED;
 EVALUATE;

@@ -1,14 +1,18 @@
 QUERY: numberpatternmatch, nott, torf;
-ANALYSES: 0DDPA, 0PLUME;
+ANALYSES: 0DDPA, 0PLUME, SPLUME;
 RESULTS: 0DDPA(numberpatternmatch) = `{int}`,
          0DDPA(nott) = `{false}`,
          0DDPA(torf) = `{true}`,
          0PLUME(numberpatternmatch) = `{int}`,
          0PLUME(nott) = `{false}`,
-         0PLUME(torf) = `{true}`
+         0PLUME(torf) = `{true}`,
+         SPLUME(numberpatternmatch) = `{int}`,
+         SPLUME(nott) = `{false}`,
+         SPLUME(torf) = `{true}`
 ;
 CONSISTENCIES: 0DDPA = NO_INCONSISTENCIES &
-               0PLUME = NO_INCONSISTENCIES
+               0PLUME = NO_INCONSISTENCIES &
+               SPLUME = NO_INCONSISTENCIES
 ;
 WELL_FORMED;
 EVALUATE;

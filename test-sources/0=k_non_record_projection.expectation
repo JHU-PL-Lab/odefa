@@ -1,11 +1,14 @@
 QUERY: e, r;
-ANALYSES: 0DDPA, 0PLUME;
+ANALYSES: 0DDPA, 0PLUME, SPLUME;
 RESULTS: 0DDPA(e)= `{{}}`,
          0DDPA(r)= `{int}`,
          0PLUME(e)= `{{}}`,
-         0PLUME(r)= `{int}`
+         0PLUME(r)= `{int}`,
+         SPLUME(e)= `{{}}`,
+         SPLUME(r)= `{int}`
 ;
 CONSISTENCIES: 0DDPA = INCONSISTENCIES_AT z &
-               0PLUME = INCONSISTENCIES_AT z
+               0PLUME = INCONSISTENCIES_AT z &
+               SPLUME = INCONSISTENCIES_AT z
 ;
 WELL_FORMED;
