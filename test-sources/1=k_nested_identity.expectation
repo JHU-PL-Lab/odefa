@@ -2,7 +2,7 @@ QUERY: s2;
 ANALYSES: 1DDPA, 1PLUME, SPLUME;
 RESULTS: 1DDPA(s2) = `{{a=empty}, {b=empty}}`,
          1PLUME(s2) = `{{a=empty}, {b=empty}}`,
-         SPLUME(s2) = `{{a=empty}, {b=empty}}`;
+         SPLUME(s2) = `{{b=empty}}`;
 CONSISTENCIES: 1DDPA = NO_INCONSISTENCIES & 1PLUME = NO_INCONSISTENCIES & SPLUME = NO_INCONSISTENCIES;
 WELL_FORMED;
 EVALUATE;
