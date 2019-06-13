@@ -27,7 +27,8 @@ type analysis_task =
   | DDPA of int
   | PLUME of int
   | SPLUME
-  | OSPLUME
+  | OSKPLUME
+  | OSMPLUME
   [@@deriving show, ord, eq]
 ;;
 

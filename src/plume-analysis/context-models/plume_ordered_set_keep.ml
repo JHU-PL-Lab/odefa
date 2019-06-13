@@ -6,7 +6,7 @@ open Abstract_ast;;
 open Plume_context_model;;
 open Pp_utils;;
 
-module Ordered_Set : Context_model =
+module Ordered_Set_Keep : Context_model =
 struct
   type t = S of (abstract_clause list * Abs_clause_set.t);;
   let equal x y = compare x y == 0;;
@@ -14,7 +14,8 @@ struct
   let empty = S([],Abs_clause_set.empty);;
   let push c (S(c_list,c_set)) =
     if Abs_clause_set.mem c c_set
-    then S( c :: (List.filter (fun c' -> c <> c') c_list), c_set)
+        (* keep the original positioning of the ordered set *)
+    then S(c_list, c_set)
     else S(c :: c_list, Abs_clause_set.add c c_set)
   ;;
   let pp formatter (S(c_list,_)) =
@@ -26,5 +27,5 @@ struct
   let to_yojson (S(c_list,_)) =
     `List (List.map abstract_clause_to_yojson c_list)
   ;;
-  let name = "osplume";;
+  let name = "oskplume";;
 end;;

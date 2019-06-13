@@ -543,7 +543,7 @@ let do_analysis_steps (situation : toploop_situation) : analysis_report =
            in
            Analysis_task_map.add atask result analysis_report
          (* TODO: fill this out after implementing plume *)
-         | PLUME (_) | SPLUME | OSPLUME ->
+         | PLUME (_) | SPLUME | OSKPLUME | OSMPLUME ->
            let model = plume_analysis_to_stack atask in
            let plumeWrapper = plumeWrapperMaker model in
            let logging_config, finalize = dummy_create_plume_logging_config () in

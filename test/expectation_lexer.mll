@@ -46,7 +46,8 @@ rule token = parse
   | "DDPA" { DDPA }
   | "PLUME" { PLUME }
   | "SPLUME" { SPLUME }
-  | "OSPLUME" { OSPLUME }
+  | "OSKPLUME" { OSKPLUME }
+  | "OSMPLUME" { OSMPLUME }
   | natural as n { NATURAL (int_of_string n) }
   | ident as x { IDENTIFIER x }
   | output as str { OUTPUT (String.sub str 1 (String.length str - 2))}

@@ -55,8 +55,10 @@ let analysis_task_to_name (task : analysis_task) : string =
       (string_of_int num) ^ "plume"
   | SPLUME ->
     "Set plume"
-  | OSPLUME ->
-    "Ordered-set plume"
+  | OSKPLUME ->
+    "Ordered-set-keep plume"
+  | OSMPLUME ->
+    "Ordered-set-move plume"
 ;;
 
 let ddpa_analysis_to_stack (task : analysis_task) : (module Stack) =
@@ -100,9 +102,9 @@ let plume_analysis_to_stack (task : analysis_task) : (module Model) =
         let module NStack = Plume_n_element_stack.Make(Spec) in
         (module NStack : Model)
       )
-  (*NOTE/FIXME: implement SPLUME and OSPLUME!!! *)
   | SPLUME -> (module Plume_set.Set : Model)
-  | OSPLUME -> (module Plume_ordered_set.Ordered_Set : Model)
+  | OSKPLUME -> (module Plume_ordered_set_keep.Ordered_Set_Keep : Model)
+  | OSMPLUME -> (module Plume_ordered_set_move.Ordered_Set_Move : Model)
   | _ ->
     (* Since this function is only expecting DDPA analyses, throw an error *)
     raise Not_found
@@ -130,8 +132,10 @@ let name_parsing_functions =
        (* | "none" -> None *)
        | "splume" ->
          SPLUME
-       | "osplume" ->
-         OSPLUME
+       | "oskplume" ->
+         OSKPLUME
+       | "osmplume" ->
+         OSMPLUME
        | _ -> raise Not_found
     )
     ;
