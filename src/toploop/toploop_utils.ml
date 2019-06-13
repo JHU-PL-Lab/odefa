@@ -101,8 +101,8 @@ let plume_analysis_to_stack (task : analysis_task) : (module Model) =
         (module NStack : Model)
       )
   (*NOTE/FIXME: implement SPLUME and OSPLUME!!! *)
-  (* | SPLUME ->
-     | OSPLUME -> *)
+  | SPLUME -> (module Plume_set.Set : Model)  
+   (*   | OSPLUME -> *)
   | _ ->
     (* Since this function is only expecting DDPA analyses, throw an error *)
     raise Not_found

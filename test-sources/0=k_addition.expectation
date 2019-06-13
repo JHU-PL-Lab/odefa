@@ -1,9 +1,12 @@
 QUERY:  xx;
-ANALYSES: 0DDPA, 0PLUME;
+ANALYSES: 0DDPA, 0PLUME, SPLUME;
 RESULTS: 0DDPA(xx) = `{int}`,
-         0PLUME(xx) = `{int}`
+         0PLUME(xx) = `{int}`,
+         SPLUME(xx) = `{int}`
 ;
 CONSISTENCIES: 0DDPA = NO_INCONSISTENCIES &
-               0PLUME = NO_INCONSISTENCIES;
+               0PLUME = NO_INCONSISTENCIES &
+               SPLUME = NO_INCONSISTENCIES
+               ;
 EVALUATE;
 WELL_FORMED;

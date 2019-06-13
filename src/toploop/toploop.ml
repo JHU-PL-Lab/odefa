@@ -556,7 +556,17 @@ let do_analysis_steps (situation : toploop_situation) : analysis_report =
            in
            Analysis_task_map.add atask result analysis_report
          | SPLUME ->
-           failwith "Not yet implemented :("
+           let model = plume_analysis_to_stack atask in
+           let plumeWrapper = plumeWrapperMaker model in
+           let logging_config, finalize = dummy_create_plume_logging_config () in
+           let result =
+             (* close the log file regardless of success/failure *)
+             plumeWrapper |> finally finalize
+               (* create/perform the analysis here *)
+               (analysis_step_general situation
+                  (Some logging_config))
+           in
+           Analysis_task_map.add atask result analysis_report
          | OSPLUME ->
            failwith "Not yet implemented :("
       ) Analysis_task_map.empty
