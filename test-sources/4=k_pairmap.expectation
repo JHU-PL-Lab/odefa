@@ -1,0 +1,14 @@
+QUERY: true_res;
+ANALYSES: 2DDPA, 2PLUME, SPLUME, OSKPLUME, OSMPLUME;
+RESULTS: 2DDPA(true_res) = `{int}`,
+         2PLUME(true_res) = `{int}`,
+         SPLUME(true_res) = `{int}`,
+         OSKPLUME(true_res) = `{int}`,
+         OSMPLUME(true_res) = `{int}`;
+CONSISTENCIES: 2DDPA = NO_INCONSISTENCIES &
+               2PLUME = NO_INCONSISTENCIES &
+               SPLUME = NO_INCONSISTENCIES &
+               OSKPLUME = NO_INCONSISTENCIES &
+               OSMPLUME = NO_INCONSISTENCIES;
+WELL_FORMED;
+EVALUATE;
