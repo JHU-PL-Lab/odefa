@@ -1,11 +1,13 @@
 QUERY: r;
-ANALYSES: 0DDPA, 0PLUME, SPLUME;
+ANALYSES: 0DDPA, 0PLUME, SPLUME, OSPLUME;
 RESULTS: 0DDPA(r) = `{false}`,
          0PLUME(r) = `{false}`,
-         SPLUME(r) = `{false}`;
+         SPLUME(r) = `{false}`,
+         OSPLUME(r) = `{false}`;
 CONSISTENCIES: 0DDPA = NO_INCONSISTENCIES &
                0PLUME = NO_INCONSISTENCIES &
-               SPLUME = NO_INCONSISTENCIES
+               SPLUME = NO_INCONSISTENCIES &
+               OSPLUME = NO_INCONSISTENCIES
 ;
 WELL_FORMED;
 EVALUATE;

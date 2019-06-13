@@ -1,11 +1,16 @@
 QUERY: x, y;
-ANALYSES: 1DDPA, 1PLUME, SPLUME;
+ANALYSES: 1DDPA, 1PLUME, SPLUME, OSPLUME;
 RESULTS: 1DDPA(x) = `{{}}`,
          1DDPA(y) = `{{}}`,
          1PLUME(x) = `{{}}`,
          1PLUME(y) = `{{}}`,
          SPLUME(x) = `{{}}`,
-         SPLUME(y) = `{{}}`;
-CONSISTENCIES: 1DDPA = NO_INCONSISTENCIES & 1PLUME = NO_INCONSISTENCIES & SPLUME = NO_INCONSISTENCIES;
+         SPLUME(y) = `{{}}`,
+         OSPLUME(x) = `{{}}`,
+         OSPLUME(y) = `{{}}`;
+CONSISTENCIES: 1DDPA = NO_INCONSISTENCIES &
+               1PLUME = NO_INCONSISTENCIES &
+               SPLUME = NO_INCONSISTENCIES &
+               OSPLUME = NO_INCONSISTENCIES;
 WELL_FORMED;
 EVALUATE;
