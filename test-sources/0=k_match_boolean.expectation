@@ -1,5 +1,5 @@
 QUERY: z, r;
-ANALYSES: 0DDPA, 0PLUME, 1PLUME, SPLUME;
+ANALYSES: 0DDPA, 0PLUME, 1PLUME, SPLUME, OSPLUME;
 RESULTS: 0DDPA(z) = `{false, true}`,
          0DDPA(r) = `{{no=empty}, {yes=empty}}`,
          0PLUME(z) = `{false, true}`,

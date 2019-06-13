@@ -1,14 +1,8 @@
 QUERY: e, r;
-ANALYSES: 0DDPA, 0PLUME, SPLUME;
+ANALYSES: 0DDPA;
 RESULTS: 0DDPA(e) = `{{}}`,
-         0DDPA(r) = `{{a=e, b=e}}`,
-         0PLUME(e) = `{{}}`,
-         0PLUME(r) = `{{a=e, b=e}}`,
-         SPLUME(e) = `{{}}`,
-         SPLUME(r) = `{{a=e, b=e}}`
+         0DDPA(r) = `{{a=e, b=e}}`
 ;
 CONSISTENCIES: 0DDPA = INCONSISTENCIES_AT z &
-               0PLUME = INCONSISTENCIES_AT z &
-               SPLUME = INCONSISTENCIES_AT z
 ;
 WELL_FORMED;

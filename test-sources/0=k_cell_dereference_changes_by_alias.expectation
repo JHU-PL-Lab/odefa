@@ -1,15 +1,9 @@
 QUERY: z1, z2;
-ANALYSES: 0DDPA, 0PLUME, SPLUME;
+ANALYSES: 0DDPA;
 RESULTS: 0DDPA(z1) = `{{}}`,
-         0DDPA(z2) = `{{q=empty}}`,
-         0PLUME(z1) = `{{}}`,
-         0PLUME(z2) = `{{q=empty}}`,
-         SPLUME(z1) = `{{}}`,
-         SPLUME(z2) = `{{q=empty}}`
+         0DDPA(z2) = `{{q=empty}}`
 ;
 CONSISTENCIES: 0DDPA = NO_INCONSISTENCIES &
-               0PLUME = NO_INCONSISTENCIES &
-               SPLUME = NO_INCONSISTENCIES
 ;
 WELL_FORMED;
 EVALUATE;
