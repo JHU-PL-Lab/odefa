@@ -1,5 +1,5 @@
 QUERY: evenzero, oddzero, eventhree, oddthree, evensix, oddsix;
-ANALYSES: 0DDPA, 0PLUME, 1PLUME, SPLUME, OSPLUME;
+ANALYSES: 0DDPA, 0PLUME, 1PLUME, SPLUME, OSKPLUME, OSMPLUME;
 RESULTS:   0DDPA(evenzero) = `{false, true}`,
            0DDPA(oddzero) = `{false, true}`,
            0DDPA(eventhree) =  `{false, true}`,
@@ -24,17 +24,23 @@ RESULTS:   0DDPA(evenzero) = `{false, true}`,
            SPLUME(oddthree) = `{false, true}`,
            SPLUME(evensix) =  `{false, true}`,
            SPLUME(oddsix) = `{false, true}`,
-           OSPLUME(evenzero) = `{false, true}`,
-           OSPLUME(oddzero) = `{false, true}`,
-           OSPLUME(eventhree) =  `{false, true}`,
-           OSPLUME(oddthree) = `{false, true}`,
-           OSPLUME(evensix) =  `{false, true}`,
-           OSPLUME(oddsix) = `{false, true}`;
+           OSKPLUME(evenzero) = `{false, true}`,
+           OSKPLUME(oddzero) = `{false, true}`,
+           OSKPLUME(eventhree) =  `{false, true}`,
+           OSKPLUME(oddthree) = `{false, true}`,
+           OSKPLUME(evensix) =  `{false, true}`,
+           OSKPLUME(oddsix) = `{false, true}`,
+           OSMPLUME(evenzero) = `{false, true}`,
+           OSMPLUME(oddzero) = `{false, true}`,
+           OSMPLUME(eventhree) =  `{false, true}`,
+           OSMPLUME(oddthree) = `{false, true}`,
+           OSMPLUME(evensix) =  `{false, true}`,
+           OSMPLUME(oddsix) = `{false, true}`;
 CONSISTENCIES: 0DDPA = NO_INCONSISTENCIES &
                0PLUME = NO_INCONSISTENCIES &
                1PLUME = NO_INCONSISTENCIES &
                SPLUME = NO_INCONSISTENCIES &
-               OSPLUME = NO_INCONSISTENCIES
-;
+               OSKPLUME = NO_INCONSISTENCIES &
+               OSMPLUME = NO_INCONSISTENCIES;
 WELL_FORMED;
 EVALUATE;

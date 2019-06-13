@@ -1,18 +1,21 @@
 QUERY: x, z;
-ANALYSES: 1DDPA, 1PLUME, SPLUME, OSPLUME;
+ANALYSES: 1DDPA, 1PLUME, SPLUME, OSKPLUME, OSMPLUME;
 RESULTS: 1DDPA(x) = `{{}}`,
          1DDPA(z) = `{{}}`,
          1PLUME(x) = `{{}}`,
          1PLUME(z) = `{{}}`,
          SPLUME(x) = `{{}}`,
          SPLUME(z) = `{{}}`,
-         OSPLUME(x) = `{{}}`,
-         OSPLUME(z) = `{{}}`
+         OSKPLUME(x) = `{{}}`,
+         OSKPLUME(z) = `{{}}`,
+         OSMPLUME(x) = `{{}}`,
+         OSMPLUME(z) = `{{}}`
 ;
 CONSISTENCIES: 1DDPA = NO_INCONSISTENCIES &
                1PLUME = NO_INCONSISTENCIES &
                SPLUME = NO_INCONSISTENCIES &
-               OSPLUME = NO_INCONSISTENCIES
+               OSKPLUME = NO_INCONSISTENCIES &
+               OSMPLUME = NO_INCONSISTENCIES
 ;
 WELL_FORMED;
 EVALUATE;

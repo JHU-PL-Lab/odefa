@@ -1,12 +1,14 @@
 QUERY: s2;
-ANALYSES: 4DDPA, 4PLUME, SPLUME, OSPLUME;
+ANALYSES: 4DDPA, 4PLUME, SPLUME, OSKPLUME, OSMPLUME;
 RESULTS: 4DDPA(s2) = `{{a=empty}, {b=empty}}`,
          4PLUME(s2) = `{{a=empty}, {b=empty}}`,
          SPLUME(s2) = `{{b=empty}}`,
-         OSPLUME(s2) = `{{b=empty}}`;
+         OSKPLUME(s2) = `{{b=empty}}`,
+         OSMPLUME(s2) = `{{b=empty}}`;
 CONSISTENCIES: 4DDPA = NO_INCONSISTENCIES &
                4PLUME = NO_INCONSISTENCIES &
                SPLUME = NO_INCONSISTENCIES &
-               OSPLUME = NO_INCONSISTENCIES;
+               OSKPLUME = NO_INCONSISTENCIES & 
+               OSMPLUME = NO_INCONSISTENCIES;
 WELL_FORMED;
 EVALUATE;

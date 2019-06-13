@@ -1,13 +1,14 @@
 QUERY: r;
-ANALYSES: 0DDPA, 0PLUME, SPLUME, OSPLUME;
+ANALYSES: 0DDPA, 0PLUME, SPLUME, OSKPLUME, OSMPLUME;
 RESULTS: 0DDPA(r) = `{{l=one}}`,
          0PLUME(r) = `{{l=one}}`,
          SPLUME(r) = `{{l=one}}`,
-         OSPLUME(r) = `{{l=one}}`;
+         OSKPLUME(r) = `{{l=one}}`,
+         OSMPLUME(r) = `{{l=one}}`;
 CONSISTENCIES: 0DDPA = NO_INCONSISTENCIES &
                0PLUME = NO_INCONSISTENCIES &
                SPLUME = NO_INCONSISTENCIES &
-               OSPLUME = NO_INCONSISTENCIES
-;
+               OSKPLUME = NO_INCONSISTENCIES &
+               OSMPLUME = NO_INCONSISTENCIES;
 WELL_FORMED;
 EVALUATE;
