@@ -102,7 +102,7 @@ let plume_analysis_to_stack (task : analysis_task) : (module Model) =
       )
   (*NOTE/FIXME: implement SPLUME and OSPLUME!!! *)
   | SPLUME -> (module Plume_set.Set : Model)
-  | OSPLUME -> (module Plume_ordered_set.Ordered_Set : Model)  
+  | OSPLUME -> (module Plume_ordered_set.Ordered_Set : Model)
   | _ ->
     (* Since this function is only expecting DDPA analyses, throw an error *)
     raise Not_found
@@ -128,10 +128,10 @@ let name_parsing_functions =
        | "2plume" ->
          PLUME (2)
        (* | "none" -> None *)
-       (* | "splume" ->
-          Plume (module Plume_context_model.Context_model)
-          | "osplume" ->
-          Plume (module Plume_context_model.Context_model) *)
+       | "splume" ->
+         SPLUME
+       | "osplume" ->
+         OSPLUME
        | _ -> raise Not_found
     )
     ;
