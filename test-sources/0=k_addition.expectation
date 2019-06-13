@@ -1,14 +1,16 @@
 QUERY:  xx;
-ANALYSES: 0DDPA, 0PLUME, SPLUME, OSPLUME;
+ANALYSES: 0DDPA, 0PLUME, SPLUME, OSKPLUME, OSMPLUME;
 RESULTS: 0DDPA(xx) = `{int}`,
          0PLUME(xx) = `{int}`,
          SPLUME(xx) = `{int}`,
-         OSPLUME(xx) = `{int}`
+         OSKPLUME(xx) = `{int}`,
+         OSMPLUME(xx) = `{int}`
 ;
 CONSISTENCIES: 0DDPA = NO_INCONSISTENCIES &
                0PLUME = NO_INCONSISTENCIES &
                SPLUME = NO_INCONSISTENCIES &
-               OSPLUME = NO_INCONSISTENCIES
+               OSKPLUME = NO_INCONSISTENCIES &
+               OSMPLUME = NO_INCONSISTENCIES
 ;
 EVALUATE;
 WELL_FORMED;

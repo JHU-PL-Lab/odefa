@@ -1,14 +1,16 @@
 QUERY: z;
-ANALYSES: 0DDPA, 0PLUME, SPLUME, OSPLUME;
+ANALYSES: 0DDPA, 0PLUME, SPLUME, OSKPLUME, OSMPLUME;
 RESULTS: 0DDPA(z) = `{false, true}`,
          0PLUME(z) = `{false, true}`,
          SPLUME(z) = `{false, true}`,
-         OSPLUME(z) = `{false, true}`
+         OSKPLUME(z) = `{false, true}`,
+         OSMPLUME(z) = `{false, true}`
 ;
 CONSISTENCIES: 0DDPA = NO_INCONSISTENCIES &
                0PLUME = NO_INCONSISTENCIES &
                SPLUME = NO_INCONSISTENCIES &
-               OSPLUME = NO_INCONSISTENCIES
+               OSKPLUME = NO_INCONSISTENCIES &
+               OSMPLUME = NO_INCONSISTENCIES
 ;
 WELL_FORMED;
 EVALUATE;

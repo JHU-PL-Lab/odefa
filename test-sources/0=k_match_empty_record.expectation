@@ -1,15 +1,21 @@
 QUERY: r1, r2;
-ANALYSES: 0DDPA, 0PLUME, SPLUME;
+ANALYSES: 0DDPA, 0PLUME, SPLUME, OSKPLUME, OSMPLUME;
 RESULTS: 0DDPA(r1) = `{{}}`,
          0DDPA(r2) = `{int}`,
          0PLUME(r1) = `{{}}`,
          0PLUME(r2) = `{int}`,
          SPLUME(r1) = `{{}}`,
-         SPLUME(r2) = `{int}`
+         SPLUME(r2) = `{int}`,
+         OSKPLUME(r1) = `{{}}`,
+         OSKPLUME(r2) = `{int}`,
+         OSMPLUME(r1) = `{{}}`,
+         OSMPLUME(r2) = `{int}`
 ;
 CONSISTENCIES: 0DDPA = NO_INCONSISTENCIES &
                0PLUME = NO_INCONSISTENCIES &
-               SPLUME = NO_INCONSISTENCIES
+               SPLUME = NO_INCONSISTENCIES &
+               OSKPLUME = NO_INCONSISTENCIES &
+               OSMPLUME = NO_INCONSISTENCIES
 ;
 WELL_FORMED;
 EVALUATE;

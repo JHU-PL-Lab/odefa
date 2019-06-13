@@ -1,5 +1,5 @@
 QUERY: numberpatternmatch, nott, torf;
-ANALYSES: 0DDPA, 0PLUME, SPLUME, OSPLUME;
+ANALYSES: 0DDPA, 0PLUME, SPLUME, OSKPLUME, OSMPLUME;
 RESULTS: 0DDPA(numberpatternmatch) = `{int}`,
          0DDPA(nott) = `{false}`,
          0DDPA(torf) = `{true}`,
@@ -9,14 +9,18 @@ RESULTS: 0DDPA(numberpatternmatch) = `{int}`,
          SPLUME(numberpatternmatch) = `{int}`,
          SPLUME(nott) = `{false}`,
          SPLUME(torf) = `{true}`,
-         OSPLUME(numberpatternmatch) = `{int}`,
-         OSPLUME(nott) = `{false}`,
-         OSPLUME(torf) = `{true}`
+         OSKPLUME(numberpatternmatch) = `{int}`,
+         OSKPLUME(nott) = `{false}`,
+         OSKPLUME(torf) = `{true}`,
+         OSMPLUME(numberpatternmatch) = `{int}`,
+         OSMPLUME(nott) = `{false}`,
+         OSMPLUME(torf) = `{true}`
 ;
 CONSISTENCIES: 0DDPA = NO_INCONSISTENCIES &
                0PLUME = NO_INCONSISTENCIES &
                SPLUME = NO_INCONSISTENCIES &
-               OSPLUME = NO_INCONSISTENCIES
+               OSKPLUME = NO_INCONSISTENCIES &
+               OSMPLUME = NO_INCONSISTENCIES
 ;
 WELL_FORMED;
 EVALUATE;

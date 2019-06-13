@@ -1,7 +1,7 @@
 QUERY: spatternmatch, s0cpatternmatch, s0spacepatternmatch,
        s6spacepatternmatch, s12hpatternmatch, s13emptypatternmatch,
        schunckytempehpatternmatch;
-ANALYSES: 0DDPA, 0PLUME, SPLUME;
+ANALYSES: 0DDPA, 0PLUME, SPLUME, OSKPLUME, OSMPLUME;
 RESULTS: 0DDPA(spatternmatch) = `{int}`,
          0DDPA(s0cpatternmatch) = `{int, false}`,
          0DDPA(s0spacepatternmatch) = `{int, false}`,
@@ -22,11 +22,27 @@ RESULTS: 0DDPA(spatternmatch) = `{int}`,
          SPLUME(s6spacepatternmatch) = `{int, false}`,
          SPLUME(s12hpatternmatch) = `{int, false}`,
          SPLUME(s13emptypatternmatch) = `{int, false}`,
-         SPLUME(schunckytempehpatternmatch) = `{int, false}`
+         SPLUME(schunckytempehpatternmatch) = `{int, false}`,
+         OSKPLUME(spatternmatch) = `{int}`,
+         OSKPLUME(s0cpatternmatch) = `{int, false}`,
+         OSKPLUME(s0spacepatternmatch) = `{int, false}`,
+         OSKPLUME(s6spacepatternmatch) = `{int, false}`,
+         OSKPLUME(s12hpatternmatch) = `{int, false}`,
+         OSKPLUME(s13emptypatternmatch) = `{int, false}`,
+         OSKPLUME(schunckytempehpatternmatch) = `{int, false}`,
+         OSMPLUME(spatternmatch) = `{int}`,
+         OSMPLUME(s0cpatternmatch) = `{int, false}`,
+         OSMPLUME(s0spacepatternmatch) = `{int, false}`,
+         OSMPLUME(s6spacepatternmatch) = `{int, false}`,
+         OSMPLUME(s12hpatternmatch) = `{int, false}`,
+         OSMPLUME(s13emptypatternmatch) = `{int, false}`,
+         OSMPLUME(schunckytempehpatternmatch) = `{int, false}`
 ;
 CONSISTENCIES: 0DDPA = NO_INCONSISTENCIES &
                0PLUME = NO_INCONSISTENCIES &
-               SPLUME = NO_INCONSISTENCIES
+               SPLUME = NO_INCONSISTENCIES &
+               OSKPLUME = NO_INCONSISTENCIES &
+               OSMPLUME = NO_INCONSISTENCIES
 ;
 WELL_FORMED;
 EVALUATE;
