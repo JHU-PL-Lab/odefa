@@ -119,28 +119,33 @@ let observe_ill_formed illformednesses expectation =
   | _ -> Some expectation
 ;;
 
-let observe_queries reprs expectation =
+let observe_queries analysis reprs expectation =
   match expectation with
   | CLExpect_result expect ->
     let Result (a, expect_q, ResultString expect_res) = expect in
-    let any_match =
-      List.exists
-        (fun repr ->
-           (match repr with
-            | QnA (actual_q, actual_res) ->
-              if (expect_q = actual_q) then
-                let pp_res_str =
-                  Pp_utils.pp_to_string Abs_filtered_value_set.pp actual_res
-                in
-                if (expect_res = pp_res_str) then true
-                else assert_failure @@
-                  Printf.sprintf
-                    "for analysis %s, the look up %s expected %s but got %s"
-                    (Toploop_utils.analysis_task_to_name a) (show_query expect_q) expect_res pp_res_str
-              else false)
-        )
-        reprs
-    in if any_match then None else Some expectation
+    if analysis = a then
+      begin
+        let any_match =
+          List.exists
+            (fun repr ->
+               (match repr with
+                | QnA (actual_q, actual_res) ->
+                  if (expect_q = actual_q) then
+                    let pp_res_str =
+                      Pp_utils.pp_to_string Abs_filtered_value_set.pp actual_res
+                    in
+                    if (expect_res = pp_res_str) then true
+                    else
+                      let _ = (print_endline (Printf.sprintf
+                                                "for analysis %s, the look up %s expected %s but got %s"
+                                                (Toploop_utils.analysis_task_to_name a) (show_query expect_q) expect_res pp_res_str))
+                      in false
+                  else false)
+            )
+            reprs
+        in if any_match then None else Some expectation
+      end
+    else Some expectation
   | _ -> Some expectation
 ;;
 
@@ -363,7 +368,7 @@ let make_test filename gen_expectations analysis_expectation =
         (* If there are no errors, report that. *)
         if errors = [] then observation observe_no_inconsistency;
         (* Report each resulting variable analysis. *)
-        observation @@ observe_queries qnas;
+        observation @@ observe_queries key qnas;
       in
       List.fold_left checking_for_one_key () keys;
 
