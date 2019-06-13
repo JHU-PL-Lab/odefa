@@ -1,11 +1,18 @@
 QUERY: ra, rb;
-ANALYSES: 1DDPA, 1PLUME, SPLUME;
+ANALYSES: 1DDPA, 1PLUME, SPLUME, OSPLUME;
 RESULTS: 1DDPA(ra) = `{int}`,
          1DDPA(rb) = `{{}}`,
          1PLUME(ra) = `{int}`,
          1PLUME(rb) = `{{}}`,
          SPLUME(ra) = `{int}`,
-         SPLUME(rb) = `{{}}`;
-CONSISTENCIES: 1DDPA = NO_INCONSISTENCIES & 1PLUME = NO_INCONSISTENCIES & SPLUME = NO_INCONSISTENCIES;
+         SPLUME(rb) = `{{}}`,
+         OSPLUME(ra) = `{int}`,
+         OSPLUME(rb) = `{{}}`
+;
+CONSISTENCIES: 1DDPA = NO_INCONSISTENCIES &
+               1PLUME = NO_INCONSISTENCIES &
+               SPLUME = NO_INCONSISTENCIES &
+               OSPLUME = NO_INCONSISTENCIES
+;
 WELL_FORMED;
 EVALUATE;

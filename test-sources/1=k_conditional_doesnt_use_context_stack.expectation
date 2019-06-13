@@ -1,11 +1,18 @@
 QUERY: ia, ib;
-ANALYSES: 1DDPA, 1PLUME, SPLUME;
+ANALYSES: 1DDPA, 1PLUME, SPLUME, OSPLUME;
 RESULTS: 1DDPA(ia) = `{{a=e}:(+{{a={}}},-{})}`,
          1DDPA(ib) = `{{b=e}}`,
          1PLUME(ia) = `{{a=e}:(+{{a={}}},-{})}`,
          1PLUME(ib) = `{{b=e}}`,
          SPLUME(ia) = `{{a=e}:(+{{a={}}},-{})}`,
-         SPLUME(ib) = `{{b=e}}`;
-CONSISTENCIES: 1DDPA = NO_INCONSISTENCIES & 1PLUME = NO_INCONSISTENCIES & SPLUME = NO_INCONSISTENCIES;
+         SPLUME(ib) = `{{b=e}}`,
+         OSPLUME(ia) = `{{a=e}:(+{{a={}}},-{})}`,
+         OSPLUME(ib) = `{{b=e}}`
+;
+CONSISTENCIES: 1DDPA = NO_INCONSISTENCIES &
+               1PLUME = NO_INCONSISTENCIES &
+               SPLUME = NO_INCONSISTENCIES &
+               OSPLUME = NO_INCONSISTENCIES
+;
 WELL_FORMED;
 EVALUATE;
