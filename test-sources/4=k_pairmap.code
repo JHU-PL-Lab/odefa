@@ -1,0 +1,23 @@
+p1 = 1;
+pair_one = {first = p1, second = p1};
+pair_two = {first = pair_one, second = pair_one};
+pair_three = {first = pair_two, second = pair_two};
+fst = fun p2 -> (x0 = p2.first);
+snd = fun p3 -> (x1 = p3.second);
+pmap = fun f ->
+        (x2 = fun p4 ->
+              (x3 = fst p4;
+               x4 = snd p4;
+               x5 = f x3;
+               x6 = f x4;
+               x7 = {first = x5, second = x6};
+              )
+          );
+intone = 1;
+inc = fun num -> (incd = num + intone);
+one_pmap = pmap inc;
+two_pmap = pmap one_pmap;
+three_pmap = pmap two_pmap;
+call = three_pmap pair_three;
+intermediate_res = call.first;
+res = intermediate_res.first;;
