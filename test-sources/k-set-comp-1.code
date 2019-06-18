@@ -1,0 +1,22 @@
+x0 = true;
+x1 = false;
+x2 = fun self ->
+(x14 = fun b ->
+(x15 = fun n ->
+(zero = 0;
+x3 = n==zero;
+ x4 = x3~true?
+  fun iszero -> (x6 = b):
+  fun isnotzero ->
+  (x8 = self self;
+   x9 = x8 b;
+   one = 1;
+   x10 = n - one;
+   x11 = x9 x10);
+)));
+x12 = x2 x2;
+x13 = x12 x0;
+x16 = x12 x1;
+x17 = 2;
+x18 = x16 x17;
+x19 = x13 x17;
