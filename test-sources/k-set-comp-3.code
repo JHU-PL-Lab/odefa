@@ -1,0 +1,32 @@
+# so the thing here is that we hoped that splume and 1plume would do different
+# things, but they're doing the same thing. sad
+
+num1 = 5;
+num2 = 6;
+m_fun_wrapper = fun self ->
+(
+  m_fun = fun num ->
+  (
+
+      zero = 0;
+      is_zero = num == zero;
+      ret = is_zero~true?
+            fun tr -> (val = true) :
+            fun fal -> (one = 1;
+                        is_one = num == one;
+                        other_ret = is_one~true?
+                        fun tr1 -> (val1 = false) :
+                        fun fal1 -> (self2 = self self;
+                                     two = 2;
+                                     new_num = num - two;
+                                     new_val = self2 new_num
+                        );
+            );
+
+
+  );
+
+);
+m_fun_ready = m_fun_wrapper m_fun_wrapper;
+m_fun_first_appl = m_fun_ready num1;
+m_fun_second_appl = m_fun_ready num2;
