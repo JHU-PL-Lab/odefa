@@ -1,0 +1,53 @@
+x0 = 1;
+x1 = true;
+x2 = fun self ->
+     (x3 = fun elm ->
+           (x4 = fun n ->
+                 (x5 = elm~int?
+                       (fun isint ->):
+                       (fun notint ->)
+                 )
+           )
+     )
+
+     list_map_p = fun self2 ->
+                  (x14 = fun map_fun ->
+                         (x15 = fun list_to_map ->
+                                (x16 = list_to_map.tail;
+                                 x17 = x16~{}?
+                                 fun isempty ->
+                                 (x18 = list_to_map.head;
+                                  x19 = map_fun x18;
+                                  x20 = {head = x19, tail = empty};
+                                 )
+                                 :
+                                 fun notempty ->
+                                 (x21 = list_to_map.head;
+                                  x22 = map_fun x21;
+                                  x23 = self2 self2;
+                                  x24 = x23 map_fun;
+                                  x25 = list_to_map.tail;
+                                  x26 = x24 x25;
+                                  x27 = {head = x22, tail = x26};
+                                 )
+                                )
+                         )
+                  )
+     ;
+     list_map = list_map_p list_map_p;
+
+     list1_step1 = list_maker one;
+     list1_step2 = list1_step1 three;
+
+     inc = fun elm ->
+           (x0 = elm~int?
+                 fun isint ->
+                  (x1 = 1;
+                   x2 = elm + x1;
+                  )
+                 :
+                 fun notint ->
+                  (x3 = not elm;
+                  )
+           )
+     ;

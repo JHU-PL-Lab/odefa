@@ -1,0 +1,107 @@
+empty = {};
+zero = 0;
+one = 1;
+two = 2;
+three = 3;
+ten = 10;
+T = true;
+inc = fun elm ->
+      (x0 = elm~int?
+            fun isint ->
+             (x1 = 1;
+              x2 = elm + x1;
+             )
+            :
+            fun notint ->
+             (x3 = not elm;
+             )
+      )
+;
+trans = fun elm2 ->
+      (x0 = elm2~int?
+            fun isint2 ->
+             (x1_p = true;
+             )
+            :
+            fun notint2 ->
+             (x3_p = 1;
+             )
+      )
+;
+list_maker_p = fun self ->
+               (x4 = fun list_elm ->
+                     (x5 = fun rep ->
+                           (x6 = rep == zero;
+                            x7 = x6~true?
+                            fun iszero -> (x8 = {empty = empty};)
+                            :
+                            fun notzero ->
+                            (x9 = self self;
+                             x10 = x9 list_elm;
+                             x11 = rep - one;
+                             x12 = x10 x11;
+                             x13 = {head = list_elm, tail = x12};
+                            )
+                           )
+                     )
+               )
+;
+list_map_p = fun self2 ->
+             (x14 = fun map_fun ->
+                    (x15 = fun list_to_map ->
+                           (x16 = list_to_map.tail;
+                            x17 = x16~{empty = any}?
+                            fun isempty ->
+                            (x18 = list_to_map.head;
+                             x19 = map_fun x18;
+                             tailexpr = {empty = empty};
+                             x20 = {head = x19, tail = tailexpr};
+                            )
+                            :
+                            fun notempty ->
+                            (x21 = list_to_map.head;
+                             x22 = map_fun x21;
+                             x23 = self2 self2;
+                             x24 = x23 map_fun;
+                             x25 = list_to_map.tail;
+                             x26 = x24 x25;
+                             x27 = {head = x22, tail = x26};
+                            )
+                           )
+                    )
+             )
+;
+list_access_p = fun self3 ->
+              (x28 = fun list_to_search ->
+                     (x29 = fun index ->
+                            (x30 = index == zero;
+                             x31 = x30~true?
+                             fun iszero2 ->
+                                 (x32 = list_to_search.head;)
+                             :
+                             fun notzero2 ->
+                                 (x33 = index - one;
+                                  x34 = self3 self3;
+                                  x35 = list_to_search.tail;
+                                  x36 = x34 x35;
+                                  x37 = x36 x33;
+                                 )
+                            )
+                     )
+              )
+;
+list_map = list_map_p list_map_p;
+list_maker = list_maker_p list_maker_p;
+list_access = list_access_p list_access_p;
+list1_step1 = list_maker one;
+list1_step2 = list1_step1 three;
+# list2_step1 = list_maker T;
+# list2_step2 = list2_step1 three;
+list_fun1 = list_map inc;
+list_fun2 = list_map trans;
+list_map_list1 = list_fun1 list1_step2;
+list_map_list2 = list_fun2 list1_step2;
+# list_map_list2 = list_fun list2_step2;
+res_ = list_access list_map_list2;
+res = res_ one;
+;;
