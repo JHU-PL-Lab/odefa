@@ -1,0 +1,7 @@
+QUERY: m_fun_second_appl;
+ANALYSES: 1PLUME, SPLUME;
+RESULTS: 1PLUME(m_fun_second_appl) = `{false, true}`,
+         SPLUME(m_fun_second_appl) = `{false, true}`;
+CONSISTENCIES: 1PLUME = NO_INCONSISTENCIES &
+               SPLUME = NO_INCONSISTENCIES;
+WELL_FORMED;

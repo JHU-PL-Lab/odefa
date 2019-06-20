@@ -1,0 +1,122 @@
+# this test illustrates that when list_fold is ran on two different lists
+# with the same function, kPLUME will be confused but SPLUME will not.
+
+# splume concludes that the value of list_2 might be an empty list - hence why
+# the value of list_fold_go_2 is a bit conflated here as well.
+
+zero = 0;
+one = 1;
+
+# this function assumes that accumulator and int have the same type,
+# and either they are int or bool.
+fun_1 = fun accumulator ->
+(
+  blub_0 = fun item ->
+  (
+    fun_1_res = accumulator~int?
+             fun match_int -> (res_match_int = accumulator + item;):
+             fun antimatch_int -> (res_antimatch_int = accumulator or item;);
+  );
+);
+
+
+# function that generates a list, taking in itself (to recurse),
+# the element that goes into the list, and how long the list is
+list_maker = fun lm_self ->
+(
+  blub_1 = fun element ->
+  (
+    blub_2 = fun length ->
+    (
+      is_zero = length == zero;
+      list_so_far = is_zero~true?
+      fun tru -> (empty = {empty = zero}):
+      fun fal -> (lm_self2_part1 = lm_self lm_self;
+                  lm_self2_part2 = lm_self2_part1 element;
+                  length_of_rest = length - one;
+                  rest = lm_self2_part2 length_of_rest;
+                  new_list = {head = element, tail = rest};
+      );
+    );
+  );
+);
+
+# The equivalent of a List.fold function
+list_folder = fun lf_self ->
+(
+  blub_3 = fun the_function ->
+  (
+    blub_4 = fun acc ->
+    (
+      blub_5 = fun the_list ->
+      (
+          blub_6 = the_list~{empty = any}?
+          # the list is empty. abort
+          fun tr -> (blub_7 = acc):
+          # the list is not empty, so we need to apply the
+          fun fl -> (lf_head = the_list.head;
+                     part_1 = the_function acc;
+                     new_acc = part_1 lf_head;
+                     the_rest = the_list.tail;
+                     lf_self1_part1 = lf_self lf_self;
+                     lf_self1_part2 = lf_self1_part1 the_function;
+                     lf_self1_part3 = lf_self1_part2 new_acc;
+                     lf_self1_part4 = lf_self1_part3 the_rest
+          );
+      );
+    );
+  );
+);
+
+# please don't ask me why this exists.
+list_accessor = fun la_self ->
+(
+  blob0 = fun la_list ->
+(
+  blob1 = fun la_num ->
+  (
+    found = la_num == zero;
+    search = found~true?
+             fun done -> (access_res = la_list.head;
+             ):
+             fun not_done -> (
+              la_next = la_self la_self;
+              la_list_tail = la_list.tail;
+              la_next_with_list = la_next la_list_tail;
+              next_num = la_num - one;
+              la_go = la_next_with_list next_num;
+             );
+
+  );
+);
+);
+
+elm_int = 1;
+elm_bool = true;
+acc1 = 0;
+acc2 = false;
+len = 5;
+
+list_maker_semi_real = list_maker list_maker;
+list_maker_for_int = list_maker_semi_real elm_int;
+list_maker_for_bool = list_maker_semi_real elm_bool;
+list_1 = list_maker_for_int len;
+list_2 = list_maker_for_bool len;
+
+# pass fold into itself
+list_fold = list_folder list_folder;
+
+# pass function into list_fold
+list_fold_w_fun = list_fold fun_1;
+
+# pass the accumulator that corresponds with the first list with the fun
+list_fold_w_acc_1 = list_fold_w_fun acc1;
+
+# pass the integer list into list_fold
+list_fold_go_1 = list_fold_w_acc_1 list_1;
+
+# pass the corresponding accumulator with the second list
+list_fold_w_acc_2 = list_fold_w_fun acc2;
+
+# pass the boolean list into list_fold
+list_fold_go_2 = list_fold_w_acc_2 list_2;
