@@ -1,0 +1,11 @@
+QUERY: res;
+ANALYSES: 2PLUME, SPLUME, OSMPLUME, OSKPLUME;
+RESULTS: 2PLUME(res) = `{{head=x19, tail=tailexpr}, {head=x22, tail=x26}, int}`,
+         SPLUME(res) = `{{head=x19, tail=tailexpr}, {head=x22, tail=x26}}`,
+         OSMPLUME(res) = `{{head=x19, tail=tailexpr}, {head=x22, tail=x26}}`,
+         OSKPLUME(res) = `{{head=x19, tail=tailexpr}, {head=x22, tail=x26}}`;
+CONSISTENCIES: 2PLUME = NO_INCONSISTENCIES &
+               SPLUME = NO_INCONSISTENCIES &
+               OSMPLUME = NO_INCONSISTENCIES &
+               OSKPLUME = NO_INCONSISTENCIES;
+WELL_FORMED;

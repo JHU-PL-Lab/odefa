@@ -1,0 +1,11 @@
+QUERY: res;
+ANALYSES: 2PLUME, SPLUME, OSMPLUME, OSKPLUME;
+RESULTS: 2PLUME(res) = `{int, true}`,
+         SPLUME(res) = `{true}`,
+         OSMPLUME(res) = `{true}`,
+         OSKPLUME(res) = `{true}`;
+CONSISTENCIES: 2PLUME = NO_INCONSISTENCIES &
+               SPLUME = NO_INCONSISTENCIES &
+               OSMPLUME = NO_INCONSISTENCIES &
+               OSKPLUME = NO_INCONSISTENCIES;
+WELL_FORMED;

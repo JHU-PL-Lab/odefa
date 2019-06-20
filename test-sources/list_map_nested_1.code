@@ -1,3 +1,8 @@
+# This test demonstrates k-Plume's loss of precision when it comes to dynamically
+# created inductive data structure. In this program, a nested list containing
+# lists of integers is created, and a nested list.map is called on the list with
+# the increment function.
+# s-Plume, on the other hand, handles it like a champion. Again.
 empty = {};
 zero = 0;
 one = 1;
@@ -5,6 +10,8 @@ two = 2;
 three = 3;
 ten = 10;
 T = true;
+# The inc function; if input is integer, increases it by one. If it's a boolean,
+# gets the negation of that boolean.
 inc = fun elm ->
       (x0 = elm~int?
             fun isint ->
@@ -17,6 +24,8 @@ inc = fun elm ->
              )
       )
 ;
+# This function takes in an element and number of repetition, n, and produces
+# a list that contains n provided element.
 list_maker_p = fun self ->
                (x4 = fun list_elm ->
                      (x5 = fun rep ->
@@ -35,6 +44,7 @@ list_maker_p = fun self ->
                      )
                )
 ;
+# The actual list.map fun
 list_map_p = fun self2 ->
              (x14 = fun map_fun ->
                     (x15 = fun list_to_map ->
@@ -60,6 +70,7 @@ list_map_p = fun self2 ->
                     )
              )
 ;
+# A dynamic list access function
 list_access_p = fun self3 ->
               (x28 = fun list_to_search ->
                      (x29 = fun index ->
@@ -79,20 +90,20 @@ list_access_p = fun self3 ->
                      )
               )
 ;
+# Creating the actual functions by self-passing
 list_map = list_map_p list_map_p;
 list_maker = list_maker_p list_maker_p;
 list_access = list_access_p list_access_p;
+# Create a list of ints
 list1_step1 = list_maker one;
 list1_step2 = list1_step1 three;
-list2_step1 = list_maker T;
+# Create a third list of lists of ints
+list2_step1 = list_maker list1_step2;
 list2_step2 = list2_step1 three;
-list3_step1 = list_maker list1_step2;
-list3_step2 = list3_step1 three;
 list_fun = list_map inc;
 list_double_fun = list_map list_fun;
-list_map_list1 = list_fun list1_step2;
-list_map_list2 = list_fun list2_step2;
-list_map_list3 = list_double_fun list3_step2;
-res_p = list_access list_map_list3;
-res = list_map_list3;
-;;
+# Apply two-level deep list.map on the nested list
+list_mapp_list = list_double_fun list2_step2;
+res_p = list_access list_mapp_list;
+# Query for the first element of the result list, which should be a list of int
+res = res_p one;
