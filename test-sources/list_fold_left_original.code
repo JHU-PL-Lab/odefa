@@ -12,6 +12,9 @@ fun_1 = fun accumulator ->
   );
 );
 
+# This function assumes that if the item is an int, the accumulator is a boolean,
+# and else the accumulator is an int
+
 fun_2 = fun accumulator_2 ->
 (
   blab_0 = fun item_2 ->
@@ -21,7 +24,8 @@ fun_2 = fun accumulator_2 ->
               a_bool = true;
               a_combination_of_bool = a_bool and accumulator_2;
              ):
-             fun antimatch_int_2 -> (res_antimatch_int_2 = 5;);
+             fun antimatch_int_2 -> (an_int = 5;
+             res_antimatch_int_2 = accumulator + an_int;);
   );
 );
 

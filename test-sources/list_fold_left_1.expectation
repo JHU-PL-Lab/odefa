@@ -1,0 +1,12 @@
+QUERY: list_2, list_fold_go_2;
+ANALYSES: 3PLUME, SPLUME, OSKPLUME, OSMPLUME;
+RESULTS: 3PLUME(list_2) = `{{empty=zero}, {head=element, tail=rest}}`,
+         SPLUME(list_2) = `{{empty=zero}, {head=element, tail=rest}}`,
+         OSKPLUME(list_2) = `{{empty=zero}, {head=element, tail=rest}}`,
+         OSMPLUME(list_2) = `{{empty=zero}, {head=element, tail=rest}}`,
+         3PLUME(list_fold_go_2) = `{int, false, true}`,
+         SPLUME(list_fold_go_2) = `{false, true}`,
+         OSKPLUME(list_fold_go_2) = `{false, true}`,
+         OSMPLUME(list_fold_go_2) = `{false, true}`;
+CONSISTENCIES: ;
+WELL_FORMED;

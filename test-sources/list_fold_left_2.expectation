@@ -1,0 +1,8 @@
+QUERY: list_fold_go_2;
+ANALYSES: 3PLUME, SPLUME, OSKPLUME, OSMPLUME;
+RESULTS: 3PLUME(list_fold_go_2) = `{int, false}`,
+         SPLUME(list_fold_go_2) = `{false}`,
+         OSKPLUME(list_fold_go_2) = `{false}`,
+         OSMPLUME(list_fold_go_2) = `{false}`;
+CONSISTENCIES: ;
+WELL_FORMED;

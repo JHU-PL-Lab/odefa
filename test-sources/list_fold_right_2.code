@@ -1,0 +1,139 @@
+# this test passes a list of integers into List_fold twice with two different
+# functions with different return types. k gets conflated, s does well.
+
+zero = 0;
+one = 1;
+# for now this function assumes that accumulator and int have the same type,
+# and either they are int or bool.
+fun_1 = fun accumulator ->
+(
+  blub_0 = fun item ->
+  (
+    fun_1_res = accumulator~int?
+             fun match_int -> (res_match_int = accumulator + item;):
+             fun antimatch_int -> (res_antimatch_int = accumulator or item;);
+  );
+);
+
+# This function assumes that if the item is an int, the accumulator is a boolean,
+# and else the accumulator is an int
+
+fun_2 = fun accumulator_2 ->
+(
+  blab_0 = fun item_2 ->
+  (
+    fun_2_res = item_2~int?
+             fun match_int_2 -> (
+              a_bool = true;
+              a_combination_of_bool = a_bool and accumulator_2;
+             ):
+             fun antimatch_int_2 -> (an_int = 5;
+             res_antimatch_int_2 = accumulator_2 + an_int;);
+  );
+);
+
+
+# function that generates a list, taking in itself (to recurse),
+# the element that goes into the list, and how long the list is
+list_maker = fun lm_self ->
+(
+  blub_1 = fun element ->
+  (
+    blub_2 = fun length ->
+    (
+      is_zero = length == zero;
+      list_so_far = is_zero~true?
+      fun tru -> (empty = {empty = zero}):
+      fun fal -> (lm_self2_part1 = lm_self lm_self;
+                  lm_self2_part2 = lm_self2_part1 element;
+                  length_of_rest = length - one;
+                  rest = lm_self2_part2 length_of_rest;
+                  new_list = {head = element, tail = rest};
+      );
+    );
+  );
+);
+
+# The equivalent of a List.fold function. Here it is a fold_right
+list_folder = fun lf_self ->
+(
+  blub_3 = fun the_function ->
+  (
+    blub_4 = fun acc ->
+    (
+      blub_5 = fun the_list ->
+      (
+          blub_6 = the_list~{empty = any}?
+          # the list is empty. abort
+          fun tr -> (blub_7 = acc):
+          # the list is not empty, so we need to apply the
+          fun fl -> (the_rest = the_list.tail;
+                     lf_self1_part1 = lf_self lf_self;
+                     lf_self1_part2 = lf_self1_part1 the_function;
+                     lf_self1_part3 = lf_self1_part2 acc;
+                     new_acc = lf_self1_part3 the_rest;
+                     lf_head = the_list.head;
+                     part_2 = the_function new_acc;
+                     lf_result = part_2 lf_head;
+          );
+      );
+    );
+  );
+);
+
+list_accessor = fun la_self ->
+(
+  blob0 = fun la_list ->
+(
+  blob1 = fun la_num ->
+  (
+    found = la_num == zero;
+    search = found~true?
+             fun done -> (access_res = la_list.head;
+             ):
+             fun not_done -> (
+              la_next = la_self la_self;
+              la_list_tail = la_list.tail;
+              la_next_with_list = la_next la_list_tail;
+              next_num = la_num - one;
+              la_go = la_next_with_list next_num;
+             );
+
+  );
+
+);
+
+);
+
+list_elm = 1;
+
+acc1 = 0;
+acc2 = false;
+
+len = 5;
+
+# dynamically constructing the list
+list_maker_semi_real = list_maker list_maker;
+list_maker_real = list_maker_semi_real list_elm;
+list_1 = list_maker_real len;
+
+# pass fold into itself
+list_fold = list_folder list_folder;
+
+# pass function 1 into list_fold
+list_fold_w_fun_1 = list_fold fun_1;
+
+# pass function 2 into list_fold
+list_fold_w_fun_2 = list_fold fun_2;
+
+# pass the accumulator that corresponds with the list in the first fun
+list_fold_w_acc_1 = list_fold_w_fun_1 acc1;
+
+# pass the list into list_fold, making sure that it goes
+list_fold_go_1 = list_fold_w_acc_1 list_1;
+
+# pass the accumulator that corresponds with the list in the second fun
+list_fold_w_acc_2 = list_fold_w_fun_2 acc2;
+
+# pass the list into list_fold with the second function
+list_fold_go_2 = list_fold_w_acc_2 list_1;
