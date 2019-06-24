@@ -1,0 +1,62 @@
+zero = 0;
+one = 1;
+two = 2;
+three = 3;
+empty = {};
+T = true;
+F = false;
+
+# Dynamically creates a list with alternating boolean values
+tail_rec = {empty = empty};
+list_create_1 = {head = F, tail = tail_rec};
+list_create_2 = {head = T, tail = list_create_1};
+list_create_3 = {head = F, tail = list_create_2};
+list_create_4 = {head = T, tail = list_create_3};
+list_create_5 = {head = F, tail = list_create_4};
+list_create_6 = {head = T, tail = list_create_5};
+list_create_7 = {head = F, tail = list_create_6};
+list_create_8 = {head = T, tail = list_create_7};
+list_create_9 = {head = F, tail = list_create_8};
+list_create_10 = {head = T, tail = list_create_9};
+alt_list_1 = list_create_10;
+# Mutually recursive functions that flip the false then and it with the rest of the list
+fun_f_p = fun f_to_f ->
+            (x7 = fun g_to_f ->
+                    (x8 = fun alt_list ->
+                            (x9 = alt_list.tail;
+                             x10 = x9~{empty = any}?
+                             fun is_end -> (x11 = T;)
+                             :
+                             fun not_end ->
+                               (x12 = alt_list.head;
+                                x13 = g_to_f f_to_f;
+                                x14 = x13 g_to_f;
+                                rest2 = x14 x9;
+                                x15 = x12 and rest2;
+                               )
+                            )
+                    )
+            )
+;
+fun_g_p = fun f_to_g ->
+            (x16 = fun g_to_g ->
+                    (x17 = fun alt_list_2 ->
+                            (x18 = alt_list_2.tail;
+                             x19 = x18~{empty = any}?
+                             fun is_end2 -> (x20 = T;)
+                             :
+                             fun not_end2 ->
+                               (x21 = alt_list_2.head;
+                                x22 = f_to_g f_to_g;
+                                x23 = x22 g_to_g;
+                                rest3 = x23 x18;
+                                x24 = not x21;
+                                x25 = x24 and rest3;
+                               )
+                            )
+                    )
+            )
+;
+fun_f_1 = fun_f_p fun_f_p;
+fun_f_2 = fun_f_1 fun_g_p;
+res = fun_f_2 alt_list_1;

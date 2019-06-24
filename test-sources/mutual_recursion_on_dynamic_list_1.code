@@ -1,0 +1,31 @@
+zero = 0;
+one = 1;
+two = 2;
+three = 3;
+empty = {};
+T = true;
+F = false;
+# This is a tail-recursive version of the alternating list creation function
+x0 = fun self1 ->
+      (x1 = fun num ->
+        (x2 = num == zero;
+         x3 = x2~true?
+         fun iszero1 ->
+          (x4 = {empty = empty};
+           x5 = {head = F, tail = x4};
+          )
+         :
+         fun notzero1 ->
+          (double_self1 = self1 self1;
+           next_num1 = num - one;
+           rest1 = double_self1 next_num1;
+           head_of_rest1 = rest1.head;
+           new_head1 = not head_of_rest1;
+           x6 = {head = new_head1, tail = rest1};
+          )
+        )
+      )
+;
+# Dynamically creates a list with alternating boolean values
+list_create_1 = x0 x0;
+alt_list_1 = list_create_1 three;

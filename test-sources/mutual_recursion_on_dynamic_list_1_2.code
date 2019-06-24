@@ -1,0 +1,73 @@
+zero = 0;
+one = 1;
+two = 2;
+three = 3;
+empty = {};
+T = true;
+F = false;
+# This is a tail-recursive version of the alternating list creation function
+x0 = fun self1 ->
+      (x1 = fun bool_to_add ->
+             (x2 = fun num ->
+                    (x3 = num == zero;
+                     x4 = x3~true?
+                          fun iszero1 ->
+                            (x5 = {empty = empty};)
+                          :
+                          fun notzero1 ->
+                            (double_self1 = self1 self1;
+                             next_num1 = num - one;
+                             next_bool_to_add = not bool_to_add;
+                             next_fun1 = double_self1 next_bool_to_add;
+                             rest1 = next_fun1 next_num1;
+                             x6 = {head = bool_to_add, tail = rest1};
+                            )
+              )
+            )
+      )
+;
+# Dynamically creates a list with alternating boolean values
+list_create_1 = x0 x0;
+list_create_2 = list_create_1 T;
+alt_list_1 = list_create_2 three;
+# Mutually recursive functions that flip the false then and it with the rest of the list
+fun_f_p = fun f_to_f ->
+            (x7 = fun g_to_f ->
+                    (x8 = fun alt_list ->
+                            (x9 = alt_list.tail;
+                             x10 = x9~{empty = any}?
+                             fun is_end -> (x11 = T;)
+                             :
+                             fun not_end ->
+                               (x12 = alt_list.head;
+                                x13 = g_to_f f_to_f;
+                                x14 = x13 g_to_f;
+                                rest2 = x14 x9;
+                                x15 = x12 and rest2;
+                               )
+                            )
+                    )
+            )
+;
+fun_g_p = fun f_to_g ->
+            (x16 = fun g_to_g ->
+                    (x17 = fun alt_list_2 ->
+                            (x18 = alt_list_2.tail;
+                             x19 = x18~{empty = any}?
+                             fun is_end2 -> (x20 = T;)
+                             :
+                             fun not_end2 ->
+                               (x21 = alt_list_2.head;
+                                x22 = f_to_g f_to_g;
+                                x23 = x22 g_to_g;
+                                rest3 = x23 x18;
+                                x24 = not x21;
+                                x25 = x24 and rest3;
+                               )
+                            )
+                    )
+            )
+;
+fun_g_1 = fun_g_p fun_f_p;
+fun_g_2 = fun_g_1 fun_g_p;
+res = fun_g_2 alt_list_1;
