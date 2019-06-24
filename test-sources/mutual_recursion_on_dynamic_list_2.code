@@ -1,0 +1,148 @@
+zero = 0;
+one = 1;
+true_val = true;
+false_val = false;
+
+# for now this function assumes that accumulator and int have the same type,
+# and either they are int or bool.
+fun_1 = fun accumulator ->
+(
+  blub_0 = fun item ->
+  (
+    fun_1_res = accumulator~int?
+             fun match_int -> (res_match_int = accumulator + item;):
+             fun antimatch_int -> (res_antimatch_int = accumulator or item;);
+  );
+);
+
+# this function takes in a list of booleans and ANDs the head to the
+# returned mutually recursive call.
+fun_straight_up = fun su_fun_1 ->
+(
+  filler1 = fun op_fun_1 ->
+  (
+    filler2 = fun the_list_1 ->
+    (
+      su_result = the_list_1~{empty = any}?
+        fun su_empty -> (filler3 = true_val):
+        fun su_nonempty ->
+        (
+         list_head_1 = su_nonempty.head;
+         list_tail_1 = su_nonempty.tail;
+         list_tail_1_head = list_tail_1.head;
+         list_tail_1_tail = list_tail_1.tail;
+         list_tail_1_head_aaa = list_tail_1_tail.head;
+         setup_op_1 = op_fun_1 su_fun_1;
+         setup_op_2 = setup_op_1 op_fun_1;
+         op_go = setup_op_2 list_tail_1;
+         su_operation = list_head_1 and op_go
+        )  ;
+    );
+  );
+);
+
+# this function takes in a list of booleans and ANDs the negated value of the
+# head to the returned mutually recursive call.
+fun_opposite = fun su_fun_2 ->
+(
+  filler4 = fun op_fun_2 ->
+  (
+    filler5 = fun the_list_2 ->
+    (
+      op_result = the_list_2~{empty = any}?
+         fun op_empty -> (filler6 = true_val):
+         fun op_nonempty ->
+         (
+           list_head_2 = op_nonempty.head;
+           modified_list_head_2 = not list_head_2;
+           list_tail_2 = op_nonempty.tail;
+           setup_su_1 = su_fun_2 su_fun_2;
+           setup_su_2 = setup_su_1 op_fun_2;
+           su_go = setup_su_2 list_tail_2;
+           op_operation = modified_list_head_2 and su_go
+         ) ;
+
+    );
+
+  );
+
+);
+
+# function that generates a list, taking in itself (to recurse),
+# the element that goes into the list, and how long the list is
+list_maker_flex = fun lmf_self ->
+(
+  lmf_blub_1 = fun element ->
+  (
+    lmf_blub_2 = fun lmf_length ->
+    (
+      lmf_is_zero = lmf_length == zero;
+      lmf_list_so_far = lmf_is_zero~true?
+      fun lmf_tru -> (lmf_empty = {empty = zero}):
+      fun lmf_fal -> (lmf_self2_part1 = lmf_self lmf_self;
+                  lmf_self2_part2 = lmf_self2_part1 element;
+                  lmf_length_of_rest = lmf_length - one;
+                  lmf_rest = lmf_self2_part2 lmf_length_of_rest;
+                  lmf_new_list = {head = element, tail = lmf_rest};
+      );
+    );
+  );
+);
+
+
+# function that generates a list of true::false::... that are based on the
+# length that is passed in.
+# this is not tail recursive i think
+list_maker = fun lm_self ->
+(
+  blub_2 = fun length ->
+  (
+    is_zero = length == zero;
+    list_so_far = is_zero~true?
+    fun tru -> (empty = {empty = zero}):
+    fun fal -> (lm_self2 = lm_self lm_self;
+                length_of_rest = length - one;
+                rest = lm_self2 length_of_rest;
+                new_list_second_elm = {head = false_val, tail = rest};
+                new_list = {head = true_val, tail = new_list_second_elm}
+    );
+  );
+);
+
+
+list_accessor = fun la_self ->
+(
+  blob0 = fun la_list ->
+(
+  blob1 = fun la_num ->
+  (
+    found = la_num == zero;
+    search = found~true?
+             fun done -> (access_res = la_list.head;
+             ):
+             fun not_done -> (
+              la_next = la_self la_self;
+              la_list_tail = la_list.tail;
+              la_next_with_list = la_next la_list_tail;
+              next_num = la_num - one;
+              la_go = la_next_with_list next_num;
+             );
+
+  );
+
+);
+
+);
+
+len = 10;
+lmf_make = list_maker_flex list_maker_flex;
+lmf_elm = lmf_make false_val;
+list_2 = lmf_elm len;
+
+len_div_2 = 5;
+list_make = list_maker list_maker;
+list_1 = list_make len_div_2;
+main_setup_1 = fun_straight_up fun_straight_up;
+main_setup_2 = main_setup_1 fun_opposite;
+lets_go_list_2 = main_setup_2 list_2;
+lets_go = main_setup_2 list_1;
