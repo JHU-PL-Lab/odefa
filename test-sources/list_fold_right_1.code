@@ -1,8 +1,5 @@
-# this test illustrates that when list_fold is ran on two different lists
-# with the same function, kPLUME will be confused but SPLUME will not.
-
-# splume concludes that the value of list_2 might be an empty list - hence why
-# the value of list_fold_go_2 is a bit conflated here as well.
+# this test illustrates that in list.fold_right, with a sufficient
+# k (> 2), the list based context model behaves
 
 zero = 0;
 one = 1;
