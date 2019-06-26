@@ -1,10 +1,10 @@
 QUERY: res;
 ANALYSES: 4DDPA, 4PLUME, SPLUME, OSKPLUME, OSMPLUME;
-RESULTS: 4DDPA(res) = `{{first=x5, second=x6}}`,
-         4PLUME(res) = `{{first=x5, second=x6}}`,
-         SPLUME(res) = `{{first=x5, second=x6}, int}`,
-         OSKPLUME(res) = `{{first=x5, second=x6}, int}`,
-         OSMPLUME(res) = `{{first=x5, second=x6}, int}`;
+RESULTS: 4DDPA(res) = `{int}`,
+         4PLUME(res) = `{int}`,
+         SPLUME(res) = `{int}`,
+         OSKPLUME(res) = `{int}`,
+         OSMPLUME(res) = `{int}`;
 CONSISTENCIES: 4DDPA = NO_INCONSISTENCIES &
                4PLUME = NO_INCONSISTENCIES &
                SPLUME = NO_INCONSISTENCIES &

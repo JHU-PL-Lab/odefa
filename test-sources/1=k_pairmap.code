@@ -19,4 +19,4 @@ one_pmap = pmap inc;
 two_pmap = pmap one_pmap;
 call = two_pmap pair_two;
 intermediate_res = call.first;
-res = intermediate_res.first;
+res = intermediate_res.second;

@@ -27,3 +27,4 @@ four_pmap = pmap three_pmap;
 call = four_pmap pair_four;
 intermediate_res = call.first;
 res = intermediate_res.second;
+result = res.second;
