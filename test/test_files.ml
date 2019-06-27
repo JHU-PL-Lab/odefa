@@ -149,59 +149,64 @@ let observe_queries analysis reprs expectation =
   | _ -> Some expectation
 ;;
 
-let observe_inconsistencies inconsistencies expectation =
+let observe_inconsistencies analysis inconsistencies expectation =
   match expectation with
   | CLExpect_consistency (a, expects) ->
-    (
-      match expects with
-      | Expect_analysis_inconsistencies expectations ->
-        let single_inconsistency_check =
-          (fun inconsistency ->
-             let site_of_inconsistency =
-               let open Toploop_analysis_types in
-               match inconsistency with
-               | Application_of_non_function (Abs_var ident,_,_,_) -> ident
-               | Projection_of_non_record (Abs_var ident,_,_) -> ident
-               | Projection_of_absent_label (Abs_var ident,_,_,_) -> ident
-               | Deref_of_non_ref (Abs_var ident,_,_) -> ident
-               | Update_of_non_ref (Abs_var ident,_,_) -> ident
-               | Invalid_binary_operation (Abs_var ident,_,_,_,_,_) -> ident
-               | Invalid_unary_operation (Abs_var ident,_,_,_) -> ident
-               | Invalid_indexing_subject (Abs_var ident,_,_) -> ident
-               | Invalid_indexing_argument (Abs_var ident,_,_) -> ident
-             in
-             (List.map
-                (fun expect ->
-                   let Expect_analysis_inconsistency_at (LUVar expected_site) = expect
-                   in
-                   let ident_var = Ident expected_site in
-                   if site_of_inconsistency = ident_var
-                   then None
-                   else Some expect)
-                expectations))
-        in
-        let res = List.concat @@ List.map single_inconsistency_check inconsistencies
-        in
-        let filtered_res = List.filter Option.is_some res in
-        if List.is_empty filtered_res then None
-        else
-          let non_option_filtered_res = Expect_analysis_inconsistencies
-              (List.map Option.get filtered_res)
+    if analysis = a then
+      (
+        match expects with
+        | Expect_analysis_inconsistencies expectations ->
+          let single_inconsistency_check =
+            (fun inconsistency -> fun expects ->
+               let site_of_inconsistency =
+                 let open Toploop_analysis_types in
+                 match inconsistency with
+                 | Application_of_non_function (Abs_var ident,_,_,_) -> ident
+                 | Projection_of_non_record (Abs_var ident,_,_) -> ident
+                 | Projection_of_absent_label (Abs_var ident,_,_,_) -> ident
+                 | Deref_of_non_ref (Abs_var ident,_,_) -> ident
+                 | Update_of_non_ref (Abs_var ident,_,_) -> ident
+                 | Invalid_binary_operation (Abs_var ident,_,_,_,_,_) -> ident
+                 | Invalid_unary_operation (Abs_var ident,_,_,_) -> ident
+                 | Invalid_indexing_subject (Abs_var ident,_,_) -> ident
+                 | Invalid_indexing_argument (Abs_var ident,_,_) -> ident
+               in
+               (List.filter_map
+                  (fun expect ->
+                     let Expect_analysis_inconsistency_at (LUVar expected_site) = expect
+                     in
+                     let ident_var = Ident expected_site in
+                     if site_of_inconsistency = ident_var
+                     then None
+                     else Some expect)
+                  expects))
           in
-          Some (CLExpect_consistency (a, non_option_filtered_res))
-      | Expect_analysis_no_inconsistencies -> Some expectation
-    )
+          let res = List.fold_left
+              (fun acc -> fun single_incons -> single_inconsistency_check single_incons acc)
+              expectations inconsistencies
+          in
+          if List.is_empty res then None
+          else
+            let unfinished_res = Expect_analysis_inconsistencies
+                res
+            in
+            Some (CLExpect_consistency (a, unfinished_res))
+        | Expect_analysis_no_inconsistencies -> Some expectation
+      )
+    else Some expectation
   | _ -> Some expectation
 ;;
 
-let observe_no_inconsistency expectation =
+let observe_no_inconsistency analysis expectation =
   match expectation with
-  | CLExpect_consistency (_, expects) ->
-    (
-      match expects with
-      | Expect_analysis_inconsistencies _ -> Some expectation
-      | Expect_analysis_no_inconsistencies -> None
-    )
+  | CLExpect_consistency (a, expects) ->
+    if analysis = a then
+      (
+        match expects with
+        | Expect_analysis_inconsistencies _ -> Some expectation
+        | Expect_analysis_no_inconsistencies -> None
+      )
+    else Some expectation
   | _ -> Some expectation
 ;;
 
@@ -244,6 +249,7 @@ let make_test filename gen_expectations analysis_expectation =
   in
   let checklist_expectations =
     make_checklist gen_expectations analysis_expectation in
+  (* let _ = print_endline (string_of_int (List.length checklist_expectations)) in *)
   let test_name = filename ^ ": (" ^
                   string_of_list name_of_checklist_item
                     checklist_expectations ^ ")"
@@ -364,9 +370,12 @@ let make_test filename gen_expectations analysis_expectation =
         in
         let Analysis_result(qnas, errors) = result_for_this_analysis_task
         in
-        observation @@ observe_inconsistencies errors;
+        let _ = List.fold_left
+            (fun acc -> fun error -> print_endline
+                (Toploop_analysis_types.show_error error); acc) () errors in
+        observation @@ observe_inconsistencies key errors;
         (* If there are no errors, report that. *)
-        if errors = [] then observation observe_no_inconsistency;
+        if errors = [] then observation (observe_no_inconsistency key);
         (* Report each resulting variable analysis. *)
         observation @@ observe_queries key qnas;
       in
@@ -385,6 +394,7 @@ let make_test filename gen_expectations analysis_expectation =
     match !expectations_left with
     | [] -> ()
     | expectations' ->
+      (* let _  = print_endline (string_of_int (List.length expectations')) in *)
       assert_failure @@ "The following expectations could not be met:" ^
                         "\n    * " ^ concat_sep "\n    * "
                           (List.enum @@
