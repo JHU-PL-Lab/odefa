@@ -19,7 +19,8 @@ open Test_expectation_types;;
     type checklist_items list
       a list that incorporates both kinds of expectations
 *)
-let make_checklist (gen_expects : expectation list)
+let make_checklist
+    (gen_expects : expectation list)
     (analysis_expects : analysis_expectation)
   : (checklist_items list) =
   let gen_items =

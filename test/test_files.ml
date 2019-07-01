@@ -14,6 +14,7 @@ open OUnit2;;
 
 open Odefa_ast;;
 (* open Odefa_ddpa;; *)
+open Odefa_natural;;
 open Odefa_parser;;
 open Odefa_toploop;;
 
@@ -22,6 +23,7 @@ open Ast_wellformedness;;
 open Odefa_abstract_ast;;
 open Abstract_ast;;
 open Printf;;
+open Pp_utils;;
 open String_utils;;
 open Test_expectation_types;;
 open Test_utils;;
@@ -134,12 +136,7 @@ let observe_queries analysis reprs expectation =
                     let pp_res_str =
                       Pp_utils.pp_to_string Abs_filtered_value_set.pp actual_res
                     in
-                    if (expect_res = pp_res_str) then true
-                    else
-                      let _ = (print_endline (Printf.sprintf
-                                                "for analysis %s, the look up %s expected %s but got %s"
-                                                (Toploop_utils.analysis_task_to_name a) (show_query expect_q) expect_res pp_res_str))
-                      in false
+                    (expect_res = pp_res_str)
                   else false)
             )
             reprs
@@ -210,10 +207,26 @@ let observe_no_inconsistency analysis expectation =
   | _ -> Some expectation
 ;;
 
+(** A list of file extensions and the parser routines which are used to turn
+    the contents of those files into Odefa ASTs.
+*)
+let test_parsers : (string * (string -> Odefa_ast.Ast.expr)) list =
+  [ (".odefa",
+     (fun filename -> File.with_file_in filename Parser.parse_program)
+    );
+    (".natodefa",
+     (fun filename ->
+        let on_expr = File.with_file_in filename On_parse.parse_program in
+        On_to_odefa.translate on_expr
+     )
+    )
+  ]
+;;
+
 (* This function takes in a test file, the list of expectations, and generate
    the unit test routine for it.
 *)
-let make_test filename gen_expectations analysis_expectation =
+let make_test filename (gen_expectations, analysis_expectation) =
   (* This function will print the checklist items. *)
   let name_of_checklist_item ch_item =
     match ch_item with
@@ -236,9 +249,13 @@ let make_test filename gen_expectations analysis_expectation =
           let incons_list =
             List.fold_left
               (fun acc -> fun inconsistency ->
-                 let Expect_analysis_inconsistency_at (LUVar site) = inconsistency
+                 let Expect_analysis_inconsistency_at (LUVar site) =
+                   inconsistency
                  in
-                 let res_str = acc ^ "Inconsistent at site: " ^ site ^ ";" in res_str)
+                 let res_str =
+                   acc ^ "Inconsistent at site: " ^ site ^ ";"
+                 in
+                 res_str)
               "" inconsistencies_list
           in
           let str_to_print =
@@ -249,7 +266,6 @@ let make_test filename gen_expectations analysis_expectation =
   in
   let checklist_expectations =
     make_checklist gen_expectations analysis_expectation in
-  (* let _ = print_endline (string_of_int (List.length checklist_expectations)) in *)
   let test_name = filename ^ ": (" ^
                   string_of_list name_of_checklist_item
                     checklist_expectations ^ ")"
@@ -283,7 +299,13 @@ let make_test filename gen_expectations analysis_expectation =
        satisfied.  This addresses nonsense cases such as expecting an ill-formed
        expression to evaluate. *)
     begin
-      let expr = File.with_file_in filename Parser.parse_program in
+      let is_nato = String.ends_with filename "natodefa" in
+      let expr =
+        if is_nato then
+          let on_expr = File.with_file_in filename On_parse.parse_program in
+          On_to_odefa.translate on_expr
+        else
+          File.with_file_in filename Parser.parse_program in
       (* Decide what kind of analysis to perform. *)
       let analysis_list =
         let (Analysis_Expectation (_, at_list, _, _)) = analysis_expectation in
@@ -370,9 +392,6 @@ let make_test filename gen_expectations analysis_expectation =
         in
         let Analysis_result(qnas, errors) = result_for_this_analysis_task
         in
-        let _ = List.fold_left
-            (fun acc -> fun error -> print_endline
-                (Toploop_analysis_types.show_error error); acc) () errors in
         observation @@ observe_inconsistencies key errors;
         (* If there are no errors, report that. *)
         if errors = [] then observation (observe_no_inconsistency key);
@@ -394,7 +413,6 @@ let make_test filename gen_expectations analysis_expectation =
     match !expectations_left with
     | [] -> ()
     | expectations' ->
-      (* let _  = print_endline (string_of_int (List.length expectations')) in *)
       assert_failure @@ "The following expectations could not be met:" ^
                         "\n    * " ^ concat_sep "\n    * "
                           (List.enum @@
@@ -402,9 +420,10 @@ let make_test filename gen_expectations analysis_expectation =
 ;;
 
 (* This function will take in an .expectation file corresponding to a test, and
-   parse the expectations in it. It also checks for well-formedness of expectations,
-   where the user has to specify full specification of expected query result for
-   each analysis.
+   parse the expectations in it.  It also checks for well-formedness of
+   expectations: the user must give afull specification of expected query result
+   for each analysis.  The returned value is a pair to be handed to the test
+   generation routine.
 *)
 let make_expectations_from filename =
   let contents = File.with_file_in filename IO.read_all in
@@ -412,12 +431,11 @@ let make_expectations_from filename =
     try
       Expectation_parser_tool.parse filename contents
     with
-    | Expectation_parser_tool.ParseFailure msg -> raise (Expectation_parse_failure msg)
+    | Expectation_parser_tool.ParseFailure msg ->
+      raise (Expectation_parse_failure msg)
   in
   match expectations with
   | Expectations (analysis_expects, gen_expects) ->
-    let test_file_name = BatString.sub filename 0 ((BatString.length filename) - 12)
-    in let test_file_name_with_ext = test_file_name ^ ".code" in
     (match analysis_expects with
      | Some (expectation_list) ->
        (
@@ -430,18 +448,37 @@ let make_expectations_from filename =
            let coverage = AQ_set.equal actual_aq_set res_aq_set in
            if coverage
            then
-             make_test (test_file_name_with_ext)
-               (gen_expects) expectation_list
-           else raise (Expectation_parse_failure "Result list is not exhaustive.
+             (gen_expects, expectation_list)
+           else
+             raise (Expectation_parse_failure "Result list is not exhaustive.
             Please provide full specification for each analysis-query pair.")
        )
-     | None -> make_test test_file_name_with_ext gen_expects (Analysis_Expectation([], [], [], []))
+     | None ->
+       (gen_expects, (Analysis_Expectation([], [], [], [])))
     )
 ;;
 
 let wrap_make_test_from filename =
   try
-    make_expectations_from filename
+    let expectation_description = make_expectations_from filename in
+    let test_extensions = List.map fst test_parsers in
+    let test_filenames =
+      List.filter_map
+        (fun ext ->
+           let candidate = Filename.remove_extension filename ^ ext in
+           if Sys.file_exists candidate then Some(candidate) else None
+        )
+        test_extensions
+    in
+    match test_filenames with
+    | [] ->
+      raise @@ File_test_creation_failure(
+        "No source file for expectation file: " ^ filename)
+    | [test_filename] -> make_test test_filename expectation_description
+    | _ ->
+      raise @@ File_test_creation_failure(
+        "Multiple source files for expectation file: " ^
+        (pp_to_string (pp_list Format.pp_print_string) test_filenames))
   with
   | File_test_creation_failure s ->
     filename >:: function _ -> assert_failure s
@@ -453,7 +490,7 @@ let make_all_tests pathname =
     Sys.files_of pathname
     |> Enum.map (fun f -> pathname ^ Filename.dir_sep ^ f)
     |> Enum.filter (fun f -> not @@ Sys.is_directory f)
-    |> Enum.filter (fun f -> String.ends_with f ".expectation")
+    |> Enum.filter (fun f -> Filename.extension f = ".expectation")
     |> Enum.map wrap_make_test_from
     |> List.of_enum
   else
