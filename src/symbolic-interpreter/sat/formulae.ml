@@ -228,6 +228,12 @@ let singleton (formula : formula) : t =
   add formula empty
 ;;
 
+let size (collection : t) : int =
+  Formula_set.cardinal collection.formulae
+;;
+
+let cardinal = size;;
+
 let union (collection1 : t) (collection2 : t) : t =
   let (smaller, larger) =
     if Formula_set.cardinal collection1.formulae <

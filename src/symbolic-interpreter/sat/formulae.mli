@@ -48,6 +48,12 @@ val add : formula -> t -> t;;
 (** Creates a singleton collection. *)
 val singleton : formula -> t;;
 
+(** Determines the size of a collection in number of formulae. *)
+val size : t -> int;;
+
+(** Determines the size of a collection in number of formulae. *)
+val cardinal : t -> int;;
+
 (** Unions two collections.  May raise a SymbolTypeContradiction as in the add
     function. *)
 val union : t -> t -> t

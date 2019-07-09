@@ -114,11 +114,9 @@ module type S = sig
   (** Stores a formula in this environment's constraint set. *)
   val record_formula : Formula.t -> unit m;;
 
-  (** Checks that a monadic value's formulae are solvable.  For each
-      non-deterministic path in the provided monadic value, a solution is
-      attempted for the formulae.  Any paths with unsolvable formulae are zeroed
-      out; the remaining paths exist in the returned monadic value (if any). *)
-  val check_formulae : 'a m -> 'a m;;
+  (** Checks that this monadic value's formulae are solvable.  If this is not
+      the case, the computation is zeroed out. *)
+  val check_formulae : unit -> unit m;;
 
   (* **** Evaluation interface **** *)
 

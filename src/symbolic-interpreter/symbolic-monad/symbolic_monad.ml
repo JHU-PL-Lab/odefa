@@ -21,7 +21,6 @@ open Odefa_ast;;
 
 open Ast;;
 open Ast_pp;;
-open Interpreter_types;;
 open Sat_types;;
 
 let lazy_logger =
@@ -106,7 +105,7 @@ module type S = sig
   val record_decision :
     Relative_stack.t -> Ident.t -> clause -> Ident.t -> unit m;;
   val record_formula : Formula.t -> unit m;;
-  val check_formulae : 'a m -> 'a m;;
+  val check_formulae : unit -> unit m;;
 
   type 'a evaluation;;
 
@@ -143,27 +142,25 @@ struct
   ;;
   let _ = show_decision_map;;
 
-  type log = {
-    log_formulae : Formulae.t;
-    log_decisions : decision_map;
-    log_steps : int;
-  } [@@deriving show];;
-  let _ = show_log;;
-
   (* Not currently using state. *)
-  type state = unit;;
+  type state = {
+    st_formulae : Formulae.t;
+    st_decisions : decision_map;
+    st_steps : int;
+  } [@@deriving show];;
+  let _ = show_state;;
 
   (* **** Monad types **** *)
 
-  type 'a m = M of (state -> 'a blockable list * state)
+  type 'a m = M of (state -> ('a blockable * state) list)
 
   (** An unblocked value is either a completed expression (with its resulting
       state) or a suspended function which, when invoked, will step to the next
       result.  The suspended case carries the log of the computation at the time
       it was suspended. *)
   and 'a unblocked =
-    | Completed : 'a * log -> 'a unblocked
-    | Suspended : 'a m * log -> 'a unblocked
+    | Completed of 'a
+    | Suspended of 'a m
 
   (** A blocked value is a function waiting on the completion of a to-be-cached
       computation.  It retains the key of the computation it needs to have
@@ -175,7 +172,7 @@ struct
       require their cached results, so we only wait for one value at a time. *)
   and ('a, 'b) blocked =
     { blocked_key : 'a Cache_key.t;
-      blocked_consumer : ('a * log) -> 'b m;
+      blocked_binder : 'a -> 'b m;
       blocked_computation : 'a m;
     }
 
@@ -185,188 +182,73 @@ struct
     | Unblocked : 'a unblocked -> 'a blockable
   ;;
 
-  (* **** Log utilities **** *)
-
-  let empty_log = {
-    log_formulae = Formulae.empty;
-    log_decisions = Relative_stack.Map.empty;
-    log_steps = 0;
-  };;
-
-  exception MergeFailure of
-      Relative_stack.t * (ident * clause * ident) * (ident * clause * ident);;
-
-  let merge_logs (log1 : log) (log2 : log) : log option =
-    let open Option.Monad in
-    let%bind merged_formulae =
-      try
-        Some(Formulae.union log1.log_formulae log2.log_formulae)
-      with
-      | Formulae.SymbolTypeContradiction(_,symbol,types) ->
-        (lazy_logger `trace @@ fun () ->
-         Printf.sprintf
-           "Immediate contradiction at symbol %s with types %s while merging two formula sets.\nSet 1:\n%s\nSet 2:\n%s\n"
-           (show_symbol symbol)
-           (Jhupllib.Pp_utils.pp_to_string (Jhupllib.Pp_utils.pp_list Formulae.pp_symbol_type) types)
-           (Formulae.show_brief log1.log_formulae)
-           (Formulae.show_brief log2.log_formulae)
-        );
-        None
-      | Formulae.SymbolValueContradiction(_,symbol,v1,v2) ->
-        (lazy_logger `trace @@ fun () ->
-         Printf.sprintf
-           "Immediate contradiction at symbol %s with values %s and %s while merging two formula sets.\nSet 1:\n%s\nSet 2:\n%s\n"
-           (show_symbol symbol)
-           (show_value v1) (show_value v2)
-           (Formulae.show_brief log1.log_formulae)
-           (Formulae.show_brief log2.log_formulae)
-        );
-        None
-    in
-    let merge_fn key a b =
-      match a,b with
-      | None,None -> None
-      | Some x,None -> Some x
-      | None,Some x -> Some x
-      | Some((x1,c1,x1') as v1),Some((x2,c2,x2') as v2) ->
-        if equal_ident x1 x2 && equal_ident x1' x2' && equal_clause c1 c2 then
-          Some(x1,c1,x1')
-        else
-          raise @@ MergeFailure(key, v1, v2)
-    in
-    let%bind merged_decisions =
-      try
-        Some(Relative_stack.Map.merge
-               merge_fn log1.log_decisions log2.log_decisions)
-      with
-      | MergeFailure(key, v1, v2) ->
-        begin
-          let show_v =
-            Pp_utils.pp_to_string
-              (Pp_utils.pp_triple pp_ident Ast_pp_brief.pp_clause pp_ident)
-          in
-          lazy_logger `trace (fun () ->
-              Printf.sprintf
-                "Contradiction while merging %s decisions: %s and %s"
-                (Relative_stack.show key) (show_v v1) (show_v v2)
-            );
-          None
-        end
-    in
-    let new_log =
-      { log_formulae = merged_formulae;
-        log_decisions = merged_decisions;
-        log_steps = log1.log_steps + log2.log_steps;
-      }
-    in
-    return new_log
-  ;;
-
   (* **** Monadic operations **** *)
 
   let return (type a) (v : a) : a m =
-    M(fun cache -> ([Unblocked(Completed (v, empty_log))], cache))
+    M(fun state -> ([Unblocked(Completed v), state]))
   ;;
 
-  let zero (type a) () : a m = M(fun state -> ([], state));;
+  let zero (type a) () : a m = M(fun _state -> []);;
 
-  let _record_log (log : log) : unit m =
-    M(fun state -> [Unblocked(Completed((), log))], state)
-  ;;
-
-  let bind (type a) (type b) (x : a m) (f : a -> b m) : b m =
-    let rec append_log (log : log) (x : b blockable) : b blockable option =
-      match x with
-      | Unblocked(Completed(value,log')) ->
-        begin
-          match merge_logs log' log with
-          | None -> None
-          | Some log'' -> Some(Unblocked(Completed(value,log'')))
-        end
-      | Unblocked(Suspended(m,log')) ->
-        let M(fn) = m in
-        let fn' cache =
-          let results,cache' = fn cache in
-          let results' = List.filter_map (append_log log) results in
-          results',cache'
-        in
-        let m' = M(fn') in
-        begin
-          match merge_logs log' log with
-          | None -> None
-          | Some log'' -> Some(Unblocked(Suspended(m',log'')))
-        end
-      | Blocked(blocked) ->
-        let fn' (result,log') =
-          match merge_logs log' log with
-          | None -> zero ()
-          | Some log'' -> blocked.blocked_consumer (result, log'')
-        in
-        Some(Blocked({blocked with blocked_consumer = fn'}))
-    in
-    let rec bind_worlds_fn
-        (worlds_fn : state -> a blockable list * state) (state : state)
-      : b blockable list * state =
-      let worlds, state' = worlds_fn state in
-      let bound_worlds, state'' =
+  (* Recursively binding while keeping the type parameters the same requires
+     this little signature trick: a quantified type on the outside and a
+     recursive (but monotyped-with-respect-to-type-parameters) declaration on
+     the inside. *)
+  let bind (type a) (type b) : a m -> (a -> b m) -> b m =
+    let rec bind (x : a m) (f : a -> b m) : b m =
+      let M(worlds_fn) = x in
+      let worlds_fn' (state : state) : (b blockable * state) list =
+        let worlds = worlds_fn state in
         worlds
-        |> List.fold_left
-          (fun (result_worlds, fold_state) world ->
-             match world with
-             | Unblocked(Completed(value,log)) ->
-               let M(fn) = f value in
-               let results, fold_cache' = fn fold_state in
-               let results' = List.filter_map (append_log log) results in
-               (results'::result_worlds, fold_cache')
-             | Unblocked(Suspended(m,log)) ->
-               let M(fn) = m in
-               let m' = M(bind_worlds_fn fn) in
-               ([Unblocked(Suspended(m',log))]::result_worlds, fold_state)
+        |> List.enum
+        |> Enum.map
+          (fun (blockable, state') ->
+             match blockable with
+             | Unblocked(Completed v) ->
+               let M(worlds'_fn) = f v in
+               List.enum @@ worlds'_fn state'
+             | Unblocked(Suspended m) ->
+               Enum.singleton (Unblocked(Suspended (bind m f)), state')
              | Blocked(blocked) ->
-               let fn' (result,log') =
-                 let M(inner_world_fn) =
-                   blocked.blocked_consumer (result,log')
-                 in
-                 (* Here, the monadic value is the result of passing a cached
-                    result to the previous caching function.  Once we have
-                    that information, we can do the bind against that monadic
-                    value. *)
-                 M(bind_worlds_fn inner_world_fn)
-               in
-               let blocked' =
-                 { blocked_key = blocked.blocked_key;
-                   blocked_consumer = fn';
-                   blocked_computation = blocked.blocked_computation;
-                 }
-               in
-               ([Blocked(blocked')]::result_worlds, fold_state)
+               Enum.singleton
+                 (Blocked(
+                     { blocked_key = blocked.blocked_key;
+                       blocked_binder =
+                         (* Monadic composition.  In Haskell's "fish" notation:
+                            "blocked.blocked_binder >=> f"
+                         *)
+                         (fun x' -> bind (blocked.blocked_binder x') f);
+                       blocked_computation = blocked.blocked_computation;
+                     }
+                   ), state'
+                 )
           )
-          ([], state')
+        |> Enum.concat
+        |> List.of_enum
       in
-      (List.concat bound_worlds, state'')
+      M(worlds_fn')
     in
-    let M(worlds_fn) = x in
-    M(bind_worlds_fn worlds_fn)
+    bind
   ;;
 
   let pick (type a) (items : a Enum.t) : a m =
     M(fun state ->
        (items
-        |> Enum.map (fun x -> Unblocked(Completed(x, empty_log)))
+        |> Enum.map (fun x -> Unblocked(Completed x), state)
         |> List.of_enum
-       ),
-       state
+       )
      )
   ;;
 
   let pause () : unit m =
     M(fun state ->
-       let single_step_log = {empty_log with log_steps = 1} in
-       let completed_value = Unblocked(Completed((), single_step_log)) in
-       let suspended_value =
-         Suspended(M(fun state -> ([completed_value], state)), empty_log)
+       let m =
+         M(fun state' ->
+            let state'' = { state' with st_steps = state'.st_steps + 1 } in
+            [(Unblocked(Completed()), state'')]
+          )
        in
-       ([Unblocked(suspended_value)], state)
+       [(Unblocked(Suspended m), state)]
      )
   ;;
 
@@ -374,67 +256,54 @@ struct
     M(fun state ->
        let blocked =
          { blocked_key = key;
-           blocked_consumer =
-             (fun (item,log) ->
-                let%bind () = _record_log log in
-                return item);
+           blocked_binder = return;
            blocked_computation = value;
          }
        in
-       ([Blocked(blocked)], state)
+       ([Blocked(blocked), state])
      )
   ;;
 
   let record_decision
       (s : Relative_stack.t) (x : Ident.t) (c : clause) (x' : Ident.t)
     : unit m =
-    _record_log @@
-    { log_formulae = Formulae.empty;
-      log_decisions = Relative_stack.Map.singleton s (x,c,x');
-      log_steps = 0;
-    }
+    M(fun state ->
+       match Relative_stack.Map.Exceptionless.find s state.st_decisions with
+       | Some(x_,c_,x'_) ->
+         if equal_ident x x_ && equal_clause c c_ && equal_ident x' x'_ then
+           [(Unblocked(Completed ()), state)]
+         else
+           []
+       | None ->
+         let state' =
+           { state with
+             st_decisions =
+               Relative_stack.Map.add s (x,c,x') state.st_decisions
+           }
+         in
+         [(Unblocked(Completed ()), state')]
+     )
   ;;
 
   let record_formula (formula : Formula.t) : unit m =
-    _record_log @@
-    { log_formulae = Formulae.singleton formula;
-      log_decisions = Relative_stack.Map.empty;
-      log_steps = 0;
-    }
+    M(fun state ->
+       try
+         let formulae' = Formulae.add formula state.st_formulae in
+         [(Unblocked(Completed ()), { state with st_formulae = formulae' })]
+       with
+       | Formulae.SymbolTypeContradiction _
+       | Formulae.SymbolValueContradiction _ ->
+         []
+     )
   ;;
 
-  let rec check_formulae : 'a. 'a m -> 'a m =
-    fun x ->
-      let check_one_world : 'a. 'a blockable -> 'a blockable option =
-        fun blockable ->
-          match blockable with
-          | Unblocked(Completed(_,log)) ->
-            if Solver.solvable log.log_formulae then
-              Some(blockable)
-            else begin
-              (lazy_logger `trace @@ fun () ->
-               Printf.sprintf
-                 "SAT contradiction at formulae check in:\n%s\n"
-                 (Formulae.show_brief log.log_formulae)
-              );
-              None
-            end
-          | Unblocked(Suspended(m,log)) ->
-            Some(Unblocked(Suspended(check_formulae m, log)))
-          | Blocked(blocked) ->
-            Some(Blocked(
-                { blocked with
-                  blocked_computation =
-                    check_formulae blocked.blocked_computation
-                }))
-      in
-      let M(worlds_fn) = x in
-      let fn state =
-        let (blockables, state') = worlds_fn state in
-        let blockables' = List.filter_map check_one_world blockables in
-        (blockables', state')
-      in
-      M(fn)
+  let check_formulae () : 'a m =
+    M(fun state ->
+       if Solver.solvable state.st_formulae then
+         [(Unblocked(Completed ()), state)]
+       else
+         []
+     )
   ;;
 
   (* **** Evaluation module **** *)
@@ -446,37 +315,23 @@ struct
       er_result_steps : int;
     };;
 
-
-  module Key = struct
-    type 'a t = K : 'a Cache_key.t -> ('a * log) t;;
-    let compare : type a b. a t -> b t -> (a, b) Gmap.Order.t = fun k k' ->
-      match k, k' with
-      | K(ck), K(ck') ->
-        begin
-          match Cache_key.compare ck ck' with
-          | Lt -> Lt
-          | Eq -> Eq
-          | Gt -> Gt
-        end
-    ;;
-  end;;
-
-  module Cache_map = Gmap.Make(Key);;
+  module Cache_map = Gmap.Make(Cache_key);;
 
   type 'out task =
-    | Cache_task : 'a Cache_key.t * 'a m * ('a * log -> 'out task) -> 'out task
-    | Result_task : 'out m -> 'out task
+    | Cache_task :
+        state * 'a Cache_key.t * 'a m * (state -> 'a -> 'out task) -> 'out task
+    | Result_task :
+        state * 'out m -> 'out task
   ;;
 
-  type 'out search_state =
+  type 'out search =
     { ss_cache : Cache_map.t;
       ss_task : 'out task;
     }
   ;;
 
   type 'out evaluation =
-    { ev_state : state;
-      ev_work : 'out search_state Work_collection.t;
+    { ev_work : 'out search Work_collection.t;
       ev_evaluation_steps : int;
     }
   ;;
@@ -486,79 +341,87 @@ struct
   (* **** Evaluation operations **** *)
 
   let start (x : 'out m) : 'out evaluation =
-    let task = Result_task x in
-    let state =
+    let initial_state =
+      { st_formulae = Formulae.empty;
+        st_decisions = Relative_stack.Map.empty;
+        st_steps = 0;
+      }
+    in
+    let task = Result_task(initial_state, x) in
+    let search =
       { ss_cache = Cache_map.empty;
         ss_task = task;
       }
     in
     let work_info =
-      { work_item = state;
+      { work_item = search;
         work_cache_key = None;
       }
     in
     let collection = Work_collection.offer work_info Work_collection.empty in
-    let initial_state = () in
-    { ev_state = initial_state;
-      ev_work = collection;
+    { ev_work = collection;
       ev_evaluation_steps = 0;
     }
   ;;
 
   let _step_m (type a) (state : state) (x : a m)
-    : (a * log) Enum.t * a m Enum.t * a some_blocked Enum.t * state =
+    : (a * state) Enum.t *
+      (a m * state) Enum.t *
+      (a some_blocked * state) Enum.t
+    =
     let M(world_fn) = x in
-    let (worlds,state') = world_fn state in
+    let worlds = world_fn state in
     let completed, suspended, blocked =
       worlds
       |> List.fold_left
         (fun (completed, suspended, blocked) world ->
            match world with
-           | Unblocked(Completed(value, log)) ->
-             ((value, log) :: completed, suspended, blocked)
-           | Unblocked(Suspended(x', _)) ->
-             (completed, x' :: suspended, blocked)
-           | Blocked(blocked_item) ->
-             (completed, suspended, (Some_blocked blocked_item) :: blocked)
+           | Unblocked(Completed value), state' ->
+             ((value, state') :: completed, suspended, blocked)
+           | Unblocked(Suspended x'), state' ->
+             (completed, (x', state') :: suspended, blocked)
+           | Blocked(blocked_item), state' ->
+             (completed,
+              suspended,
+              (Some_blocked blocked_item, state') :: blocked)
         )
         ([], [], [])
     in
-    (List.enum completed, List.enum suspended, List.enum blocked, state')
+    (List.enum completed, List.enum suspended, List.enum blocked)
   ;;
 
-  let suspended_and_blocked_states
+  let suspended_and_blocked_searches
       (type out) (type a)
-      (mk_task : a m -> out task)
+      (mk_task : a m -> state -> out task)
       (cache : Cache_map.t)
-      (suspended : a m Enum.t) (blocked : a some_blocked Enum.t)
+      (suspended : (a m * state) Enum.t)
+      (blocked : (a some_blocked * state) Enum.t)
     : out task Enum.t =
-    let suspended_states =
-      suspended
-      |> Enum.map (fun m -> mk_task m)
-    in
+    let suspended_states = Enum.map (uncurry mk_task) suspended in
     let blocked_states =
       blocked
       |> Enum.map
-        (fun (Some_blocked(blocked)) ->
-           match Cache_map.find (K(blocked.blocked_key)) cache with
+        (fun (Some_blocked(blocked), state) ->
+           match Cache_map.find blocked.blocked_key cache with
            | None ->
              lazy_logger `trace
                (fun () ->
                   "Cache miss for key " ^ Cache_key.show blocked.blocked_key);
-             let continuation (value, log) =
-               let m = blocked.blocked_consumer (value, log) in
-               mk_task m
+             let continuation (state : state) value : out task =
+               let m = blocked.blocked_binder value in
+               mk_task m state
              in
              Cache_task(
+               state,
                blocked.blocked_key,
                blocked.blocked_computation,
                continuation
              )
-           | Some value_and_log ->
+           | Some value ->
              lazy_logger `trace
                (fun () ->
                   "Cache hit for key " ^ Cache_key.show blocked.blocked_key);
-             mk_task @@ blocked.blocked_consumer value_and_log
+             mk_task (blocked.blocked_binder value) state
         )
     in
     Enum.append suspended_states blocked_states
@@ -569,10 +432,16 @@ struct
       work_cache_key =
         (
           match search.ss_task with
-          | Cache_task(key,_,_) -> Some(Cache_key.Some_key key)
+          | Cache_task(_,key,_,_) -> Some(Cache_key.Some_key key)
           | Result_task _ -> None
         );
     }
+  ;;
+
+  let _task_state task =
+    match task with
+    | Cache_task(state,_,_,_) -> state
+    | Result_task(state,_) -> state
   ;;
 
   let step
@@ -590,29 +459,28 @@ struct
       lazy_logger `trace
         (fun () ->
            Printf.sprintf
-             "Stepping search state for %s with cache size %d"
+             "Stepping search state for %s with cache size %d and %d formulae"
              (match search.ss_task with
-              | Result_task _ -> "result"
-              | Cache_task (key, _, _) -> Cache_key.show key
+              | Result_task(_,_) -> "result"
+              | Cache_task (_, key, _, _) -> Cache_key.show key
              )
              (Cache_map.cardinal search.ss_cache)
+             (Formulae.size @@ (_task_state search.ss_task).st_formulae)
         );
       begin
         match search.ss_task with
-        | Result_task monadic ->
+        | Result_task(state,monadic) ->
           (* Step monadic value. *)
-          let (completed, suspended, blocked, state') =
-            _step_m ev.ev_state monadic
-          in
+          let (completed, suspended, blocked) = _step_m state monadic in
           (* Process completed values by building evaluation results. *)
           let results : out evaluation_result Enum.t =
             completed
             |> Enum.map
-              (fun (value, log) ->
+              (fun (value, state) ->
                  { er_value = value;
-                   er_formulae = log.log_formulae;
+                   er_formulae = state.st_formulae;
                    er_evaluation_steps = step_count;
-                   er_result_steps = log.log_steps + 1;
+                   er_result_steps = state.st_steps + 1;
                    (* The +1 here is to ensure that the number of steps reported
                       is equal to the number of times the "step" function has
                       been called.  For a given result, the "step" function must
@@ -626,8 +494,9 @@ struct
           in
           (* Identify new tasks from suspended and blocked values. *)
           let new_work =
-            suspended_and_blocked_states
-              (fun m -> Result_task m) search.ss_cache suspended blocked
+            suspended_and_blocked_searches
+              (fun m state -> Result_task(state,m))
+              search.ss_cache suspended blocked
             |> Enum.map
               (fun task ->
                  { ss_task = task;
@@ -643,35 +512,32 @@ struct
           in
           (* Build new evaluation state. *)
           let ev' =
-            { ev_state = state';
-              ev_work = collection'';
+            { ev_work = collection'';
               ev_evaluation_steps = step_count;
             }
           in
           (results, ev')
-        | Cache_task(key,monadic,continuation) ->
+        | Cache_task(state,key,monadic,continuation) ->
           (* Step monadic value. *)
-          let (completed, suspended, blocked, state') =
-            _step_m ev.ev_state monadic
-          in
+          let (completed, suspended, blocked) = _step_m state monadic in
           (* Process completed values by executing the continuation and building
              new work from it. *)
           let continued_tasks =
             completed
             |> Enum.map
-              (fun value_and_log ->
+              (fun (value, state) ->
                  let cache' =
-                   Cache_map.add (K(key)) value_and_log search.ss_cache
+                   Cache_map.add key value search.ss_cache
                  in
-                 { ss_task = continuation value_and_log;
+                 { ss_task = continuation state value;
                    ss_cache = cache';
                  }
               )
           in
           (* Identify new tasks from suspended and blocked values. *)
           let new_work =
-            suspended_and_blocked_states
-              (fun m -> Cache_task(key,m,continuation))
+            suspended_and_blocked_searches
+              (fun m state -> Cache_task(state,key,m,continuation))
               search.ss_cache
               suspended blocked
             |> Enum.map
@@ -690,8 +556,7 @@ struct
           in
           (* Build new evaluation state. *)
           let ev' =
-            { ev_state = state';
-              ev_work = collection'';
+            { ev_work = collection'';
               ev_evaluation_steps = step_count;
             }
           in
