@@ -1,0 +1,13 @@
+# EXPECT-WELL-FORMED
+# EXPECT-ANALYSIS-STACK-IS 0ddpa
+# EXPECT-ANALYSIS-LOOKUP-FROM-END ~result {int}
+
+let x = [1, [2, [3]]] in
+let rec list_sum lst =
+  match lst with
+  | [] -> 0
+  | hd :: tl -> (hd + (list_sum tl))
+  end
+in
+let num = list_sum x in
+num
