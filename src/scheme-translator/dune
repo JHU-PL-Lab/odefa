@@ -1,0 +1,31 @@
+(ocamllex
+  scheme_lexer
+)
+(menhir
+  (flags --explain)
+  (modules
+    scheme_parser
+  )
+)
+
+(library
+  (name scheme_translator)
+  (public_name odefa.scheme_translator)
+  (synopsis "Translator from Scheme to Odefa Natural")
+  (libraries
+    batteries
+    jhupllib
+    monadlib
+    odefa.natural
+  )
+  (preprocess
+    (pps
+      ppx_deriving.std
+      ppx_deriving_yojson
+      ocaml-monadic
+    )
+  )
+  (flags
+    (:standard -w -39) ;for ppx_deriving_yojson, which generates extra rec flags
+  )
+)
