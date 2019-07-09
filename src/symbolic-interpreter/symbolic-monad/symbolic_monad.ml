@@ -542,6 +542,9 @@ struct
         (fun (Some_blocked(blocked)) ->
            match Cache_map.find (K(blocked.blocked_key)) cache with
            | None ->
+             lazy_logger `trace
+               (fun () ->
+                  "Cache miss for key " ^ Cache_key.show blocked.blocked_key);
              let continuation (value, log) =
                let m = blocked.blocked_consumer (value, log) in
                mk_task m
@@ -552,6 +555,9 @@ struct
                continuation
              )
            | Some value_and_log ->
+             lazy_logger `trace
+               (fun () ->
+                  "Cache hit for key " ^ Cache_key.show blocked.blocked_key);
              mk_task @@ blocked.blocked_consumer value_and_log
         )
     in
