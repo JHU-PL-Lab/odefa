@@ -521,11 +521,11 @@ struct
       let%orzero Unannotated_clause(Abs_clause(Abs_var x'', _)) = acl1 in
       [%guard not @@ equal_ident x'' lookup_var ];
       (* Even if we're not looking for it, it has to be defined! *)
-      lazy_logger `info (fun () -> "[" ^ string_of_int (gdc ()) ^ "] >> rule_skip: skip " ^ (Jhupllib.Pp_utils.pp_to_string
+      lazy_logger `info (fun () -> "[" ^ string_of_int (gdc ()) ^ "] >> rule: skip {" ^ (Jhupllib.Pp_utils.pp_to_string
+                pp_brief_annotated_clause acl0)
+              ^ "} in look up " ^ (Jhupllib.Pp_utils.pp_to_string
               (Jhupllib.Pp_utils.pp_list pp_ident) lookup_stack));
       let%bind _ = recurse [x''] acl0 relstack in
-      lazy_logger `info (fun () -> "[" ^ string_of_int (gdc ()) ^ "] << rule_skip: skip " ^ (Jhupllib.Pp_utils.pp_to_string
-              (Jhupllib.Pp_utils.pp_list pp_ident) lookup_stack) );
       recurse lookup_stack acl1 relstack
     end
 
@@ -619,7 +619,7 @@ struct
     let%bind acl1 = pick @@ preds acl0 env.le_cfg in
     lazy_logger `info (fun () -> 
       Printf.sprintf 
-        "[%d] == Lookup: %s, %s at [%s << %s]" 
+        "[%d] == Lookup: %s, %s at {%s -> %s}" 
         (gdc ())
         (Jhupllib.Pp_utils.pp_to_string (Jhupllib.Pp_utils.pp_list pp_ident) lookup_stack)
         (Jhupllib.Pp_utils.pp_to_string Relative_stack.pp relstack)
