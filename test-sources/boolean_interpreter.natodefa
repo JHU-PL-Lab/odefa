@@ -1,0 +1,29 @@
+# EXPECT-WELL-FORMED
+# EXPECT-ANALYSIS-STACK-IS 1ddpa
+# EXPECT-ANALYSIS-LOOKUP-FROM-END ~result {false}
+
+let x = `Or ([`Bool true, `Bool false]) in
+let y = `And ([x, `Bool true]) in
+let z = `Not (`And ([`Or ([x, y]), y])) in
+let rec eval e =
+match e with
+| `Bool b -> b
+| `Not e ->
+  let v = eval e in
+  (match v with
+  | true -> false
+  | false -> true
+  end
+  )
+| `Or (lst) ->
+  (match lst with
+  | hd :: tl :: [] -> (eval hd) or (eval tl)
+  end
+  )
+| `And (lst) ->
+  (match lst with
+  | hd :: tl :: [] -> (eval hd) and (eval tl)
+  end
+  )
+end
+in eval z
