@@ -1,8 +1,0 @@
-e = {};
-i = fun ip -> (
-  ir = ip ~ {a={}} ? fun ipm -> ( ipmr = ipm; ) : fun ipa -> ( ipar = ipa; );
-);
-a = {a=e};
-ia = i a;
-b = {b=e};
-ib = i b;
