@@ -50,7 +50,7 @@ sig
 
   val succs : annotated_clause -> ddpa_graph -> annotated_clause Enum.t
 
-  val to_yojson : ddpa_graph -> Yojson.Safe.json
+  val to_yojson : ddpa_graph -> Yojson.Safe.t
 end;;
 
 (* TODO: improve the performance of this implementation! *)

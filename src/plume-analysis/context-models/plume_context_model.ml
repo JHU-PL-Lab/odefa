@@ -11,7 +11,7 @@ sig
   val empty : t
   val push : abstract_clause -> t -> t
   val pp : Format.formatter -> t -> unit
-  val to_yojson : t -> Yojson.Safe.json
+  val to_yojson : t -> Yojson.Safe.t
   val show : t -> string
   val name : string
 end;;

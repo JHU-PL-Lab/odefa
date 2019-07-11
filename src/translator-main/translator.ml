@@ -19,8 +19,8 @@ let purge_special_symbols (x : Ast.Var.t) : Ast.Var.t =
     |> String.replace_chars
       (fun c ->
          match c with
-        | '~' -> "___"
-        | _ -> String.of_char c
+         | '~' -> "___"
+         | _ -> String.of_char c
       )
   in
   Ast.Var(Ast.Ident(s'), fs)
@@ -31,15 +31,11 @@ let main () : unit =
   match options.ta_mode with
   | Odefa_natural_to_odefa ->
     let on_expr = On_parse.parse_program IO.stdin in
-    let odefa_expr = On_to_odefa.translate on_expr in
-    let result_expr =
-      if options.ta_parseable then
-        map_expr_vars purge_special_symbols odefa_expr
-      else
-        odefa_expr
-    in
-    let expr_string = show_expr result_expr in
-    print_endline expr_string
+    on_expr
+    |> On_to_odefa.translate
+    |> (if options.ta_parseable then map_expr_vars purge_special_symbols else identity)
+    |> show_expr
+    |> print_endline
   | Scheme_to_odefa_natural ->
     raise @@ Jhupllib.Utils.Not_yet_implemented "scheme-to-odefa-natural"
 ;;
