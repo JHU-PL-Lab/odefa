@@ -20,6 +20,7 @@ sig
   val run : translation_context -> 'a m -> 'a;;
   val fresh_name : string -> string m;;
   val fresh_var : string -> Ast.var m;;
+  val freshness_string : string m;;
   val list_fold_left_m : ('acc -> 'el -> 'acc m) -> 'acc -> 'el list -> 'acc m
   val list_fold_right_m : ('el -> 'acc -> 'acc m) -> 'el list -> 'acc -> 'acc m
   val (@@@) : ('a -> 'b m) -> 'a m -> 'b m
@@ -46,6 +47,7 @@ struct
     let name' = fresh_name name ctx in
     Ast.Var(Ast.Ident name', None)
   ;;
+  let freshness_string ctx = ctx.tc_fresh_suffix_separator;;
   let rec list_fold_left_m fn acc els =
     match els with
     | [] -> return acc
