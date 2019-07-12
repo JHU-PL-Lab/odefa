@@ -30,8 +30,8 @@ sig
   (** The context stack module for this analysis. *)
   module C : Context_model;;
 
-  (** NOTE: refer to below comment about concern. *)
-  (* module G : Graph_sig;; *)
+  (** The CFG type for this analysis. *)
+  module G : Graph_sig with module C = C;;
 
   (** The initial, unclosed analysis derived from an expression. *)
   val create_initial_analysis :
@@ -61,12 +61,6 @@ sig
       but it is guaranteed to be conservative if the analysis is fully closed.
       The returned analysis contains a cache structure to accelerate answering
       of this question in the future. *)
-  (* FIXME: not sure what the input to these functions should be -
-     if we wanted to input a G.node, we would probably get rid of one of these
-     functions, but not too sure if we wanted to give the user the power of
-     being able to pass in a graph node raw.
-     NOTE: for now we will construct the graph node inside the functions.
-  *)
   val values_of_variable :
     abstract_var -> annotated_clause -> plume_analysis ->
     Abs_filtered_value_set.t * plume_analysis
@@ -88,7 +82,6 @@ struct
   open G;;
   open G.E;;
 
-  (* TODO: check with zach whether this should be here *)
   module Node =
   struct
     type t = node
@@ -104,9 +97,6 @@ struct
     include Impl;;
     include Pp_utils.Set_pp(Impl)(Node);;
     include Yojson_utils.Set_to_yojson(Impl)(Node);;
-    (* let pp = Pp_utils.pp_set pp_node enum;; *)
-    (* let show = Pp_utils.pp_to_string pp;;
-    let to_yojson = Yojson_utils.set_to_yojson node_to_yojson enum;; *)
   end;;
 
   module Structure_types = Plume_pds_structure_types.Make(G);;
