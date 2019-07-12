@@ -5,6 +5,7 @@ open Odefa_ast;;
 
 open Ast_tools;;
 open Preliminary_conversion;;
+open Simplification;;
 open Translator_utils;;
 
 (** In this module we will translate from odefa-natural to odefa in the
@@ -509,9 +510,10 @@ and
   flatten_expr (e : On_ast.expr) : (Ast.clause list * Ast.var) m =
   match e with
   | Var (id) ->
+    let%bind return_var = fresh_var "var" in
     let Ident(i_string) = id in
-    let return_var = Ast.Var(Ast.Ident(i_string), None) in
-    return ([], return_var)
+    let id_var = Ast.Var(Ast.Ident(i_string), None) in
+    return ([Ast.Clause(return_var, Ast.Var_body(id_var))], return_var)
   | Function (id_list, e) ->
     let%bind (fun_c_list, _) = nonempty_body @@@ flatten_expr e in
     let body_expr = Ast.Expr(fun_c_list) in
@@ -738,7 +740,8 @@ let translate
     in
     let%bind (c_list, _) = flatten_expr transformed_e in
     let Clause(last_var, _) = List.last c_list in
-    let res_var = Ast.Var(Ident("~result"), None) in
+    let%bind fresh_str = freshness_string in
+    let res_var = Ast.Var(Ast.Ident(fresh_str ^ "result"), None) in
     let res_clause = Ast.Clause(res_var, Ast.Var_body(last_var)) in
     return @@ Ast.Expr(c_list @ [res_clause])
   in
@@ -748,4 +751,5 @@ let translate
     | Some ctx -> ctx
   in
   run context e_m
+  |> eliminate_aliases
 ;;

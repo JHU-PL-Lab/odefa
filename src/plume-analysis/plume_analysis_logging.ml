@@ -6,7 +6,7 @@ type plume_logging_level =
 ;;
 
 type plume_analysis_logging_config =
-  { plume_json_logger : Yojson.Safe.json -> unit
+  { plume_json_logger : Yojson.Safe.t -> unit
   ; plume_cfg_logging_level : plume_logging_level
   ; plume_pdr_logging_level : plume_logging_level
   ; plume_pdr_deltas : bool

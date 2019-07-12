@@ -25,14 +25,14 @@ module type Edge_sig = sig
   val compare : t -> t -> int;;
   val pp : t pretty_printer;;
   val show : t -> string;;
-  val to_yojson : t -> Yojson.Safe.json;;
+  val to_yojson : t -> Yojson.Safe.t;;
 end;;
 
 (* module type Node_Set = sig
   type t;;
   val pp : t pretty_printer;;
   val show : t -> string;;
-  val to_yojson : t -> Yojson.Safe.json;;
+  val to_yojson : t -> Yojson.Safe.t;;
 end;; *)
 (*
   Creating the graph data type inside of a module.  This allows us to keep the
@@ -62,7 +62,7 @@ sig
 
   val show_node : node -> string
 
-  val node_to_yojson : node -> Yojson.Safe.json
+  val node_to_yojson : node -> Yojson.Safe.t
 
   val empty : t
 
@@ -80,7 +80,7 @@ sig
 
   val succs : node -> t -> node Enum.t
 
-  val to_yojson : t -> Yojson.Safe.json
+  val to_yojson : t -> Yojson.Safe.t
 
   val pp : t pretty_printer
 

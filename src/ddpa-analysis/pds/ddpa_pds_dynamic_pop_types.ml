@@ -1,5 +1,3 @@
-open Batteries;;
-
 open Odefa_abstract_ast;;
 open Odefa_ast;;
 
