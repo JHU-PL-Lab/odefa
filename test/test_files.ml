@@ -331,11 +331,10 @@ let make_test filename (gen_expectations, analysis_expectation) =
       let configuration =
         { topconf_analyses = analysis_list
         ; topconf_log_prefix = filename ^ "_"
-        (* NOTE/FIXME: Commented out for easier plume testing *)
-        (* ; topconf_ddpa_log_level = None
-           ; topconf_pdr_log_level = None
-           ; topconf_pdr_log_deltas = false
-           ; topconf_graph_log_file_name = "ddpa_test.log.yojson" *)
+        ; topconf_cfg_log_level = None
+        ; topconf_pdr_log_level = None
+        ; topconf_pdr_log_deltas = false
+        ; topconf_graph_log_file_name_prefix = ""
         ; topconf_analyze_vars =
             if variables_to_analyze = []
             then Toploop_option_parsers.Analyze_no_variables
