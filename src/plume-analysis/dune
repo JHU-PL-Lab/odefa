@@ -15,12 +15,14 @@
     odefa.utils
     pds-reachability
     ppx_deriving_yojson
+    landmarks
   )
   (preprocess
     (pps
       ocaml-monadic
       ppx_deriving.std
       ppx_deriving_yojson
+      landmarks.ppx --auto
     )
   )
   (flags
