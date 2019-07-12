@@ -1,0 +1,16 @@
+let id = (fun x -> x)
+in
+let blur = (fun y -> y)
+in
+let rec lp a n =
+  if (n <= 1) then (id a)
+  else
+  (
+    let r = ((blur id) true)
+    in
+    let s = ((blur id) false)
+    in
+    (not ((blur lp) s (n - 1)) )
+  )
+in
+lp false 2

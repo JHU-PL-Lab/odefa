@@ -1,0 +1,19 @@
+let rec append lst1 lst2 =
+  match lst1 with
+  | [] -> lst2
+  | hd :: tl ->
+    hd :: (append tl lst2)
+  end
+in
+let rec flatten x =
+  match x with
+  | hd :: tl ->
+    append (flatten hd) (flatten tl)
+  | [] -> []
+  | any -> [x]
+  end
+in
+let lst1 = [1, 2] in
+let lst2 = [[[3, 4, 5]]] in
+let lst = [lst1, lst2] in
+flatten lst

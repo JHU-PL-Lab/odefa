@@ -1,0 +1,90 @@
+zero = 0;
+one = 1;
+two = 2;
+three = 3;
+four = 4;
+five = 5;
+ten = 10;
+# division routine
+divide_routine = fun divide_self ->
+                  (x0 = fun dividend ->
+                         (x1 = fun divisor ->
+                                (x2 = fun quotient ->
+                                        (x3 = dividend < divisor;
+                                         x4 = x3 ~ true ?
+                                              fun x5 -> (x6 = quotient;) :
+                                              fun x7 -> (x8 = dividend == divisor;
+                                                         x9 = x8 ~ true ?
+                                                              fun x10 -> (x11 = quotient + one;) :
+                                                              fun x12 -> (x13 = divide_self divide_self;
+                                                                          x14 = dividend - divisor; # The new dividend
+                                                                          x15 = quotient + one; # The new quotient
+                                                                          x16 = x13 x14;
+                                                                          x17 = x16 divisor;
+                                                                          x18 = x17 x15;
+                                                                         )
+                                                        )
+
+                                        )
+                                )
+                         )
+                  );
+divide = fun real_dividend ->
+          (x19 = fun real_divisor ->
+                  (x20 = divide_routine divide_routine;
+                   x21 = x20 real_dividend;
+                   x22 = x21 real_divisor;
+                   x23 = x22 zero;
+                  )
+          );
+mod_routine = fun mod_self ->
+                (x24 = fun mod_dividend ->
+                        (x25 = fun mod_divisor ->
+                                (x26 = mod_dividend < mod_divisor;
+                                 x27 = x26 ~ true ?
+                                       fun x28 -> (x29 = mod_dividend;) :
+                                       fun x -> (x30 = mod_dividend == mod_divisor;
+                                                 x31 = zero;
+                                                 x32 = mod_self mod_self;
+                                                 x33 = mod_dividend - mod_divisor;
+                                                 x34 = x32 x33;
+                                                 x35 = x34 mod_divisor;
+                                                )
+                                )
+                        )
+                );
+mod = mod_routine mod_routine;
+main_routine = fun main_self ->
+                (x36 = fun recurse_num ->
+                        (x37 = recurse_num == zero;
+                         x38 = x37 ~ true ?
+                               fun x39 -> (x40 = true;) :
+                               fun x41 -> (x42 = recurse_num == one;
+                                           x43 = x42 ~ true ?
+                                           fun x44 -> (x45 = false;) :
+                                           fun x46 -> (x47 = mod recurse_num;
+                                                       x48 = x47 three;
+                                                       pre_nd3 = divide recurse_num;
+                                                       nd3 = pre_nd3 three;
+                                                       actual_main = main_self main_self;
+                                                       x49 = x48 == one;
+                                                       x50 = x49 ~ true ?
+                                                             fun x51 -> (x52 = actual_main nd3;) :
+                                                             fun x53 -> (x54 = x48 == two;
+                                                                         x55 = x54 ~ true ?
+                                                                               fun x56 -> (x57 = actual_main nd3;
+                                                                                           x58 = nd3 - one;
+                                                                                           x59 = actual_main x58;
+                                                                                          ) :
+                                                                               fun x60 -> (x61 = actual_main nd3;
+                                                                                           x62 = nd3 + one;
+                                                                                           x63 = actual_main x62;
+                                                                                          )
+                                                                        )
+
+                                                      )
+                                          )
+                        )
+                );
+main = main_routine main_routine;
+result = main five;
