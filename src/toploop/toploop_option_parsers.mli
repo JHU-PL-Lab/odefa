@@ -1,4 +1,3 @@
-open Odefa_ddpa;;
 open Toploop_types;;
 
 (** This logging option sets the global logging state of the application.  It
@@ -13,14 +12,20 @@ val select_analysis_option :
 (* val select_context_stack_option :
   (module Ddpa_context_stack.Context_stack) option BatOptParse.Opt.t *)
 
-(** This logging option configures how DDPA DOT graphs are logged. *)
-val ddpa_logging_option :
-  Ddpa_analysis_logging.ddpa_logging_level BatOptParse.Opt.t
+type toploop_logging_level =
+  | Log_nothing
+  | Log_result
+  | Log_everything
+;;
+
+(** This logging option configures how CFG DOT graphs are logged. *)
+val cfg_logging_option :
+  toploop_logging_level BatOptParse.Opt.t
 
 (** This logging option configures how PDS reachability DOT graphs are
     logged. *)
 val pdr_logging_option :
-  Ddpa_analysis_logging.ddpa_logging_level BatOptParse.Opt.t
+  toploop_logging_level BatOptParse.Opt.t
 
 (** This logging option controls whether PDRs are logged as deltas. *)
 val pdr_logging_deltas_option : bool BatOptParse.Opt.t

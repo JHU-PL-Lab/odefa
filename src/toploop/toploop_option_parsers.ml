@@ -95,44 +95,14 @@ let select_analysis_option =
     ;
   }
 ;;
-(*
-let select_context_stack_option =
-  (* This ref contains a module option.  If the option is None, no analysis is
-     to be performed. *)
-  let analysis_module_ref =
-    ref (Some (module Ddpa_single_element_stack.Stack : Stack))
-  in
-  {
-    option_set = (fun option_name args ->
-        match args with
-        | [analysis_name] ->
-          let analysis_module =
-            try
-              Toploop_utils.stack_from_name analysis_name
-            with
-            | Not_found ->
-              raise @@ Option_error (option_name,
-                                     Printf.sprintf "Invalid analysis name: %s" analysis_name)
-          in
-          analysis_module_ref := analysis_module
-        | _ ->
-          raise @@ Option_error (option_name,
-                                 Printf.sprintf "Invalid argument count: %d" (List.length args))
-      )
-    ;
-    option_set_value = (fun analysis_module_option ->
-        analysis_module_ref := analysis_module_option
-      )
-    ;
-    option_get = (fun () -> Some (!analysis_module_ref))
-    ;
-    option_metavars = ["ANALYSIS"]
-    ;
-    option_defhelp = Some("Selects an analysis (0ddpa,1ddpa,2ddpa,ddpaNR,none).")
-    ;
-  };; *)
 
-let ddpa_logging_level_option name =
+type toploop_logging_level =
+  | Log_nothing
+  | Log_result
+  | Log_everything
+;;
+
+let toploop_logging_level_option name =
   let logging_level = ref None in
   {
     option_set = (fun option_name args ->
@@ -140,9 +110,9 @@ let ddpa_logging_level_option name =
         | [level_name] ->
           let level =
             match level_name with
-            | "none" -> Ddpa_analysis_logging.Log_nothing
-            | "result" -> Ddpa_analysis_logging.Log_result
-            | "all" -> Ddpa_analysis_logging.Log_everything
+            | "none" -> Log_nothing
+            | "result" -> Log_result
+            | "all" -> Log_everything
             | _ -> raise @@ Option_error(
                 option_name,
                 Printf.sprintf "Invalid %s logging level: %s" name level_name)
@@ -165,8 +135,8 @@ let ddpa_logging_level_option name =
   }
 ;;
 
-let ddpa_logging_option = ddpa_logging_level_option "DDPA CFG";;
-let pdr_logging_option = ddpa_logging_level_option "DDPA PDS";;
+let cfg_logging_option = toploop_logging_level_option "Analysis CFG";;
+let pdr_logging_option = toploop_logging_level_option "Analysis PDS";;
 
 let pdr_logging_deltas_option =
   { (BatOptParse.StdOpt.store_true ())
