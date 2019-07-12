@@ -54,11 +54,11 @@ let analysis_task_to_name (task : analysis_task) : string =
     else
       (string_of_int num) ^ "plume"
   | SPLUME ->
-    "Set plume"
+    "set_plume"
   | OSKPLUME ->
-    "Ordered-set-keep plume"
+    "ordered_set_keep_plume"
   | OSMPLUME ->
-    "Ordered-set-move plume"
+    "ordered_set_move_plume"
 ;;
 
 let ddpa_analysis_to_stack (task : analysis_task) : (module Stack) =
