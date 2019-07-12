@@ -1,0 +1,19 @@
+# bug in interpreter
+
+let debug_trace = false in
+let id elm =
+  (let dum = debug_trace in
+  elm)
+in
+let rec my_map f l =
+  let dum = debug_trace in
+  match l with
+  | [] -> []
+  | hd :: tl -> ((id f) hd) :: (my_map f tl)
+  end
+in
+let lst1 = [1, 2, 3] in
+let lst2 = [7, 8, 9] in
+let ans1 = my_map (id (fun a -> a + 1)) lst1 in
+let ans2 = my_map (id (fun b -> b + 1)) lst2 in
+ans2

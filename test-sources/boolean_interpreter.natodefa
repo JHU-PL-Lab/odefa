@@ -1,10 +1,14 @@
 # EXPECT-WELL-FORMED
-# EXPECT-ANALYSIS-STACK-IS 1ddpa
-# EXPECT-ANALYSIS-LOOKUP-FROM-END ~result {false}
+# EXPECT-ANALYSIS-STACK-IS splume
+# EXPECT-ANALYSIS-LOOKUP-FROM-END ~result {false, true}
 
-let x = `Or ([`Bool true, `Bool false]) in
-let y = `And ([x, `Bool true]) in
-let z = `Not (`And ([`Or ([x, y]), y])) in
+#let x = `Or ([`Bool true, `Bool false]) in
+#let y = `And ([x, `Bool false]) in
+#let z = `Not (`And ([`Or ([x, y]), `Bool true])) in
+#let a = `Or ([y, z]) in
+#let b = `Not (a) in
+let b = `And ([`And ([`Bool true, `Bool true]), `And ([`And ([`Bool false, `Bool false]), `Bool true])])
+in
 let rec eval e =
 match e with
 | `Bool b -> b
@@ -26,4 +30,4 @@ match e with
   end
   )
 end
-in eval z
+in eval b

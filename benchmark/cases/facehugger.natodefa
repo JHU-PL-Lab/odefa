@@ -1,0 +1,8 @@
+let id x = x in
+let rec f n =
+  if (n <= 1) then 1 else (n * (f (n - 1)))
+with
+g n =
+  if (n <= 1) then 1 else (n * (g (n - 1)))
+in
+(id f 3) + (id g 4)

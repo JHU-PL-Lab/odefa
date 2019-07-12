@@ -1,0 +1,29 @@
+# EXPECT-WELL-FORMED
+# EXPECT-ANALYSIS-STACK-IS splume
+# EXPECT-ANALYSIS-LOOKUP-FROM-END ~result {false}
+
+let rec divide_routine m n q =
+  if (m < n) then q else
+  if (m == n) then (q + 1) else
+  divide_routine (m - n) n (q + 1)
+in
+
+let divide m n =
+  divide_routine m n 0
+in
+
+let rec mod m n =
+  if (m < n) then m else
+  if (m == n) then 0 else
+  mod (m - n) n
+in
+
+let rec make_ast n =
+  if n == 0 then (`Bool true) else
+  if n == 1 then (`Bool false) else
+  if (mod n 3 == 1) then `Not (make_ast (divide n 3)) else
+  if (mod n 3 == 2) then `And ([make_ast (divide n 3), make_ast((divide n 3) + 1)]) else
+  `Or ([make_ast (divide n 3), make_ast((divide n 3) + 1)])
+in
+
+make_ast 2

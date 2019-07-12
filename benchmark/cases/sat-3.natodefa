@@ -1,0 +1,38 @@
+let phi formula =
+  (formula.x1 or formula.x2) and
+  (formula.x1 or (not (formula.x2)) or (not (formula.x3))) and
+  (formula.x3 or formula.x4) and
+  ((not (formula.x4)) or formula.x1) and
+  ((not (formula.x2)) or (not (formula.x3))) and
+  (formula.x4 or formula.x2)
+in
+let try f =
+  (f true) or (f false)
+in
+let sat_solve_7 p =
+  try (fun n1 ->
+        try (fun n2 ->
+              try (fun n3 ->
+                    try (fun n4 ->
+                          try (fun n5 ->
+                                try (fun n6 ->
+                                      try (fun n7 ->
+                                            let arg = {x1 = n1,
+                                                       x2 = n2,
+                                                       x3 = n3,
+                                                       x4 = n4,
+                                                       x5 = n5,
+                                                       x6 = n6,
+                                                       x7 = n7
+                                                       }
+                                            in
+                                            p arg
+                                          )
+                                    )
+                              )
+                        )
+                  )
+            )
+      )
+in
+sat_solve_7 phi

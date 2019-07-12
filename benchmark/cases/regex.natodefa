@@ -1,0 +1,322 @@
+# encodings: 
+# regex-NULL (unmatchable pattern) = ["emptyset"]
+# regex-BLANK (Empty/blank pattern) = ["epsilon"]
+# alt = ["alt", <regex>, <regex>] 
+# seq = ["seq", <regex>, <regex>]
+# rep = ["rep", <regex>]
+
+# utilities
+let regex_emptyset = ["emptyset"] in
+let regex_epsilon = ["epsilon"] in 
+
+# utility functions - equivalent to cadr and caddr 
+let get_second lst = 
+  match lst with 
+  | hd :: tl -> 
+    (match tl with 
+     | hd2 :: tl2 -> snd 
+     end
+    )
+  end 
+in
+
+let get_third lst = 
+  match lst with 
+  | hd :: tl -> 
+    (match tl with 
+     | hd2 :: tl2 -> 
+      (match tl2 with 
+       | hd3 :: tl3 -> hd3
+       end 
+      )
+     end 
+    )
+  end 
+in
+
+let regex_alt_q re = 
+  match re with 
+  | hd :: tl -> 
+    (match hd with 
+     | string -> 
+	hd == "alt"
+     | any -> false 
+     end 
+    )
+#  | any -> false      
+  end 
+in 
+
+let regex_seq_q re = 
+  match re with 	
+  | hd :: tl ->
+    (match hd with 
+     | string -> 
+	hd == "seq" 
+     | any -> false 
+     end 
+    ) 
+  end 
+in 
+
+let regex_rep_q re = 
+  match re with 
+  | hd :: tl -> 
+    (match hd with 
+     | string -> 
+	hd == "rep"
+     | any -> false 
+     end
+    ) 
+  end 
+in
+
+let regex_emptyset_q re = 
+  match re with 
+  | hd :: tl -> 
+    (match hd with 
+     | string -> 
+	(hd == "emptyset")
+     | any -> false 
+    end 
+    )
+  #| any -> false
+  end 
+in
+
+let regex_epsilon_q re = 
+  match re with 
+  | hd :: tl -> 
+    (match hd with 
+     | string -> 
+	(hd == "epsilon")
+     | any -> false 
+    end 
+    )
+  end 
+in
+
+let regex_atom_q re = 
+  match re with 
+  | hd :: tl -> 
+    (hd == "char") or (hd == "symbol")
+  end
+in
+
+let match_seq re f = 
+  let should_be_true = (regex_seq_q re) 
+  in
+  f (get_second re) (get_third re) 
+in
+
+let match_alt re f = 
+  let should_be_true = (regex_alt_q re)
+  in
+  f (get_second re) (get_third re)
+in
+
+let match_rep re f = 
+  let should_be_true = (regex_rep_q re)
+  in 
+  f (get_second re)
+in 
+
+let seq pat1 pat2 =
+  if (regex_emptyset_q pat1) then (regex_emptyset) 
+  else 
+  (
+    if (regex_emptyset_q pat2) then (regex_emptyset)
+    else 
+    (
+      if (regex_epsilon_q pat1) then (pat2) 
+      else 
+      (
+	if (regex_epsilon_q pat2) then (pat1)
+	else 
+	(
+	["seq", pat1, pat2]
+	)
+      )
+    )
+  )	
+in 
+
+let alt pat1 pat2 = 
+  if (regex_emptyset_q pat1) then (pat2) 
+  else 
+  (
+    if (regex_emptyset_q pat2) then (pat1) 
+    else 
+    (
+      ["alt", pat1, pat2]
+    )
+  )
+in
+
+let rep pat = 
+  if (regex_emptyset_q pat) then (regex_epsilon)
+  else 
+  (
+    if (regex_epsilon_q pat) then (regex_epsilon)
+    else 
+    (
+      ["rep", pat]
+    )
+  )
+in
+
+# this is not regex -> boolean 
+let rec regex_empty re = 
+  if (regex_epsilon_q re) then regex_epsilon 
+  else 
+  (
+    if (regex_emptyset_q re) then regex_emptyset
+    else 
+    (
+      if (regex_atom_q re) then regex_emptyset
+      else 
+      (
+	if (regex_seq_q re) then 
+	(match_seq re (fun pat1 -> fun pat2 -> 
+			(seq (regex_empty pat1) (regex_empty pat2))))
+	else 
+	(
+	  if (regex_alt_q re) then 
+	  (match_alt re (fun pat1 -> fun pat2 -> 
+			 (seq (regex_empty pat1) (regex_empty pat2))))
+	  else 
+	  (
+	    if (regex_rep_q re) then (regex_epsilon) else (regex_emptyset)
+	  )
+	)	
+
+      ) 
+    )
+  )
+in 
+
+# equals routine for third if statement of regex_derivative.
+# since everything is encoded as a list, this function will 
+# recursively see if the two lists are equal.  
+let rec eq_c_re c re = 
+  match c with 
+  # base case - string
+  | string -> 
+    (match re with 
+     | string -> c == re 
+     | any -> false 
+     end 
+    )
+  # base case - empty list 
+  | [] -> 
+    (match re with 
+     | [] -> true 
+     | any -> false 
+     end 
+    )
+  # recursive case 
+  | c_hd :: c_tl ->
+    (match re with 
+     | re_hd :: re_tl -> 
+      (eq_c_re c_hd re_hd) and (eq_c_re c_tl re_tl)
+     | any -> false 
+     end
+    ) 
+  end
+in
+
+# Matt Might says this is regex regex-atom -> regex 
+# TODO: once everything works, change the if portions of the match_seq 
+# to a comparison without calling a function. 
+let rec regex_derivative re c = 
+  if (regex_epsilon_q re) then (regex_emptyset) 
+  else 
+  (
+    if (regex_emptyset_q re) then (regex_emptyset)
+    else 
+    (
+      if (eq_c_re c re) then (regex_epsilon)
+      else 
+      (
+	if (regex_atom_q re) then (regex_emptyset)
+	else 
+	(
+	  if (regex_seq_q re) then
+	  (match_seq re (fun pat1 -> fun pat2 -> 
+	    (alt (seq (regex_derivative pat1 c) pat2) 
+		 (seq (regex_empty pat1) (regex_derivative pat2 c))))	
+	  ) 
+	  else 
+	  (
+	    if (regex_alt_q re) then 
+	    (match_alt re (fun pat1 -> fun pat2 -> 
+	      (alt (regex_derivative pat1 c) (regex_derivative pat2 c)))
+	    )
+	    else 
+	    (
+	      if (regex_rep_q re) then 
+	      (match_rep re (fun pat -> 
+		(seq (regex_derivative pat c) (rep pat)))
+	      )
+	      else (regex_emptyset)
+	    ) 
+	  )
+	)
+      )
+    )
+  )
+in
+
+let rec regex_match pattern data = 
+  match data with 
+  | [] -> (regex_epsilon_q (regex_empty pattern))
+  | hd :: tl ->
+    (regex_match (regex_derivative pattern (hd)) (tl))
+  end 
+in
+
+# because equals sign does not take multiple types
+let rec check_expect check expect = 
+  match check with
+  | true -> 
+    (match expect with 
+     | true -> true 
+     | any -> false
+     end 
+    )
+  | false -> 
+    (match expect with
+     | false -> true 
+     | any -> false 
+     end 
+    )
+  | string -> 
+    (match expect with 
+     | string -> 
+	check == expect
+     | any -> false 
+     end 
+    ) 
+  | [] -> 
+    (match expect with 
+     | [] -> true 
+     | any -> false 
+     end 
+    )
+  | check_hd :: check_tl -> 
+    (match expect with 
+     | expect_hd :: expect_tl -> 
+       (check_expect check_hd expect_hd) and 
+       (check_expect check_tl expect_tl)
+     | any -> false 
+     end
+    ) 
+  end 
+in 
+
+#(check_expect (regex_derivative (["symbol", "baz"]) (["symbol", "f"])) (["emptyset"])) 
+#(check_expect (regex_derivative (["seq", ["symbol", "foo"], ["symbol", "barn"]]) (["symbol", "foo"])) (["symbol", "barn"]))
+
+(check_expect (regex_match (["seq", ["symbol", "foo"], ["rep", ["symbol", "bar"]]]) 
+  ([["symbol", "foo"], ["symbol", "bar"]])) false)
+

@@ -1,0 +1,40 @@
+# DERIV -- Symbolic derivation.
+
+# Returns the wrong answer for quotients.
+# Fortunately these aren't used in the benchmark.
+
+let rec list_map f l =
+  match l with
+  | [] -> []
+  | hd :: tl -> (f hd) :: (list_map f tl)
+  end
+in
+let rec deriv a =
+  match a with
+  | hd :: tl ->
+    match hd with
+      | `Plus any ->
+        `Plus "+" :: (list_map deriv tl)
+      | `Minus any ->
+        `Minus "-" :: (list_map deriv tl)
+      | `Times any ->
+        let inner_list = `Plus "+" :: (list_map (fun a -> [`Divides "/", (deriv a), a]) tl) in
+        [`Times "*", a, inner_list]
+      | `Divides any ->
+        match tl with
+        | hd2 :: hd3 :: tl ->
+          let lst1 = [`Divide "-", deriv hd2, hd3] in
+          let inner_lst2 = [`Times "*", hd3, hd3, (deriv hd3)] in
+          let lst2 = [`Divide "-", hd2, inner_lst2] in
+          [`Minus "-", lst1, lst2]
+        end
+    end
+    | string -> if (a == "x") then 1 else 0
+    | any -> 0
+  end
+in
+deriv ([`Plus "+", [`Plus "*", 3, "x", "x"],
+      [`Times "*", "a", "x", "x"],
+      [`Times "*", "b", "x"],
+      `Literal(5)
+      ])

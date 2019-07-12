@@ -1,0 +1,9 @@
+# https://github.com/ilyasergey/reachability/blob/master/benchmarks/gcfa2/eta.scm
+
+# Not sure whether this is right or not
+let do_something = 10 in
+let id y =
+  let dum = do_something in y
+in
+let res1 = (id (fun a -> a)) true in
+res2 = (id (fun b -> b)) false
