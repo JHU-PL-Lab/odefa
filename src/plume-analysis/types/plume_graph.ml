@@ -28,12 +28,6 @@ module type Edge_sig = sig
   val to_yojson : t -> Yojson.Safe.t;;
 end;;
 
-(* module type Node_Set = sig
-  type t;;
-  val pp : t pretty_printer;;
-  val show : t -> string;;
-  val to_yojson : t -> Yojson.Safe.t;;
-end;; *)
 (*
   Creating the graph data type inside of a module.  This allows us to keep the
   graph data type intentionally abstract, thus permitting safe indexing and
@@ -41,9 +35,6 @@ end;; *)
 *)
 module type Graph_sig =
 sig
-
-  (* Immediate TODO: ask zach about the addition of the Context_model
-     and manipulation of E signature (with...) *)
   module C : Context_model
 
   module E : Edge_sig with module C = C
@@ -92,7 +83,6 @@ sig
 end;;
 
 (* TODO: improve the performance of this implementation! *)
-(* IMEDIATE TODO: check with zach whether the with module C = C is good*)
 module Graph_impl (C : Context_model) : Graph_sig with module C = C =
 struct
   module C = C;;
@@ -111,34 +101,19 @@ struct
       | Edge of node * node
     [@@deriving ord, show, to_yojson]
     ;;
-
   end;;
 
   open E;;
 
+  module Node =
+  struct
+    type t = E.node;;
+    let compare = E.compare_node;;
+    let pp = E.pp_node;;
+    let to_yojson = E.node_to_yojson;;
+  end;;
+
   type node = E.node[@@deriving ord, show, to_yojson];;
-
-  (* TODO: check with zach whether this should be here *)
-  (* module Node =
-  struct
-    type t = node
-    let compare = compare_node
-    let pp = pp_node
-    let to_yojson = node_to_yojson
-  end;; *)
-
-  (* Set for nodes - used in plume_analysis.ml *)
-  (* module Node_set =
-  struct
-    module Impl = Set.Make(Node);;
-    include Impl;;
-    include Pp_utils.Set_pp(Impl)(Node);;
-    include Yojson_utils.Set_to_yojson(Impl)(Node);;
-    let pp = Pp_utils.pp_set pp_node enum;; *)
-    (* let show = Pp_utils.pp_to_string pp;;
-    let to_yojson = Yojson_utils.set_to_yojson node_to_yojson enum;; *)
-  (* end;; *)
-
 
   type edge = E.t;;
 
@@ -150,6 +125,13 @@ struct
     acl_check && c_check
   ;;
 
+  module Node_edge_multimap =
+  struct
+    module Impl = Multimap.Make(Node)(E);;
+    include Impl;;
+    include Multimap_pp.Make(Impl)(Node)(E);;
+    include Multimap_to_yojson.Make(Impl)(Node)(E);;
+  end;;
 
   module Edge_set =
   struct
@@ -159,33 +141,38 @@ struct
     include Yojson_utils.Set_to_yojson(Impl)(E);;
   end;;
 
-  type t = Graph of Edge_set.t [@@deriving to_yojson];;
+  type t = {
+    g_all_edges : Edge_set.t;
+    g_edges_from : Node_edge_multimap.t;
+    g_edges_to : Node_edge_multimap.t;
+  } [@@deriving to_yojson];;
 
-  let empty = Graph(Edge_set.empty);;
+  let empty = {
+    g_all_edges = Edge_set.empty;
+    g_edges_from = Node_edge_multimap.empty;
+    g_edges_to = Node_edge_multimap.empty;
+  };;
 
-  let add_edge edge (Graph(s)) = Graph(Edge_set.add edge s);;
-
-  let edges_of (Graph(s)) = Edge_set.enum s;;
-
-  let has_edge edge (Graph(s)) = Edge_set.mem edge s;;
-
-  let edges_from node (Graph(s)) =
-    Edge_set.enum s
-    |> Enum.filter (fun (Edge(n1, _)) ->
-        equal_node node n1
-      )
+  let add_edge edge g =
+    let Edge(source,target) = edge in
+    {
+      g_all_edges = Edge_set.add edge g.g_all_edges;
+      g_edges_from = Node_edge_multimap.add source edge g.g_edges_from;
+      g_edges_to = Node_edge_multimap.add target edge g.g_edges_to;
+    }
   ;;
+
+  let edges_of g = Edge_set.enum g.g_all_edges;;
+
+  let has_edge edge g = Edge_set.mem edge g.g_all_edges;;
+
+  let edges_from node g = Node_edge_multimap.find node g.g_edges_from;;
 
   let succs node g =
     edges_from node g |> Enum.map (fun (Edge(_,node)) -> node)
   ;;
 
-  let edges_to node (Graph(s)) =
-    Edge_set.enum s
-    |> Enum.filter (fun (Edge(_, n1)) ->
-        equal_node node n1
-      )
-  ;;
+  let edges_to node g = Node_edge_multimap.find node g.g_edges_to;;
 
   let preds node g =
     edges_to node g |> Enum.map (fun (Edge(node, _)) -> node)
