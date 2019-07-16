@@ -6,4 +6,5 @@ let id y =
   let dum = do_something in y
 in
 let res1 = (id (fun a -> a)) true in
-res2 = (id (fun b -> b)) false
+let res2 = (id (fun b -> b)) false in
+res2
