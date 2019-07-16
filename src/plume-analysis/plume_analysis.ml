@@ -90,6 +90,17 @@ struct
     let to_yojson = node_to_yojson
   end;;
 
+  (* module Lookup_pair =
+  struct
+    type t = abstract_var * E.C.t [@@deriving eq, ord]
+  end;;
+
+  module Lookup_pair_map =
+  struct
+    module Impl = Map.Make(Lookup_pair);;
+    include Impl;;
+  end;; *)
+
   (* Set for nodes - used in plume_analysis.ml *)
   module Node_set =
   struct
@@ -142,7 +153,6 @@ struct
 
   type plume_analysis =
     { plume_graph : G.t
-    ; plume_graph_fully_closed : bool
     ; pds_reachability : Plume_pds_reachability.analysis
     ; plume_active_nodes : Node_set.t
     (** The active nodes in the Plume graph.  This set is maintained
@@ -150,6 +160,9 @@ struct
     ; plume_active_non_immediate_nodes : Node_set.t
     (** A subset of [plume_active_nodes] which only contains the
         non-immediate nodes.  This is useful during closure. *)
+    ; plume_graph_fully_closed : bool
+    (* ; plume_edges_waitlist : edge Batteries.Deque.dq *)
+    (** A list of edges that need to be added to the CFG **)
     ; plume_logging_data : plume_analysis_logging_data option
     (** Data associated with logging, if appropriate. *)
     }
@@ -161,9 +174,6 @@ struct
       [ ( "plume_graph"
         , G.to_yojson analysis.plume_graph
         )
-      ; ( "plume_graph_fully_closed"
-        , `Bool analysis.plume_graph_fully_closed
-        )
       ; ( "plume_active_nodes"
         , Node_set.to_yojson analysis.plume_active_nodes
         )
@@ -171,6 +181,9 @@ struct
         , Node_set.to_yojson
             analysis.plume_active_non_immediate_nodes
         )
+      (* ; ("plume_edges_waitlist"
+        , Yojson_utils.list_to_yojson (to_yojson) (Deque.to_list analysis.plume_edges_waitlist)
+        ) *)
       ]
   ;;
 
@@ -288,18 +301,172 @@ struct
     pds_edge_count
   ;;
 
-  (**
+  (*
+     Adds a set of edges to the Plume graph.  This implicitly adds the vertices
+     involved in those edges.  Note that this does not affect the end-of-block
+     map.
+  *)
+  (* let add_one_edge edge_in analysis =
+    if has_edge edge_in analysis.plume_graph then analysis else
+      (* Add edge to CFG *)
+      let plume_graph' =
+        add_edge edge_in analysis.plume_graph
+      in
+      (* ***
+         Then, update the PDS reachability analysis with the new edge
+         information.
+      *)
+      let add_edge_for_reachability edge reachability =
+        reachability
+        |> Plume_pds_reachability.add_edge_function
+          (Edge_functions.create_edge_function edge)
+        |> Plume_pds_reachability.add_untargeted_dynamic_pop_action_function
+          (Edge_functions.create_untargeted_dynamic_pop_action_function edge)
+      in
+      let pds_reachability' =
+        add_edge_for_reachability edge_in analysis.pds_reachability
+      in
+      (* ***
+         Now, perform closure over the active node set.  This function uses a
+         list of enumerations of nodes to explore.  This reduces the cost of
+         managing the work queue.
+      *)
+      let rec find_new_active_nodes from_nodes_enums results_so_far =
+        match from_nodes_enums with
+        | [] -> results_so_far
+        | from_nodes_enum::from_nodes_enums' ->
+          if Enum.is_empty from_nodes_enum
+          then find_new_active_nodes from_nodes_enums' results_so_far
+          else
+            let from_node = Enum.get_exn from_nodes_enum in
+            if Node_set.mem from_node analysis.plume_active_nodes ||
+               Node_set.mem from_node results_so_far
+            then find_new_active_nodes from_nodes_enums results_so_far
+            else
+              let results_so_far' =
+                Node_set.add from_node results_so_far
+              in
+              let from_here = plume_graph' |> succs from_node in
+              find_new_active_nodes (from_here::from_nodes_enums) results_so_far'
+      in
+      let (plume_active_nodes',plume_active_non_immediate_nodes') =
+        let new_active_root_node_opt =
+          let (Edge(node_left,node_right)) = edge_in in
+          if Node_set.mem node_left analysis.plume_active_nodes
+          then
+            if not @@ Node_set.mem node_left analysis.plume_active_nodes
+            then Some node_right
+            else None
+          else None
+        in
+        let new_active_nodes =
+          match new_active_root_node_opt with
+          | None -> Node_set.empty
+          | Some node ->
+            find_new_active_nodes [(Enum.singleton node)] Node_set.empty
+        in
+        let is_node_immediate node =
+          let G.E.Node(acl, _) = node in
+          is_annotated_clause_immediate acl
+        in
+        ( Node_set.union analysis.plume_active_nodes
+            new_active_nodes
+        (* Here we are only returning the new non-immediate active nodes,
+           because all of the previous ones should have been handled by the
+           last CFG closure step at this point.
+        *)
+        , ( new_active_nodes |> Node_set.filter
+              (not % is_node_immediate) )
+        )
+      in
+      { plume_graph = plume_graph'
+      ; pds_reachability = pds_reachability'
+      ; plume_active_nodes = plume_active_nodes'
+      ; plume_active_non_immediate_nodes = plume_active_non_immediate_nodes'
+      ; plume_edges_waitlist = analysis.plume_edges_waitlist
+      ; plume_logging_data = analysis.plume_logging_data
+      }
+  ;; *)
+
+  (* NOTE: CFG closure step
+     - Add edge to CFG *Done
+     - Update PDS (not closing it) *Done
+     - Find new active non-immediate nodes *Done
+     - React to new active things
+     - Compute and react to PDS closure until PDS closed, all edges produced
+       will be added to the waitlist
+  *)
+
+  (* let cfg_closure_step analysis =
+    let module Wiring = Graph_construct(G) in
+    let open Wiring in
+    if (Deque.is_empty analysis.plume_edges_waitlist) then analysis
+    else
+      (* Adding one edge to the CFG and update the PDS accordingly *)
+      let q_front_option = Deque.front analysis.plume_edges_waitlist in
+      let new_analysis =
+        match q_front_option with
+        | Some (edge_to_add, waitlist') ->
+          let pre_analysis =
+            { plume_graph = analysis.plume_graph
+            ; pds_reachability =  analysis.pds_reachability
+            ; plume_active_nodes = analysis.plume_active_nodes
+            ; plume_active_non_immediate_nodes =
+                analysis.plume_active_non_immediate_nodes
+            ; plume_edges_waitlist = waitlist'
+            ; plume_logging_data = analysis.plume_logging_data
+            }
+          in
+          add_one_edge edge_to_add pre_analysis
+        | None -> raise @@
+          Failure "analysis.plume_edges_waitlist should not be empty here!"
+          (* Act in response to the newly discovered active non-immediate nodes *)
+      in
+      let new_ni_nodes = new_analysis.plume_active_non_immediate_nodes in
+      let node_process_fun node arg_map fun_map =
+        let Node(acl, ctx) = node in
+        match acl with
+        | Unannotated_clause
+            (Abs_clause
+               (clause_name,
+                Abs_appl_body(appl_fun,appl_arg)) as cl) ->
+          let fun_to_call = fun old_fun_map ->
+            let new_fun =
+              fun fun_val -> fun graph ->
+                wire_fun node fun_val appl_arg clause_name graph
+            in
+            let new_fun_map =
+              if (Lookup_pair_map.mem (appl_fun, ctx) old_fun_map) then
+                let old_entry =
+                  Lookup_pair_map.find (appl_fun, ctx) old_fun_map in
+                let new_entry = (new_fun) :: old_entry in
+                Lookup_pair_map.update
+                  (appl_fun, ctx) (appl_fun, ctx) new_entry old_fun_map
+              else
+                Lookup_pair_map.add (appl_fun, ctx) [new_fun] old_fun_map
+            in
+            (* NOTE: actual work happens here *)
+            if (Lookup_pair_map.mem (appl_arg, ctx) arg_map) then
+              let action = Lookup_pair_map.find (appl_arg, ctx) in
+              match action with
+              | Value_found ->
+              | Value_not_found f ->
+
+
+  ;; *)
+
+  (*
      Adds a set of edges to the Plume graph.  This implicitly adds the vertices
      involved in those edges.  Note that this does not affect the end-of-block
      map.
   *)
   let add_edges edges_in analysis =
-    let edges =
+     let edges =
       edges_in
       |> Enum.filter
         (fun edge -> not @@ has_edge edge analysis.plume_graph)
-    in
-    if Enum.is_empty edges then (analysis,false) else
+     in
+     if Enum.is_empty edges then (analysis,false) else
       (* ***
          First, update the PDS reachability analysis with the new edge
          information.
@@ -382,7 +549,7 @@ struct
         }
       , true
       )
-  ;;
+     ;;
 
   let create_initial_analysis
       ?plume_logging_config:(plume_logging_config_opt=None)
