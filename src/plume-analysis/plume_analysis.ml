@@ -93,6 +93,7 @@ struct
 
   module Lookup_pair =
   struct
+    (* TODO: *)
     (* type t = abstract_var * E.C.t [@@deriving eq, ord] *)
     type t = abstract_var * E.C.t [@@deriving ord]
   end;;
@@ -162,6 +163,7 @@ struct
     ; plume_active_non_immediate_nodes : Node_set.t
     (** A subset of [plume_active_nodes] which only contains the
         non-immediate nodes.  This is useful during closure. *)
+    (* TODO: *)
     ; plume_graph_fully_closed : bool
     (* ; plume_edges_waitlist : edge Batteries.Deque.dq *)
     (** A list of edges that need to be added to the CFG **)
@@ -183,19 +185,19 @@ struct
         , Node_set.to_yojson
             analysis.plume_active_non_immediate_nodes
         )
-      (* ; ("plume_edges_waitlist"
-        , Yojson_utils.list_to_yojson (to_yojson) (Deque.to_list analysis.plume_edges_waitlist)
-        ) *)
+        (* ; ("plume_edges_waitlist"
+           , Yojson_utils.list_to_yojson (to_yojson) (Deque.to_list analysis.plume_edges_waitlist)
+           ) *)
       ]
   ;;
 
   (* TODO: *)
-  (* type arg_state =
-    | Value_found
+  (*type arg_state =
+     | Value_found
     | Value_not_found of
         ((abstract_function_value -> G.t -> edge Enum.t) list
            Lookup_pair_map.t ->
-          plume_analysis ->
+         plume_analysis ->
          (abstract_function_value -> G.t -> edge Enum.t) list
            Lookup_pair_map.t * edge list) list
 
@@ -320,6 +322,7 @@ struct
      involved in those edges.  Note that this does not affect the end-of-block
      map.
   *)
+  (* TODO: *)
   (* let add_one_edge edge_in analysis =
     if has_edge edge_in analysis.plume_graph then analysis else
       (* Add edge to CFG *)
@@ -408,7 +411,8 @@ struct
      involved in those edges.  Note that this does not affect the end-of-block
      map.
   *)
-  let add_edges edges_in analysis =
+  (* TODO: *)
+   let add_edges edges_in analysis =
      let edges =
       edges_in
       |> Enum.filter
@@ -561,17 +565,18 @@ struct
     in
     let empty_analysis =
       { plume_graph = G.empty
-      ; plume_graph_fully_closed = true
+      ; plume_graph_fully_closed = false
       ; pds_reachability = initial_reachability
       ; plume_active_nodes =
           Node_set.singleton (Node((Start_clause rx), C.empty))
       ; plume_active_non_immediate_nodes = Node_set.empty
+      (* ; plume_edges_waitlist = Batteries.Deque.empty *)
       ; plume_logging_data = logging_data_opt
       }
     in
     (* Put the edges into the empty analysis. *)
     (* let analysis = fst @@ add_one_edge edges empty_analysis in *)
-    (* TODO:*)
+    (* TODO: use new algorihtm *)
     let analysis = fst @@ add_edges edges empty_analysis in
     logger `trace "Created initial analysis";
     log_cfg Log_everything analysis;
@@ -641,11 +646,12 @@ struct
      - Add edge to CFG *Done
      - Update PDS (not closing it) *Done
      - Find new active non-immediate nodes *Done
-     - React to new active things
+     - React to new active things *Done
      - Compute and react to PDS closure until PDS closed, all edges produced
        will be added to the waitlist
   *)
 
+  (* TODO: *)
   (* let cfg_closure_step analysis arg_map fun_map =
     let open Wiring in
     if (Deque.is_empty analysis.plume_edges_waitlist) then (analysis, arg_map, fun_map)
@@ -748,38 +754,38 @@ struct
           in
           (* NOTE: actual work happens here *)
           if (Lookup_pair_map.mem (appl_arg, ctx) arg_map) then
-              (let action = Lookup_pair_map.find (appl_arg, ctx) arg_map in
-               match action with
-               | Value_found ->
-                 let (new_fun_map, edges_to_add)=
-                   fun_to_call fun_map acc_analysis in
-                 let new_waitlist =
-                   List.fold_left
-                     (fun curr_waitlist -> fun curr_edge ->
-                        Deque.snoc curr_waitlist curr_edge)
-                     acc_analysis.plume_edges_waitlist
-                     edges_to_add
-                 in
-                 let acc_analysis' = { acc_analysis with plume_edges_waitlist = new_waitlist} in
-                 (acc_analysis', arg_map, new_fun_map)
-               | Value_not_found f_list ->
-                 let modified_arg_map =
-                   Lookup_pair_map.update (appl_arg, ctx) (appl_arg, ctx)
-                     (Value_not_found(fun_to_call :: f_list)) arg_map
-                 in
-                 (acc_analysis, modified_arg_map, fun_map)
-              )
+            (let action = Lookup_pair_map.find (appl_arg, ctx) arg_map in
+             match action with
+             | Value_found ->
+               let (new_fun_map, edges_to_add)=
+                 fun_to_call fun_map acc_analysis in
+               let new_waitlist =
+                 List.fold_left
+                   (fun curr_waitlist -> fun curr_edge ->
+                      Deque.snoc curr_waitlist curr_edge)
+                   acc_analysis.plume_edges_waitlist
+                   edges_to_add
+               in
+               let acc_analysis' = { acc_analysis with plume_edges_waitlist = new_waitlist} in
+               (acc_analysis', arg_map, new_fun_map)
+             | Value_not_found f_list ->
+               let modified_arg_map =
+                 Lookup_pair_map.update (appl_arg, ctx) (appl_arg, ctx)
+                   (Value_not_found(fun_to_call :: f_list)) arg_map
+               in
+               (acc_analysis, modified_arg_map, fun_map)
+            )
           else
             (
               let (appl_arg_lookup_res, _) =
                 contextual_values_of_variable appl_arg acl ctx new_analysis
               in
               if (Abs_filtered_value_set.is_empty appl_arg_lookup_res) then
-              let new_arg_map =
-                Lookup_pair_map.add (appl_arg, ctx)
-                  (Value_not_found([fun_to_call])) arg_map
-              in
-              (acc_analysis, new_arg_map, fun_map)
+                let new_arg_map =
+                  Lookup_pair_map.add (appl_arg, ctx)
+                    (Value_not_found([fun_to_call])) arg_map
+                in
+                (acc_analysis, new_arg_map, fun_map)
               else
                 (
                   let (new_fun_map, edges_to_add)=
@@ -798,6 +804,66 @@ struct
         | _ -> raise @@ Failure "aaa"
       in
       Node_set.fold node_process_fun new_ni_nodes (new_analysis, arg_map, fun_map)
+  ;; *)
+
+  (* let analyze_note note =
+    let (start_state, stack_actions, end_state) = note in
+    let open Option.Monad in
+    let zero () = None in
+    let%orzero
+      (Push Bottom_of_stack :: Push (Lookup_var (x, patsp, patsn)) :: []) = stack_actions in
+    [%guard ((Pattern_set.is_empty patsp) && (Pattern_set.is_empty patsn))];
+    let%orzero(Structure_types.Program_point_state node) = start_state in
+    let Node (_, context) = node in
+    let%orzero(Structure_types.Result_state var_value) = end_state in
+    return((x, context), var_value)
+  ;;
+
+  (* This function will do PDS closure and responds accordingly until it's fully closed *)
+  let rec pds_closure_step analysis arg_map fun_map =
+    let reachability = analysis.pds_reachability in
+    let (reachability', lazy_note) =
+      Plume_pds_reachability.closure_step_reachable reachability in
+    let analysis' = { analysis with pds_reachability = reachability' } in
+    match lazy_note with
+    | lazy note_opt ->
+      match note_opt with
+      | None -> pds_closure_step analysis' arg_map fun_map
+      | Some note ->
+        let content_opt = analyze_note note in
+        match content_opt with
+        | Some content ->
+          let (relevant_pair, var_val) = content in
+          (* Checking for membership of variable context pair in arg_map *)
+          if (Lookup_pair_map.mem relevant_pair arg_map) then
+            (* If it's in the arg_map, then we need to *)
+            let relevant_arg_funs = Lookup_pair_map.find relevant_pair arg_map in
+            let (new_fun_map, new_edges) =
+              List.fold_left
+                (fun acc -> fun arg_fun ->
+                   let (func_map, edges) = acc in
+                   let (func_map', edges') = arg_fun func_map analysis' in
+                   (func_map', edges @ edges')
+                ) (fun_map, []) relevant_arg_funs
+            in
+            (* Checking for membership of variable context pair in fun_map *)
+            if (Lookup_pair_map.mem relevant_pair fun_map) then
+              let relevant_func_funs = Lookup_pair_map.find relevant_pair fun_map in
+              let total_new_edges =
+                List.fold_left
+                  (fun acc -> fun func_fun ->
+                     acc @ (func_fun var_val analysis'.plume_graph))
+                  new_edges relevant_func_funs
+              in
+              let plume_edges_waitlist' =
+                List.fold_left (fun acc -> fun edge -> Deque.snoc acc edge)
+                  analysis'.plume_edges_waitlist total_new_edges
+              in
+              let result_analysis = {analysis' with plume_edges_waitlist = plume_edges_waitlist' } in
+              pds_closure_step result_analysis arg_map fun_map
+              (* TODO: Wrong else branch, needs fixing *)
+            else pds_closure_step analysis' arg_map new_fun_map
+        | None -> pds_closure_step analysis' arg_map fun_map
   ;; *)
 
   let perform_closure_steps analysis =
