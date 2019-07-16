@@ -371,10 +371,10 @@ let analysis_step_general
 let create_plume_logging_config
     (situation : toploop_situation)
     (task_name : string)
-   : plume_analysis_logging_config * (unit -> unit) =
-   let conf = situation.ts_conf in
-   (* Set up the logging configuration for the analysis. *)
-   let plume_cfg_logging_level =
+  : plume_analysis_logging_config * (unit -> unit) =
+  let conf = situation.ts_conf in
+  (* Set up the logging configuration for the analysis. *)
+  let plume_cfg_logging_level =
     begin
       match conf.topconf_cfg_log_level with
       | Some level ->
@@ -385,8 +385,8 @@ let create_plume_logging_config
         )
       | None -> Plume_analysis_logging.Log_nothing;
     end
-   in
-   let plume_pdr_logging_level =
+  in
+  let plume_pdr_logging_level =
     begin
       match conf.topconf_pdr_log_level with
       | Some level ->
@@ -397,16 +397,16 @@ let create_plume_logging_config
         )
       | None -> Plume_analysis_logging.Log_nothing;
     end
-   in
-   let plume_graph_log_file_prefix = conf.topconf_graph_log_file_name_prefix in
-   let plume_graph_log_file_name =
-     plume_graph_log_file_prefix ^ "_" ^ task_name ^ ".log" in
-   (* Set up the DDPA logging configuration.  This includes the function
+  in
+  let plume_graph_log_file_prefix = conf.topconf_graph_log_file_name_prefix in
+  let plume_graph_log_file_name =
+    plume_graph_log_file_prefix ^ "_" ^ task_name ^ ".log" in
+  (* Set up the DDPA logging configuration.  This includes the function
      which will write JSON records to a file as they are reported.  For
      cleanup, we keep the file in an option ref.
   *)
-   let graph_log_file = ref None in
-   let plume_logging_config =
+  let graph_log_file = ref None in
+  let plume_logging_config =
     { plume_pdr_logging_level = plume_pdr_logging_level
     ; plume_cfg_logging_level = plume_cfg_logging_level
     ; plume_pdr_deltas = conf.topconf_pdr_log_deltas
@@ -434,12 +434,12 @@ let create_plume_logging_config
              IO.nwrite file json_string
           )
     }
-   in
-   (* The rest of this is wrapped in a finally so that, if a JSON graph log
+  in
+  (* The rest of this is wrapped in a finally so that, if a JSON graph log
      file is created, it will be properly closed even if an exception is
      raised.
   *)
-   let close_files =
+  let close_files =
     (fun () ->
        match !graph_log_file with
        | None -> ()
@@ -447,9 +447,9 @@ let create_plume_logging_config
          IO.nwrite file "\n]\n";
          IO.close_out file
     )
-   in
-   plume_logging_config, close_files
-   ;;
+  in
+  plume_logging_config, close_files
+;;
 
 (* Function that creates a logging config specifically for DDPA.
 
@@ -463,10 +463,10 @@ let create_plume_logging_config
 let create_ddpa_logging_config
     (situation : toploop_situation)
     (task_name : string)
-   : ddpa_analysis_logging_config * (unit -> unit) =
-   let conf = situation.ts_conf in
-   (* Set up the logging configuration for the analysis. *)
-   let ddpa_cfg_logging_level =
+  : ddpa_analysis_logging_config * (unit -> unit) =
+  let conf = situation.ts_conf in
+  (* Set up the logging configuration for the analysis. *)
+  let ddpa_cfg_logging_level =
     begin
       match conf.topconf_cfg_log_level with
       | Some level ->
@@ -477,8 +477,8 @@ let create_ddpa_logging_config
         )
       | None -> Ddpa_analysis_logging.Log_nothing;
     end
-   in
-   let ddpa_pdr_logging_level =
+  in
+  let ddpa_pdr_logging_level =
     begin
       match conf.topconf_pdr_log_level with
       | Some level ->
@@ -489,15 +489,15 @@ let create_ddpa_logging_config
         )
       | None -> Ddpa_analysis_logging.Log_nothing;
     end
-   in
-   let ddpa_graph_log_file_name_prefix = conf.topconf_graph_log_file_name_prefix in
-   let ddpa_graph_log_file_name = ddpa_graph_log_file_name_prefix ^ task_name ^ ".log" in
-   (* Set up the DDPA logging configuration.  This includes the function
+  in
+  let ddpa_graph_log_file_name_prefix = conf.topconf_graph_log_file_name_prefix in
+  let ddpa_graph_log_file_name = ddpa_graph_log_file_name_prefix ^ task_name ^ ".log" in
+  (* Set up the DDPA logging configuration.  This includes the function
      which will write JSON records to a file as they are reported.  For
      cleanup, we keep the file in an option ref.
   *)
-   let graph_log_file = ref None in
-   let ddpa_logging_config =
+  let graph_log_file = ref None in
+  let ddpa_logging_config =
     { ddpa_pdr_logging_level = ddpa_pdr_logging_level
     ; ddpa_cfg_logging_level = ddpa_cfg_logging_level
     ; ddpa_pdr_deltas = conf.topconf_pdr_log_deltas
@@ -525,12 +525,12 @@ let create_ddpa_logging_config
              IO.nwrite file json_string
           )
     }
-   in
-   (* The rest of this is wrapped in a finally so that, if a JSON graph log
+  in
+  (* The rest of this is wrapped in a finally so that, if a JSON graph log
      file is created, it will be properly closed even if an exception is
      raised.
   *)
-   let close_files =
+  let close_files =
     (fun () ->
        match !graph_log_file with
        | None -> ()
@@ -538,9 +538,9 @@ let create_ddpa_logging_config
          IO.nwrite file "\n]\n";
          IO.close_out file
     )
-   in
-   ddpa_logging_config, close_files
-   ;;
+  in
+  ddpa_logging_config, close_files
+;;
 
 
 (* Function that solely performs analysis (variable analyes and error checking)
