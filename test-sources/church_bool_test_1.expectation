@@ -1,0 +1,16 @@
+QUERY: ~result;
+ANALYSES: 0DDPA, 0PLUME, 1PLUME, SPLUME, OSKPLUME, OSMPLUME;
+RESULTS: 0DDPA(~result) = `{false}`,
+         0PLUME(~result) = `{false}`,
+         1PLUME(~result) = `{false}`,
+         SPLUME(~result) = `{false}`,
+         OSKPLUME(~result) = `{false}`,
+         OSMPLUME(~result) = `{false}`;
+CONSISTENCIES: 0DDPA = NO_INCONSISTENCIES &
+               0PLUME = NO_INCONSISTENCIES &
+               1PLUME = NO_INCONSISTENCIES &
+               SPLUME = NO_INCONSISTENCIES &
+               OSKPLUME = NO_INCONSISTENCIES &
+               OSMPLUME = NO_INCONSISTENCIES;
+WELL_FORMED;
+EVALUATE;

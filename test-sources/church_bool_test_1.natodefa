@@ -1,0 +1,7 @@
+let churchTrue = fun t -> fun f -> t in
+let churchFalse = fun t -> fun f -> f in
+let churchAnd = fun b1 -> fun b2 -> b1 b2 churchFalse in
+let churchOr = fun b1 -> fun b2 -> b1 churchTrue b2 in
+let true_and_false = churchAnd churchTrue churchFalse in
+let res = true_and_false true false in
+res

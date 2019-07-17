@@ -11,7 +11,7 @@
 let digit = ['0'-'9']
 let natural = digit+
 
-let ident_start = ['a'-'z' 'A'-'Z' '_']
+let ident_start = ['a'-'z' 'A'-'Z' '_' '~']
 let ident_cont = ident_start | ['0'-'9']
 let ident = ident_start ident_cont*
 
