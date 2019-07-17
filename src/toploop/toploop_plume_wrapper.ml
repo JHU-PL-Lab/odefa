@@ -35,15 +35,17 @@ struct
 
   let values_of_variable_from x acl analysis =
     let a = !(analysis.aref) in
-    let (values,a') = A.values_of_variable x acl a in
-    analysis.aref := a';
+    let a' = A.perform_full_closure a in
+    let (values,a'') = A.values_of_variable x acl a' in
+    analysis.aref := a'';
     values
   ;;
 
   let contextual_values_of_variable_from x acl ctx analysis =
     let a = !(analysis.aref) in
-    let (values,a') = A.contextual_values_of_variable x acl ctx a in
-    analysis.aref := a';
+    let a' = A.perform_full_closure a in
+    let (values,a'') = A.contextual_values_of_variable x acl ctx a' in
+    analysis.aref := a'';
     values
   ;;
 
