@@ -163,8 +163,9 @@ struct
     ; plume_active_non_immediate_nodes : Node_set.t
     (** A subset of [plume_active_nodes] which only contains the
         non-immediate nodes.  This is useful during closure. *)
-    (* TODO: *)
+    (* TODO: Remove this for the new code *)
     ; plume_graph_fully_closed : bool
+    (* TODO: Uncomment this for the new code *)
     (* ; plume_edges_waitlist : edge Batteries.Deque.dq *)
     (** A list of edges that need to be added to the CFG **)
     ; plume_logging_data : plume_analysis_logging_data option
@@ -185,13 +186,14 @@ struct
         , Node_set.to_yojson
             analysis.plume_active_non_immediate_nodes
         )
+        (* TODO: Figure out how to convert it to json *)
         (* ; ("plume_edges_waitlist"
            , Yojson_utils.list_to_yojson (to_yojson) (Deque.to_list analysis.plume_edges_waitlist)
            ) *)
       ]
   ;;
 
-  (* TODO: *)
+  (* TODO: Uncomment this for the new code *)
   (*type arg_state =
      | Value_found
     | Value_not_found of
@@ -227,6 +229,7 @@ struct
               ; ( "graph"
                 , Plume_pds_reachability.dump_yojson reachability
                 )
+                (* TODO: Include the deque in the new code? *)
               ]
           in
           data.plume_logging_config.plume_json_logger json
@@ -256,6 +259,8 @@ struct
                 , Plume_pds_reachability.dump_yojson_delta
                     old_reachability new_reachability
                 )
+                (* TODO: Include the deque in the new code? *)
+
               ]
           in
           data.plume_logging_config.plume_json_logger json
@@ -286,6 +291,7 @@ struct
               ; ( "graph"
                 , dump_yojson analysis
                 )
+                (* TODO: Include the deque in the new code? *)
               ]
           in
           data.plume_logging_config.plume_json_logger json
@@ -322,7 +328,7 @@ struct
      involved in those edges.  Note that this does not affect the end-of-block
      map.
   *)
-  (* TODO: *)
+  (* TODO: Uncomment this for the new code; routine to add one edge to the cfg and pds*)
   (* let add_one_edge edge_in analysis =
     if has_edge edge_in analysis.plume_graph then analysis else
       (* Add edge to CFG *)
@@ -411,7 +417,7 @@ struct
      involved in those edges.  Note that this does not affect the end-of-block
      map.
   *)
-  (* TODO: *)
+  (* TODO: Remove this for the new code *)
    let add_edges edges_in analysis =
      let edges =
       edges_in
@@ -651,7 +657,9 @@ struct
        will be added to the waitlist
   *)
 
-  (* TODO: *)
+  (* TODO: Uncomment this for new algorithm; this is the function that performs one step
+     of cfg closure (Step 1, 2, 3, 4 in the note above)
+  *)
   (* let cfg_closure_step analysis arg_map fun_map =
     let open Wiring in
     if (Deque.is_empty analysis.plume_edges_waitlist) then (analysis, arg_map, fun_map)
@@ -806,6 +814,9 @@ struct
       Node_set.fold node_process_fun new_ni_nodes (new_analysis, arg_map, fun_map)
   ;; *)
 
+  (* TODO: Uncomment this for new algorithm; this function will analyze a note
+           returned by the PDS closure, and return any relevant information.
+  *)
   (* let analyze_note note =
     let (start_state, stack_actions, end_state) = note in
     let open Option.Monad in
@@ -819,7 +830,8 @@ struct
     return((x, context), var_value)
   ;;
 
-  (* This function will do PDS closure and responds accordingly until it's fully closed *)
+     (* TODO: Uncomment this for new algorithm; this function will do PDS closure
+              and responds accordingly until it's fully closed *)
   let rec pds_closure_step analysis arg_map fun_map =
     let reachability = analysis.pds_reachability in
     let (reachability', lazy_note) =
