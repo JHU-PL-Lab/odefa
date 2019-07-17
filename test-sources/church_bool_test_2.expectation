@@ -1,0 +1,12 @@
+QUERY: ~result;
+ANALYSES: 1PLUME, SPLUME, OSKPLUME, OSMPLUME;
+RESULTS: 1PLUME(~result) = `{true}`,
+         SPLUME(~result) = `{true}`,
+         OSKPLUME(~result) = `{true}`,
+         OSMPLUME(~result) = `{true}`;
+CONSISTENCIES: 1PLUME = NO_INCONSISTENCIES &
+               SPLUME = NO_INCONSISTENCIES &
+               OSKPLUME = NO_INCONSISTENCIES &
+               OSMPLUME = NO_INCONSISTENCIES;
+WELL_FORMED;
+EVALUATE;
