@@ -19,6 +19,9 @@
 # Custom build configuration files
 /.local_*
 
+# Scratch location
+/local
+
 # Dune creates its own .merlin files
 .merlin
 
