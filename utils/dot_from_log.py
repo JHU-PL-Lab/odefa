@@ -290,9 +290,19 @@ def abbrv_clause(clause):
         raise InvariantFailure("Unrecognized clause for abbreviation: %s" %
                                str(clause))
 
-def abbrv_cfg_node(node):
+def abbrv_context(context):
+    sites = []
+    for clause in context:
+        if clause[0] == "Abs_clause":
+            sites.append(clause[1])
+        else:
+            raise InvariantFailure(
+                    "Unrecognized component in plume context: %s" % clause)
+    return "[" + ",".join(sites) + "]"
+
+def abbrv_plume_cfg_node(node):
     if node[0] == "Node" :
-        return "%s in %s" % (abbrv_clause(node[1]), node[2])
+        return "%s in %s" % (abbrv_clause(node[1]), abbrv_context(node[2]))
     else :
         raise InvariantFailure("Unrecognized cfg node for abbreviation: %s" %
                                str(node))
@@ -317,10 +327,10 @@ def write_plume_cfg_file(cfg, work_count, file_prefix, options):
     clauses = {}
     with codecs.open("%s_%d.dot" % (file_prefix, work_count), 'w', encoding="utf8") as f:
         f.write("strict digraph analysis {\n    rankdir=\"LR\"\n")
-        g = (cfg.get("plume_graph"))[1]
+        g = cfg["plume_graph"]["g_all_edges"]
         for edge in g:
-            source = abbrv_cfg_node(edge[1])
-            target = abbrv_cfg_node(edge[2])
+            source = abbrv_plume_cfg_node(edge[1])
+            target = abbrv_plume_cfg_node(edge[2])
             f.write("    \"%s\" -> \"%s\";\n" % (source,target))
             clauses[source] = ClauseType.of_clause(edge[1][1])
             clauses[target] = ClauseType.of_clause(edge[2][1])
@@ -328,7 +338,6 @@ def write_plume_cfg_file(cfg, work_count, file_prefix, options):
             f.write("    \"%s\"[style=filled,fillcolor=\"%s\"];\n" %
                     (k,v.color))
         f.write("}\n")
-
 
 def abbrv_value(value):
     if value[0] == "Abs_value_record":
