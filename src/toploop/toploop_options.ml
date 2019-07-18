@@ -42,9 +42,9 @@ let add_toploop_option_parsers parser=
   (* Add option to log PDS reachability graphs as deltas. *)
   BatOptParse.OptParser.add parser
   ~long_name:"pdr-deltas" pdr_logging_deltas_option;
-  (* Adds control over graph log file name. *)
+  (* Adds control over graph log file prefix. *)
   BatOptParse.OptParser.add parser
-  ~long_name:"graph-log-file" graph_log_file_option;
+  ~long_name:"graph-log-prefix" graph_log_prefix_option;
   (* Add control over variables used in toploop analysis. *)
   BatOptParse.OptParser.add parser ~long_name:"analyze-variables"
     analyze_variables_option;
@@ -78,7 +78,7 @@ let read_parsed_toploop_configuration () =
        | Some b -> b
        | None -> false)
   ; topconf_graph_log_file_name_prefix =
-      Option.get @@ graph_log_file_option.BatOptParse.Opt.option_get ()
+      Option.get @@ graph_log_prefix_option.BatOptParse.Opt.option_get ()
   ; topconf_analyze_vars = Option.get @@
       analyze_variables_option.BatOptParse.Opt.option_get ()
   ; topconf_evaluation_mode =

@@ -145,9 +145,9 @@ let pdr_logging_deltas_option =
   }
 ;;
 
-let graph_log_file_option =
+let graph_log_prefix_option =
   { (BatOptParse.StdOpt.str_option
-       ~default:"ddpa_graphs.log.json" ~metavar:"GRAPH_LOG_FILE" ())
+       ~default:"ddpa_graphs" ~metavar:"GRAPH_LOG_FILE" ())
     with option_defhelp =
            Some("Specifies the name for the DDPA graph log file.")
   }

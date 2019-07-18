@@ -30,8 +30,8 @@ val pdr_logging_option :
 (** This logging option controls whether PDRs are logged as deltas. *)
 val pdr_logging_deltas_option : bool BatOptParse.Opt.t
 
-(** This logging option sets the name for the graph log file. *)
-val graph_log_file_option : string BatOptParse.Opt.t
+(** This logging option sets the prefix for the graph log files. *)
+val graph_log_prefix_option : string BatOptParse.Opt.t
 
 (** A data type used by the [analyze_variables_option] to express the user's
     selection. **)

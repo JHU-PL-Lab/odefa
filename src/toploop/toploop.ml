@@ -400,7 +400,7 @@ let create_plume_logging_config
   in
   let plume_graph_log_file_prefix = conf.topconf_graph_log_file_name_prefix in
   let plume_graph_log_file_name =
-    plume_graph_log_file_prefix ^ "_" ^ task_name ^ ".log" in
+    plume_graph_log_file_prefix ^ "_" ^ task_name ^ ".log.json" in
   (* Set up the DDPA logging configuration.  This includes the function
      which will write JSON records to a file as they are reported.  For
      cleanup, we keep the file in an option ref.
@@ -491,7 +491,7 @@ let create_ddpa_logging_config
     end
   in
   let ddpa_graph_log_file_name_prefix = conf.topconf_graph_log_file_name_prefix in
-  let ddpa_graph_log_file_name = ddpa_graph_log_file_name_prefix ^ task_name ^ ".log" in
+  let ddpa_graph_log_file_name = ddpa_graph_log_file_name_prefix ^ "_" ^ task_name ^ ".log.json" in
   (* Set up the DDPA logging configuration.  This includes the function
      which will write JSON records to a file as they are reported.  For
      cleanup, we keep the file in an option ref.
