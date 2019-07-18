@@ -39,16 +39,22 @@ HERE="$(cd "$(dirname $0)" && pwd)"
 CASES_PATH="${HERE}/cases"
 RESULTS_PATH="${HERE}/results"
 DDPA="${HERE}/.."
-DDPA_TOPLOOP="${DDPA}/toploop_main.native"
-SCHEME_TO_ODEFA="${DDPA}/scheme-front-end/scheme-to-odefa.rkt"
+DDPA_TOPLOOP="${DDPA}/ddpa_toploop"
+NATODEFA_TRANSLATOR="${DDPA}/translator"
 P4F="${DDPA}/../p4f"
+[ ! -d "$P4F" ] && P4F="${DDPA}/local/p4f"
+[ ! -d "$P4F" ] && ( echo "P4F not found!" ; exit 1 )
 P4F_CLASSPATH="${P4F}/target/scala-2.11/classes"
 P4F_STATISTICS="${P4F}/statistics"
-function result {
-  RESULT="${RESULTS_PATH}/experiment=${EXPERIMENT}--case=${CASE}--analysis=${ANALYSIS}--k=${K}--$(date --iso-8601=seconds).txt"
-  uptime &>> "${RESULT}"
+
+function configure_result {
+  RESULT="$RESULTS_PATH/experiment=$EXPERIMENT--case=$CASE--analysis=$ANALYSIS"
+  [ "${ANALYSIS: -6}" != "splume" ] && RESULT="$RESULT--k=$K"
+  RESULT="$RESULT--$(date --iso-8601=seconds).txt"
+  uptime &>> "$RESULT"
 }
 
+rm -rf $HERE/results
 mkdir $HERE/results
 
 lscpu
@@ -68,17 +74,38 @@ scala -version
 
 function ddpa {
   ANALYSIS=ddpa
-  result
-  cat "${SOURCE}" | racket "${SCHEME_TO_ODEFA}" | /usr/bin/time -v /usr/bin/timeout --foreground "${TIMEOUT}" "${DDPA_TOPLOOP}" --select-context-stack="${K}"ddpa --analyze-variables=all --report-sizes --report-source-statistics --disable-evaluation --disable-inconsistency-check &>> "${RESULT}" || true
+  configure_result
+  cat "${NATODEFA_SOURCE}" | \
+    "${NATODEFA_TRANSLATOR}" -p |\
+    /usr/bin/time -v /usr/bin/timeout --foreground "${TIMEOUT}" "${DDPA_TOPLOOP}" --select-context-stack="${K}"ddpa --analyze-variables=all --report-sizes --report-source-statistics --disable-evaluation --disable-inconsistency-check \
+    &>> "${RESULT}" || true
+}
+
+function kplume {
+  ANALYSIS=kplume
+  configure_result
+  cat "${NATODEFA_SOURCE}" | \
+    "${NATODEFA_TRANSLATOR}" -p |\
+    /usr/bin/time -v /usr/bin/timeout --foreground "${TIMEOUT}" "${DDPA_TOPLOOP}" --select-context-stack="${K}"plume --analyze-variables=all --report-sizes --report-source-statistics --disable-evaluation --disable-inconsistency-check \
+    &>> "${RESULT}" || true
+}
+
+function splume {
+  ANALYSIS=splume
+  configure_result
+  cat "${NATODEFA_SOURCE}" | \
+    "${NATODEFA_TRANSLATOR}" -p |\
+    /usr/bin/time -v /usr/bin/timeout --foreground "${TIMEOUT}" "${DDPA_TOPLOOP}" --select-context-stack=splume --analyze-variables=all --report-sizes --report-source-statistics --disable-evaluation --disable-inconsistency-check \
+    &>> "${RESULT}" || true
 }
 
 function p4f {
   ANALYSIS=p4f
-  result
+  configure_result
   rm -rf "${P4F_STATISTICS}"
-  if (cd "${P4F}" && /usr/bin/time -v /usr/bin/timeout --foreground "${TIMEOUT}" scala -J-Xmx7g -J-Xss256m -cp "${P4F_CLASSPATH}" org.ucombinator.cfa.RunCFA --kcfa --k "${K}" --kalloc p4f --dump-statistics "${SOURCE}" &>> "${RESULT}")
+  if (cd "${P4F}" && /usr/bin/time -v /usr/bin/timeout --foreground "${TIMEOUT}" scala -J-Xmx7g -J-Xss256m -cp "${P4F_CLASSPATH}" org.ucombinator.cfa.RunCFA --kcfa --k "${K}" --kalloc p4f --dump-statistics "${SCHEME_SOURCE}" &>> "${RESULT}")
   then
-    cat "${P4F_STATISTICS}/${CASE}/stat-${K}-p4f.txt" &>> "${RESULT}"
+    cat "${P4F_STATISTICS}/"*/*".txt" &>> "${RESULT}"
   else
     pkill sbt scala java || true
   fi
@@ -86,23 +113,28 @@ function p4f {
 
 mkdir -p "${RESULTS_PATH}"
 (cd "${DDPA}" && make)
-raco make "${SCHEME_TO_ODEFA}"
 (cd "${P4F}" && sbt compile)
 
 for TRIAL in $(seq 1 "${TRIALS}")
 do
+  echo "######## Trial $TRIAL"
   for CASE in "${!CASES[@]}"
   do
-    SOURCE="${CASES_PATH}/${CASE}.scm"
+    echo "##### Case $CASE"
+    SCHEME_SOURCE="${CASES_PATH}/${CASE}.scm"
+    NATODEFA_SOURCE="${CASES_PATH}/${CASE}.natodefa"
     EXPERIMENT=monovariant
     K=0
     ddpa
+    kplume
     p4f
     EXPERIMENT=polyvariant
     K="${CASES[${CASE}]}"
     ddpa
+    kplume
     K=1
     p4f
+    splume
   done
 done
 
