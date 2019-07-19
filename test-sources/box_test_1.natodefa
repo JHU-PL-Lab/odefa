@@ -1,0 +1,17 @@
+let int_1 = {integer = 1} in
+let int_2 = {integer = 2} in
+let box1 = {value = int_1} in
+let box2 = {value = int_2} in
+let int_rec_add int_rec =
+  int_rec
+in
+let box_inc box =
+  let new_val = int_rec_add (box.value) in
+  let new_box = {value = new_val} in
+  new_box
+in
+let inc_box1 = box_inc box1 in
+let inc_box2 = box_inc box2 in
+let res1 = inc_box1.value in
+let res2 = inc_box2.value in
+res2

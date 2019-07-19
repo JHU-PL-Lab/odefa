@@ -1,0 +1,12 @@
+let box1 = {value = true} in
+let box2 = {value = false} in
+let box_inc box =
+  let new_val = not (box.value) in
+  let new_box = {value = new_val} in
+  new_box
+in
+let inc_box1 = box_inc box1 in
+let inc_box2 = box_inc box2 in
+let res1 = inc_box1.value in
+let res2 = inc_box2.value in
+res2

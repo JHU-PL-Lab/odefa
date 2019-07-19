@@ -1,7 +1,7 @@
 QUERY: res;
-ANALYSES: 4DDPA, 4PLUME, SPLUME, OSKPLUME, OSMPLUME;
-RESULTS: 4DDPA(res) = `{int}`,
-         4PLUME(res) = `{int}`,
+ANALYSES: 2DDPA, 2PLUME, SPLUME, OSKPLUME, OSMPLUME;
+RESULTS: 2DDPA(res) = `{int}`,
+         2PLUME(res) = `{int}`,
          SPLUME(res) = `{int}`,
          OSKPLUME(res) = `{int}`,
          OSMPLUME(res) = `{int}`;
