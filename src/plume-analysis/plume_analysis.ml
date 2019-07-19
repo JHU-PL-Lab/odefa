@@ -607,11 +607,6 @@ struct
     let zero () = None in
     let%orzero
       (Push Bottom_of_stack :: Push (Lookup_var (x, patsp, patsn)) :: []) = stack_actions in
-    (*
-       TODO: figure out where to make sure that both pattern sets are empty
-       in the case that we are looking for something in a function application
-    *)
-    (* [%guard ((Pattern_set.is_empty patsp) && (Pattern_set.is_empty patsn))]; *)
     let%orzero(Structure_types.Program_point_state node) = start_state in
     let Node (_, context) = node in
     let%orzero(Structure_types.Result_state filtered_var_value) = end_state in
