@@ -107,3 +107,5 @@ list_mapp_list = list_double_fun list2_step2;
 res_p = list_access list_mapp_list;
 # Query for the first element of the result list, which should be a list of int
 res = res_p one;
+final_res_p = list_access res;
+final_res = final_res_p one;
