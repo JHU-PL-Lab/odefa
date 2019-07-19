@@ -90,19 +90,18 @@ struct
     let to_yojson = node_to_yojson
   end;;
 
-  module Lookup_pair =
+  module Lookup =
   struct
-    (* TODO: *)
-    (* type t = abstract_var * E.C.t [@@deriving eq, ord] *)
-    type t = abstract_var * E.C.t [@@deriving ord, show, to_yojson]
+    type t = abstract_var * E.C.t * Pattern_set.t * Pattern_set.t
+    [@@deriving ord, show, to_yojson]
   end;;
 
-  module Lookup_pair_map =
+  module Lookup_map =
   struct
-    module Impl = Map.Make(Lookup_pair);;
+    module Impl = Map.Make(Lookup);;
     include Impl;;
-    include Pp_utils.Map_pp(Impl)(Lookup_pair);;
-    include Yojson_utils.Map_to_yojson(Impl)(Lookup_pair);;
+    include Pp_utils.Map_pp(Impl)(Lookup);;
+    include Yojson_utils.Map_to_yojson(Impl)(Lookup);;
   end;;
 
   module Node_Multimap =
@@ -184,13 +183,13 @@ struct
             incrementally as edges are added. *)
     ; plume_edges_waitlist : edge_queue
     (** A list of edges that need to be added to the CFG **)
-    ; plume_arg_map : arg_state Lookup_pair_map.t
+    ; plume_arg_map : arg_state Lookup_map.t
     (** Map from Lookup_pair (for function argument) -> arg_state.
         Stores list of functions modifying the analysis (plume_fun_map) that
         need to be called once the value is found.
     *)
-    ; plume_fun_map :
-        ((abstract_function_value -> G.t -> (edge Enum.t * node * node * node)) list) Lookup_pair_map.t
+    ; plume_wire_map :
+        ((abstract_value -> G.t -> (edge Enum.t * node * node * node) option) list) Lookup_map.t
     (** Map from Lookup_pair (for function applied) -> arg_state.
         Stores list of functions adding wirings to the CFG once the value is found.
     *)
@@ -441,7 +440,7 @@ struct
         ; plume_active_nodes = plume_active_nodes'
         ; plume_edges_waitlist = new_waitlist
         ; plume_arg_map = analysis.plume_arg_map
-        ; plume_fun_map = analysis.plume_fun_map
+        ; plume_wire_map = analysis.plume_wire_map
         ; plume_preds_peer_map = analysis.plume_preds_peer_map
         ; plume_succs_peer_map = analysis.plume_succs_peer_map
         ; plume_logging_data = analysis.plume_logging_data
@@ -517,8 +516,8 @@ struct
       ; plume_active_nodes =
           Node_set.singleton (Node((Start_clause rx), C.empty))
       ; plume_edges_waitlist = Batteries.Deque.of_enum edges
-      ; plume_arg_map = Lookup_pair_map.empty
-      ; plume_fun_map = Lookup_pair_map.empty
+      ; plume_arg_map = Lookup_map.empty
+      ; plume_wire_map = Lookup_map.empty
       ; plume_preds_peer_map = Node_Multimap.empty
       ; plume_succs_peer_map = Node_Multimap.empty
       ; plume_logging_data = logging_data_opt
@@ -607,26 +606,30 @@ struct
     let zero () = None in
     let%orzero
       (Push Bottom_of_stack :: Push (Lookup_var (x, patsp, patsn)) :: []) = stack_actions in
-    [%guard ((Pattern_set.is_empty patsp) && (Pattern_set.is_empty patsn))];
+    (*
+       TODO: figure out where to make sure that both pattern sets are empty
+       in the case that we are looking for something in a function application
+    *)
+    (* [%guard ((Pattern_set.is_empty patsp) && (Pattern_set.is_empty patsn))]; *)
     let%orzero(Structure_types.Program_point_state node) = start_state in
     let Node (_, context) = node in
     let%orzero(Structure_types.Result_state filtered_var_value) = end_state in
     let Abs_filtered_value(var_value, _, _) = filtered_var_value in
-    return((x, context), var_value)
+    return((x, context, patsp, patsn), var_value)
   ;;
 
 
   (* This function checks for membership of variable context pair in arg_map *)
   let handle_argument_map relevant_pair analysis =
     let arg_map = analysis.plume_arg_map in
-    if (Lookup_pair_map.mem relevant_pair arg_map) then
+    if (Lookup_map.mem relevant_pair arg_map) then
       (* If it's in the arg_map, then we need to *)
-      let relevant_arg_funs = Lookup_pair_map.find relevant_pair arg_map in
+      let relevant_arg_funs = Lookup_map.find relevant_pair arg_map in
       let (arg_funs, arg_map') =
         match relevant_arg_funs with
         | Value_found -> [], arg_map
         | Value_not_found fun_list ->
-          let new_arg_map = Lookup_pair_map.add relevant_pair Value_found arg_map in
+          let new_arg_map = Lookup_map.add relevant_pair Value_found arg_map in
           fun_list, new_arg_map
       in
       let analysis' = {analysis with plume_arg_map = arg_map'} in
@@ -643,33 +646,35 @@ struct
       (analysis, (Enum.empty ()))
   ;;
 
-  let handle_function_map relevant_pair var_val analysis =
-    let fun_map = analysis.plume_fun_map in
+  let handle_wire_map relevant_pair var_val analysis =
+    let wire_map = analysis.plume_wire_map in
     let preds_peer_map = analysis.plume_preds_peer_map in
     let succs_peer_map = analysis.plume_succs_peer_map in
     lazy_logger `trace (fun () -> "found a function!");
-    (* Checking for membership of variable context pair in fun_map *)
-    if (Lookup_pair_map.mem relevant_pair fun_map) then
-      let relevant_func_funs = Lookup_pair_map.find relevant_pair fun_map in
+    (* Checking for membership of variable context pair in wire_map *)
+    if (Lookup_map.mem relevant_pair wire_map) then
+      let relevant_wire_funs = Lookup_map.find relevant_pair wire_map in
       let (total_new_edges, new_preds_peer_map, new_succs_peer_map) =
         List.fold_left
-          (fun acc -> fun func_fun ->
+          (fun acc -> fun wire_fun ->
              let (acc_edges, acc_preds_peer_map, acc_succs_peer_map) = acc in
-             let (wire_edges, wire_curr_node, wire_preds_peer, wire_succs_peer) =
-               func_fun var_val analysis.plume_graph in
-             let acc_edges' = Enum.append acc_edges wire_edges in
+             let wire_fun_res = wire_fun var_val analysis.plume_graph in
+             match wire_fun_res with
+             | None -> acc
+             | Some (wire_edges, wire_curr_node, wire_preds_peer, wire_succs_peer) ->
+               let acc_edges' = Enum.append acc_edges wire_edges in
              (*
                 Every time we call the function, we will get new entry and exit
                 nodes - need to add them respectively to the preds_peer_map
                 and the succs_peer_map
              *)
-             let acc_preds_peer_map' =
-               Node_Multimap.add wire_curr_node wire_preds_peer acc_preds_peer_map in
-             let acc_succs_peer_map' =
-               Node_Multimap.add wire_curr_node wire_succs_peer acc_succs_peer_map in
-             (acc_edges', acc_preds_peer_map', acc_succs_peer_map')
+               let acc_preds_peer_map' =
+                 Node_Multimap.add wire_curr_node wire_preds_peer acc_preds_peer_map in
+               let acc_succs_peer_map' =
+                 Node_Multimap.add wire_curr_node wire_succs_peer acc_succs_peer_map in
+               (acc_edges', acc_preds_peer_map', acc_succs_peer_map')
           )
-          ((Enum.empty ()), preds_peer_map, succs_peer_map) relevant_func_funs
+          ((Enum.empty ()), preds_peer_map, succs_peer_map) relevant_wire_funs
       in
       let analysis' = { analysis with plume_preds_peer_map = new_preds_peer_map;
                                       plume_succs_peer_map = new_succs_peer_map;
@@ -701,14 +706,10 @@ struct
           let content_opt = analyze_note note in
           match content_opt with
           | Some content ->
-            lazy_logger `trace (fun () -> "CONTENT IS FOUND!!!");
             let (relevant_pair, var_val) = content in
             let ham_analysis, arg_fun_edges = handle_argument_map relevant_pair analysis' in
             let (function_fun_edges, haf_analysis) =
-              match var_val with
-              | Abs_value_function fun_val ->
-                handle_function_map relevant_pair fun_val ham_analysis
-              | _ -> (Enum.empty (), ham_analysis)
+              handle_wire_map relevant_pair var_val ham_analysis
             in
             let total_edges = Enum.append arg_fun_edges function_fun_edges in
             (* let total_edges_node_string =
@@ -732,6 +733,40 @@ struct
             let result_analysis = { haf_analysis with plume_edges_waitlist = plume_edges_waitlist'} in
             pds_closure result_analysis
           | None -> pds_closure analysis'
+  ;;
+
+  let execute_wire_funs analysis values_for_wire wire_lookup_key=
+    if (List.is_empty values_for_wire) then
+      (analysis, Enum.empty ())
+    else
+      (
+        let wire_functions  = Lookup_map.find wire_lookup_key analysis.plume_wire_map in
+        let (new_edges, new_preds, new_succs) =
+          wire_functions
+          |> List.enum
+          |> Enum.map
+            (fun wiring_fun ->
+               values_for_wire
+               |> List.enum
+               |> Enum.filter_map
+                 (fun value_found ->
+                    (wiring_fun value_found analysis.plume_graph)
+                 )
+            )
+          |> Enum.concat
+          |> Enum.fold
+            (fun (edge_enum, preds_peers, succs_peers)
+              (curr_edges, curr_call_site, curr_enter, curr_exit) ->
+              (Enum.append edge_enum curr_edges,
+               Node_Multimap.add curr_call_site curr_enter preds_peers,
+               Node_Multimap.add curr_call_site curr_exit succs_peers)
+            ) ((Enum.empty ()), analysis.plume_preds_peer_map, analysis.plume_succs_peer_map)
+        in
+        let analysis' = {analysis with plume_preds_peer_map = new_preds;
+                                       plume_succs_peer_map = new_succs}
+        in
+        (analysis', new_edges)
+      )
   ;;
 
   (* NOTE: CFG closure step
@@ -764,7 +799,7 @@ struct
           (* Act in response to the newly discovered active non-immediate nodes *)
       in
       (* Helper function walking through each of the new active
-         non-immediate nodes. Returns analysis, new arg_map, and new fun_map
+         non-immediate nodes. Returns analysis, new arg_map, and new wire_map
       *)
       let node_process_fun node acc_analysis =
         let arg_map = acc_analysis.plume_arg_map in
@@ -774,96 +809,68 @@ struct
             (Abs_clause
                (clause_name,
                 Abs_appl_body(appl_fun,appl_arg))) ->
-          let fun_to_call = (fun curr_analysis ->
+          let function_value_response = (fun curr_analysis ->
               lazy_logger `trace (fun () -> "analysis -> analysis * edges fun in progress");
-              let old_fun_map = curr_analysis.plume_fun_map in
+              let old_wire_map = curr_analysis.plume_wire_map in
               let new_fun =
-                fun fun_val -> fun graph ->
-                  (* let Abs_function_value(val_of_fun, _) = fun_val in
-                     lazy_logger `trace
-                     (fun () -> "function in fun_map - function found: " ^ show_abstract_var val_of_fun); *)
-                  let wire_result =
-                    wire_fun node fun_val appl_arg clause_name graph in
-                  (* let total_edges_node_string =
-                     Enum.fold (fun acc_string -> fun curr_edge ->
-                        match curr_edge with
-                        | Edge (n1, n2) -> acc_string ^ "[" ^ show_node n1 ^ "," ^ show_node n2 ^ "]\n"
-                      ) "" (Enum.clone res_edges)
-                     in
-                     lazy_logger `trace (fun () -> "function in fun_map - edges generated: " ^ total_edges_node_string); *)
-                  wire_result
+                fun value -> fun graph ->
+                  match value with
+                  | Abs_value_function fun_val ->
+                    (* let Abs_function_value(val_of_fun, _) = fun_val in
+                       lazy_logger `trace
+                       (fun () -> "function in wire_map - function found: " ^ show_abstract_var val_of_fun); *)
+                    let wire_result =
+                      wire_fun node fun_val appl_arg clause_name graph in
+                    (* let total_edges_node_string =
+                       Enum.fold (fun acc_string -> fun curr_edge ->
+                          match curr_edge with
+                          | Edge (n1, n2) -> acc_string ^ "[" ^ show_node n1 ^ "," ^ show_node n2 ^ "]\n"
+                        ) "" (Enum.clone res_edges)
+                       in
+                       lazy_logger `trace (fun () -> "function in fun_map - edges generated: " ^ total_edges_node_string); *)
+                    Some wire_result
+                  | _ -> None
               in
-              let new_fun_map =
-                if (Lookup_pair_map.mem (appl_fun, ctx) old_fun_map) then
+              let wire_lookup_key =
+                (appl_fun, ctx, Pattern_set.empty, Pattern_set.empty)
+              in
+              let new_wire_map =
+                if (Lookup_map.mem wire_lookup_key old_wire_map) then
                   let old_entry =
-                    Lookup_pair_map.find (appl_fun, ctx) old_fun_map in
+                    Lookup_map.find wire_lookup_key old_wire_map in
                   let new_entry = (new_fun) :: old_entry in
-                  Lookup_pair_map.update
-                    (appl_fun, ctx) (appl_fun, ctx) new_entry old_fun_map
+                  Lookup_map.add wire_lookup_key new_entry old_wire_map
                 else
-                  Lookup_pair_map.add (appl_fun, ctx) [new_fun] old_fun_map
+                  Lookup_map.add wire_lookup_key [new_fun] old_wire_map
               in
-              (* lazy_logger `trace (fun () -> "fun_map size: " ^ string_of_int (Lookup_pair_map.cardinal new_fun_map)); *)
+              (* lazy_logger `trace (fun () -> "wire_map size: " ^ string_of_int (Lookup_map.cardinal new_wire_map)); *)
               (* asking PDS for appl_fun. analysis would not change here *)
               let (lookup_res, analysis') =
                 restricted_values_of_variable_internal appl_fun acl ctx
                   Pattern_set.empty Pattern_set.empty curr_analysis
               in
-              let values_of_fun : abstract_function_value list =
+              let values_of_fun : abstract_value list =
                 Enum.fold (fun curr_val_list -> fun curr_res ->
                     match curr_res with
                     | Abs_filtered_value (v, _, _) ->
+                      (* TODO: need to check if the patterns are empty??? *)
                       (
-                        match v with
-                        | Abs_value_function (fun_value) ->
-                          fun_value :: curr_val_list
-                        | _ -> curr_val_list
+                        v :: curr_val_list
                       )
                   ) [] lookup_res
               in
-              let analysis'' = {analysis' with plume_fun_map = new_fun_map} in
-              if (List.is_empty values_of_fun) then
-                (analysis'', Enum.empty ())
-              else
-                (
-                  let wire_functions =
-                    Lookup_pair_map.find (appl_fun, ctx) new_fun_map in
-                  let (new_edges, new_preds, new_succs) =
-                    wire_functions
-                    |> List.enum
-                    |> Enum.map
-                      (fun wire_fun ->
-                         values_of_fun
-                         |> List.enum
-                         |> Enum.map
-                           (fun value_of_fun ->
-                              wire_fun value_of_fun curr_analysis.plume_graph
-                           )
-
-                      )
-                    |> Enum.concat
-                    |> Enum.fold
-                      (fun (edge_enum, preds_peers, succs_peers)
-                        (curr_edges, curr_call_site, curr_enter, curr_exit) ->
-                        (Enum.append edge_enum curr_edges,
-                         Node_Multimap.add curr_call_site curr_enter preds_peers,
-                         Node_Multimap.add curr_call_site curr_exit succs_peers)
-                      ) ((Enum.empty ()), analysis''.plume_preds_peer_map, analysis''.plume_succs_peer_map)
-                  in
-                  let analysis''' = {analysis'' with plume_preds_peer_map = new_preds;
-                                                     plume_succs_peer_map = new_succs}
-                  in
-                  (analysis''', new_edges)
-                )
+              let analysis'' = {analysis' with plume_wire_map = new_wire_map} in
+              execute_wire_funs analysis'' values_of_fun wire_lookup_key
             )
           in
           (* NOTE: actual work happens here *)
-          if (Lookup_pair_map.mem (appl_arg, ctx) arg_map) then
-            (let action = Lookup_pair_map.find (appl_arg, ctx) arg_map in
+          let arg_lookup_key = (appl_arg, ctx, Pattern_set.empty, Pattern_set.empty) in
+          if (Lookup_map.mem arg_lookup_key arg_map) then
+            (let action = Lookup_map.find (appl_arg, ctx, Pattern_set.empty, Pattern_set.empty) arg_map in
              match action with
              | Value_found ->
                let (acc_analysis', edges_to_add) =
-                 fun_to_call acc_analysis in
+                 function_value_response acc_analysis in
                let new_waitlist =
                  Deque.append (Deque.of_enum edges_to_add) acc_analysis.plume_edges_waitlist
                in
@@ -871,8 +878,8 @@ struct
                acc_analysis''
              | Value_not_found f_list ->
                let modified_arg_map =
-                 Lookup_pair_map.update (appl_arg, ctx) (appl_arg, ctx)
-                   (Value_not_found(fun_to_call :: f_list)) arg_map
+                 Lookup_map.update arg_lookup_key arg_lookup_key
+                   (Value_not_found(function_value_response :: f_list)) arg_map
                in
                let acc_analysis' = {acc_analysis with plume_arg_map = modified_arg_map} in
                (acc_analysis')
@@ -885,21 +892,20 @@ struct
               in
               if (Enum.is_empty appl_arg_lookup_res) then
                 let new_arg_map =
-                  Lookup_pair_map.add (appl_arg, ctx)
-                    (Value_not_found([fun_to_call])) arg_map
+                  Lookup_map.add arg_lookup_key
+                    (Value_not_found([function_value_response])) arg_map
                 in
                 let acc_analysis'' = {acc_analysis' with plume_arg_map = new_arg_map} in
                 acc_analysis''
               else
                 (
                   let (acc_analysis'', edges_to_add)=
-                    fun_to_call acc_analysis' in
+                    function_value_response acc_analysis' in
                   let new_waitlist =
                     Deque.append (Deque.of_enum edges_to_add) acc_analysis.plume_edges_waitlist
                   in
                   let new_arg_map =
-                    Lookup_pair_map.add (appl_arg, ctx)
-                      (Value_found) arg_map
+                    Lookup_map.add arg_lookup_key (Value_found) arg_map
                   in
                   let acc_analysis''' = { acc_analysis'' with plume_edges_waitlist = new_waitlist;
                                                               plume_arg_map = new_arg_map;
@@ -907,7 +913,82 @@ struct
                   acc_analysis'''
                 )
             )
-        | _ -> raise @@ Utils.Not_yet_implemented "TODO: implement conditionals"
+        | Unannotated_clause(
+            Abs_clause(x1,Abs_conditional_body(subject,pattern,f1,f2))) ->
+          (* need to set up responses to when we get a value *)
+          let old_wire_map = acc_analysis.plume_wire_map in
+          let posmatch_lookup_key =
+            (subject, ctx, (Pattern_set.singleton pattern), Pattern_set.empty)
+          in
+          let negmatch_lookup_key =
+            (subject, ctx, Pattern_set.empty, (Pattern_set.singleton pattern))
+          in
+          let cond_set_pos_response = (fun res_val -> fun graph ->
+              let _ = res_val in
+              (* let wire_cond site_node func x1 x2 graph = *)
+              Some (wire_cond node f1 subject x1 graph)
+            )
+          in
+          let cond_set_neg_response = (fun res_val -> fun graph ->
+              let _ = res_val in
+              Some (wire_cond node f2 subject x1 graph)
+            )
+          in
+          let add_mapping_to_wire_map curr_wire_map lookup_key response_fun =
+            if (Lookup_map.mem lookup_key curr_wire_map) then
+              let old_pos_entry =
+                Lookup_map.find lookup_key curr_wire_map
+              in
+              let new_entry = (response_fun :: old_pos_entry) in
+              Lookup_map.add lookup_key new_entry curr_wire_map
+            else
+              Lookup_map.add lookup_key [response_fun] curr_wire_map
+          in
+          let wire_map_w_pos = add_mapping_to_wire_map old_wire_map posmatch_lookup_key cond_set_pos_response in
+          let wire_map_w_neg = add_mapping_to_wire_map wire_map_w_pos negmatch_lookup_key cond_set_neg_response in
+          let analysis_w_new_wire_map =
+            {acc_analysis with plume_wire_map = wire_map_w_neg}
+          in
+          (* Looking up the value with positive pattern set *)
+          let (patsp_lookup_res, acc_analysis') =
+            restricted_values_of_variable_internal subject acl ctx
+              (Pattern_set.singleton pattern) (Pattern_set.empty) analysis_w_new_wire_map
+          in
+          let values_of_posmatch : abstract_value list =
+            Enum.fold (fun curr_val_list -> fun curr_res ->
+                match curr_res with
+                | Abs_filtered_value (v, _, _) ->
+                  v :: curr_val_list
+              ) [] patsp_lookup_res
+          in
+          let (acc_analysis'', pos_new_edges) =
+            execute_wire_funs acc_analysis' values_of_posmatch posmatch_lookup_key
+          in
+          (* Looking up the value with negative pattern set *)
+          let (patsn_lookup_res, acc_analysis''') =
+            restricted_values_of_variable_internal subject acl ctx
+              (Pattern_set.empty) (Pattern_set.singleton pattern) acc_analysis''
+          in
+          let values_of_negmatch : abstract_value list =
+            Enum.fold (fun curr_val_list -> fun curr_res ->
+                match curr_res with
+                | Abs_filtered_value (v, _, _) ->
+                  v :: curr_val_list
+              ) [] patsn_lookup_res
+          in
+          let (acc_analysis'''', neg_new_edges) =
+            execute_wire_funs acc_analysis''' values_of_negmatch negmatch_lookup_key
+          in
+          let total_new_edges =
+            Deque.append acc_analysis''''.plume_edges_waitlist
+              (Deque.of_enum (Enum.append pos_new_edges neg_new_edges))
+          in
+          let result_analysis =
+            {acc_analysis'''' with plume_edges_waitlist = total_new_edges}
+          in
+          result_analysis
+        | _ -> raise @@ Utils.Invariant_failure
+            "should only be wiring applications and conditionals!"
       in
       Node_set.fold node_process_fun new_ni_nodes new_analysis
   ;;

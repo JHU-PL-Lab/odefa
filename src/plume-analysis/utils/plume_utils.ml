@@ -26,7 +26,7 @@ sig
   val wire_fun : G.node -> abstract_function_value -> abstract_var ->
     abstract_var -> G.t -> (G.edge Enum.t * G.node * G.node * G.node);;
   val wire_cond : G.node -> abstract_function_value -> abstract_var ->
-    abstract_var -> G.t -> (G.edge Enum.t);;
+    abstract_var -> G.t -> (G.edge Enum.t * G.node * G.node * G.node);;
 
 end;;
 
@@ -107,7 +107,10 @@ struct
           |> Utils.pairwise_enum_fold
             (fun node1 node2 -> Edge(node1, node2))
         in
-        Enum.append pred_edges @@ Enum.append inner_edges succ_edges
+        let new_edges =
+          Enum.append pred_edges @@ Enum.append inner_edges succ_edges
+        in
+        (new_edges, site_node, wire_in_node, wire_out_node)
       | _ -> raise @@
         Jhupllib.Utils.Invariant_failure "Error: Call site should be Unannotated_clause"
     end
