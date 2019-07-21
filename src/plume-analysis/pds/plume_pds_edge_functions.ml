@@ -19,7 +19,8 @@ module Make
     (B : Pds_reachability_basis.Basis)
     (R : Pds_reachability_analysis.Analysis
      with type State.t = S.Pds_state.t
-      and type Targeted_dynamic_pop_action.t = T.pds_targeted_dynamic_pop_action)
+      and type Targeted_dynamic_pop_action.t =
+            T.pds_targeted_dynamic_pop_action)
 =
 struct
   open G;;
@@ -57,274 +58,260 @@ struct
     fun () ->
     let zero = Enum.empty in
     let%orzero Program_point_state(n0') = state in
-    (* TODO: There should be a way to associate each edge function with
-             its corresponding acl0 rather than using this guard. *)
+    (* NOTE: Strictly speaking, this guard should not be necessary; edge
+       functions are only added with classifications which will ensure that
+       this guard always holds. *)
     [%guard (compare_node n0 n0' == 0) ];
     let open Option.Monad in
     let zero () = None in
     (* TODO: It'd be nice if we had a terser way to represent stack
              processing operations (those that simply reorder the stack
              without transitioning to a different node). *)
-    let targeted_dynamic_pops = Enum.filter_map identity @@ List.enum
-        [
-          (* ********** Variable Discovery ********** *)
-          (* Intermediate Value *)
-          begin
-            return (Value_drop, Program_point_state(n0))
-          end
-          ;
-          (* ********** Variable Search ********** *)
-          (* Value Alias *)
-          begin
-            let%orzero
-              Node(Unannotated_clause(Abs_clause(x, Abs_var_body x')), _) = n1
-            in
-            (* x = x' *)
-            return (Variable_aliasing(x,x'),Program_point_state(n1))
-          end
-          ;
-          (* Clause Skip *)
-          begin
-            let%orzero Node(Unannotated_clause(Abs_clause(x,_)), _) = n1 in
-            (* x' = b *)
-            return ( Stateless_nonmatching_clause_skip_1_of_2 x
-                   , Program_point_state(n1)
-                   )
-          end
-          ;
-          (* Block Marker Skip *)
-          (* This is handled below as a special case because it does not involve
-             a pop. *)
-          (* ********** Navigation ********** *)
-          (* Capture *)
-          begin
-            return ( Value_capture_1_of_3
-                   , Program_point_state(n0)
-                   )
-          end
-          ;
-          (* Rewind *)
-          (* This is handled below in untargeted dynamic pops. *)
-          (* ********** Function Wiring ********** *)
-          (* Function Top: Parameter Variable *)
-          begin
-            let%orzero Node(Enter_clause(x,x',c), _) = n1 in
-            let%orzero (Abs_clause(_,Abs_appl_body (_,x3''))) = c in
+    begin
+      let targeted_dynamic_pops = Enum.filter_map identity @@ List.enum
+          [
+            (* ********** Variable Discovery ********** *)
+            (* Intermediate Value *)
             begin
-              if not (equal_abstract_var x' x3'') then
-                raise @@ Utils.Invariant_failure "Ill-formed wiring node."
-              else
-                ()
-            end;
-            return (Variable_aliasing(x,x'),Program_point_state(n1))
-          end
-          ;
-          (* NOTE: if provided clause is gone, this is gone *)
-          (* Function Bottom: Flow Check *)
-          (* begin
-            let%orzero (Exit_clause(x,_,c)) = acl1 in
-            let%orzero (Abs_clause(x1'',Abs_appl_body(x2'',x3''))) = c in
+              return (Value_drop, Program_point_state(n0))
+            end
+            ;
+            (* ********** Variable Search ********** *)
+            (* Value Alias *)
             begin
-              if not (equal_abstract_var x x1'') then
-                raise @@ Utils.Invariant_failure "Ill-formed wiring node."
-              else
-                ()
-            end;
-            (* x =(up)c _ (for functions) *)
-            return ( Function_call_flow_validation(x2'',x3'',acl0,ctx,Unannotated_clause(c),ctx,x)
-                   , Program_point_state(Unannotated_clause(c),ctx)
-                   )
-          end
-          ; *)
-          (* Function Bottom: Return Variable *)
-          begin
-            let%orzero Node(Exit_clause(x,x',c), _) = n1 in
-            let%orzero (Abs_clause(x1'',Abs_appl_body _)) = c in
+              let%orzero
+                Node(Unannotated_clause(Abs_clause(x, Abs_var_body x')), _) = n1
+              in
+              (* x = x' *)
+              return (Variable_aliasing(x,x'),Program_point_state(n1))
+            end
+            ;
+            (* Clause Skip *)
             begin
-              if not (equal_abstract_var x x1'') then
-                raise @@ Utils.Invariant_failure "Ill-formed wiring node."
-              else
-                ()
-            end;
-            return ( Variable_aliasing(x,x')
-                   , Program_point_state(n1)
-                   )
-          end
-          ;
-          (* Function Top: Non-Local Variable *)
-          begin
-            let%orzero Node(Enter_clause(x'',x',c), _) = n1 in
-            let%orzero (Abs_clause(_,Abs_appl_body(x2'',x3''))) = c in
+              let%orzero Node(Unannotated_clause(Abs_clause(x,_)), _) = n1 in
+              (* x' = b *)
+              return ( Stateless_nonmatching_clause_skip_1_of_2 x
+                     , Program_point_state(n1)
+                     )
+            end
+            ;
+            (* Block Marker Skip *)
+            (* This is handled below as a special case because it does not
+               involve a pop. *)
+            (* ********** Navigation ********** *)
+            (* Capture *)
             begin
-              if not (equal_abstract_var x' x3'') then
-                raise @@ Utils.Invariant_failure "Ill-formed wiring node."
-              else
-                ()
-            end;
-            (* NOTE: check if Function_closure_lookup is truly what we want
-            to use here *)
-            return ( Function_closure_lookup(x'',x2'')
-                   , Program_point_state(n1)
-                   )
-          end
-          ;
-          (* ********** Conditional Wiring ********** *)
-          (* Conditional Top: Subject Positive
-             Conditional Top: Subject Negative
-             Conditional Top: Non-Subject Variable *)
-          begin
-            (* This block represents *all* conditional closure handling on
-               the entering side. *)
-            let%orzero Node(Enter_clause(x',x1,c), _) = n1 in
-            let%orzero
-              (Abs_clause(_,Abs_conditional_body(x1',p,f1,_))) = c
-            in
+              return ( Value_capture_1_of_3
+                     , Program_point_state(n0)
+                     )
+            end
+            ;
+            (* Rewind *)
+            (* This is handled below in untargeted dynamic pops. *)
+            (* ********** Function Wiring ********** *)
+            (* Function Top: Parameter Variable *)
             begin
-              if not (equal_abstract_var x1 x1') then
-                raise @@ Utils.Invariant_failure "Ill-formed wiring node."
-              else
-                ()
-            end;
-            let Abs_function_value(f1x,_) = f1 in
-            (* x'' =(down)c x' for conditionals *)
-            (* checking if var was var in the wiring node *)
-            let closure_for_positive_path = equal_abstract_var f1x x' in
-            return ( Conditional_closure_lookup
-                       (x',x1,p,closure_for_positive_path)
-                   , Program_point_state(n1)
-                   )
-          end
-          ;
-          (* Conditional Bottom: Return Positive
-             Conditional Bottom: Return Negative *)
-          begin
-            let%orzero Node(Exit_clause(x,x',c), _) = n1 in
-            let%orzero
-              (Abs_clause(x2,Abs_conditional_body(_,_,_,_))) = c
-            in
+              let%orzero Node(Enter_clause(x,x',c), _) = n1 in
+              let%orzero (Abs_clause(_,Abs_appl_body (_,x3''))) = c in
+              begin
+                if not (equal_abstract_var x' x3'') then
+                  raise @@ Utils.Invariant_failure "Ill-formed wiring node."
+                else
+                  ()
+              end;
+              return (Variable_aliasing(x,x'),Program_point_state(n1))
+            end
+            ;
+            (* Function Bottom: Return Variable *)
             begin
-              if not (equal_abstract_var x x2) then
-                raise @@ Utils.Invariant_failure "Ill-formed wiring node."
-              else
-                ()
-            end;
-            return ( Variable_aliasing(x, x')
-                   , Program_point_state(n1)
-              )
-          end
-          ;
-          (* ********** Record Construction/Destruction ********** *)
-          (* Record Projection Start *)
-          begin
-            let%orzero
-              Node(Unannotated_clause(
-                  Abs_clause(x,Abs_projection_body(x',l))), _) = n1
-            in
-            (* x = x'.l *)
-            return ( Record_projection_lookup(x,x',l)
-                   , Program_point_state(n1)
-                   )
-          end
-          ;
-          (* Record Projection Stop *)
-          begin
-            return ( Record_projection_1_of_2
-                   , Program_point_state(n0)
-                   )
-          end
-          ;
-          (* ********** Filter Validation ********** *)
-          (* Filter Immediate *)
-          begin
-            let%orzero
-              Node(Unannotated_clause(Abs_clause(x,Abs_value_body v)), _) = n1
-            in
-            (* x = v *)
-            let%orzero (Some immediate_patterns) = immediately_matched_by v in
-            return ( Immediate_filter_validation(x, immediate_patterns, v)
-                   , Program_point_state(n1)
-                   )
-          end
-          ;
-          (* Filter Record *)
-          begin
-            let%orzero
-              Node(Unannotated_clause(
-                  Abs_clause(x,Abs_value_body(Abs_value_record(r)))), _) = n1
-            in
-            (* x = r *)
-            let target_state = Program_point_state(n1) in
-            return ( Record_filter_validation(x,r,n1), target_state )
-          end
-          ;
+              let%orzero Node(Exit_clause(x,x',c), _) = n1 in
+              let%orzero (Abs_clause(x1'',Abs_appl_body _)) = c in
+              begin
+                if not (equal_abstract_var x x1'') then
+                  raise @@ Utils.Invariant_failure "Ill-formed wiring node."
+                else
+                  ()
+              end;
+              return ( Variable_aliasing(x,x')
+                     , Program_point_state(n1)
+                     )
+            end
+            ;
+            (* Function Top: Non-Local Variable *)
+            begin
+              let%orzero Node(Enter_clause(x'',x',c), _) = n1 in
+              let%orzero (Abs_clause(_,Abs_appl_body(x2'',x3''))) = c in
+              begin
+                if not (equal_abstract_var x' x3'') then
+                  raise @@ Utils.Invariant_failure "Ill-formed wiring node."
+                else
+                  ()
+              end;
+              (* NOTE: check if Function_closure_lookup is truly what we want
+                 to use here *)
+              return ( Function_closure_lookup(x'',x2'')
+                     , Program_point_state(n1)
+                     )
+            end
+            ;
+            (* ********** Conditional Wiring ********** *)
+            (* Conditional Top: Subject Positive
+               Conditional Top: Subject Negative
+               Conditional Top: Non-Subject Variable *)
+            begin
+              (* This block represents *all* conditional closure handling on
+                 the entering side. *)
+              let%orzero Node(Enter_clause(x',x1,c), _) = n1 in
+              let%orzero
+                (Abs_clause(_,Abs_conditional_body(x1',p,f1,_))) = c
+              in
+              begin
+                if not (equal_abstract_var x1 x1') then
+                  raise @@ Utils.Invariant_failure "Ill-formed wiring node."
+                else
+                  ()
+              end;
+              let Abs_function_value(f1x,_) = f1 in
+              (* x'' =(down)c x' for conditionals *)
+              (* checking if var was var in the wiring node *)
+              let closure_for_positive_path = equal_abstract_var f1x x' in
+              return ( Conditional_closure_lookup
+                         (x',x1,p,closure_for_positive_path)
+                     , Program_point_state(n1)
+                     )
+            end
+            ;
+            (* Conditional Bottom: Return Positive
+               Conditional Bottom: Return Negative *)
+            begin
+              let%orzero Node(Exit_clause(x,x',c), _) = n1 in
+              let%orzero
+                (Abs_clause(x2,Abs_conditional_body(_,_,_,_))) = c
+              in
+              begin
+                if not (equal_abstract_var x x2) then
+                  raise @@ Utils.Invariant_failure "Ill-formed wiring node."
+                else
+                  ()
+              end;
+              return ( Variable_aliasing(x, x')
+                     , Program_point_state(n1)
+                     )
+            end
+            ;
+            (* ********** Record Construction/Destruction ********** *)
+            (* Record Projection Start *)
+            begin
+              let%orzero
+                Node(Unannotated_clause(
+                    Abs_clause(x,Abs_projection_body(x',l))), _) = n1
+              in
+              (* x = x'.l *)
+              return ( Record_projection_lookup(x,x',l)
+                     , Program_point_state(n1)
+                     )
+            end
+            ;
+            (* Record Projection Stop *)
+            begin
+              return ( Record_projection_1_of_2
+                     , Program_point_state(n0)
+                     )
+            end
+            ;
+            (* ********** Filter Validation ********** *)
+            (* Filter Immediate *)
+            begin
+              let%orzero
+                Node(Unannotated_clause(Abs_clause(x,Abs_value_body v)), _) = n1
+              in
+              (* x = v *)
+              let%orzero (Some immediate_patterns) = immediately_matched_by v in
+              return ( Immediate_filter_validation(x, immediate_patterns, v)
+                     , Program_point_state(n1)
+                     )
+            end
+            ;
+            (* Filter Record *)
+            begin
+              let%orzero
+                Node(Unannotated_clause(
+                    Abs_clause(x,Abs_value_body(Abs_value_record(r)))), _) = n1
+              in
+              (* x = r *)
+              let target_state = Program_point_state(n1) in
+              return ( Record_filter_validation(x,r,n1), target_state )
+            end
+            ;
 
-          (* ********** Operations ********** *)
-          (* Binary Operation Start *)
-          begin
-            let%orzero
-              Node(Unannotated_clause(Abs_clause(x1,
-                                             Abs_binary_operation_body(x2,_,x3))), _) = n1
-            in
-            (* x1 = x2 op x3 *)
-            return ( Binary_operator_lookup_init(
-                x1,x2,x3,n1,n0)
-                   , Program_point_state(n1)
-              )
-          end
-          ;
-          (* Binary Operation Evaluation *)
-          begin
-            let%orzero
-              Node(Unannotated_clause(Abs_clause(x1,
-                                             Abs_binary_operation_body(_,op,_))), _) = n1
-            in
-            (* x1 = x2 op x3 *)
-            return ( Binary_operator_resolution_1_of_4(x1,op)
-                   , Program_point_state(n1)
-                   )
-          end
-          ;
-          (* Unary Operation Start *)
-          begin
-            let%orzero
-              Node(Unannotated_clause(Abs_clause(x1,
-                                             Abs_unary_operation_body(_,x2))), _) = n1
-            in
-            (* x1 = op x2 *)
-            return ( Unary_operator_lookup_init(
-                x1,x2,n0)
-                   , Program_point_state(n1)
-              )
-          end
-          ;
-          (* Unary Operation Evaluation *)
-          begin
-            let%orzero
-              Node(Unannotated_clause(Abs_clause(x1,
-                                             Abs_unary_operation_body(op,_))), _) = n1
-            in
-            (* x1 = op x2 *)
-            return ( Unary_operator_resolution_1_of_3(x1,op)
-                   , Program_point_state(n1)
-                   )
-          end
-        ]
-    in
-    let nop_states =
-      let Node(acl1, _) = n1 in
-      match acl1 with
-      | Start_clause _ | End_clause _ ->
-        Enum.singleton @@ Program_point_state(n1)
-      | _ -> Enum.empty ()
-    in
-    Enum.append
-      (targeted_dynamic_pops
-       |> Enum.map
-         (fun (action,state) ->
-            ([Pop_dynamic_targeted(action)], Static_terminus state)))
-      (nop_states
-       |> Enum.map
-         (fun state -> ([], Static_terminus state)))
+            (* ********** Operations ********** *)
+            (* Binary Operation Start *)
+            begin
+              let%orzero
+                Node(Unannotated_clause(Abs_clause(
+                    x1, Abs_binary_operation_body(x2,_,x3))), _) = n1
+              in
+              (* x1 = x2 op x3 *)
+              return ( Binary_operator_lookup_init(
+                  x1,x2,x3,n1,n0)
+                     , Program_point_state(n1)
+                )
+            end
+            ;
+            (* Binary Operation Evaluation *)
+            begin
+              let%orzero
+                Node(Unannotated_clause(Abs_clause(
+                    x1, Abs_binary_operation_body(_,op,_))), _) = n1
+              in
+              (* x1 = x2 op x3 *)
+              return ( Binary_operator_resolution_1_of_4(x1,op)
+                     , Program_point_state(n1)
+                     )
+            end
+            ;
+            (* Unary Operation Start *)
+            begin
+              let%orzero
+                Node(Unannotated_clause(Abs_clause(
+                    x1, Abs_unary_operation_body(_,x2))), _) = n1
+              in
+              (* x1 = op x2 *)
+              return ( Unary_operator_lookup_init(
+                  x1,x2,n0)
+                     , Program_point_state(n1)
+                )
+            end
+            ;
+            (* Unary Operation Evaluation *)
+            begin
+              let%orzero
+                Node(Unannotated_clause(Abs_clause(
+                    x1, Abs_unary_operation_body(op,_))), _) = n1
+              in
+              (* x1 = op x2 *)
+              return ( Unary_operator_resolution_1_of_3(x1,op)
+                     , Program_point_state(n1)
+                     )
+            end
+          ]
+      in
+      let nop_states =
+        let Node(acl1, _) = n1 in
+        match acl1 with
+        | Start_clause _ | End_clause _ ->
+          Enum.singleton @@ Program_point_state(n1)
+        | _ -> Enum.empty ()
+      in
+      Enum.append
+        (targeted_dynamic_pops
+         |> Enum.map
+           (fun (action,state) ->
+              ([Pop_dynamic_targeted(action)], Static_terminus state)))
+        (nop_states
+         |> Enum.map
+           (fun state -> ([], Static_terminus state)))
+    end [@landmark "*edge_computation"]
   ;;
 
   let create_untargeted_dynamic_pop_action_function

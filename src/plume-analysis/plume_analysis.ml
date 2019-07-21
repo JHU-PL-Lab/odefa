@@ -133,10 +133,16 @@ struct
   struct
     module State = Structure_types.Pds_state;;
     module Stack_element = Structure_types.Pds_continuation;;
+    (* We will classify each state into its own class.  This is because each
+       edge function interacts only with the state for which it was
+       constructed. *)
+    module Class = State;;
+    let classify state = state;;
   end
 
   module Plume_pds_reachability =
-    Pds_reachability.Make
+    Pds_reachability.Make_with_classifier
+      (Plume_pds_reachability_basis)
       (Plume_pds_reachability_basis)
       (Dynamic_pop_handler)
       (Pds_reachability_work_collection_templates.Work_stack)
@@ -189,9 +195,12 @@ struct
         need to be called once the value for the argument is found.
     *)
     ; plume_wire_map :
-        ((abstract_value -> G.t -> (edge Enum.t * node * node * node) option) list) Lookup_map.t
+        ((abstract_value -> G.t ->
+          (edge Enum.t * node * node * node) option) list)
+          Lookup_map.t
     (** Map from Lookup_pair (for function applied) -> arg_state.
-        Stores list of functions adding wirings to the CFG once the value is found.
+        Stores list of functions adding wirings to the CFG once the value is
+        found.
     *)
     ; plume_preds_peer_map : Node_Multimap.t
     (** Map from call site node -> function entry node.
@@ -346,40 +355,51 @@ struct
      map.
   *)
   let add_one_edge edge_in analysis =
-    if has_edge edge_in analysis.plume_graph then (analysis, Node_set.empty) else
+    if has_edge edge_in analysis.plume_graph then
+      (analysis, Node_set.empty)
+    else
       (* Add edge to CFG *)
       let plume_graph' =
         add_edge edge_in analysis.plume_graph
       in
       let Edge(n1, n2) = edge_in in
-      (* Checking whether new edge introduced any predecessor relationships *)
-      let new_edges_from_preds =
-        Node_Multimap.find n2 analysis.plume_preds_peer_map
-        |> Enum.map (fun node' -> Edge(n1, node'))
-      in
-      (* Checking whether new edge introduced any successor relationships *)
-      let new_edges_from_succs =
-        Node_Multimap.find n1 analysis.plume_succs_peer_map
-        |> Enum.map (fun node' -> Edge(node', n2))
-      in
       (* Include new edges from preds/succs to the worklist *)
       let new_worklist =
-        Deque.append analysis.plume_edges_worklist
-          (Deque.of_enum (Enum.append new_edges_from_preds new_edges_from_succs))
+        begin
+          (* Checking whether new edge introduced any predecessor
+             relationships *)
+          let new_edges_from_preds =
+            Node_Multimap.find n2 analysis.plume_preds_peer_map
+            |> Enum.map (fun node' -> Edge(n1, node'))
+          in
+          (* Checking whether new edge introduced any successor relationships *)
+          let new_edges_from_succs =
+            Node_Multimap.find n1 analysis.plume_succs_peer_map
+            |> Enum.map (fun node' -> Edge(node', n2))
+          in
+          Deque.append analysis.plume_edges_worklist
+            (Deque.of_enum
+               (Enum.append new_edges_from_preds new_edges_from_succs))
+        end [@landmark "*new_worklist"]
       in
       (* ***
          Then, update the PDS reachability analysis with the new edge
          information.
       *)
-      let add_edge_for_reachability edge reachability =
-        reachability
-        |> Plume_pds_reachability.add_edge_function
-          (Edge_functions.create_edge_function edge)
-        |> Plume_pds_reachability.add_untargeted_dynamic_pop_action_function
-          (Edge_functions.create_untargeted_dynamic_pop_action_function edge)
-      in
+      (* The target of the edge is the point from which PDS edges would need
+         to expand. *)
+      let target_state = Structure_types.Program_point_state n2 in
       let pds_reachability' =
-        add_edge_for_reachability edge_in analysis.pds_reachability
+        begin
+          analysis.pds_reachability
+          |> Plume_pds_reachability.add_classified_edge_function
+            target_state
+            (Edge_functions.create_edge_function edge_in)
+          |> Plume_pds_reachability.add_classified_untargeted_dynamic_pop_action_function
+            target_state
+            (Edge_functions.create_untargeted_dynamic_pop_action_function
+               edge_in)
+        end [@landmark "*pds_reachability'"]
       in
       (* ***
          Now, perform closure over the active node set.  This function uses a
@@ -402,37 +422,40 @@ struct
                 Node_set.add from_node results_so_far
               in
               let from_here = plume_graph' |> succs from_node in
-              find_new_active_nodes (from_here::from_nodes_enums) results_so_far'
+              find_new_active_nodes
+                (from_here::from_nodes_enums) results_so_far'
       in
       let (plume_active_nodes',plume_active_non_immediate_nodes') =
-        let new_active_root_node_opt =
-          let (Edge(node_left,node_right)) = edge_in in
-          if Node_set.mem node_left analysis.plume_active_nodes
-          then
-            if not @@ Node_set.mem node_right analysis.plume_active_nodes
-            then Some node_right
-            else None
-          else None
-        in
-        let new_active_nodes =
-          match new_active_root_node_opt with
-          | None -> Node_set.empty
-          | Some node ->
-            find_new_active_nodes [(Enum.singleton node)] Node_set.empty
-        in
-        let is_node_immediate node =
-          let G.E.Node(acl, _) = node in
-          is_annotated_clause_immediate acl
-        in
-        ( Node_set.union analysis.plume_active_nodes
-            new_active_nodes
-        (* Here we are only returning the new non-immediate active nodes,
-           because all of the previous ones should have been handled by the
-           last CFG closure step at this point.
-        *)
-        , ( new_active_nodes |> Node_set.filter
-              (not % is_node_immediate) )
-        )
+        (
+          let new_active_root_node_opt =
+            let (Edge(node_left,node_right)) = edge_in in
+            if Node_set.mem node_left analysis.plume_active_nodes then
+              if not @@ Node_set.mem node_right analysis.plume_active_nodes
+              then Some node_right
+              else None
+            else
+              None
+          in
+          let new_active_nodes =
+            match new_active_root_node_opt with
+            | None -> Node_set.empty
+            | Some node ->
+              find_new_active_nodes [(Enum.singleton node)] Node_set.empty
+          in
+          let is_node_immediate node =
+            let G.E.Node(acl, _) = node in
+            is_annotated_clause_immediate acl
+          in
+          ( Node_set.union analysis.plume_active_nodes
+              new_active_nodes
+          (* Here we are only returning the new non-immediate active nodes,
+             because all of the previous ones should have been handled by the
+             last CFG closure step at this point.
+          *)
+          , ( new_active_nodes |> Node_set.filter
+                (not % is_node_immediate) )
+          )
+        ) [@landmark "*active_node_computation"]
       in
       let ret_analysis =
         { plume_graph = plume_graph'
@@ -525,7 +548,8 @@ struct
     in
     logger `trace "Created initial analysis";
     log_cfg Log_everything initial_analysis;
-    log_pdr Log_everything initial_analysis.plume_logging_data initial_analysis.pds_reachability;
+    log_pdr Log_everything
+      initial_analysis.plume_logging_data initial_analysis.pds_reachability;
     initial_analysis
   ;;
 
@@ -539,7 +563,8 @@ struct
     in
     let reachability = analysis.pds_reachability in
     let reachability' =
-      Plume_pds_reachability.add_start_state start_state start_actions reachability
+      Plume_pds_reachability.add_start_state
+        start_state start_actions reachability
     in
     let analysis' = { analysis with pds_reachability = reachability' } in
     analysis'
@@ -579,7 +604,8 @@ struct
   let restricted_values_of_variable_internal x acl ctx patsp patsn analysis =
     Logger_utils.lazy_bracket_log (lazy_logger `trace)
       (fun () ->
-         Printf.sprintf "Internal: determining values of variable %s at position %s%s"
+         Printf.sprintf
+           "Internal: determining values of variable %s at position %s%s"
            (show_abstract_var x) (show_annotated_clause acl) @@
          if Pattern_set.is_empty patsp && Pattern_set.is_empty patsn
          then ""
@@ -606,7 +632,10 @@ struct
     let open Option.Monad in
     let zero () = None in
     let%orzero
-      (Push Bottom_of_stack :: Push (Lookup_var (x, patsp, patsn)) :: []) = stack_actions in
+      (Push Bottom_of_stack ::
+       Push (Lookup_var (x, patsp, patsn)) ::
+       []) = stack_actions
+    in
     let%orzero(Structure_types.Program_point_state node) = start_state in
     let Node (_, context) = node in
     let%orzero(Structure_types.Result_state filtered_var_value) = end_state in
@@ -634,7 +663,7 @@ struct
       let analysis' = {analysis with plume_arg_map = arg_map'} in
       let (res_analysis, new_edges) =
         Enum.fold
-          (fun acc -> fun (arg_fun : plume_analysis -> plume_analysis * edge Enum.t) ->
+          (fun acc (arg_fun : plume_analysis -> plume_analysis * edge Enum.t) ->
              let (curr_analysis, edges) = acc in
              let (curr_analysis', edges') = arg_fun curr_analysis in
              (curr_analysis', Enum.append edges edges')
@@ -662,18 +691,23 @@ struct
              let wire_fun_res = wire_fun var_val analysis.plume_graph in
              match wire_fun_res with
              | None -> acc
-             | Some (wire_edges, wire_curr_node, wire_preds_peer, wire_succs_peer) ->
+             | Some (wire_edges, wire_curr_node,
+                     wire_preds_peer, wire_succs_peer) ->
                let acc_edges' = Enum.append acc_edges wire_edges in
-             (*
-                Every time we call the function, we will get new entry and exit
-                nodes - need to add them respectively to the preds_peer_map
-                and the succs_peer_map so that as new predecessors/successors
-                show up, we can react accordingly.
-             *)
+               (*
+                  Every time we call the function, we will get new entry and exit
+                  nodes - need to add them respectively to the preds_peer_map
+                  and the succs_peer_map so that as new predecessors/successors
+                  show up, we can react accordingly.
+               *)
                let acc_preds_peer_map' =
-                 Node_Multimap.add wire_curr_node wire_preds_peer acc_preds_peer_map in
+                 Node_Multimap.add
+                   wire_curr_node wire_preds_peer acc_preds_peer_map
+               in
                let acc_succs_peer_map' =
-                 Node_Multimap.add wire_curr_node wire_succs_peer acc_succs_peer_map in
+                 Node_Multimap.add
+                   wire_curr_node wire_succs_peer acc_succs_peer_map
+               in
                (acc_edges', acc_preds_peer_map', acc_succs_peer_map')
           )
           ((Enum.empty ()), preds_peer_map, succs_peer_map) relevant_wire_funs
@@ -682,49 +716,65 @@ struct
                                       plume_succs_peer_map = new_succs_peer_map;
                       }
       in
-      lazy_logger `trace (fun () -> "# of new edges: " ^ (string_of_int (Enum.count total_new_edges)));
+      lazy_logger `trace
+        (fun () ->
+           "# of new edges: " ^ (string_of_int (Enum.count total_new_edges))
+        );
       (total_new_edges, analysis')
     else
       (Enum.empty (), analysis)
   ;;
 
+  let pds_closure_step analysis =
+    (* Perform a step within the PDS and collect a note *)
+    let reachability = analysis.pds_reachability in
+    let (reachability', lazy_note) =
+      begin
+        Plume_pds_reachability.closure_step_reachable reachability
+      end [@landmark "*actual_pds_closure_step"]
+    in
+    let analysis' = { analysis with pds_reachability = reachability' } in
+    begin
+      match Lazy.force lazy_note with
+      | None ->
+        analysis'
+      | Some note ->
+        (* Get relevant information from the note *)
+        let content_opt = analyze_note note in
+        match content_opt with
+        | Some content ->
+          let (relevant_pair, var_val) = content in
+          (* Check if content is in plume_arg_map and act accordingly *)
+          let ham_analysis, arg_fun_edges =
+            handle_argument_map relevant_pair analysis'
+          in
+          (* Check if content is in plume_wire_map and act accordingly *)
+          let (function_fun_edges, hwm_analysis) =
+            handle_wire_map relevant_pair var_val ham_analysis
+          in
+          (* Add all new edges to the worklist *)
+          let total_edges = Enum.append arg_fun_edges function_fun_edges in
+          let plume_edges_worklist' =
+            Deque.append ham_analysis.plume_edges_worklist
+              (Deque.of_enum total_edges)
+          in
+          let result_analysis =
+            { hwm_analysis with plume_edges_worklist = plume_edges_worklist'}
+          in
+          result_analysis
+        | None ->
+          analysis'
+    end [@landmark "*note_processing"]
+  ;;
+
   (* This function will do PDS closure
            and responds accordingly until it's fully closed *)
   let rec pds_closure analysis =
-    let reachability = analysis.pds_reachability in
     (* check if the PDS is fully closed *)
-    if (Plume_pds_reachability.is_closed analysis.pds_reachability)
-    then analysis
+    if (Plume_pds_reachability.is_closed analysis.pds_reachability) then
+      analysis
     else
-      (* Perform a step within the PDS and collect a note *)
-      let (reachability', lazy_note) =
-        Plume_pds_reachability.closure_step_reachable reachability in
-      let analysis' = { analysis with pds_reachability = reachability' } in
-      match lazy_note with
-      | lazy note_opt ->
-        match note_opt with
-        | None ->
-          pds_closure analysis'
-        | Some note ->
-          (* Get relevant information from the note *)
-          let content_opt = analyze_note note in
-          match content_opt with
-          | Some content ->
-            let (relevant_pair, var_val) = content in
-            (* Check if content is in plume_arg_map and act accordingly *)
-            let ham_analysis, arg_fun_edges = handle_argument_map relevant_pair analysis' in
-            (* Check if content is in plume_wire_map and act accordingly *)
-            let (function_fun_edges, hwm_analysis) =
-              handle_wire_map relevant_pair var_val ham_analysis
-            in
-            (* Add all new edges to the worklist *)
-            let total_edges = Enum.append arg_fun_edges function_fun_edges in
-            let plume_edges_worklist' =
-              Deque.append ham_analysis.plume_edges_worklist (Deque.of_enum total_edges)
-            in
-            let result_analysis = { hwm_analysis with plume_edges_worklist = plume_edges_worklist'} in
-            pds_closure result_analysis
-          | None -> pds_closure analysis'
+      pds_closure @@ pds_closure_step analysis
   ;;
 
   (*
@@ -740,7 +790,9 @@ struct
       (analysis, Enum.empty ())
     else
       (
-        let wire_functions  = Lookup_map.find wire_lookup_key analysis.plume_wire_map in
+        let wire_functions =
+          Lookup_map.find wire_lookup_key analysis.plume_wire_map
+        in
         let (new_edges, new_preds, new_succs) =
           wire_functions
           |> List.enum
@@ -760,7 +812,8 @@ struct
               (Enum.append edge_enum curr_edges,
                Node_Multimap.add curr_call_site curr_enter preds_peers,
                Node_Multimap.add curr_call_site curr_exit succs_peers)
-            ) ((Enum.empty ()), analysis.plume_preds_peer_map, analysis.plume_succs_peer_map)
+            ) ((Enum.empty ()),
+               analysis.plume_preds_peer_map, analysis.plume_succs_peer_map)
         in
         let analysis' = {analysis with plume_preds_peer_map = new_preds;
                                        plume_succs_peer_map = new_succs}
@@ -782,11 +835,11 @@ struct
   ;;
 
   (* CFG closure algorithm
-     - Add edge to CFG *Done
-     - Update PDS (not closing it) *Done
-     - Find new active non-immediate nodes *Done
-     - React to new active things *Done
-     - Compute and react to PDS closure until PDS closed, all edges produced
+     - Add edge to CFG
+     - Update PDS (not closing it)
+     - Find new active non-immediate nodes
+     - React to new active things
+     - Compute and react to PDS closure until PDS closed; all edges produced
        will be added to the worklist
   *)
 
@@ -807,8 +860,10 @@ struct
           in
           add_one_edge edge_to_add pre_analysis
         | None -> raise @@
-          Utils.Invariant_failure "analysis.plume_edges_worklist should not be empty here!"
-          (* Act in response to the newly discovered active non-immediate nodes *)
+          Utils.Invariant_failure
+            "analysis.plume_edges_worklist should not be empty here!"
+            (* Act in response to the newly discovered active non-immediate
+               nodes *)
       in
       (*
          Helper function walking through each of the new active
@@ -823,12 +878,13 @@ struct
                (clause_name,
                 Abs_appl_body(appl_fun,appl_arg))) ->
           (* Clause to wire in is a function application. Function applications
-             involve plume_arg_map (for arguments) and plume_wire_map (for functions)
+             involve plume_arg_map (for arguments) and plume_wire_map (for
+             functions).
           *)
-          (* Function that would go into plume_arg_map
-             that would execute after value for the argument is found,
-             which would edit the wire_map to include/update bindings
-             from function lookups to their appropriate wiring functions.
+          (* This function would go into plume_arg_map.  It would execute after
+             value for the argument is found, which would edit the wire_map to
+             include/update bindings from function lookups to their appropriate
+             wiring functions.
           *)
           let argument_value_response = (fun curr_analysis ->
               (* Function that would go into plume_wire_map, wiring the
@@ -850,7 +906,8 @@ struct
               in
               (* updating the wire_map *)
               let new_wire_map =
-                add_mapping_to_wire_map old_wire_map fun_lookup_key function_value_response
+                add_mapping_to_wire_map
+                  old_wire_map fun_lookup_key function_value_response
               in
               (* asking PDS for appl_fun *)
               let (lookup_res, analysis') =
@@ -871,10 +928,15 @@ struct
               execute_wire_funs analysis'' values_of_fun fun_lookup_key
             )
           in
-          let arg_lookup_key = (appl_arg, ctx, Pattern_set.empty, Pattern_set.empty) in
+          let arg_lookup_key =
+            (appl_arg, ctx, Pattern_set.empty, Pattern_set.empty)
+          in
           (* Checking whether argument was already asked *)
           if (Lookup_map.mem arg_lookup_key arg_map) then
-            (let action = Lookup_map.find (appl_arg, ctx, Pattern_set.empty, Pattern_set.empty) arg_map in
+            (let action =
+               Lookup_map.find
+                 (appl_arg, ctx, Pattern_set.empty, Pattern_set.empty) arg_map
+             in
              match action with
              | Value_found ->
                (* Value was already found, can safely call argument_value_response
@@ -882,17 +944,27 @@ struct
                let (acc_analysis', edges_to_add) =
                  argument_value_response acc_analysis in
                let new_worklist =
-                 Deque.append (Deque.of_enum edges_to_add) acc_analysis.plume_edges_worklist
+                 Deque.append (Deque.of_enum edges_to_add)
+                   acc_analysis.plume_edges_worklist
                in
-               let acc_analysis'' = { acc_analysis' with plume_edges_worklist = new_worklist} in
+               let acc_analysis'' =
+                 { acc_analysis' with
+                   plume_edges_worklist = new_worklist
+                 }
+               in
                acc_analysis''
              | Value_not_found f_list ->
-               (* Value not found yet, adding the new argument_value_response into plume_arg_map *)
+               (* Value not found yet, adding the new
+                  argument_value_response into plume_arg_map *)
                let modified_arg_map =
                  Lookup_map.update arg_lookup_key arg_lookup_key
                    (Value_not_found(argument_value_response :: f_list)) arg_map
                in
-               let acc_analysis' = {acc_analysis with plume_arg_map = modified_arg_map} in
+               let acc_analysis' =
+                 { acc_analysis with
+                   plume_arg_map = modified_arg_map
+                 }
+               in
                (acc_analysis')
             )
           else
@@ -909,7 +981,11 @@ struct
                   Lookup_map.add arg_lookup_key
                     (Value_not_found([argument_value_response])) arg_map
                 in
-                let acc_analysis'' = {acc_analysis' with plume_arg_map = new_arg_map} in
+                let acc_analysis'' =
+                  { acc_analysis' with
+                    plume_arg_map = new_arg_map
+                  }
+                in
                 acc_analysis''
               else
                 (
@@ -919,14 +995,17 @@ struct
                   let (acc_analysis'', edges_to_add)=
                     argument_value_response acc_analysis' in
                   let new_worklist =
-                    Deque.append (Deque.of_enum edges_to_add) acc_analysis.plume_edges_worklist
+                    Deque.append (Deque.of_enum edges_to_add)
+                      acc_analysis.plume_edges_worklist
                   in
                   let new_arg_map =
                     Lookup_map.add arg_lookup_key (Value_found) arg_map
                   in
-                  let acc_analysis''' = { acc_analysis'' with plume_edges_worklist = new_worklist;
-                                                              plume_arg_map = new_arg_map;
-                                        } in
+                  let acc_analysis''' =
+                    { acc_analysis'' with plume_edges_worklist = new_worklist;
+                                          plume_arg_map = new_arg_map;
+                    }
+                  in
                   acc_analysis'''
                 )
             )
@@ -957,15 +1036,22 @@ struct
             )
           in
           (* Add both functions to the wire_map with corresponding key*)
-          let wire_map_w_pos = add_mapping_to_wire_map old_wire_map posmatch_lookup_key cond_set_pos_response in
-          let wire_map_w_neg = add_mapping_to_wire_map wire_map_w_pos negmatch_lookup_key cond_set_neg_response in
+          let wire_map_w_pos =
+            add_mapping_to_wire_map
+              old_wire_map posmatch_lookup_key cond_set_pos_response
+          in
+          let wire_map_w_neg =
+            add_mapping_to_wire_map
+              wire_map_w_pos negmatch_lookup_key cond_set_neg_response
+          in
           let analysis_w_new_wire_map =
             { acc_analysis with plume_wire_map = wire_map_w_neg }
           in
           (* Looking up the value with positive pattern set *)
           let (pos_lookup_res, pos_lookup_analysis) =
             restricted_values_of_variable_internal subject acl ctx
-              (Pattern_set.singleton pattern) (Pattern_set.empty) analysis_w_new_wire_map
+              (Pattern_set.singleton pattern) (Pattern_set.empty)
+              analysis_w_new_wire_map
           in
           let values_of_posmatch : abstract_value list =
             Enum.fold (fun curr_val_list -> fun curr_res ->
@@ -976,12 +1062,14 @@ struct
           in
           (* Execute wire functions for result of lookup w positive values *)
           let (exec_pos_analysis, pos_new_edges) =
-            execute_wire_funs pos_lookup_analysis values_of_posmatch posmatch_lookup_key
+            execute_wire_funs
+              pos_lookup_analysis values_of_posmatch posmatch_lookup_key
           in
           (* Looking up the value with negative pattern set *)
           let (patsn_lookup_res, patsn_lookup_analysis) =
             restricted_values_of_variable_internal subject acl ctx
-              (Pattern_set.empty) (Pattern_set.singleton pattern) exec_pos_analysis
+              (Pattern_set.empty) (Pattern_set.singleton pattern)
+              exec_pos_analysis
           in
           let values_of_negmatch : abstract_value list =
             Enum.fold (fun curr_val_list -> fun curr_res ->
@@ -992,7 +1080,8 @@ struct
           in
           (* Execute wire functions for result of lookup w negative values *)
           let (exec_neg_analysis, neg_new_edges) =
-            execute_wire_funs patsn_lookup_analysis values_of_negmatch negmatch_lookup_key
+            execute_wire_funs
+              patsn_lookup_analysis values_of_negmatch negmatch_lookup_key
           in
           (* Collect new edges from both pos and neg, and add them to worklist *)
           let total_new_edges =
@@ -1052,7 +1141,8 @@ struct
     then
       begin
         logger `trace "Closure complete.";
-        log_pdr Log_result analysis.plume_logging_data analysis.pds_reachability;
+        log_pdr Log_result
+          analysis.plume_logging_data analysis.pds_reachability;
         log_cfg Log_result analysis;
         analysis
       end
@@ -1065,10 +1155,13 @@ struct
   (* Function that queries for values - ensures that PDS is fully closed
      before computing reachability.
   *)
-  let restricted_values_of_variable_with_closure x acl ctx patsp patsn analysis =
+  let restricted_values_of_variable_with_closure
+      x acl ctx patsp patsn analysis
+    =
     Logger_utils.lazy_bracket_log (lazy_logger `trace)
       (fun () ->
-         Printf.sprintf "With Closure: determining values of variable %s at position %s%s"
+         Printf.sprintf
+           "With Closure: determining values of variable %s at position %s%s"
            (show_abstract_var x) (show_annotated_clause acl) @@
          if Pattern_set.is_empty patsp && Pattern_set.is_empty patsn
          then ""
