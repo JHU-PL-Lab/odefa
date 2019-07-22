@@ -113,7 +113,8 @@ def produce_csv_from(name, group_data):
         for case in cases:
             row = [case]
             for analysis in analyses:
-                row.append(group_data["results"][case][analysis]["time"])
+                time = group_data["results"][case][analysis]["time"]
+                row.append("timeout" if time is None else time)
             writer.writerow(row)
 
 def produce_bar_chart_from(name, group_data):
