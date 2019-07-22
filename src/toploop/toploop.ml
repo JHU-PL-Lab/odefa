@@ -102,6 +102,11 @@ let stdout_size_report_callback
   flush stdout
 ;;
 
+let stdout_analysis_time_report_callback (analysis_time_in_ms : int) : unit =
+  Printf.printf "Analysis took %d ms.\n" analysis_time_in_ms;
+  flush stdout
+;;
+
 let stdout_source_statistics_callback stats =
   let { ss_num_program_points = num_program_points;
         ss_num_function_definitions = num_function_definitions;
@@ -137,6 +142,7 @@ let no_op_callbacks =
   ; cb_evaluation_failed = (fun _ -> ())
   ; cb_evaluation_disabled = (fun _ -> ())
   ; cb_size_report_callback = (fun _ -> ())
+  ; cb_analysis_time_report_callback = (fun _ -> ())
   ; cb_source_statistics_callback = (fun _ -> ())
   }
 ;;
@@ -149,6 +155,7 @@ let stdout_callbacks =
   ; cb_evaluation_failed = stdout_evaluation_failed_callback
   ; cb_evaluation_disabled = stdout_evaluation_disabled_callback
   ; cb_size_report_callback = stdout_size_report_callback
+  ; cb_analysis_time_report_callback = stdout_analysis_time_report_callback
   ; cb_source_statistics_callback = stdout_source_statistics_callback
   }
 ;;
@@ -380,7 +387,14 @@ let handle_expression
     check_wellformed_expr e;
     (* Step 2: perform analyses.  This covers both variable analyses and
        error checking. *)
+    let start_time = Sys.time () in
     let analyses, errors = do_analysis_steps callbacks conf e in
+    let end_time = Sys.time () in
+    let analysis_time_in_ms =
+      int_of_float @@ (end_time -. start_time) *. 1000.0
+    in
+    if conf.topconf_report_analysis_time
+    then callbacks.cb_analysis_time_report_callback analysis_time_in_ms;
     (* Step 3: perform evaluation. *)
     let evaluation_result =
       if errors = []

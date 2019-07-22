@@ -5,9 +5,9 @@
    Each file is expected to contain a comment describing the expected test
    result.  The comment should be of one of the following forms:
 
-    - [EXPECT-EVALUATE] (which requires that the code evaluates to completion)
-    - [EXPECT-STUCK] (which requires that the code gets stuck)
-   FIXME: update this documentation
+   - [EXPECT-EVALUATE] (which requires that the code evaluates to completion)
+   - [EXPECT-STUCK] (which requires that the code gets stuck)
+     FIXME: update this documentation
 *)
 
 (* FIXME: purge the term "inconsistency" *)
@@ -360,6 +360,7 @@ let make_test filename expectations =
                 | _ -> false)
         ; topconf_disable_analysis = false
         ; topconf_report_sizes = false
+        ; topconf_report_analysis_time = false
         ; topconf_report_source_statistics = false
         }
       in

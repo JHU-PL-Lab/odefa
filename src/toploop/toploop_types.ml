@@ -86,6 +86,7 @@ type callbacks =
   ; cb_evaluation_failed : string -> unit
   ; cb_evaluation_disabled : unit -> unit
   ; cb_size_report_callback : int * int * int * int * int -> unit
+  ; cb_analysis_time_report_callback : int -> unit
   ; cb_source_statistics_callback : source_statistics -> unit
   }
 ;;
