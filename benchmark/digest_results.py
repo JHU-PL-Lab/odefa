@@ -6,7 +6,7 @@ import os
 import re
 
 P4F_RESULT_TIME = re.compile("Analysis run for: ([0-9]+) milliseconds")
-GENERIC_RESULT_TIME = re.compile("User time \\(seconds\\): ([0-9.])+")
+ODEFA_RESULT_TIME = re.compile("Analysis took ([0-9]+) ms")
 
 def read_files():
     """
@@ -41,8 +41,11 @@ def read_files():
             if m:
                 result["time"] = int(m.group(1))
             else:
-                m = GENERIC_RESULT_TIME.search(content)
-                result["time"] = int(float(m.group(1))*1000)
+                m = ODEFA_RESULT_TIME.search(content)
+                if m:
+                    result["time"] = int(m.group(1))
+                else:
+                    result["time"] = None
             if result_name not in data:
                 data[result_name] = []
             data[result_name].append(result)
@@ -129,24 +132,36 @@ def produce_bar_chart_from(name, group_data):
     analyses.reverse()
     figure = mplot.figure(figsize=(10,12))
     ax = figure.add_axes([0.2,0.2,0.7,0.7])
-    ax.set_xlim(10,100000)
+    MIN_TIME = 10
+    MAX_TIME = 100000
+    ax.set_xlim(MIN_TIME, MAX_TIME)
     bar_group_area = 2
-    bar_group_width = 0.7*bar_group_area
+    bar_group_height = 0.7*bar_group_area
     analysis_colors = {"ddpa": "DarkMagenta",
                        "p4f": "DarkGoldenRod",
                        "kplume": "LightSeaGreen",
                        "splume": "ForestGreen"
                       }
     for case_idx, case in enumerate(cases):
-        base_position = case_idx * bar_group_area - 0.5*bar_group_width
+        base_position = case_idx * bar_group_area - 0.5*bar_group_height
         for analysis_idx, analysis in enumerate(analyses):
-            bar_width = bar_group_width/len(analyses)
-            bar_position = base_position + bar_width * (analysis_idx+0.5)
+            bar_height = bar_group_height/len(analyses)
+            bar_position = base_position + bar_height * (analysis_idx+0.5)
             time = group_data["results"][case][analysis]["time"]
-            if time == 0: continue
+            if time is None:
+                bar = ax.barh([bar_position],
+                              [MAX_TIME],
+                              bar_height,
+                              edgecolor='black',
+                              label=analysis)[0]
+                bar.set_hatch("//")
+            if time < MIN_TIME:
+                print("Time <{}ms reported for {} on {}".format(
+                        MIN_TIME, analysis, case))
+                continue
             bar = ax.barh([bar_position],
                           [time],
-                          bar_width,
+                          bar_height,
                           label=analysis)[0]
             bar.set_color(analysis_colors.get(analysis) or "Black")
             ax.annotate("{:d}".format(int(time)),
@@ -175,7 +190,7 @@ def produce_output(data):
     for group in ["monovariant", "polyvariant"]:
         produce_csv_from(group, data[group])
         produce_bar_chart_from(group, data[group])
-                
+
 def main():
     data = read_files()
     aggregated = aggregate_data(data)
