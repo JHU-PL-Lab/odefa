@@ -1,11 +1,6 @@
 (**
    This test module will load a series of test files from the test sources
    directory and execute them one by one.
-
-   Each file is expected to contain a comment describing the expected test
-   result.  The comment should be of one of the following forms:
-
-    NOTE: AYAKA HELPPPPPPPPP
 *)
 
 open Batteries;;
@@ -358,6 +353,7 @@ let make_test filename (gen_expectations, analysis_expectation) =
             AC_Map.is_empty consistency_checks
         ; topconf_disable_analysis = false
         ; topconf_report_sizes = false
+        ; topconf_report_analysis_time = false
         ; topconf_report_source_statistics = false
         }
       in

@@ -251,6 +251,10 @@ let report_sizes_option =
   BatOptParse.StdOpt.store_true ()
 ;;
 
+let report_analysis_time_option =
+  BatOptParse.StdOpt.store_true ()
+;;
+
 let report_source_statistics_option =
   BatOptParse.StdOpt.store_true ()
 ;;
