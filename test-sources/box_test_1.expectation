@@ -1,12 +1,12 @@
 QUERY: ~result;
 ANALYSES: 1DDPA, 1PLUME, 2DDPA, 2PLUME, SPLUME, OSKPLUME, OSMPLUME;
-RESULTS: 1DDPA(~result) = `{{integer=int___0}, {integer=int___2}}`,
-         1PLUME(~result) = `{{integer=int___0}, {integer=int___2}}`,
-         2DDPA(~result) = `{{integer=int___2}}`,
-         2PLUME(~result) = `{{integer=int___2}}`,
-         SPLUME(~result) = `{{integer=int___2}}`,
-         OSKPLUME(~result) = `{{integer=int___2}}`,
-         OSMPLUME(~result) = `{{integer=int___2}}`;
+RESULTS: 1DDPA(~result) = `{{integer=int~0}, {integer=int~2}}`,
+         1PLUME(~result) = `{{integer=int~0}, {integer=int~2}}`,
+         2DDPA(~result) = `{{integer=int~2}}`,
+         2PLUME(~result) = `{{integer=int~2}}`,
+         SPLUME(~result) = `{{integer=int~2}}`,
+         OSKPLUME(~result) = `{{integer=int~2}}`,
+         OSMPLUME(~result) = `{{integer=int~2}}`;
 CONSISTENCIES: 1DDPA = NO_INCONSISTENCIES &
                1PLUME = NO_INCONSISTENCIES &
                2DDPA = NO_INCONSISTENCIES &

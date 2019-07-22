@@ -6,7 +6,7 @@ empty = {};
 T = true;
 F = false;
 
-# Dynamically creates a list with alternating boolean values
+# Statically creates a list with alternating boolean values
 tail_rec = {empty = empty};
 list_create_1 = {head = F, tail = tail_rec};
 list_create_2 = {head = T, tail = list_create_1};

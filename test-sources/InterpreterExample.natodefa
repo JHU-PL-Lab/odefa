@@ -1,0 +1,27 @@
+let boo1 = `Bool false in
+let boo2 = `Bool true in
+let andExpr = `And([boo1, boo2]) in
+let orAndExpr = `Or([andExpr, andExpr]) in
+let andOrAndExpr = `And([orAndExpr, orAndExpr]) in
+let rec eval e =
+match e with
+| `Bool b -> b
+| `Not e ->
+  let v = eval e in
+  (match v with
+  | true -> false
+  | false -> true
+  end
+  )
+| `Or (lst) ->
+  (match lst with
+  | hd :: tl :: [] -> (eval hd) or (eval tl)
+  end
+  )
+| `And (lst) ->
+  (match lst with
+  | hd :: tl :: [] -> (eval hd) and (eval tl)
+  end
+  )
+end
+in eval orAndExpr
