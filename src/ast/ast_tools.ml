@@ -237,6 +237,76 @@ and map_function_vars (fn : Var.t -> Var.t) (f : function_value)
   Function_value(fn x, map_expr_vars fn e)
 ;;
 
+(** Homomorphically maps all variables in an expression. *)
+let rec map_expr_labels (fn : Ident.t -> Ident.t) (e : expr) : expr =
+  let Expr(cls) = e in Expr(List.map (map_clause_labels fn) cls)
+
+and map_clause_labels (fn : Ident.t -> Ident.t) (c : clause) : clause =
+  let Clause(x,b) = c in Clause(x, map_clause_body_labels fn b)
+
+and map_clause_body_labels (fn : Ident.t -> Ident.t) (b : clause_body) : clause_body =
+  match (b : clause_body) with
+  | Value_body v -> Value_body (map_value_labels fn v)
+  | Var_body x -> Var_body x
+  | Appl_body (x1,x2) -> Appl_body(x1, x2)
+  | Conditional_body (x, p, f1, f2) ->
+    Conditional_body (x, map_pattern_labels fn p,
+                      map_function_labels fn f1, map_function_labels fn f2)
+  | Projection_body (x, l) -> Projection_body(x, fn l)
+  | Deref_body x -> Deref_body x
+  | Update_body (x1, x2) -> Update_body (x1, x2)
+  | Binary_operation_body (x1, op, x2) ->
+    Binary_operation_body (x1, op, x2)
+  | Unary_operation_body (op, x) ->
+    Unary_operation_body (op, x)
+
+and map_pattern_labels (fn : Ident.t -> Ident.t) (p : pattern) : pattern =
+  match (p : pattern) with
+  | Record_pattern m ->
+    let m' =
+      m
+      |> Ident_map.enum
+      |> Enum.map
+        (fun (k,v) ->
+           (fn k, map_pattern_labels fn v)
+        )
+      |> Ident_map.of_enum
+    in
+    Record_pattern m'
+  | Fun_pattern
+  | Ref_pattern
+  | Int_pattern
+  | Bool_pattern _
+  | String_pattern
+  | Any_pattern -> p
+
+and map_value_labels (fn : Ident.t -> Ident.t) (v : value) : value =
+  match (v : value) with
+  | Value_record(r) ->
+    Value_record(map_record_labels fn r)
+  | Value_function f -> Value_function(map_function_labels fn f)
+  | Value_ref(Ref_value x) -> Value_ref (Ref_value(x))
+  | Value_int _ -> v
+  | Value_bool _ -> v
+  | Value_string _ -> v
+
+and map_function_labels (fn : Ident.t -> Ident.t) (f : function_value)
+  : function_value =
+  let Function_value(x,e) = f in
+  Function_value(x, map_expr_labels fn e)
+
+and map_record_labels (fn : Ident.t -> Ident.t) (r : record_value)
+  : record_value =
+  let Record_value m = r in
+  let m' =
+    m
+    |> Ident_map.enum
+    |> Enum.map (fun (k,v) -> (fn k,v))
+    |> Ident_map.of_enum
+  in
+  Record_value m'
+;;
+
 (** Mostly-homomorphically operates on every subexpression of an expression.
     Expressions are modified in a bottom-up fashion. *)
 let rec transform_exprs_in_expr (fn : expr -> expr) (e : expr) : expr =

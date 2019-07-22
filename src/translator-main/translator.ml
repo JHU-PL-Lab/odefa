@@ -10,20 +10,34 @@ open Ast_pp;;
 open Ast_tools;;
 open Translator_options;;
 
+let purge_special_string_symbols (s : string) : string =
+  s
+  |> String.replace_chars
+    (fun c ->
+       match c with
+       | '~' -> "___"
+       | _ -> String.of_char c
+    )
+;;
+
 (** Removes from a variable any special symbols introduced by the translation
     process which are not parseable identifiers. *)
-let purge_special_symbols (x : Ast.Var.t) : Ast.Var.t =
+let purge_special_variable_symbols (x : Ast.Var.t) : Ast.Var.t =
   let Ast.Var(Ast.Ident(s), fs) = x in
-  let s' =
-    s
-    |> String.replace_chars
-      (fun c ->
-         match c with
-         | '~' -> "___"
-         | _ -> String.of_char c
-      )
-  in
+  let s' = purge_special_string_symbols s in
   Ast.Var(Ast.Ident(s'), fs)
+;;
+
+let purge_special_record_labels (l : Ast.Ident.t) : Ast.Ident.t =
+  let Ast.Ident(s) = l in
+  let s' = purge_special_string_symbols s in
+  Ast.Ident(s')
+;;
+
+let purge_special_symbols (e : Ast.expr) : Ast.expr =
+  e
+  |> map_expr_vars purge_special_variable_symbols
+  |> map_expr_labels purge_special_record_labels
 ;;
 
 let main () : unit =
@@ -33,7 +47,7 @@ let main () : unit =
     let on_expr = On_parse.parse_program IO.stdin in
     on_expr
     |> On_to_odefa.translate
-    |> (if options.ta_parseable then map_expr_vars purge_special_symbols else identity)
+    |> (if options.ta_parseable then purge_special_symbols else identity)
     |> show_expr
     |> print_endline
   | Scheme_to_odefa_natural ->
