@@ -13,7 +13,7 @@ open Pp_utils;;
 
 type ddpa_edge =
   | Ddpa_edge of annotated_clause * annotated_clause
-  [@@deriving ord, show, to_yojson]
+[@@deriving ord, show, to_yojson]
 ;;
 
 module Ddpa_edge =
@@ -63,28 +63,51 @@ struct
     include Yojson_utils.Set_to_yojson(Impl)(Ddpa_edge);;
   end;;
 
-  type ddpa_graph = Graph of Ddpa_edge_set.t [@@deriving to_yojson];;
+  module Annotated_clause_to_edge_multimap = struct
+    module Impl = Multimap.Make(Annotated_clause)(Ddpa_edge);;
+    include Impl;;
+    include Multimap_pp.Make(Impl)(Annotated_clause)(Ddpa_edge);;
+    include Multimap_to_yojson.Make(Impl)(Annotated_clause)(Ddpa_edge);;
+  end;;
 
-  let empty = Graph(Ddpa_edge_set.empty);;
+  type ddpa_graph =
+    { dg_all_edges : Ddpa_edge_set.t;
+      dg_edges_from : Annotated_clause_to_edge_multimap.t;
+      dg_edges_to : Annotated_clause_to_edge_multimap.t;
+    }
+  [@@deriving to_yojson];;
 
-  let add_edge edge (Graph(s)) = Graph(Ddpa_edge_set.add edge s);;
+  let empty =
+    { dg_all_edges = Ddpa_edge_set.empty;
+      dg_edges_from = Annotated_clause_to_edge_multimap.empty;
+      dg_edges_to = Annotated_clause_to_edge_multimap.empty;
+    }
+  ;;
 
-  let edges_of (Graph(s)) = Ddpa_edge_set.enum s;;
+  let add_edge edge g =
+    let Ddpa_edge(from_node,to_node) = edge in
+    { dg_all_edges = Ddpa_edge_set.add edge g.dg_all_edges;
+      dg_edges_from =
+        Annotated_clause_to_edge_multimap.add from_node edge g.dg_edges_from;
+      dg_edges_to =
+        Annotated_clause_to_edge_multimap.add to_node edge g.dg_edges_to;
+    }
+  ;;
 
-  let has_edge edge (Graph(s)) = Ddpa_edge_set.mem edge s;;
+  let edges_of g = g.dg_all_edges |> Ddpa_edge_set.enum;;
 
-  let edges_from acl (Graph(s)) =
-    Ddpa_edge_set.enum s
-    |> Enum.filter (fun (Ddpa_edge(acl',_)) -> equal_annotated_clause acl acl')
+  let has_edge edge g = Ddpa_edge_set.mem edge g.dg_all_edges;;
+
+  let edges_from acl g =
+    Annotated_clause_to_edge_multimap.find acl g.dg_edges_from
   ;;
 
   let succs acl g =
     edges_from acl g |> Enum.map (fun (Ddpa_edge(_,acl)) -> acl)
   ;;
 
-  let edges_to acl (Graph(s)) =
-    Ddpa_edge_set.enum s
-    |> Enum.filter (fun (Ddpa_edge(_,acl')) -> equal_annotated_clause acl acl')
+  let edges_to acl g =
+    Annotated_clause_to_edge_multimap.find acl g.dg_edges_to
   ;;
 
   let preds acl g =
