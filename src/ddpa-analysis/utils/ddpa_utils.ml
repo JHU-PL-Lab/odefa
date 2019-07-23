@@ -123,6 +123,14 @@ let is_immediate acl =
   | End_clause _ -> true
 ;;
 
+(**
+   Produces the edges which correspond to the wiring of a particular function
+   into the CFG.  The result is a four-tuple containing
+     * This set of edges
+     * The call site (for convenience)
+     * The enter clause used in this wiring
+     * The exit clause used in this wiring
+*)
 let wire site_cl func x1 x2 graph =
   let site_acl = Unannotated_clause(site_cl) in
   let Abs_function_value(x0, Abs_expr(body)) = func in
@@ -148,7 +156,10 @@ let wire site_cl func x1 x2 graph =
     |> Utils.pairwise_enum_fold
       (fun acl1 acl2 -> Ddpa_edge(acl1,acl2))
   in
-  Enum.append pred_edges @@ Enum.append inner_edges succ_edges
+  let edges =
+    Enum.append pred_edges @@ Enum.append inner_edges succ_edges
+  in
+  (edges, site_acl, wire_in_acl, wire_out_acl)
 ;;
 
 module End_of_block_map =
