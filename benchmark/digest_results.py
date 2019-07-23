@@ -82,7 +82,13 @@ def aggregate_data(data):
             cases.add(case)
             analyses.add(analysis)
             # Aggregate result
-            time_in_ms = int(sum(map(lambda r: r["time"], runs))/len(runs))
+            # Arbitrary policy choice: if any of the results time out, report
+            # that instead.
+            times = list(map(lambda r: r["time"], runs))
+            if None in times:
+                time_in_ms = None
+            else:
+                time_in_ms = int(sum(times)/len(runs))
             result = { "time" : time_in_ms }
             # Construct result dictionary entry
             if case not in results:
@@ -98,6 +104,17 @@ def aggregate_data(data):
             }
     return experiments
 
+def analyses_in_preferred_order(input_analyses):
+    preferred_analysis_order = ["p4f", "ddpa", "kplume", "splume"]
+    analyses = []
+    for analysis in preferred_analysis_order:
+        if analysis in input_analyses:
+            analyses.append(analysis)
+    for analysis in input_analyses:
+        if analysis not in preferred_analysis_order:
+            analyses.append(analysis)
+    return analyses
+
 def produce_csv_from(name, group_data):
     """
     Produces a CSV file for the provided experiment data.
@@ -105,7 +122,7 @@ def produce_csv_from(name, group_data):
     with open("results" + os.sep + name + "-table.csv", 'w') as csvfile:
         writer = csv.writer(csvfile, quoting=csv.QUOTE_MINIMAL)
         # Extract the data for this case.
-        analyses = group_data["analyses"]
+        analyses = analyses_in_preferred_order(group_data["analyses"])
         cases = group_data["cases"]
         # Write header
         writer.writerow([""]+analyses)
@@ -122,19 +139,13 @@ def produce_bar_chart_from(name, group_data):
     Produces a bar chart from the provided experiment data.
     """
     cases = list(reversed(group_data["cases"]))
-    preferred_analysis_order = ["p4f", "ddpa", "kplume", "splume"]
-    analyses = []
-    for analysis in preferred_analysis_order:
-        if analysis in group_data["analyses"]:
-            analyses.append(analysis)
-    for analysis in group_data["analyses"]:
-        if analysis not in preferred_analysis_order:
-            analyses.append(analysis)
+    analyses = group_data["analyses"]
+    analyses = analyses_in_preferred_order(analyses)
     analyses.reverse()
     figure = mplot.figure(figsize=(10,12))
     ax = figure.add_axes([0.2,0.2,0.7,0.7])
-    MIN_TIME = 10
-    MAX_TIME = 100000
+    MIN_TIME = 1
+    MAX_TIME = 1000000
     ax.set_xlim(MIN_TIME, MAX_TIME)
     bar_group_area = 2
     bar_group_height = 0.7*bar_group_area
@@ -155,24 +166,26 @@ def produce_bar_chart_from(name, group_data):
                               bar_height,
                               edgecolor='black',
                               label=analysis)[0]
+                bar.set_color(analysis_colors.get(analysis) or "Black")
+                bar.set_edgecolor("Black")
                 bar.set_hatch("//")
-            if time < MIN_TIME:
+            elif time < MIN_TIME:
                 print("Time <{}ms reported for {} on {}".format(
                         MIN_TIME, analysis, case))
-                continue
-            bar = ax.barh([bar_position],
-                          [time],
-                          bar_height,
-                          label=analysis)[0]
-            bar.set_color(analysis_colors.get(analysis) or "Black")
-            ax.annotate("{:d}".format(int(time)),
-                        xy=(bar.get_width(),
-                            bar.get_y() + bar.get_height() / 2),
-                        xytext=(3,0),
-                        textcoords="offset points",
-                        ha="left",
-                        va="center",
-                        fontsize=6)
+            else:
+                bar = ax.barh([bar_position],
+                              [time],
+                              bar_height,
+                              label=analysis)[0]
+                bar.set_color(analysis_colors.get(analysis) or "Black")
+                ax.annotate("{:d}".format(int(time)),
+                            xy=(bar.get_width(),
+                                bar.get_y() + bar.get_height() / 2),
+                            xytext=(3,0),
+                            textcoords="offset points",
+                            ha="left",
+                            va="center",
+                            fontsize=6)
         ax.set_xlabel("Time (ms)")
         ax.set_xscale("log")
         ax.set_yticks(list(map(lambda n: n * bar_group_area, range(len(cases)))))
