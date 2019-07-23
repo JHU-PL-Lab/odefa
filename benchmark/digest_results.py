@@ -190,8 +190,8 @@ def produce_bar_chart_from(name, group_data):
         ax.set_xscale("log")
         ax.set_yticks(list(map(lambda n: n * bar_group_area, range(len(cases)))))
         ax.set_yticklabels(cases)
-        for tick in ax.yaxis.get_major_ticks()[0::2]:
-            tick.set_pad(12)
+        # for tick in ax.yaxis.get_major_ticks()[0::2]:
+        #     tick.set_pad(12)
     ax.legend([
         mplot.Rectangle((0,0),1,1,fc=analysis_colors[analysis])
         for analysis in reversed(analyses)
