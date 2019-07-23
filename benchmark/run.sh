@@ -76,6 +76,7 @@ function ddpa {
   ANALYSIS=ddpa
   configure_result
   cat "${NATODEFA_SOURCE}" | \
+    tr '*/%' '+' | \
     "${NATODEFA_TRANSLATOR}" -p |\
     /usr/bin/time -v /usr/bin/timeout --foreground "${TIMEOUT}" "${DDPA_TOPLOOP}" -S"${K}"ddpa --analyze-variables=all --report-sizes --report-analysis-time --report-source-statistics --disable-evaluation --disable-inconsistency-check \
     &>> "${RESULT}" || true
@@ -85,6 +86,7 @@ function kplume {
   ANALYSIS=kplume
   configure_result
   cat "${NATODEFA_SOURCE}" | \
+    tr '*/%' '+' | \
     "${NATODEFA_TRANSLATOR}" -p |\
     /usr/bin/time -v /usr/bin/timeout --foreground "${TIMEOUT}" "${DDPA_TOPLOOP}" -S"${K}"plume --analyze-variables=all --report-sizes --report-analysis-time --report-source-statistics --disable-evaluation --disable-inconsistency-check \
     &>> "${RESULT}" || true
@@ -94,6 +96,7 @@ function splume {
   ANALYSIS=splume
   configure_result
   cat "${NATODEFA_SOURCE}" | \
+    tr '*/%' '+' | \
     "${NATODEFA_TRANSLATOR}" -p |\
     /usr/bin/time -v /usr/bin/timeout --foreground "${TIMEOUT}" "${DDPA_TOPLOOP}" -Ssplume --analyze-variables=all --report-sizes --report-analysis-time --report-source-statistics --disable-evaluation --disable-inconsistency-check \
     &>> "${RESULT}" || true
