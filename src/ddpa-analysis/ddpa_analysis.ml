@@ -16,7 +16,6 @@ open Ddpa_analysis_logging;;
 open Ddpa_context_stack;;
 open Ddpa_graph;;
 open Ddpa_utils;;
-open Nondeterminism;;
 open Pp_utils;;
 
 let logger = Logger_utils.make_logger "Ddpa_analysis";;
@@ -73,7 +72,43 @@ end;;
 module Make(C : Context_stack)
   : Analysis_sig with module C = C =
 struct
+  open Graph_impl;;
+
   module C = C;;
+
+  module Node = Annotated_clause;;
+
+  module Lookup =
+  struct
+    type t = abstract_var * Annotated_clause.t * Pattern_set.t * Pattern_set.t
+    [@@deriving ord, show, to_yojson]
+  end;;
+
+  module Lookup_map =
+  struct
+    module Impl = Map.Make(Lookup);;
+    include Impl;;
+    include Pp_utils.Map_pp(Impl)(Lookup);;
+    include Yojson_utils.Map_to_yojson(Impl)(Lookup);;
+  end;;
+
+  module Node_Multimap =
+  struct
+    module Impl = Multimap.Make(Node)(Node);;
+    include Impl;;
+    include Multimap_pp.Make(Impl)(Node)(Node);;
+    include Multimap_to_yojson.Make(Impl)(Node)(Node);;
+  end;;
+
+  (* Set for nodes - used in ddpa_analysis.ml *)
+  module Node_set =
+  struct
+    module Impl = Set.Make(Node);;
+    include Impl;;
+    include Pp_utils.Set_pp(Impl)(Node);;
+    include Yojson_utils.Set_to_yojson(Impl)(Node);;
+  end;;
+
   module Structure_types = Ddpa_pds_structure_types.Make(C);;
   module Dynamic_pop_types =
     Ddpa_pds_dynamic_pop_types.Make(C)(Structure_types)
@@ -86,10 +121,16 @@ struct
   struct
     module State = Structure_types.Pds_state;;
     module Stack_element = Structure_types.Pds_continuation;;
+    (* We will classify each state into its own class.  This is because each
+       edge function interacts only with the state for which it was
+       constructed. *)
+    module Class = Structure_types.Pds_state_class;;
+    let classify = Structure_types.classify;;
   end
 
   module Ddpa_pds_reachability =
-    Pds_reachability.Make
+    Pds_reachability.Make_with_classifier
+      (Ddpa_pds_reachability_basis)
       (Ddpa_pds_reachability_basis)
       (Dynamic_pop_handler)
       (Pds_reachability_work_collection_templates.Work_stack)
@@ -115,37 +156,66 @@ struct
   ;;
   let _ = show_ddpa_analysis_logging_data;;
 
-  type ddpa_analysis =
+  type edge_queue = Ddpa_edge.t Batteries.Deque.t ;;
+
+  let pp_edge_queue formatter x : unit =
+    Pp_utils.pp_list Ddpa_edge.pp formatter (Batteries.Deque.to_list x)
+  ;;
+
+  type arg_state =
+    | Value_found
+    | Value_not_found of
+        (ddpa_analysis -> ddpa_analysis * Ddpa_edge.t Enum.t) list
+
+  and
+
+    ddpa_analysis =
     { ddpa_graph : ddpa_graph
-    ; ddpa_graph_fully_closed : bool
     ; pds_reachability : Ddpa_pds_reachability.analysis
-    ; ddpa_active_nodes : Annotated_clause_set.t
-    (** The active nodes in the DDPA graph.  This set is maintained
+    ; ddpa_active_nodes : Node_set.t
+    (** The active nodes in the ddpa graph.  This set is maintained
             incrementally as edges are added. *)
-    ; ddpa_active_non_immediate_nodes : Annotated_clause_set.t
-    (** A subset of [ddpa_active_nodes] which only contains the
-        non-immediate nodes.  This is useful during closure. *)
+    ; ddpa_edges_worklist : edge_queue
+    (** A list of edges that need to be added to the CFG **)
+    ; ddpa_arg_map : arg_state Lookup_map.t
+    (** Map from Lookup_pair (for function argument) -> arg_state.
+        Stores list of functions modifying the analysis (ddpa_fun_map) that
+        need to be called once the value for the argument is found.
+    *)
+    ; ddpa_wire_map :
+        ((abstract_value -> ddpa_graph ->
+          (Ddpa_edge.t Enum.t * Node.t * Node.t * Node.t) option) list)
+          Lookup_map.t
+    (** Map from Lookup_pair (for function applied) -> arg_state.
+        Stores list of functions adding wirings to the CFG once the value is
+        found.
+    *)
+    ; ddpa_preds_peer_map : Node_Multimap.t
+    (** Map from call site node -> function entry node.
+        Necessary when we find new predecessors to the call site node.
+    *)
+    ; ddpa_succs_peer_map : Node_Multimap.t
+    (** Map from call site node -> function exit node.
+        Necessary when we find new successors to the call site node.
+    *)
     ; ddpa_logging_data : ddpa_analysis_logging_data option
     (** Data associated with logging, if appropriate. *)
     }
   [@@deriving show]
   ;;
 
+  let _ = pp_arg_state;;
+  let _ = pp_ddpa_analysis;;
+
   let dump_yojson analysis =
     `Assoc
       [ ( "ddpa_graph"
-        , Ddpa_graph.to_yojson analysis.ddpa_graph
-        )
-      ; ( "ddpa_graph_fully_closed"
-        , `Bool analysis.ddpa_graph_fully_closed
+        , Graph_impl.to_yojson analysis.ddpa_graph
         )
       ; ( "ddpa_active_nodes"
-        , Annotated_clause_set.to_yojson analysis.ddpa_active_nodes
+        , Node_set.to_yojson analysis.ddpa_active_nodes
         )
-      ; ("ddpa_active_non_immediate_nodes"
-        , Annotated_clause_set.to_yojson
-            analysis.ddpa_active_non_immediate_nodes
-        )
+      ;
       ]
   ;;
 
@@ -173,6 +243,7 @@ struct
               ; ( "graph"
                 , Ddpa_pds_reachability.dump_yojson reachability
                 )
+                (* TODO: Include the deque in the new code? *)
               ]
           in
           data.ddpa_logging_config.ddpa_json_logger json
@@ -202,13 +273,15 @@ struct
                 , Ddpa_pds_reachability.dump_yojson_delta
                     old_reachability new_reachability
                 )
+                (* TODO: Include the deque in the new code? *)
+
               ]
           in
           data.ddpa_logging_config.ddpa_json_logger json
         end
   ;;
 
-  (** Logs a given DDPA control flow graph.  This only occurs if the logging
+  (** Logs a given ddpa control flow graph.  This only occurs if the logging
       level of the analysis is at least as high as the one provided in this
       call. *)
   let log_cfg level analysis =
@@ -232,6 +305,7 @@ struct
               ; ( "graph"
                 , dump_yojson analysis
                 )
+                (* TODO: Include the deque in the new code? *)
               ]
           in
           data.ddpa_logging_config.ddpa_json_logger json
@@ -244,7 +318,7 @@ struct
     in
     let filter_inferrable_nodes nodes =
       nodes
-      |> Annotated_clause_set.filter (
+      |> Node_set.filter (
         fun node ->
           match node with
           | Enter_clause _
@@ -252,8 +326,8 @@ struct
           | _ -> true
       )
     in
-    Annotated_clause_set.cardinal (filter_inferrable_nodes analysis.ddpa_active_nodes),
-    Annotated_clause_set.cardinal (filter_inferrable_nodes analysis.ddpa_active_non_immediate_nodes),
+    Node_set.cardinal (filter_inferrable_nodes analysis.ddpa_active_nodes),
+    (* FIXME: temp value - took out ddpa_active_non_immediate *) (-1),
     analysis.ddpa_graph
     |> edges_of
     |> List.of_enum
@@ -262,96 +336,127 @@ struct
     pds_edge_count
   ;;
 
-  (**
-     Adds a set of edges to the DDPA graph.  This implicitly adds the vertices
+  (*
+     Adds a set of edges to the ddpa graph.  This implicitly adds the vertices
      involved in those edges.  Note that this does not affect the end-of-block
      map.
   *)
-  let add_edges edges_in analysis =
-    let edges =
-      edges_in
-      |> Enum.filter
-        (fun edge -> not @@ Ddpa_graph.has_edge edge analysis.ddpa_graph)
-    in
-    if Enum.is_empty edges then (analysis,false) else
+  let add_one_edge edge_in analysis =
+    if has_edge edge_in analysis.ddpa_graph then
+      (analysis, Node_set.empty)
+    else
+      (* Add edge to CFG *)
+      let ddpa_graph' =
+        add_edge edge_in analysis.ddpa_graph
+      in
+      let Ddpa_edge(n1, n2) = edge_in in
+      (* Include new edges from preds/succs to the worklist *)
+      let new_worklist =
+        begin
+          (* Checking whether new edge introduced any predecessor
+             relationships *)
+          let new_edges_from_preds =
+            Node_Multimap.find n2 analysis.ddpa_preds_peer_map
+            |> Enum.map (fun node' -> Ddpa_edge(n1, node'))
+          in
+          (* Checking whether new edge introduced any successor relationships *)
+          let new_edges_from_succs =
+            Node_Multimap.find n1 analysis.ddpa_succs_peer_map
+            |> Enum.map (fun node' -> Ddpa_edge(node', n2))
+          in
+          Deque.append analysis.ddpa_edges_worklist
+            (Deque.of_enum
+               (Enum.append new_edges_from_preds new_edges_from_succs))
+        end [@landmark "*new_worklist"]
+      in
       (* ***
-         First, update the PDS reachability analysis with the new edge
+         Then, update the PDS reachability analysis with the new edge
          information.
       *)
-      let add_edge_for_reachability edge reachability =
-        reachability
-        |> Ddpa_pds_reachability.add_edge_function
-          (Edge_functions.create_edge_function edge)
-        |> Ddpa_pds_reachability.add_untargeted_dynamic_pop_action_function
-          (Edge_functions.create_untargeted_dynamic_pop_action_function edge)
-      in
+      (* The target of the edge is the point from which PDS edges would need
+         to expand.  This forms the class for those states, so we can restrict
+         the PDS edge functions for this CFG edge to that class. *)
+      let target_class = Structure_types.State_class_clause n2 in
       let pds_reachability' =
-        Enum.clone edges
-        |> Enum.fold (flip add_edge_for_reachability) analysis.pds_reachability
-      in
-      (* ***
-         Next, add the edge to the DDPA graph.
-      *)
-      let ddpa_graph' =
-        Enum.clone edges
-        |> Enum.fold (flip Ddpa_graph.add_edge) analysis.ddpa_graph
+        begin
+          analysis.pds_reachability
+          |> Ddpa_pds_reachability.add_classified_edge_function
+            target_class
+            (Edge_functions.create_edge_function edge_in)
+          |> Ddpa_pds_reachability.add_classified_untargeted_dynamic_pop_action_function
+            target_class
+            (Edge_functions.create_untargeted_dynamic_pop_action_function
+               edge_in)
+        end [@landmark "*pds_reachability'"]
       in
       (* ***
          Now, perform closure over the active node set.  This function uses a
          list of enumerations of nodes to explore.  This reduces the cost of
          managing the work queue.
       *)
-      let rec find_new_active_nodes from_acls_enums results_so_far =
-        match from_acls_enums with
+      let rec find_new_active_nodes from_nodes_enums results_so_far =
+        match from_nodes_enums with
         | [] -> results_so_far
-        | from_acls_enum::from_acls_enums' ->
-          if Enum.is_empty from_acls_enum
-          then find_new_active_nodes from_acls_enums' results_so_far
+        | from_nodes_enum::from_nodes_enums' ->
+          if Enum.is_empty from_nodes_enum
+          then find_new_active_nodes from_nodes_enums' results_so_far
           else
-            let from_acl = Enum.get_exn from_acls_enum in
-            if Annotated_clause_set.mem from_acl analysis.ddpa_active_nodes ||
-               Annotated_clause_set.mem from_acl results_so_far
-            then find_new_active_nodes from_acls_enums results_so_far
+            let from_node = Enum.get_exn from_nodes_enum in
+            if Node_set.mem from_node analysis.ddpa_active_nodes ||
+               Node_set.mem from_node results_so_far
+            then find_new_active_nodes from_nodes_enums results_so_far
             else
               let results_so_far' =
-                Annotated_clause_set.add from_acl results_so_far
+                Node_set.add from_node results_so_far
               in
-              let from_here = ddpa_graph' |> Ddpa_graph.succs from_acl in
-              find_new_active_nodes (from_here::from_acls_enums) results_so_far'
+              let from_here = ddpa_graph' |> succs from_node in
+              find_new_active_nodes
+                (from_here::from_nodes_enums) results_so_far'
       in
       let (ddpa_active_nodes',ddpa_active_non_immediate_nodes') =
-        let new_active_root_nodes =
-          Enum.clone edges
-          |> Enum.filter_map
-            (fun (Ddpa_edge(acl_left,acl_right)) ->
-               if Annotated_clause_set.mem acl_left analysis.ddpa_active_nodes
-               then Some acl_right
-               else None)
-          |> Enum.filter
-            (fun acl ->
-               not @@ Annotated_clause_set.mem acl analysis.ddpa_active_nodes)
-        in
-        let new_active_nodes =
-          find_new_active_nodes [new_active_root_nodes]
-            Annotated_clause_set.empty
-        in
-        ( Annotated_clause_set.union analysis.ddpa_active_nodes
-            new_active_nodes
-        , Annotated_clause_set.union analysis.ddpa_active_non_immediate_nodes
-            ( new_active_nodes |> Annotated_clause_set.filter
-                (not % is_annotated_clause_immediate) )
-        )
+        (
+          let new_active_root_node_opt =
+            let (Ddpa_edge(node_left,node_right)) = edge_in in
+            if Node_set.mem node_left analysis.ddpa_active_nodes then
+              if not @@ Node_set.mem node_right analysis.ddpa_active_nodes
+              then Some node_right
+              else None
+            else
+              None
+          in
+          let new_active_nodes =
+            match new_active_root_node_opt with
+            | None -> Node_set.empty
+            | Some node ->
+              find_new_active_nodes [(Enum.singleton node)] Node_set.empty
+          in
+          let is_node_immediate node =
+            is_annotated_clause_immediate node
+          in
+          ( Node_set.union analysis.ddpa_active_nodes
+              new_active_nodes
+          (* Here we are only returning the new non-immediate active nodes,
+             because all of the previous ones should have been handled by the
+             last CFG closure step at this point.
+          *)
+          , ( new_active_nodes |> Node_set.filter
+                (not % is_node_immediate) )
+          )
+        ) [@landmark "*active_node_computation"]
       in
-      (
+      let ret_analysis =
         { ddpa_graph = ddpa_graph'
-        ; ddpa_graph_fully_closed = false
-        ; pds_reachability =  pds_reachability'
+        ; pds_reachability = pds_reachability'
         ; ddpa_active_nodes = ddpa_active_nodes'
-        ; ddpa_active_non_immediate_nodes = ddpa_active_non_immediate_nodes'
+        ; ddpa_edges_worklist = new_worklist
+        ; ddpa_arg_map = analysis.ddpa_arg_map
+        ; ddpa_wire_map = analysis.ddpa_wire_map
+        ; ddpa_preds_peer_map = analysis.ddpa_preds_peer_map
+        ; ddpa_succs_peer_map = analysis.ddpa_succs_peer_map
         ; ddpa_logging_data = analysis.ddpa_logging_data
         }
-      , true
-      )
+      in
+      (ret_analysis, ddpa_active_non_immediate_nodes')
   ;;
 
   let create_initial_analysis
@@ -370,23 +475,23 @@ struct
     let Abs_expr(cls) = lift_expr e in
     (* Put the annotated clauses together. *)
     let rx = rv cls in
-    let acls =
+    let nodes =
       List.enum cls
       |> Enum.map (fun x -> Unannotated_clause x)
       |> Enum.append (Enum.singleton (Start_clause rx))
       |> flip Enum.append (Enum.singleton (End_clause rx))
     in
-    (* For each pair, produce a DDPA edge. *)
-    let rec mk_edges acls' =
-      match Enum.get acls' with
+    (* For each pair, produce a ddpa edge. *)
+    let rec mk_edges nodes' =
+      match Enum.get nodes' with
       | None -> []
-      | Some acl1 ->
-        match Enum.peek acls' with
+      | Some n1 ->
+        match Enum.peek nodes' with
         | None -> []
-        | Some acl2 ->
-          Ddpa_edge(acl1,acl2) :: mk_edges acls'
+        | Some n2 ->
+          Ddpa_edge(n1,n2) :: mk_edges nodes'
     in
-    let edges = List.enum @@ mk_edges acls in
+    let edges = List.enum @@ mk_edges nodes in
     (* Construct an empty analysis. *)
     let pdr_log_fn_opt =
       match logging_data_opt with
@@ -414,28 +519,78 @@ struct
                            Static_terminus state)
         )
     in
-    let empty_analysis =
-      { ddpa_graph = Ddpa_graph.empty
-      ; ddpa_graph_fully_closed = true
+    let initial_analysis =
+      { ddpa_graph = Graph_impl.empty
+      (* ; ddpa_graph_fully_closed = false *)
       ; pds_reachability = initial_reachability
-      ; ddpa_active_nodes =
-          Annotated_clause_set.singleton (Start_clause rx)
-      ; ddpa_active_non_immediate_nodes = Annotated_clause_set.empty
+      ; ddpa_active_nodes = Node_set.singleton (Start_clause rx)
+      ; ddpa_edges_worklist = Batteries.Deque.of_enum edges
+      ; ddpa_arg_map = Lookup_map.empty
+      ; ddpa_wire_map = Lookup_map.empty
+      ; ddpa_preds_peer_map = Node_Multimap.empty
+      ; ddpa_succs_peer_map = Node_Multimap.empty
       ; ddpa_logging_data = logging_data_opt
       }
     in
-    (* Put the edges into the empty analysis. *)
-    let analysis = fst @@ add_edges edges empty_analysis in
     logger `trace "Created initial analysis";
-    log_cfg Log_everything analysis;
-    log_pdr Log_everything analysis.ddpa_logging_data analysis.pds_reachability;
-    analysis
+    log_cfg Log_everything initial_analysis;
+    log_pdr Log_everything
+      initial_analysis.ddpa_logging_data initial_analysis.pds_reachability;
+    initial_analysis
   ;;
 
-  let restricted_values_of_variable x acl ctx patsp patsn analysis =
+  (* Function that places the question node into the PDS *)
+  let prepare_question x acl ctx patsp patsn analysis =
+    let open Structure_types in
+    let start_state = Program_point_state(acl, ctx) in
+    let start_actions =
+      [Push Bottom_of_stack; Push (Lookup_var(x,patsp,patsn))]
+    in
+    let reachability = analysis.pds_reachability in
+    let reachability' =
+      Ddpa_pds_reachability.add_start_state
+        start_state start_actions reachability
+    in
+    let analysis' = { analysis with pds_reachability = reachability' } in
+    analysis'
+  ;;
+
+  (* Function that computes reachable states within PDS *)
+  let ask_question x acl ctx patsp patsn analysis =
+    let open Structure_types in
+    let start_state = Program_point_state(acl, ctx) in
+    let start_actions =
+      [Push Bottom_of_stack; Push (Lookup_var(x,patsp,patsn))]
+    in
+    let reachable_states =
+      Ddpa_pds_reachability.get_reachable_states start_state start_actions
+        analysis.pds_reachability
+    in
+    let reachable_states_string =
+      Enum.fold (fun acc_string -> fun reachable_state ->
+          acc_string ^ show_pds_state reachable_state) "" reachable_states
+    in
+    lazy_logger `trace (fun () -> "ask_question: " ^ reachable_states_string);
+    let values =
+      analysis.pds_reachability
+      |> Ddpa_pds_reachability.get_reachable_states start_state start_actions
+      |> Enum.filter_map
+        (function
+          | Program_point_state _ -> None
+          | Result_state v -> Some v)
+    in
+    (values, analysis)
+  ;;
+
+  (* Function that queries for values - does NOT perform full closure in PDS
+     to get the result.
+  *)
+  let contextless_restricted_values_of_variable_without_closure
+      x acl patsp patsn analysis =
     Logger_utils.lazy_bracket_log (lazy_logger `trace)
       (fun () ->
-         Printf.sprintf "Determining values of variable %s at position %s%s"
+         Printf.sprintf
+           "Internal: determining values of variable %s at position %s%s"
            (show_abstract_var x) (show_annotated_clause acl) @@
          if Pattern_set.is_empty patsp && Pattern_set.is_empty patsn
          then ""
@@ -451,45 +606,498 @@ struct
          pp_to_string pp values
       )
     @@ fun () ->
-    let open Structure_types in
-    let start_state = Program_point_state(acl,ctx) in
-    let start_actions =
-      [Push Bottom_of_stack; Push (Lookup_var(x,patsp,patsn))]
+    let analysis' = prepare_question x acl C.empty patsp patsn analysis in
+    ask_question x acl C.empty patsp patsn analysis'
+  ;;
+
+  (* This function will analyze a note returned by the PDS closure,
+     and returns the lookup and the value of the variable.*)
+  let analyze_note
+      (note : Structure_types.pds_state *
+              Ddpa_pds_reachability.Stack_action.t list *
+              Structure_types.pds_state)
+    : ((abstract_var * Node.t * Pattern_set.t * Pattern_set.t) *
+       abstract_value) option =
+    let (start_state, stack_actions, end_state) = note in
+    let open Option.Monad in
+    let zero () = None in
+    let%orzero
+      (Push Bottom_of_stack ::
+       Push (Lookup_var (x, patsp, patsn)) ::
+       []) = stack_actions
     in
+    let%orzero(Structure_types.Program_point_state(acl, context)) =
+      start_state
+    in
+    [%guard C.equal context C.empty];
+    let%orzero(Structure_types.Result_state filtered_var_value) = end_state in
+    let Abs_filtered_value(var_value, _, _) = filtered_var_value in
+    return ((x, acl, patsp, patsn), var_value)
+  ;;
+
+
+  (* Function checking for membership of variable lookup in arg_map,
+     and then performs all argument_value_response functions within
+     the arg_map.
+  *)
+  let handle_argument_map relevant_pair analysis =
+    let arg_map = analysis.ddpa_arg_map in
+    if (Lookup_map.mem relevant_pair arg_map) then
+      (* If it's in the arg_map, then we need to *)
+      let relevant_arg_funs = Lookup_map.find relevant_pair arg_map in
+      let (arg_funs, arg_map') =
+        match relevant_arg_funs with
+        | Value_found -> [], arg_map
+        | Value_not_found fun_list ->
+          let new_arg_map = Lookup_map.add relevant_pair Value_found arg_map in
+          fun_list, new_arg_map
+      in
+      let analysis' = {analysis with ddpa_arg_map = arg_map'} in
+      let (res_analysis, new_edges) =
+        Enum.fold
+          (fun acc
+            (arg_fun : ddpa_analysis -> ddpa_analysis * Ddpa_edge.t Enum.t) ->
+            let (curr_analysis, edges) = acc in
+            let (curr_analysis', edges') = arg_fun curr_analysis in
+            (curr_analysis', Enum.append edges edges')
+          ) (analysis', (Enum.empty ())) (List.enum arg_funs)
+      in
+      (res_analysis, new_edges)
+    else
+      (analysis, (Enum.empty ()))
+  ;;
+
+  (* Function checking for membership of lookup in ddpa_wire_map, then
+     performs all wiring functions accordingly.
+  *)
+  let handle_wire_map relevant_pair var_val analysis =
+    let wire_map = analysis.ddpa_wire_map in
+    let preds_peer_map = analysis.ddpa_preds_peer_map in
+    let succs_peer_map = analysis.ddpa_succs_peer_map in
+    (* Checking for membership of variable context pair in wire_map *)
+    if (Lookup_map.mem relevant_pair wire_map) then
+      let relevant_wire_funs = Lookup_map.find relevant_pair wire_map in
+      let (total_new_edges, new_preds_peer_map, new_succs_peer_map) =
+        List.fold_left
+          (fun acc -> fun wire_fun ->
+             let (acc_edges, acc_preds_peer_map, acc_succs_peer_map) = acc in
+             let wire_fun_res = wire_fun var_val analysis.ddpa_graph in
+             match wire_fun_res with
+             | None -> acc
+             | Some (wire_edges, wire_curr_node,
+                     wire_preds_peer, wire_succs_peer) ->
+               let acc_edges' = Enum.append acc_edges wire_edges in
+               (*
+                  Every time we call the function, we will get new entry and exit
+                  nodes - need to add them respectively to the preds_peer_map
+                  and the succs_peer_map so that as new predecessors/successors
+                  show up, we can react accordingly.
+               *)
+               let acc_preds_peer_map' =
+                 Node_Multimap.add
+                   wire_curr_node wire_preds_peer acc_preds_peer_map
+               in
+               let acc_succs_peer_map' =
+                 Node_Multimap.add
+                   wire_curr_node wire_succs_peer acc_succs_peer_map
+               in
+               (acc_edges', acc_preds_peer_map', acc_succs_peer_map')
+          )
+          ((Enum.empty ()), preds_peer_map, succs_peer_map) relevant_wire_funs
+      in
+      let analysis' = { analysis with ddpa_preds_peer_map = new_preds_peer_map;
+                                      ddpa_succs_peer_map = new_succs_peer_map;
+                      }
+      in
+      lazy_logger `trace
+        (fun () ->
+           "# of new edges: " ^ (string_of_int (Enum.count total_new_edges))
+        );
+      (total_new_edges, analysis')
+    else
+      (Enum.empty (), analysis)
+  ;;
+
+  let pds_closure_step analysis =
+    (* Perform a step within the PDS and collect a note *)
     let reachability = analysis.pds_reachability in
-    let reachability' =
-      reachability
-      |> Ddpa_pds_reachability.add_start_state start_state start_actions
-      |> Ddpa_pds_reachability.fully_close
+    let (reachability', lazy_note) =
+      begin
+        Ddpa_pds_reachability.closure_step_reachable reachability
+      end [@landmark "*actual_pds_closure_step"]
     in
     let analysis' = { analysis with pds_reachability = reachability' } in
-    let values =
-      reachability'
-      |> Ddpa_pds_reachability.get_reachable_states start_state start_actions
-      |> Enum.filter_map
-        (function
-          | Program_point_state _ -> None
-          | Result_state v -> Some v)
-    in
-    (values, analysis')
+    begin
+      match Lazy.force lazy_note with
+      | None ->
+        analysis'
+      | Some note ->
+        (* Get relevant information from the note *)
+        let content_opt = analyze_note note in
+        match content_opt with
+        | Some content ->
+          let (relevant_pair, var_val) = content in
+          (* Check if content is in ddpa_arg_map and act accordingly *)
+          let ham_analysis, arg_fun_edges =
+            handle_argument_map relevant_pair analysis'
+          in
+          (* Check if content is in ddpa_wire_map and act accordingly *)
+          let (function_fun_edges, hwm_analysis) =
+            handle_wire_map relevant_pair var_val ham_analysis
+          in
+          (* Add all new edges to the worklist *)
+          let total_edges = Enum.append arg_fun_edges function_fun_edges in
+          let ddpa_edges_worklist' =
+            Deque.append ham_analysis.ddpa_edges_worklist
+              (Deque.of_enum total_edges)
+          in
+          let result_analysis =
+            { hwm_analysis with ddpa_edges_worklist = ddpa_edges_worklist'}
+          in
+          result_analysis
+        | None ->
+          analysis'
+    end [@landmark "*note_processing"]
   ;;
 
-  let values_of_variable x acl analysis =
-    let (values, analysis') =
-      restricted_values_of_variable x acl C.empty
-        Pattern_set.empty Pattern_set.empty analysis
-    in
-    (Abs_filtered_value_set.of_enum values, analysis')
+  (* This function will do PDS closure
+           and responds accordingly until it's fully closed *)
+  let rec pds_closure analysis =
+    (* check if the PDS is fully closed *)
+    if (Ddpa_pds_reachability.is_closed analysis.pds_reachability) then
+      analysis
+    else
+      pds_closure @@ pds_closure_step analysis
   ;;
 
-  let contextual_values_of_variable x acl ctx analysis =
-    let (values, analysis') =
-      restricted_values_of_variable x acl ctx
-        Pattern_set.empty Pattern_set.empty analysis
-    in
-    (Abs_filtered_value_set.of_enum values, analysis')
+  (*
+    Helper function that executes all of the wire_funs in the wire_map for the
+    pertaining lookup key and given wiring values, and returns the resulting
+    analysis as well as the new edges that need to be added.
+
+    values_for_wire - values that would be wired in (results of lookup)
+    wire_lookup_key - key to access wire_map (params for lookup)
+  *)
+  let execute_wire_funs analysis values_for_wire wire_lookup_key =
+    if (List.is_empty values_for_wire) then
+      (analysis, Enum.empty ())
+    else
+      (
+        let wire_functions =
+          Lookup_map.find wire_lookup_key analysis.ddpa_wire_map
+        in
+        let (new_edges, new_preds, new_succs) =
+          wire_functions
+          |> List.enum
+          |> Enum.map
+            (fun wiring_fun ->
+               values_for_wire
+               |> List.enum
+               |> Enum.filter_map
+                 (fun value_found ->
+                    (wiring_fun value_found analysis.ddpa_graph)
+                 )
+            )
+          |> Enum.concat
+          |> Enum.fold
+            (fun (edge_enum, preds_peers, succs_peers)
+              (curr_edges, curr_call_site, curr_enter, curr_exit) ->
+              (Enum.append edge_enum curr_edges,
+               Node_Multimap.add curr_call_site curr_enter preds_peers,
+               Node_Multimap.add curr_call_site curr_exit succs_peers)
+            ) ((Enum.empty ()),
+               analysis.ddpa_preds_peer_map, analysis.ddpa_succs_peer_map)
+        in
+        let analysis' = {analysis with ddpa_preds_peer_map = new_preds;
+                                       ddpa_succs_peer_map = new_succs}
+        in
+        (analysis', new_edges)
+      )
   ;;
 
+  (* Helper function that adds a mapping to ddpa_wire_map *)
+  let add_mapping_to_wire_map
+      (type a)
+      (curr_wire_map : a list Lookup_map.t)
+      (lookup_key : Lookup.t)
+      (response_fun : a)
+    : a list Lookup_map.t =
+    if (Lookup_map.mem lookup_key curr_wire_map) then
+      let old_pos_entry =
+        Lookup_map.find lookup_key curr_wire_map
+      in
+      let new_entry = (response_fun :: old_pos_entry) in
+      Lookup_map.add lookup_key new_entry curr_wire_map
+    else
+      Lookup_map.add lookup_key [response_fun] curr_wire_map
+  ;;
+
+  (* CFG closure algorithm
+     - Add edge to CFG
+     - Update PDS (not closing it)
+     - Find new active non-immediate nodes
+     - React to new active things
+     - Compute and react to PDS closure until PDS closed; all edges produced
+       will be added to the worklist
+  *)
+
+  (* Function that performs one step of cfg closure
+     (Step 1, 2, 3, 4 in the note above)
+  *)
+  let cfg_closure_step analysis =
+    if (Deque.is_empty analysis.ddpa_edges_worklist) then analysis
+    else
+      (* Adding one edge to the CFG and update the PDS accordingly *)
+      let q_front_option = Deque.front analysis.ddpa_edges_worklist in
+      let (new_analysis, new_ni_nodes) =
+        match q_front_option with
+        | Some (edge_to_add, worklist') ->
+          let pre_analysis =
+            { analysis with ddpa_edges_worklist = worklist'}
+          in
+          add_one_edge edge_to_add pre_analysis
+        | None -> raise @@
+          Utils.Invariant_failure
+            "analysis.ddpa_edges_worklist should not be empty here!"
+            (* Act in response to the newly discovered active non-immediate
+               nodes *)
+      in
+      (*
+         Helper function walking through each of the new active
+         non-immediate nodes. Returns new analysis
+      *)
+      let node_process_fun acl acc_analysis =
+        let arg_map = acc_analysis.ddpa_arg_map in
+        match acl with
+        | Unannotated_clause
+            (Abs_clause
+               (clause_name,
+                Abs_appl_body(appl_fun,appl_arg)) as abs_cl) ->
+          (* Clause to wire in is a function application. Function applications
+             involve ddpa_arg_map (for arguments) and ddpa_wire_map (for
+             functions).
+          *)
+          (* This function would go into ddpa_arg_map.  It would execute after
+             value for the argument is found, which would edit the wire_map to
+             include/update bindings from function lookups to their appropriate
+             wiring functions.
+          *)
+          let argument_value_response = (fun curr_analysis ->
+              (* Function that would go into ddpa_wire_map, wiring the
+                 function body to the CFG and returning necessary information.
+                 (Enum of new edges, call_site, enter, exit)
+              *)
+              let function_value_response
+                  (value : abstract_value)
+                  (graph : ddpa_graph)
+                : (Ddpa_edge.t Enum.t * Node.t * Node.t * Node.t) option =
+                match value with
+                | Abs_value_function fun_val ->
+                  Some(wire abs_cl fun_val appl_arg clause_name graph)
+                | _ -> None
+              in
+              let old_wire_map = curr_analysis.ddpa_wire_map in
+              let fun_lookup_key =
+                (appl_fun, acl, Pattern_set.empty, Pattern_set.empty)
+              in
+              (* updating the wire_map *)
+              let new_wire_map =
+                add_mapping_to_wire_map
+                  old_wire_map fun_lookup_key function_value_response
+              in
+              (* asking PDS for appl_fun *)
+              let (lookup_res, analysis') =
+                contextless_restricted_values_of_variable_without_closure
+                  appl_fun acl Pattern_set.empty Pattern_set.empty curr_analysis
+              in
+              let values_of_fun : abstract_value list =
+                Enum.fold (fun curr_val_list -> fun curr_res ->
+                    match curr_res with
+                    | Abs_filtered_value (v, _, _) ->
+                      (
+                        v :: curr_val_list
+                      )
+                  ) [] lookup_res
+              in
+              let analysis'' = {analysis' with ddpa_wire_map = new_wire_map} in
+              (* Execute appropriate wire_funs based on lookup *)
+              execute_wire_funs analysis'' values_of_fun fun_lookup_key
+            )
+          in
+          let arg_lookup_key =
+            (appl_arg, acl, Pattern_set.empty, Pattern_set.empty)
+          in
+          (* Checking whether argument was already asked *)
+          if (Lookup_map.mem arg_lookup_key arg_map) then
+            (let action =
+               Lookup_map.find
+                 (appl_arg, acl, Pattern_set.empty, Pattern_set.empty) arg_map
+             in
+             match action with
+             | Value_found ->
+               (* Value was already found, can safely call argument_value_response
+                  and update analysis with new edges to add. *)
+               let (acc_analysis', edges_to_add) =
+                 argument_value_response acc_analysis in
+               let new_worklist =
+                 Deque.append (Deque.of_enum edges_to_add)
+                   acc_analysis.ddpa_edges_worklist
+               in
+               let acc_analysis'' =
+                 { acc_analysis' with
+                   ddpa_edges_worklist = new_worklist
+                 }
+               in
+               acc_analysis''
+             | Value_not_found f_list ->
+               (* Value not found yet, adding the new
+                  argument_value_response into ddpa_arg_map *)
+               let modified_arg_map =
+                 Lookup_map.update arg_lookup_key arg_lookup_key
+                   (Value_not_found(argument_value_response :: f_list)) arg_map
+               in
+               let acc_analysis' =
+                 { acc_analysis with
+                   ddpa_arg_map = modified_arg_map
+                 }
+               in
+               (acc_analysis')
+            )
+          else
+            (
+              (* Have not queried the argument yet, need to
+                 look up the value of the argument in PDS *)
+              let (appl_arg_lookup_res, acc_analysis') =
+                contextless_restricted_values_of_variable_without_closure
+                  appl_arg acl Pattern_set.empty Pattern_set.empty acc_analysis
+              in
+              if (Enum.is_empty appl_arg_lookup_res) then
+                (* Value was not found yet, need to update ddpa_arg_map *)
+                let new_arg_map =
+                  Lookup_map.add arg_lookup_key
+                    (Value_not_found([argument_value_response])) arg_map
+                in
+                let acc_analysis'' =
+                  { acc_analysis' with
+                    ddpa_arg_map = new_arg_map
+                  }
+                in
+                acc_analysis''
+              else
+                (
+                  (* Value was found, call argument_value_response and update
+                     ddpa_arg_map to Value_found.
+                  *)
+                  let (acc_analysis'', edges_to_add)=
+                    argument_value_response acc_analysis' in
+                  let new_worklist =
+                    Deque.append (Deque.of_enum edges_to_add)
+                      acc_analysis.ddpa_edges_worklist
+                  in
+                  let new_arg_map =
+                    Lookup_map.add arg_lookup_key (Value_found) arg_map
+                  in
+                  let acc_analysis''' =
+                    { acc_analysis'' with ddpa_edges_worklist = new_worklist;
+                                          ddpa_arg_map = new_arg_map;
+                    }
+                  in
+                  acc_analysis'''
+                )
+            )
+        | Unannotated_clause(
+            Abs_clause(x1,Abs_conditional_body(subject,pattern,f1,f2))
+            as abs_cl) ->
+          (* Clause we are wiring is a Conditional - use ddpa_wire_map to
+             wire in both branches of computation.
+          *)
+          let old_wire_map = acc_analysis.ddpa_wire_map in
+          let posmatch_lookup_key =
+            (subject, acl, (Pattern_set.singleton pattern), Pattern_set.empty)
+          in
+          let negmatch_lookup_key =
+            (subject, acl, Pattern_set.empty, (Pattern_set.singleton pattern))
+          in
+          (* Function that goes into ddpa_wire_map (key: posmatch_lookup_key),
+             called when we find values for the match case. *)
+          let cond_set_pos_response
+              (res_val : abstract_value)
+              (graph : ddpa_graph) =
+            let _ = res_val in
+            Some (wire abs_cl f1 subject x1 graph)
+          in
+          (* Function that goes into ddpa_wire_map (key: negmatch_lookup_key),
+             called when we find values for the antimatch case. *)
+          let cond_set_neg_response
+              (res_val : abstract_value)
+              (graph : ddpa_graph) =
+            let _ = res_val in
+            Some (wire abs_cl f2 subject x1 graph)
+          in
+          (* Add both functions to the wire_map with corresponding key*)
+          let wire_map_w_pos =
+            add_mapping_to_wire_map
+              old_wire_map posmatch_lookup_key cond_set_pos_response
+          in
+          let wire_map_w_neg =
+            add_mapping_to_wire_map
+              wire_map_w_pos negmatch_lookup_key cond_set_neg_response
+          in
+          let analysis_w_new_wire_map =
+            { acc_analysis with ddpa_wire_map = wire_map_w_neg }
+          in
+          (* Looking up the value with positive pattern set *)
+          let (pos_lookup_res, pos_lookup_analysis) =
+            contextless_restricted_values_of_variable_without_closure
+              subject acl (Pattern_set.singleton pattern) (Pattern_set.empty)
+              analysis_w_new_wire_map
+          in
+          let values_of_posmatch : abstract_value list =
+            Enum.fold (fun curr_val_list -> fun curr_res ->
+                match curr_res with
+                | Abs_filtered_value (v, _, _) ->
+                  v :: curr_val_list
+              ) [] pos_lookup_res
+          in
+          (* Execute wire functions for result of lookup w positive values *)
+          let (exec_pos_analysis, pos_new_edges) =
+            execute_wire_funs
+              pos_lookup_analysis values_of_posmatch posmatch_lookup_key
+          in
+          (* Looking up the value with negative pattern set *)
+          let (patsn_lookup_res, patsn_lookup_analysis) =
+            contextless_restricted_values_of_variable_without_closure
+              subject acl (Pattern_set.empty) (Pattern_set.singleton pattern)
+              exec_pos_analysis
+          in
+          let values_of_negmatch : abstract_value list =
+            Enum.fold (fun curr_val_list -> fun curr_res ->
+                match curr_res with
+                | Abs_filtered_value (v, _, _) ->
+                  v :: curr_val_list
+              ) [] patsn_lookup_res
+          in
+          (* Execute wire functions for result of lookup w negative values *)
+          let (exec_neg_analysis, neg_new_edges) =
+            execute_wire_funs
+              patsn_lookup_analysis values_of_negmatch negmatch_lookup_key
+          in
+          (* Collect new edges from both pos and neg, and add them to worklist *)
+          let total_new_edges =
+            Deque.append exec_neg_analysis.ddpa_edges_worklist
+              (Deque.of_enum (Enum.append pos_new_edges neg_new_edges))
+          in
+          let result_analysis =
+            {exec_neg_analysis with ddpa_edges_worklist = total_new_edges}
+          in
+          result_analysis
+        | _ -> raise @@ Utils.Invariant_failure
+            "should only be wiring applications and conditionals!"
+      in
+      Node_set.fold node_process_fun new_ni_nodes new_analysis
+  ;;
+
+  (* Function that executes algorithm for CFG closure *)
   let perform_closure_steps analysis =
     begin
       match analysis.ddpa_logging_data with
@@ -498,89 +1106,16 @@ struct
           (Printf.sprintf "Performing closure step %d"
              (data.ddpa_closure_steps+1)));
     end;
-    (* We need to do work on each of the active, non-immediate nodes.  This
-       process includes variable lookups, which may result in additional work
-       being done; as a result, each closure step might change the underlying
-       graph.  We'll keep the analysis in a ref so that, whenever work is done
-       which produces a new analysis, we can just update the ref. *)
-    let analysis_ref = ref analysis in
-    let new_edges_enum = Nondeterminism_monad.enum
-        (
-          let open Nondeterminism_monad in
-          let%bind acl =
-            pick_enum @@
-            Annotated_clause_set.enum analysis.ddpa_active_non_immediate_nodes
-          in
-          let has_values x patsp patsn =
-            let (values,analysis') =
-              restricted_values_of_variable
-                x acl C.empty patsp patsn !analysis_ref
-            in
-            analysis_ref := analysis';
-            not @@ Enum.is_empty values
-          in
-          match acl with
-          | Unannotated_clause(Abs_clause(x1,Abs_appl_body(x2,x3)) as cl) ->
-            lazy_logger `trace
-              (fun () ->
-                 Printf.sprintf "Considering application closure for clause %s"
-                   (show_abstract_clause cl));
-            (* Make sure that a value shows up to the argument. *)
-            [%guard has_values x3 Pattern_set.empty Pattern_set.empty];
-            (* Get each of the function values. *)
-            let (x2_values,analysis_2) =
-              restricted_values_of_variable
-                x2 acl C.empty Pattern_set.empty Pattern_set.empty !analysis_ref
-            in
-            analysis_ref := analysis_2;
-            let%bind x2_value = pick_enum x2_values in
-            let%orzero
-              Abs_filtered_value(Abs_value_function(fn),_,_) = x2_value
-            in
-            (* Wire each one in. *)
-            return @@ wire cl fn x3 x1 analysis_2.ddpa_graph
-          | Unannotated_clause(
-              Abs_clause(x1,Abs_conditional_body(x2,p,f1,f2)) as cl) ->
-            lazy_logger `trace
-              (fun () ->
-                 Printf.sprintf "Considering conditional closure for clause %s"
-                   (show_abstract_clause cl));
-            (* We have two functions we may wish to wire: f1 (if x2 has values
-               which match the pattern) and f2 (if x2 has values which antimatch
-               the pattern). *)
-            [ (Pattern_set.singleton p, Pattern_set.empty, f1)
-            ; (Pattern_set.empty, Pattern_set.singleton p, f2)
-            ]
-            |> List.enum
-            |> Enum.filter_map
-              (fun (patsp,patsn,f) ->
-                 if has_values x2 patsp patsn then Some f else None)
-            |> Enum.map (fun f -> wire cl f x2 x1 (!analysis_ref).ddpa_graph)
-            |> Nondeterminism_monad.pick_enum
-          | _ ->
-            raise @@ Utils.Invariant_failure
-              "Unhandled clause in perform_closure_steps"
-        )
-                         |> Enum.concat
-    in
-    (* Due to the stateful effects of computing the new edges, we're going to
-       want to pull on the entire enumeration before we start looking at the
-       analysis. *)
-    let new_edges_list = List.of_enum new_edges_enum in
-    (* Now we want to add all of the new edges.  If there are any new ones, we
-       need to know about it. *)
-    let (analysis',any_new) =
-      add_edges (List.enum new_edges_list) !analysis_ref
-    in
+    let post_cfg_analysis = cfg_closure_step analysis in
+    let post_pds_steps_analysis = pds_closure post_cfg_analysis in
     let ddpa_logging_data' =
-      match analysis'.ddpa_logging_data with
+      match post_pds_steps_analysis.ddpa_logging_data with
       | None -> None
       | Some data ->
         Some { data with ddpa_closure_steps = data.ddpa_closure_steps+1 }
     in
     let result =
-      { analysis' with
-        ddpa_graph_fully_closed = not any_new;
+      { post_pds_steps_analysis with
         ddpa_logging_data = ddpa_logging_data'
       }
     in
@@ -595,14 +1130,18 @@ struct
     result
   ;;
 
-  let is_fully_closed analysis = analysis.ddpa_graph_fully_closed;;
+  let is_fully_closed analysis =
+    Batteries.Deque.is_empty analysis.ddpa_edges_worklist &&
+    Ddpa_pds_reachability.is_closed analysis.pds_reachability
+  ;;
 
   let rec perform_full_closure analysis =
     if is_fully_closed analysis
     then
       begin
         logger `trace "Closure complete.";
-        log_pdr Log_result analysis.ddpa_logging_data analysis.pds_reachability;
+        log_pdr Log_result
+          analysis.ddpa_logging_data analysis.pds_reachability;
         log_cfg Log_result analysis;
         analysis
       end
@@ -610,5 +1149,51 @@ struct
       begin
         perform_full_closure @@ perform_closure_steps analysis
       end
+  ;;
+
+  (* Function that queries for values - ensures that PDS is fully closed
+     before computing reachability.
+  *)
+  let restricted_values_of_variable_with_closure
+      x acl ctx patsp patsn analysis
+    =
+    Logger_utils.lazy_bracket_log (lazy_logger `trace)
+      (fun () ->
+         Printf.sprintf
+           "With Closure: determining values of variable %s at position %s%s"
+           (show_abstract_var x) (show_annotated_clause acl) @@
+         if Pattern_set.is_empty patsp && Pattern_set.is_empty patsn
+         then ""
+         else
+           Printf.sprintf " with pattern sets %s and %s"
+             (Pattern_set.show patsp) (Pattern_set.show patsn)
+      )
+      (fun (values, _) ->
+         let pp formatter values =
+           pp_concat_sep_delim "{" "}" ", " pp_abs_filtered_value formatter @@
+           Enum.clone values
+         in
+         pp_to_string pp values
+      )
+    @@ fun () ->
+    let analysis' = prepare_question x acl ctx patsp patsn analysis in
+    let analysis'' = perform_full_closure analysis' in
+    ask_question x acl ctx patsp patsn analysis''
+  ;;
+
+  let values_of_variable x acl analysis =
+    let (values, analysis') =
+      restricted_values_of_variable_with_closure x acl C.empty
+        Pattern_set.empty Pattern_set.empty analysis
+    in
+    (Abs_filtered_value_set.of_enum values, analysis')
+  ;;
+
+  let contextual_values_of_variable x acl ctx analysis =
+    let (values, analysis') =
+      restricted_values_of_variable_with_closure x acl ctx
+        Pattern_set.empty Pattern_set.empty analysis
+    in
+    (Abs_filtered_value_set.of_enum values, analysis')
   ;;
 end;;

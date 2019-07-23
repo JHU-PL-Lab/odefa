@@ -83,13 +83,25 @@ struct
   [@@deriving eq, ord, show, to_yojson]
   ;;
 
-  module Pds_state =
+  module Pds_state : Decorated_type with type t = pds_state =
   struct
-    type t = pds_state;;
-    let equal = equal_pds_state;;
-    let compare = compare_pds_state;;
-    let pp = pp_pds_state;;
-    let show = show_pds_state;;
-    let to_yojson = pds_state_to_yojson;;
+    type t = pds_state [@@deriving eq, ord, show, to_yojson];;
   end;;
+
+  type pds_state_class =
+    | State_class_clause of annotated_clause
+    | State_class_value
+  [@@deriving eq, ord, show, to_yojson]
+  ;;
+
+  module Pds_state_class : Decorated_type with type t = pds_state_class =
+  struct
+    type t = pds_state_class [@@deriving eq, ord, show, to_yojson]
+  end;;
+
+  let classify (state : Pds_state.t) : Pds_state_class.t =
+    match state with
+    | Program_point_state(acl,_) -> State_class_clause acl
+    | Result_state _ -> State_class_value
+  ;;
 end;;
