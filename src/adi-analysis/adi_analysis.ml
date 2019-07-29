@@ -11,14 +11,14 @@ open Logger_utils;;
 
 let lazy_logger = make_lazy_logger "Adi_analysis";;
 
-module Make(S : Specification) : (Analysis with module S = S) =
+module Make(C : Context_model) : (Analysis with module C = C) =
 struct
-  module S = S;;
-  module T = Adi_structure_types.Make(S);;
-  module M = Adi_monad.Make(S)(T);;
-  module I = Adi_interpreter.Make(S)(T)(M);;
+  module C = C;;
+  module T = Adi_structure_types.Make(C);;
+  module M = Adi_monad.Make(C)(T);;
+  module I = Adi_interpreter.Make(C)(T)(M);;
 
-  type analysis = Analysis of (Ident.t -> S.C.t -> T.abstract_value Enum.t);;
+  type analysis = Analysis of (Ident.t -> C.t -> T.abstract_value Enum.t);;
 
   let analyze (e : expr) : analysis =
     let (_, fn) = M.run @@ I.evaluate e in
@@ -38,12 +38,12 @@ struct
   ;;
 
   let contextual_values_of_variable
-      (x : abstract_var) (ctx : S.C.t) (a : analysis)
+      (x : abstract_var) (ctx : C.t) (a : analysis)
     : Abs_value_set.t =
     lazy_bracket_log (lazy_logger `trace)
       (fun () ->
          Printf.sprintf "contextual_values_of_variable(%s, %s, ...)"
-           (show_abstract_var x) (S.C.show ctx)
+           (show_abstract_var x) (C.show ctx)
       )
       (fun result -> Abs_value_set.show result)
     @@ fun () ->
@@ -55,6 +55,6 @@ struct
   let values_of_variable
       (x : abstract_var) (a : analysis)
     : Abs_value_set.t =
-    contextual_values_of_variable x S.C.empty a
+    contextual_values_of_variable x C.empty a
   ;;
 end;;

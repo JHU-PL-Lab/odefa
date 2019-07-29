@@ -218,9 +218,7 @@ let adiWrapperMaker (context : (module Adi_types.Context_model))
   : (module Analysis_wrapper
       with type logging_config = unit) =
   let module Context_model = (val context) in
-  let module Analysis =
-    Adi_analysis.Make(struct module C = Context_model end)
-  in
+  let module Analysis = Adi_analysis.Make(Context_model) in
   let module Wrapped_Analysis = Toploop_adi_wrapper.Make(Analysis) in
   (module Wrapped_Analysis)
 ;;

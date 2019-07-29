@@ -10,11 +10,11 @@ open Adi_types;;
 open Toploop_analysis_wrapper_types;;
 
 module Make(A : Analysis) : Analysis_wrapper
-  with module C = A.S.C
+  with module C = A.C
    and type logging_config = unit
 =
 struct
-  module C = A.S.C;;
+  module C = A.C;;
 
   let name = C.name;;
 
