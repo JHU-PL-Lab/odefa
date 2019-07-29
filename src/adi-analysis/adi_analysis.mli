@@ -7,7 +7,10 @@
    GADTs.  For that reason, we elide the impressive abstractions of the ADI
    paper here and focus on building a single abstract definitional interpreter.
 
-   TODO: describe Make functor and parameters?  Describe analysis features.
+   The ADI constructed here is context sensitive; the [Make] functor takes a
+   [Context_model] as an argument to define context sensitivity.  As in the
+   aforecited paper, this ADI has perfect call-return alignment.  Global store
+   widening is applied.
  *)
 
 open Adi_types;;
