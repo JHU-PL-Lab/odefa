@@ -1,6 +1,7 @@
 (** This module defines the types of structures used in the ADI
     implementation. *)
 
+open Batteries;;
 open Jhupllib;;
 open Odefa_ast;;
 
@@ -12,6 +13,8 @@ module type Sig =
 sig
   module S : Specification
   type address = Address of Ident.t * S.C.t
+  val compare_address : address -> address -> int
+  val pp_address : address Pp_utils.pretty_printer
   type environment = address Ident_map.t
   type abstract_value =
     | Abstract_int
@@ -19,6 +22,11 @@ sig
     | Abstract_bool of bool
     | Abstract_record of Ident.t Ident_map.t * environment
     | Abstract_function of function_value * environment
+  val pp_abstract_value : abstract_value Pp_utils.pretty_printer
+  module Abstract_value_set : sig
+    include Set.S with type elt = abstract_value
+    val pp : t Pp_utils.pretty_printer
+  end;;
   module Store : sig
     include Multimap.Multimap_sig
       with type key = address and type value = abstract_value
@@ -58,6 +66,12 @@ struct
     type t = abstract_value [@@deriving eq, ord, show, to_yojson]
     let _ = equal;;
     let _ = show;
+  end;;
+
+  module Abstract_value_set = struct
+    module Impl = Set.Make(Abstract_value);;
+    include Impl;;
+    include Pp_utils.Set_pp(Impl)(Abstract_value);;
   end;;
 
   module Store = struct
