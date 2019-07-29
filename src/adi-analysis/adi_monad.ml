@@ -1,11 +1,15 @@
 (** Defines the monad used by the abstract definitional interpreter. *)
 
 open Batteries;;
+open Jhupllib;;
 
 open Odefa_ast;;
 
 open Adi_types;;
 open Ast;;
+open Logger_utils;;
+
+let lazy_logger = make_lazy_logger "Adi_monad";;
 
 module type Sig = sig
   module S : Specification;;
@@ -111,6 +115,9 @@ struct
       }
     in
     let (av, state') = x read state in
+    lazy_logger `trace (fun () ->
+        T.Store.show state'.st_store
+      );
     let lookup variable_name context =
       let address = T.Address(variable_name, context) in
       T.Store.find address state'.st_store

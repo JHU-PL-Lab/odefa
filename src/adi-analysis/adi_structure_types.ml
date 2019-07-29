@@ -19,8 +19,12 @@ sig
     | Abstract_bool of bool
     | Abstract_record of Ident.t Ident_map.t * environment
     | Abstract_function of function_value * environment
-  module Store : Multimap.Multimap_sig
-    with type key = address and type value = abstract_value
+  module Store : sig
+    include Multimap.Multimap_sig
+      with type key = address and type value = abstract_value
+    val pp : t Jhupllib.Pp_utils.pretty_printer
+    val show : t -> string
+  end
 end;;
 
 module Make(S : Specification) : Sig with module S = S =

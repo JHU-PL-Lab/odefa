@@ -5,6 +5,7 @@
   (libraries
     batteries
     jhupllib
+    odefa.adi
     odefa.ast
     odefa.ddpa
     odefa.interpreter

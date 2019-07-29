@@ -1,4 +1,5 @@
 open Batteries;;
+open Jhupllib;;
 
 open Odefa_ast;;
 open Odefa_abstract_ast;;
@@ -6,6 +7,9 @@ open Odefa_abstract_ast;;
 open Abstract_ast;;
 open Adi_types;;
 open Ast;;
+open Logger_utils;;
+
+let lazy_logger = make_lazy_logger "Adi_analysis";;
 
 module Make(S : Specification) : (Analysis with module S = S) =
 struct
@@ -36,11 +40,18 @@ struct
   let contextual_values_of_variable
       (x : abstract_var) (ctx : S.C.t) (a : analysis)
     : Abs_value_set.t =
+    lazy_bracket_log (lazy_logger `trace)
+      (fun () ->
+         Printf.sprintf "contextual_values_of_variable(%s, %s, ...)"
+           (show_abstract_var x) (S.C.show ctx)
+      )
+      (fun result -> Abs_value_set.show result)
+    @@ fun () ->
     let Analysis fn = a in
     let Abs_var i = x in
     fn i ctx |> Enum.map simplify_abstract_value |> Abs_value_set.of_enum
   ;;
-  
+
   let values_of_variable
       (x : abstract_var) (a : analysis)
     : Abs_value_set.t =

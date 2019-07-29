@@ -1,6 +1,7 @@
 open Batteries;;
 
 open Odefa_abstract_ast;;
+open Odefa_adi;;
 open Odefa_ast;;
 open Odefa_ddpa;;
 open Odefa_interpreter;;
@@ -210,6 +211,17 @@ let plumeWrapperMaker (context : (module Plume_context_model.Context_model))
   let module Analysis = Plume_analysis.Make(Context_model) in
   (* Define the convenience wrapper. *)
   let module Wrapped_Analysis = Toploop_plume_wrapper.Make(Analysis) in
+  (module Wrapped_Analysis)
+;;
+
+let adiWrapperMaker (context : (module Adi_types.Context_model))
+  : (module Analysis_wrapper
+      with type logging_config = unit) =
+  let module Context_model = (val context) in
+  let module Analysis =
+    Adi_analysis.Make(struct module C = Context_model end)
+  in
+  let module Wrapped_Analysis = Toploop_adi_wrapper.Make(Analysis) in
   (module Wrapped_Analysis)
 ;;
 
@@ -548,7 +560,6 @@ let create_ddpa_logging_config
   ddpa_logging_config, close_files
 ;;
 
-
 (* Function that solely performs analysis (variable analyes and error checking)
    on an expression. General function that is supported by ddpaWrapperMaker,
    create_ddpa_logging_config, analysis_step_general.
@@ -602,6 +613,13 @@ let do_analysis_steps (situation : toploop_situation) : analysis_report =
                (* create/perform the analysis here *)
                (analysis_step_general situation
                   (Some logging_config))
+           in
+           Analysis_task_map.add atask result analysis_report
+         | ADI(_) | SADI ->
+           let context_model = adi_analysis_to_context_model atask in
+           let adiWrapper = adiWrapperMaker context_model in
+           let result =
+             adiWrapper |> analysis_step_general situation (Some ())
            in
            Analysis_task_map.add atask result analysis_report
       ) Analysis_task_map.empty

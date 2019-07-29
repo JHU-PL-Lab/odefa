@@ -1,5 +1,6 @@
 open Batteries;;
 
+open Odefa_adi;;
 open Odefa_ast;;
 open Odefa_ddpa;;
 open Odefa_plume;;
@@ -36,29 +37,19 @@ let string_of_query (q : query) : string =
 let analysis_task_to_name (task : analysis_task) : string =
   match task with
   | DDPA (num) ->
-    if (num = 0) then
-      "0ddpa"
-    else if (num = 1) then
-      "1ddpa"
-    else if (num = 2) then
-      "2ddpa"
-    else
-      (string_of_int num) ^ "ddpa"
+    (string_of_int num) ^ "ddpa"
   | PLUME (num) ->
-    if (num = 0) then
-      "0plume"
-    else if (num = 1) then
-      "1plume"
-    else if (num = 2) then
-      "2plume"
-    else
-      (string_of_int num) ^ "plume"
+    (string_of_int num) ^ "plume"
+  | ADI (num) ->
+    (string_of_int num) ^ "adi"
   | SPLUME ->
     "set_plume"
   | OSKPLUME ->
     "ordered_set_keep_plume"
   | OSMPLUME ->
     "ordered_set_move_plume"
+  | SADI ->
+    "set_adi"
 ;;
 
 let ddpa_analysis_to_stack (task : analysis_task) : (module Stack) =
@@ -110,6 +101,21 @@ let plume_analysis_to_stack (task : analysis_task) : (module Model) =
     raise Not_found
 ;;
 
+let adi_analysis_to_context_model (task : analysis_task)
+  : (module Adi_types.Context_model) =
+  match task with
+  | ADI(n) ->
+    begin
+      match n with
+      | 0 -> (module Adi_unit_stack.Stack)
+      | 1 -> (module Adi_single_element_stack.Stack)
+      | 2 -> (module Adi_two_element_stack.Stack)
+      | _ -> (module Adi_n_element_stack.Make(struct let size = n end))
+    end
+  | SADI -> (module Adi_set.Set)
+  | _ ->
+    raise Not_found
+;;
 
 let name_parsing_functions =
   [
@@ -156,6 +162,16 @@ let name_parsing_functions =
        try
          let num = int_of_string num_str in
          PLUME (num)
+       with
+       | Failure _ -> raise Not_found
+    );
+    (* A function for parsing kplume *)
+    (fun name ->
+       if not @@ String.ends_with name "adi" then raise Not_found;
+       let num_str = String.sub name 0 @@ String.length name - 3 in
+       try
+         let num = int_of_string num_str in
+         ADI (num)
        with
        | Failure _ -> raise Not_found
     )

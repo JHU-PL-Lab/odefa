@@ -26,9 +26,11 @@ open Source_statistics;;
 type analysis_task =
   | DDPA of int
   | PLUME of int
+  | ADI of int
   | SPLUME
   | OSKPLUME
   | OSMPLUME
+  | SADI
   [@@deriving show, ord, eq]
 ;;
 
