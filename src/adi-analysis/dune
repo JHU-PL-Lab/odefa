@@ -1,0 +1,24 @@
+(copy_files# context-models/*.{ml,mli})
+(library
+  (name odefa_adi)
+  (public_name odefa.adi)
+  (synopsis "CFA analysis for Odefa")
+  (libraries
+    batteries
+    jhupllib
+    odefa.ast
+    odefa.abstractAst
+    odefa.utils
+    ppx_deriving_yojson.runtime
+  )
+  (preprocess
+    (pps
+      ocaml-monadic
+      ppx_deriving.std
+      ppx_deriving_yojson
+    )
+  )
+  (flags
+    (:standard -w -39) ;for ppx_deriving_yojson, which generates extra rec flags
+  )
+)

@@ -6,11 +6,11 @@ open Odefa_ast;;
 open Odefa_ddpa;;
 
 open Abstract_ast;;
+open Abstract_ast_utils;;
 open Ast;;
 open Toploop_analysis_types;;
 open Toploop_analysis_wrapper_types;;
 open Toploop_utils;;
-open Ddpa_graph;;
 open Ddpa_utils;;
 
 module Make(Analysis_wrapper : Analysis_wrapper) =

@@ -10,12 +10,11 @@ open Odefa_plume;;
 open Ast;;
 open Ast_pp;;
 open Abstract_ast;;
+open Abstract_ast_utils;;
 open Ast_wellformedness;;
 open Interpreter;;
 open Plume_analysis_logging;;
-(* open Plume_graph;; *)
 open Ddpa_analysis_logging;;
-open Ddpa_graph;;
 open Source_statistics;;
 open Toploop_analysis_wrapper_types;;
 open Toploop_option_parsers;;
