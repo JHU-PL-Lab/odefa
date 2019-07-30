@@ -57,14 +57,49 @@ struct
       (Binary_operator_plus | Binary_operator_int_minus),
       Abstract_int ->
       return T.Abstract_int
+    | Abstract_string,
+      Binary_operator_plus,
+      Abstract_string ->
+      return T.Abstract_string
+    | Abstract_string,
+      Binary_operator_index,
+      Abstract_int ->
+      return T.Abstract_string
+    | Abstract_string,
+      Binary_operator_equal_to,
+      Abstract_string ->
+      pick @@ List.enum [T.Abstract_bool true; T.Abstract_bool false]
     | Abstract_int,
       (Binary_operator_int_less_than |
        Binary_operator_int_less_than_or_equal_to |
        Binary_operator_equal_to),
       Abstract_int ->
       pick @@ List.enum [T.Abstract_bool true; T.Abstract_bool false]
+    | Abstract_bool b1,
+      Binary_operator_bool_and,
+      Abstract_bool b2 ->
+      return @@ T.Abstract_bool(b1 && b2)
+    | Abstract_bool b1,
+      Binary_operator_bool_or,
+      Abstract_bool b2 ->
+      return @@ T.Abstract_bool(b1 || b2)
+    | Abstract_bool b1,
+      Binary_operator_equal_to,
+      Abstract_bool b2 ->
+      return @@ T.Abstract_bool(b1 = b2)
     | _ ->
-      raise @@ Jhupllib.Utils.Not_yet_implemented "perform_binop"
+      (* No value arises from this operator. *)
+      zero ()
+  ;;
+
+  let perform_unop (op : unary_operator) (v : T.abstract_value)
+    : T.abstract_value m =
+    match op, v with
+    | Unary_operator_bool_not, T.Abstract_bool b ->
+      return @@ T.Abstract_bool (not b)
+    | _ ->
+      (* No value arises from this operator. *)
+      zero ()
   ;;
 
   let rec evaluate (e : expr) : T.abstract_value m =
@@ -114,8 +149,9 @@ struct
               let%bind x1value = lookup x1 in
               let%bind x2value = lookup x2 in
               perform_binop x1value op x2value
-            | Unary_operation_body (_, _) ->
-              raise @@ Jhupllib_utils.Not_yet_implemented "evaluate_clause"
+            | Unary_operation_body (op, Var(x, _)) ->
+              let%bind x_value = lookup x in
+              perform_unop op x_value
           in
           assign x av @@
           continue av
