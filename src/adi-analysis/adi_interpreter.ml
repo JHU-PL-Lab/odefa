@@ -155,8 +155,12 @@ struct
               in
               assign parameter x_value @@
               evaluate body
-            | Projection_body (_, _) ->
-              raise @@ Jhupllib_utils.Not_yet_implemented "evaluate_clause"
+            | Projection_body (Var(x,_), lbl) ->
+              let%bind x_value = lookup x in
+              let%orzero Abstract_record(rmap,env) = x_value in
+              let%orzero Some var = Ident_map.Exceptionless.find lbl rmap in
+              let address = Ident_map.find var env in
+              store_get address
             | Deref_body _ ->
               raise @@ Jhupllib_utils.Not_yet_implemented "evaluate_clause"
             | Update_body (_, _) ->
