@@ -14,8 +14,8 @@ open Logger_utils;;
 let lazy_logger = make_lazy_logger "Adi_monad";;
 
 module type Sig = sig
-  module C : Context_model
-  module T : Adi_structure_types.Sig with module C = C;;
+  module S : Specification
+  module T : Adi_structure_types.Sig with module S = S;;
   include Interfaces.Monad
   val zero : unit -> 'a m
   val pick : 'a Enum.t -> 'a m
@@ -32,19 +32,19 @@ module type Sig = sig
   val lookup : Ident.t -> T.abstract_value m
   val assign : Ident.t -> T.abstract_value -> 'a m -> 'a m
   val cached_at : Ident.t -> T.abstract_value m -> T.abstract_value m
-  val run : 'a m -> 'a Enum.t * (Ident.t -> C.t -> T.abstract_value Enum.t)
+  val run : 'a m -> 'a Enum.t * (Ident.t -> S.C.t -> T.abstract_value Enum.t)
 end;;
 
 module Make
-    (C : Context_model)
-    (T : Adi_structure_types.Sig with module C = C)
-  : Sig with module C = C and module T = T =
+    (S : Specification)
+    (T : Adi_structure_types.Sig with module S = S)
+  : Sig with module S = S and module T = T =
 struct
-  module C = C;;
+  module S = S;;
   module T = T;;
 
   type reader = {
-    read_context : C.t;
+    read_context : S.C.t;
     read_environment : T.address Ident_map.t;
   } [@@deriving ord, show];;
 
@@ -129,7 +129,7 @@ struct
 
   let push_context (acl : abstract_clause) (computation : 'a m) : 'a m =
     fun read state fpstate ->
-      let context' = C.push acl read.read_context in
+      let context' = S.C.push acl read.read_context in
       let read' = { read with read_context = context' } in
       computation read' state fpstate
   ;;
@@ -225,9 +225,9 @@ struct
   ;;
 
   let run (x : 'a m)
-    : 'a Enum.t * (Ident.t -> C.t -> T.abstract_value Enum.t) =
+    : 'a Enum.t * (Ident.t -> S.C.t -> T.abstract_value Enum.t) =
     let initial_read =
-      { read_context = C.empty;
+      { read_context = S.C.empty;
         read_environment = Ident_map.empty;
       }
     in

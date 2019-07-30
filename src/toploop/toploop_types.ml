@@ -27,10 +27,12 @@ type analysis_task =
   | DDPA of int
   | PLUME of int
   | ADI of int
+  | MADI of int
   | SPLUME
   | OSKPLUME
   | OSMPLUME
   | SADI
+  | SMADI
   [@@deriving show, ord, eq]
 ;;
 

@@ -218,7 +218,10 @@ let adiWrapperMaker (context : (module Adi_types.Context_model))
   : (module Analysis_wrapper
       with type logging_config = unit) =
   let module Context_model = (val context) in
-  let module Analysis = Adi_analysis.Make(Context_model) in
+  let module Spec = struct
+    module C = Context_model
+  end in
+  let module Analysis = Adi_analysis.Make(Spec) in
   let module Wrapped_Analysis = Toploop_adi_wrapper.Make(Analysis) in
   (module Wrapped_Analysis)
 ;;
@@ -613,7 +616,7 @@ let do_analysis_steps (situation : toploop_situation) : analysis_report =
                   (Some logging_config))
            in
            Analysis_task_map.add atask result analysis_report
-         | ADI(_) | SADI ->
+         | ADI(_) | SADI | MADI _ | SMADI ->
            let context_model = adi_analysis_to_context_model atask in
            let adiWrapper = adiWrapperMaker context_model in
            let result =

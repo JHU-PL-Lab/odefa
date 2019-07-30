@@ -19,10 +19,17 @@ sig
   val name : string
 end;;
 
+module type Specification =
+sig
+  module C : Context_model
+end;;
+
 module type Analysis =
 sig
   (** The specification for this analysis. *)
-  module C : Context_model
+  module S : Specification
+  (** A name for this analysis. *)
+  val name : string
   (** The type of an analysis structure. *)
   type analysis
   (** Performs an analysis on the provided expression. *)
@@ -33,5 +40,5 @@ sig
   (** Given an analysis, looks up the values of a particular variable with a
       particular calling stack. *)
   val contextual_values_of_variable :
-    abstract_var -> C.t -> analysis -> Abs_value_set.t
+    abstract_var -> S.C.t -> analysis -> Abs_value_set.t
 end;;

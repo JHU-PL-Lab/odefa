@@ -42,6 +42,8 @@ let analysis_task_to_name (task : analysis_task) : string =
     (string_of_int num) ^ "plume"
   | ADI (num) ->
     (string_of_int num) ^ "adi"
+  | MADI (num) ->
+    (string_of_int num) ^ "madi"
   | SPLUME ->
     "set_plume"
   | OSKPLUME ->
@@ -50,6 +52,8 @@ let analysis_task_to_name (task : analysis_task) : string =
     "ordered_set_move_plume"
   | SADI ->
     "set_adi"
+  | SMADI ->
+    "set_madi"
 ;;
 
 let ddpa_analysis_to_stack (task : analysis_task) : (module Stack) =
@@ -113,6 +117,10 @@ let adi_analysis_to_context_model (task : analysis_task)
       | _ -> (module Adi_n_element_stack.Make(struct let size = n end))
     end
   | SADI -> (module Adi_set.Set)
+  | MADI(_n) ->
+    raise @@ Jhupllib.Utils.Not_yet_implemented "adi_analysis_to_context_model"
+  | SMADI ->
+    raise @@ Jhupllib.Utils.Not_yet_implemented "adi_analysis_to_context_model"
   | _ ->
     raise Not_found
 ;;
@@ -130,6 +138,8 @@ let name_parsing_functions =
          OSMPLUME
        | "sadi" ->
          SADI
+       | "smadi" ->
+         SMADI
        | _ -> raise Not_found
     )
     ;
@@ -153,7 +163,17 @@ let name_parsing_functions =
        with
        | Failure _ -> raise Not_found
     );
-    (* A function for parsing kplume *)
+    (* A function for parsing kmadi *)
+    (fun name ->
+       if not @@ String.ends_with name "madi" then raise Not_found;
+       let num_str = String.sub name 0 @@ String.length name - 4 in
+       try
+         let num = int_of_string num_str in
+         ADI (num)
+       with
+       | Failure _ -> raise Not_found
+    );
+    (* A function for parsing kadi *)
     (fun name ->
        if not @@ String.ends_with name "adi" then raise Not_found;
        let num_str = String.sub name 0 @@ String.length name - 3 in

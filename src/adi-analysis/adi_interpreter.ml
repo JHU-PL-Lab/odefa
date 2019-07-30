@@ -8,11 +8,11 @@ open Adi_types;;
 open Ast;;
 
 module Make
-    (C : Context_model)
-    (T : Adi_structure_types.Sig with module C = C)
-    (M : Adi_monad.Sig with module C = C and module T = T) =
+    (S : Specification)
+    (T : Adi_structure_types.Sig with module S = S)
+    (M : Adi_monad.Sig with module S = S and module T = T) =
 struct
-  module C = C;;
+  module S = S;;
   open M;;
 
   type timestamp = Var.t list;;

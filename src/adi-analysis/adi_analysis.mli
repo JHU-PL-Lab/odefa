@@ -15,4 +15,4 @@
 
 open Adi_types;;
 
-module Make(C : Context_model) : Analysis;;
+module Make(S : Specification) : Analysis with module S = S;;

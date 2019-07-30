@@ -16,7 +16,6 @@ module type Wrapper_context = sig
   type t;;
   val push: (abstract_clause) -> t -> t;;
   val empty: t;;
-
 end;;
 
 module type Analysis_wrapper = sig
