@@ -2,11 +2,11 @@
 
 all:
 	dune build
-	dune build src/toploop-main/ddpa_toploop.exe
+	dune build src/toploop-main/toploop.exe
 	dune build src/translator-main/translator.exe
-	rm -f ddpa_toploop
+	rm -f toploop
 	rm -f translator
-	ln -s _build/default/src/toploop-main/ddpa_toploop.exe ddpa_toploop
+	ln -s _build/default/src/toploop-main/toploop.exe toploop
 	ln -s _build/default/src/translator-main/translator.exe translator
 
 sandbox:
@@ -20,5 +20,5 @@ test:
 
 clean:
 	dune clean
-	rm -f ddpa_toploop
+	rm -f toploop
 	rm -f translator

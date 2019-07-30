@@ -1,5 +1,6 @@
 (executable
-  (name ddpa_toploop)
+  (name toploop)
+  (public_name odefa_toploop)
   (libraries
     batteries
     jhupllib

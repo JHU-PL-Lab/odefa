@@ -38,11 +38,11 @@ TIMEOUT=30m
 HERE="$(cd "$(dirname $0)" && pwd)"
 CASES_PATH="${HERE}/cases"
 RESULTS_PATH="${HERE}/results"
-DDPA="${HERE}/.."
-DDPA_TOPLOOP="${DDPA}/ddpa_toploop"
-NATODEFA_TRANSLATOR="${DDPA}/translator"
-P4F="${DDPA}/../p4f"
-[ ! -d "$P4F" ] && P4F="${DDPA}/local/p4f"
+ODEFA="${HERE}/.."
+ODEFA_TOPLOOP="${ODEFA}/toploop"
+NATODEFA_TRANSLATOR="${ODEFA}/translator"
+P4F="${ODEFA}/../p4f"
+[ ! -d "$P4F" ] && P4F="${ODEFA}/local/p4f"
 [ ! -d "$P4F" ] && ( echo "P4F not found!" ; exit 1 )
 P4F_CLASSPATH="${P4F}/target/scala-2.11/classes"
 P4F_STATISTICS="${P4F}/statistics"
@@ -63,7 +63,7 @@ free -m
 cat /proc/meminfo
 uname -a
 lsb_release -a
-(cd "${DDPA}" && git rev-parse HEAD)
+(cd "${ODEFA}" && git rev-parse HEAD)
 ocaml -version
 opam --version
 racket --version
@@ -78,7 +78,7 @@ function ddpa {
   cat "${NATODEFA_SOURCE}" | \
     tr '*/%' '+' | \
     "${NATODEFA_TRANSLATOR}" -p |\
-    /usr/bin/time -v /usr/bin/timeout --foreground "${TIMEOUT}" "${DDPA_TOPLOOP}" -S"${K}"ddpa --analyze-variables=all --report-sizes --report-analysis-time --report-source-statistics --disable-evaluation --disable-inconsistency-check \
+    /usr/bin/time -v /usr/bin/timeout --foreground "${TIMEOUT}" "${ODEFA_TOPLOOP}" -S"${K}"ddpa --analyze-variables=all --report-sizes --report-analysis-time --report-source-statistics --disable-evaluation --disable-inconsistency-check \
     &>> "${RESULT}" || true
 }
 
@@ -88,7 +88,7 @@ function kplume {
   cat "${NATODEFA_SOURCE}" | \
     tr '*/%' '+' | \
     "${NATODEFA_TRANSLATOR}" -p |\
-    /usr/bin/time -v /usr/bin/timeout --foreground "${TIMEOUT}" "${DDPA_TOPLOOP}" -S"${K}"plume --analyze-variables=all --report-sizes --report-analysis-time --report-source-statistics --disable-evaluation --disable-inconsistency-check \
+    /usr/bin/time -v /usr/bin/timeout --foreground "${TIMEOUT}" "${ODEFA_TOPLOOP}" -S"${K}"plume --analyze-variables=all --report-sizes --report-analysis-time --report-source-statistics --disable-evaluation --disable-inconsistency-check \
     &>> "${RESULT}" || true
 }
 
@@ -98,7 +98,7 @@ function splume {
   cat "${NATODEFA_SOURCE}" | \
     tr '*/%' '+' | \
     "${NATODEFA_TRANSLATOR}" -p |\
-    /usr/bin/time -v /usr/bin/timeout --foreground "${TIMEOUT}" "${DDPA_TOPLOOP}" -Ssplume --analyze-variables=all --report-sizes --report-analysis-time --report-source-statistics --disable-evaluation --disable-inconsistency-check \
+    /usr/bin/time -v /usr/bin/timeout --foreground "${TIMEOUT}" "${ODEFA_TOPLOOP}" -Ssplume --analyze-variables=all --report-sizes --report-analysis-time --report-source-statistics --disable-evaluation --disable-inconsistency-check \
     &>> "${RESULT}" || true
 }
 
@@ -115,7 +115,7 @@ function p4f {
 }
 
 mkdir -p "${RESULTS_PATH}"
-(cd "${DDPA}" && make)
+(cd "${ODEFA}" && make)
 (cd "${P4F}" && sbt compile)
 
 for TRIAL in $(seq 1 "${TRIALS}")

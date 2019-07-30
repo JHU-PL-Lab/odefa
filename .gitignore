@@ -29,5 +29,5 @@
 /*.install
 
 # Makefile temporaries
-/ddpa_toploop
+/*toploop
 /translator
