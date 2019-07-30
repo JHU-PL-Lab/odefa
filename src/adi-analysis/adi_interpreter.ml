@@ -19,8 +19,9 @@ struct
 
   let lift_value (v : value) : T.abstract_value m =
     match v with
-    | Value_record _ ->
-      raise @@ Jhupllib_utils.Not_yet_implemented "lift_value"
+    | Value_record(Record_value map) ->
+      let%bind env = capture_environment () in
+      return @@ T.Abstract_record(Ident_map.map (fun (Var(x,_)) -> x) map, env)
     | Value_function fv ->
       let%bind env = capture_environment () in
       return @@ T.Abstract_function(fv, env)
@@ -34,19 +35,33 @@ struct
       return T.Abstract_string
   ;;
 
-  let matches (v : T.abstract_value) (p : pattern) : bool =
+  let rec matches (v : T.abstract_value) (p : pattern) : bool m =
     match v,p with
-    | _, Any_pattern -> true
-    | Abstract_record _, _ ->
-      raise @@ Jhupllib_utils.Not_yet_implemented "matches"
-    | Abstract_function _, Fun_pattern -> true
-    | Abstract_function _, _ -> false
-    | Abstract_int, Int_pattern -> true
-    | Abstract_int, _ -> false
-    | Abstract_bool b, Bool_pattern b' -> b = b'
-    | Abstract_bool _, _ -> false
-    | Abstract_string, String_pattern -> true
-    | Abstract_string, _ -> false
+    | _, Any_pattern -> return true
+    | Abstract_record(vmap, env), Record_pattern(pmap) ->
+      pmap
+      |> Ident_map.enum
+      |> Enum.map
+        (fun (lbl, pattern) ->
+           match Ident_map.Exceptionless.find lbl vmap with
+           | None -> return false
+           | Some var ->
+             let addr = Ident_map.find var env in
+             let%bind value = store_get addr in
+             matches value pattern
+        )
+      |> List.of_enum
+      |> sequence
+      |> lift (List.fold_left (&&) true)
+    | Abstract_record _, _ -> return false
+    | Abstract_function _, Fun_pattern -> return true
+    | Abstract_function _, _ -> return false
+    | Abstract_int, Int_pattern -> return true
+    | Abstract_int, _ -> return false
+    | Abstract_bool b, Bool_pattern b' -> return (b = b')
+    | Abstract_bool _, _ -> return false
+    | Abstract_string, String_pattern -> return true
+    | Abstract_string, _ -> return false
   ;;
 
   let perform_binop
@@ -134,8 +149,9 @@ struct
               evaluate body
             | Conditional_body (Var(x, _), p, f1, f2) ->
               let%bind x_value = lookup x in
+              let%bind x_matches_p = matches x_value p in
               let Function_value(Var(parameter, _), body) =
-                if matches x_value p then f1 else f2
+                if x_matches_p then f1 else f2
               in
               assign parameter x_value @@
               evaluate body

@@ -19,6 +19,8 @@ module type Sig = sig
   include Interfaces.Monad
   val zero : unit -> 'a m
   val pick : 'a Enum.t -> 'a m
+  val sequence : 'a m list -> 'a list m
+  val lift : ('a -> 'b) -> 'a m -> 'b m
   val push_context : abstract_clause -> 'a m -> 'a m
   val with_environment : T.environment -> 'a m -> 'a m
   val capture_environment : unit -> T.environment m
@@ -106,6 +108,23 @@ struct
 
   let pick (x : 'a Enum.t) : 'a m =
     fun _read state fpstate -> (x, state, fpstate)
+  ;;
+
+  let sequence (xs : 'a m list) : 'a list m =
+    let rec loop xs' =
+      match xs' with
+      | [] -> return []
+      | h::t ->
+        let%bind h' = h in
+        let%bind t' = loop t in
+        return @@ h' :: t'
+    in
+    loop xs
+  ;;
+
+  let lift (f : 'a -> 'b) (x : 'a m) : 'b m =
+    let%bind x' = x in
+    return @@ f x'
   ;;
 
   let push_context (acl : abstract_clause) (computation : 'a m) : 'a m =
