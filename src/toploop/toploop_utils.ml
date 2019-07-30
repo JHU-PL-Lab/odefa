@@ -119,29 +119,17 @@ let adi_analysis_to_context_model (task : analysis_task)
 
 let name_parsing_functions =
   [
-    (* TODO: After implementing PLUME, include PLUME *)
-    (* A function for the literally-named modules. *)
+    (* A function for the literally-named analyses. *)
     (fun name ->
        match name with
-       | "0ddpa" ->
-         DDPA (0)
-       | "1ddpa" ->
-         DDPA (1)
-       | "2ddpa" ->
-         DDPA (2)
-       | "0plume" ->
-         PLUME (0)
-       | "1plume" ->
-         PLUME (1)
-       | "2plume" ->
-         PLUME (2)
-       (* | "none" -> None *)
        | "splume" ->
          SPLUME
        | "oskplume" ->
          OSKPLUME
        | "osmplume" ->
          OSMPLUME
+       | "sadi" ->
+         SADI
        | _ -> raise Not_found
     )
     ;
