@@ -8,5 +8,5 @@ open Odefa_adi;;
 
 open Toploop_analysis_wrapper_types;;
 
-module Make : functor (A : Adi_types.Analysis) ->
+module Make : functor (A : Adi_analysis.Analysis) ->
   (Analysis_wrapper with type logging_config = unit);;

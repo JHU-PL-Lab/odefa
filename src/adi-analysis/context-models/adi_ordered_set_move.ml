@@ -2,8 +2,9 @@ open Batteries;;
 open Jhupllib;;
 
 open Odefa_abstract_ast;;
+
 open Abstract_ast;;
-open Adi_types;;
+open Adi_context_model;;
 open Pp_utils;;
 
 module Ordered_Set_Move : Context_model =
@@ -27,5 +28,5 @@ struct
   let to_yojson (S(c_list,_)) =
     `List (List.map abstract_clause_to_yojson c_list)
   ;;
-  let name = "osmadi";;
+  let name_prefix = "osm";;
 end;;

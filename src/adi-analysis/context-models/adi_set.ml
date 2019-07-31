@@ -4,7 +4,7 @@ open Jhupllib;;
 open Odefa_abstract_ast;;
 
 open Abstract_ast;;
-open Adi_types;;
+open Adi_context_model;;
 open Pp_utils;;
 
 module Set : Context_model =
@@ -22,5 +22,5 @@ struct
     let set_list = Abs_clause_set.elements set in
     `List (List.map abstract_clause_to_yojson set_list)
   ;;
-  let name = "sadi";;
+  let name_prefix = "s";;
 end;;

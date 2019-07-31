@@ -2,8 +2,9 @@ open Batteries;;
 open Jhupllib;;
 
 open Odefa_abstract_ast;;
+
 open Abstract_ast;;
-open Adi_types;;
+open Adi_context_model;;
 open Pp_utils;;
 
 module Stack : Context_model =
@@ -25,5 +26,5 @@ struct
   let to_yojson (S(lst)) =
     `List (List.map abstract_clause_to_yojson lst)
   ;;
-  let name = "2adi";;
+  let name_prefix = "2";;
 end;;

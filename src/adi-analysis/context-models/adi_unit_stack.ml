@@ -2,7 +2,7 @@
 
 open Jhupllib;;
 
-open Adi_types;;
+open Adi_context_model;;
 open Pp_utils;;
 
 module Stack : Context_model =
@@ -15,5 +15,5 @@ struct
   let pp formatter () = Format.pp_print_string formatter "-";;
   let show = pp_to_string pp;;
   let to_yojson _ = `List [];;
-  let name = "0adi";;
+  let name_prefix = "0";;
 end;;

@@ -143,16 +143,10 @@ and check_scope_clause_body
   | Value_body v ->
     begin
       match v with
-      | Value_function(Function_value(Var(x',_),e)) ->
-        check_scope_expr (Ident_set.add x' bound) e
-      | Value_record(Record_value(m)) ->
-        m
-        |> Ident_map.values
-        |> Enum.filter_map
-          (fun (Var(x,_)) ->
-             if Ident_set.mem x bound then None else Some(site_x, x)
-          )
-        |> List.of_enum
+      | Value_function(fv) ->
+        check_scope_function_value bound fv
+      | Value_record(rv) ->
+        check_scope_record_value bound site_x rv
       | _ ->
         []
     end
@@ -174,10 +168,21 @@ and check_scope_clause_body
     _bind_filt bound site_x [x1;x2]
 
 and check_scope_function_value
-    (bound : Ident_set.t) (f : function_value)
-  : (ident * ident) list =
+    (bound : Ident_set.t) (f : function_value) : (ident * ident) list =
   let Function_value(Var(x,_),e) = f in
   check_scope_expr (Ident_set.add x bound) e
+
+and check_scope_record_value
+    (bound : Ident_set.t) (site_x : ident) (rv : record_value)
+  : (ident * ident) list =
+  let Record_value(m) = rv in
+  m
+  |> Ident_map.values
+  |> Enum.filter_map
+    (fun (Var(x,_)) ->
+       if Ident_set.mem x bound then None else Some(site_x, x)
+    )
+  |> List.of_enum
 ;;
 
 (** Returns a list of pairs of variables. The pair represents a violation on the

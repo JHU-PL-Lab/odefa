@@ -4,26 +4,46 @@ open Batteries;;
 open Odefa_abstract_ast;;
 open Odefa_ast;;
 
-open Adi_types;;
+open Adi_specification;;
 open Ast;;
 
 module Make
     (S : Specification)
-    (T : Adi_structure_types.Sig with module S = S)
-    (M : Adi_monad.Sig with module S = S and module T = T) =
+    (T : Adi_structure_types.Sig with module C = S.C)
+    (M : Adi_monad.Sig with module C = S.C and module T = T) =
 struct
   module S = S;;
+
+  module E = S.E(S.C)(T)(M);;
+
   open M;;
 
   type timestamp = Var.t list;;
 
   let lift_value (v : value) : T.abstract_value m =
     match v with
-    | Value_record(Record_value map) ->
-      let%bind env = capture_environment () in
+    | Value_record((Record_value map) as rv) ->
+      let env_vars =
+        lazy begin
+          (* Using a junk identifier "!" because snd discards it *)
+          Ast_tools.check_scope_record_value Ident_set.empty (Ident "!") rv
+          |> List.map snd
+          |> Ident_set.of_list (* eliminate duplicates *)
+          |> Ident_set.enum
+        end
+      in
+      let%bind env = E.build_environment env_vars in
       return @@ T.Abstract_record(Ident_map.map (fun (Var(x,_)) -> x) map, env)
     | Value_function fv ->
-      let%bind env = capture_environment () in
+      let env_vars =
+        lazy begin
+          Ast_tools.check_scope_function_value Ident_set.empty fv
+          |> List.map snd
+          |> Ident_set.of_list (* eliminate duplicates *)
+          |> Ident_set.enum
+        end
+      in
+      let%bind env = E.build_environment env_vars in
       return @@ T.Abstract_function(fv, env)
     | Value_ref _ ->
       raise @@ Jhupllib_utils.Not_yet_implemented "lift_value"

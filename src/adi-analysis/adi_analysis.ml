@@ -5,20 +5,39 @@ open Odefa_ast;;
 open Odefa_abstract_ast;;
 
 open Abstract_ast;;
-open Adi_types;;
+open Adi_specification;;
 open Ast;;
 open Logger_utils;;
 
 let lazy_logger = make_lazy_logger "Adi_analysis";;
 
+module type Analysis =
+sig
+  (** The specification for this analysis. *)
+  module S : Specification
+  (** A name for this analysis. *)
+  val name : string
+  (** The type of an analysis structure. *)
+  type analysis
+  (** Performs an analysis on the provided expression. *)
+  val analyze : expr -> analysis
+  (** Given an analysis, looks up the values of a particular variable in the
+      empty context. *)
+  val values_of_variable : abstract_var -> analysis -> Abs_value_set.t
+  (** Given an analysis, looks up the values of a particular variable with a
+      particular calling stack. *)
+  val contextual_values_of_variable :
+    abstract_var -> S.C.t -> analysis -> Abs_value_set.t
+end;;
+
 module Make(S : Specification) : (Analysis with module S = S) =
 struct
   module S = S;;
-  module T = Adi_structure_types.Make(S);;
-  module M = Adi_monad.Make(S)(T);;
+  module T = Adi_structure_types.Make(S.C);;
+  module M = Adi_monad.Make(S.C)(T);;
   module I = Adi_interpreter.Make(S)(T)(M);;
 
-  let name = S.C.name;;
+  let name = S.name;;
 
   type analysis = Analysis of (Ident.t -> S.C.t -> T.abstract_value Enum.t);;
 

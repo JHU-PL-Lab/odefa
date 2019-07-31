@@ -214,12 +214,18 @@ let plumeWrapperMaker (context : (module Plume_context_model.Context_model))
   (module Wrapped_Analysis)
 ;;
 
-let adiWrapperMaker (context : (module Adi_types.Context_model))
+let adiWrapperMaker
+    (context : (module Adi_context_model.Context_model))
+    (environment : (module Adi_environment_model.Environment_model))
+    (name_env_modifier : string)
   : (module Analysis_wrapper
       with type logging_config = unit) =
   let module Context_model = (val context) in
+  let module Environment_model = (val environment) in
   let module Spec = struct
-    module C = Context_model
+    module C = Context_model;;
+    module E = Environment_model;;
+    let name = C.name_prefix ^ name_env_modifier ^ "adi";;
   end in
   let module Analysis = Adi_analysis.Make(Spec) in
   let module Wrapped_Analysis = Toploop_adi_wrapper.Make(Analysis) in
@@ -618,7 +624,12 @@ let do_analysis_steps (situation : toploop_situation) : analysis_report =
            Analysis_task_map.add atask result analysis_report
          | ADI(_) | SADI | MADI _ | SMADI ->
            let context_model = adi_analysis_to_context_model atask in
-           let adiWrapper = adiWrapperMaker context_model in
+           let (environment_model, name_env_modifier) =
+             adi_analysis_to_environment_model atask
+           in
+           let adiWrapper =
+             adiWrapperMaker context_model environment_model name_env_modifier
+           in
            let result =
              adiWrapper |> analysis_step_general situation (Some ())
            in

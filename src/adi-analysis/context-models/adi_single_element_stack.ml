@@ -2,8 +2,9 @@ open Batteries;;
 open Jhupllib;;
 
 open Odefa_abstract_ast;;
+
 open Abstract_ast;;
-open Adi_types;;
+open Adi_context_model;;
 open Pp_utils;;
 
 module Stack : Context_model =
@@ -26,5 +27,5 @@ struct
       | S(None) -> []
     )
   ;;
-  let name = "1adi";;
+  let name_prefix = "1";;
 end;;

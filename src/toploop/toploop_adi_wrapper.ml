@@ -6,7 +6,7 @@ open Odefa_ast;;
 
 open Abstract_ast;;
 open Ast;;
-open Adi_types;;
+open Adi_analysis;;
 open Toploop_analysis_wrapper_types;;
 
 module Make(A : Analysis) : Analysis_wrapper
@@ -46,7 +46,7 @@ struct
 
   let pp_analysis formatter _analysis =
     (* FIXME: printing *)
-    Format.fprintf formatter "<%s analysis>" C.name
+    Format.fprintf formatter "<%s analysis>" A.name
   ;;
   let show_analysis analysis =
     Jhupllib.Pp_utils.pp_to_string pp_analysis analysis

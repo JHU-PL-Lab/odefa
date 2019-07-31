@@ -5,14 +5,14 @@ open Batteries;;
 open Jhupllib;;
 open Odefa_ast;;
 
-open Adi_types;;
+open Adi_context_model;;
 open Ast;;
 open Ast_pp;;
 
 module type Sig =
 sig
-  module S : Specification
-  type address = Address of Ident.t * S.C.t
+  module C : Context_model
+  type address = Address of Ident.t * C.t
   val compare_address : address -> address -> int
   val pp_address : address Pp_utils.pretty_printer
   type environment = address Ident_map.t
@@ -35,12 +35,12 @@ sig
   end
 end;;
 
-module Make(S : Specification) : Sig with module S = S =
+module Make(C : Context_model) : Sig with module C = C =
 struct
-  module S = S;;
+  module C = C;;
 
   type address =
-      Address of Ident.t * S.C.t
+      Address of Ident.t * C.t
   [@@deriving eq, ord, show, to_yojson]
   ;;
 

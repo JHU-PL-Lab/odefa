@@ -1,4 +1,5 @@
 (copy_files# context-models/*.{ml,mli})
+(copy_files# environment-models/*.{ml,mli})
 (library
   (name odefa_adi)
   (public_name odefa.adi)

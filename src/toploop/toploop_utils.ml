@@ -106,9 +106,9 @@ let plume_analysis_to_stack (task : analysis_task) : (module Model) =
 ;;
 
 let adi_analysis_to_context_model (task : analysis_task)
-  : (module Adi_types.Context_model) =
+  : (module Adi_context_model.Context_model) =
   match task with
-  | ADI(n) ->
+  | ADI(n) | MADI(n) ->
     begin
       match n with
       | 0 -> (module Adi_unit_stack.Stack)
@@ -116,11 +116,16 @@ let adi_analysis_to_context_model (task : analysis_task)
       | 2 -> (module Adi_two_element_stack.Stack)
       | _ -> (module Adi_n_element_stack.Make(struct let size = n end))
     end
-  | SADI -> (module Adi_set.Set)
-  | MADI(_n) ->
-    raise @@ Jhupllib.Utils.Not_yet_implemented "adi_analysis_to_context_model"
-  | SMADI ->
-    raise @@ Jhupllib.Utils.Not_yet_implemented "adi_analysis_to_context_model"
+  | SADI | SMADI -> (module Adi_set.Set)
+  | _ ->
+    raise Not_found
+;;
+
+let adi_analysis_to_environment_model (task : analysis_task)
+  : ((module Adi_environment_model.Environment_model) * string) =
+  match task with
+  | ADI _ | SADI -> ((module Adi_referenced_environment.Make), "")
+  | MADI _ | SMADI -> ((module Adi_copied_environment.Make), "m")
   | _ ->
     raise Not_found
 ;;
@@ -169,7 +174,7 @@ let name_parsing_functions =
        let num_str = String.sub name 0 @@ String.length name - 4 in
        try
          let num = int_of_string num_str in
-         ADI (num)
+         MADI (num)
        with
        | Failure _ -> raise Not_found
     );
@@ -197,7 +202,8 @@ let analysis_from_name name =
         | Not_found -> loop fns'
       end
   in
-  loop name_parsing_functions
+  let analysis = loop name_parsing_functions in
+  analysis
 ;;
 (*
 let stack_from_name name =

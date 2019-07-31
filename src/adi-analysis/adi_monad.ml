@@ -7,23 +7,24 @@ open Odefa_abstract_ast;;
 open Odefa_ast;;
 
 open Abstract_ast;;
-open Adi_types;;
+open Adi_context_model;;
 open Ast;;
 open Logger_utils;;
 
 let lazy_logger = make_lazy_logger "Adi_monad";;
 
 module type Sig = sig
-  module S : Specification
-  module T : Adi_structure_types.Sig with module S = S;;
+  module C : Context_model
+  module T : Adi_structure_types.Sig with module C = C;;
   include Interfaces.Monad
   val zero : unit -> 'a m
   val pick : 'a Enum.t -> 'a m
   val sequence : 'a m list -> 'a list m
+  val mapM : ('a -> 'b m) -> 'a list -> 'b list m
   val lift : ('a -> 'b) -> 'a m -> 'b m
   val push_context : abstract_clause -> 'a m -> 'a m
   val with_environment : T.environment -> 'a m -> 'a m
-  val capture_environment : unit -> T.environment m
+  val get_environment : unit -> T.environment m
   val allocate : Ident.t -> T.address m
   val read_variable : Ident.t -> T.address m
   val bind_variable : Ident.t -> T.address -> 'a m -> 'a m
@@ -32,19 +33,19 @@ module type Sig = sig
   val lookup : Ident.t -> T.abstract_value m
   val assign : Ident.t -> T.abstract_value -> 'a m -> 'a m
   val cached_at : Ident.t -> T.abstract_value m -> T.abstract_value m
-  val run : 'a m -> 'a Enum.t * (Ident.t -> S.C.t -> T.abstract_value Enum.t)
+  val run : 'a m -> 'a Enum.t * (Ident.t -> C.t -> T.abstract_value Enum.t)
 end;;
 
 module Make
-    (S : Specification)
-    (T : Adi_structure_types.Sig with module S = S)
-  : Sig with module S = S and module T = T =
+    (C : Context_model)
+    (T : Adi_structure_types.Sig with module C = C)
+  : Sig with module C = C and module T = T =
 struct
-  module S = S;;
+  module C = C;;
   module T = T;;
 
   type reader = {
-    read_context : S.C.t;
+    read_context : C.t;
     read_environment : T.address Ident_map.t;
   } [@@deriving ord, show];;
 
@@ -122,6 +123,15 @@ struct
     loop xs
   ;;
 
+  let rec mapM (f : 'a -> 'b m) (xs : 'a list) : 'b list m =
+    match xs with
+    | [] -> return []
+    | h::t ->
+      let%bind h' = f h in
+      let%bind t' = mapM f t in
+      return @@ h'::t'
+  ;;
+
   let lift (f : 'a -> 'b) (x : 'a m) : 'b m =
     let%bind x' = x in
     return @@ f x'
@@ -129,12 +139,12 @@ struct
 
   let push_context (acl : abstract_clause) (computation : 'a m) : 'a m =
     fun read state fpstate ->
-      let context' = S.C.push acl read.read_context in
+      let context' = C.push acl read.read_context in
       let read' = { read with read_context = context' } in
       computation read' state fpstate
   ;;
 
-  let capture_environment () : T.environment m =
+  let get_environment () : T.environment m =
     fun read state fpstate -> (Enum.singleton read.read_environment, state, fpstate)
   ;;
 
@@ -225,9 +235,9 @@ struct
   ;;
 
   let run (x : 'a m)
-    : 'a Enum.t * (Ident.t -> S.C.t -> T.abstract_value Enum.t) =
+    : 'a Enum.t * (Ident.t -> C.t -> T.abstract_value Enum.t) =
     let initial_read =
-      { read_context = S.C.empty;
+      { read_context = C.empty;
         read_environment = Ident_map.empty;
       }
     in
