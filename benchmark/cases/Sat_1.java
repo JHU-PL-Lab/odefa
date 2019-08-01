@@ -12,6 +12,8 @@ public class Sat_1 {
         satSolve4.tryFun = tryFun;
         Boolean result = satSolve4.apply(phi);
         System.out.println(result);
+        queryFor(phi);
+        queryFor(tryFun);
         queryFor(result);
 
     }
