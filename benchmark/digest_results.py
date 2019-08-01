@@ -5,8 +5,14 @@ import matplotlib.pyplot as mplot
 import os
 import re
 
-P4F_RESULT_TIME = re.compile("Analysis run for: ([0-9]+) milliseconds")
-ODEFA_RESULT_TIME = re.compile("Analysis took ([0-9]+) ms")
+RESULT_TIME_REGEXES = [
+        # P4F
+        re.compile("Analysis run for: ([0-9]+) milliseconds"),
+        # Odefa and Boomerang original
+        re.compile("Analysis took ([0-9]+) ms"),
+        # Boomerang SPDS
+        re.compile("Total analysis time: ([0-9]+) ms"),
+    ]
 
 def read_files():
     """
@@ -37,15 +43,13 @@ def read_files():
         with open(result_pathname) as f:
             content = f.read()
             result = {}
-            m = P4F_RESULT_TIME.search(content)
-            if m:
-                result["time"] = int(m.group(1))
-            else:
-                m = ODEFA_RESULT_TIME.search(content)
+            time_in_ms = None
+            for regex in RESULT_TIME_REGEXES:
+                m = regex.search(content)
                 if m:
-                    result["time"] = int(m.group(1))
-                else:
-                    result["time"] = None
+                    time_in_ms = int(m.group(1))
+                    break
+            result["time"] = time_in_ms
             if result_name not in data:
                 data[result_name] = []
             data[result_name].append(result)
@@ -105,7 +109,7 @@ def aggregate_data(data):
     return experiments
 
 def analyses_in_preferred_order(input_analyses):
-    preferred_analysis_order = ["p4f", "ddpa", "kplume", "splume"]
+    preferred_analysis_order = ["p4f", "ddpa", "kplume", "splume", "boomerangSPDS", "boomerangOriginal"]
     analyses = []
     for analysis in preferred_analysis_order:
         if analysis in input_analyses:
@@ -149,10 +153,12 @@ def produce_bar_chart_from(name, group_data):
     ax.set_xlim(MIN_TIME, MAX_TIME)
     bar_group_area = 2
     bar_group_height = 0.7*bar_group_area
-    analysis_colors = {"ddpa": "DarkMagenta",
-                       "p4f": "DarkGoldenRod",
-                       "kplume": "LightSeaGreen",
-                       "splume": "ForestGreen"
+    analysis_colors = {"ddpa":               (0.00,0.62,0.45), # sea green
+                       "p4f":                (0.80,0.47,0.65), # reddish purple
+                       "kplume":             (0.34,0.71,0.91), # sky blue
+                       "splume":             (0.00,0.45,0.70), # medium blue
+                       "boomerangSPDS":      (0.84,0.37,0.00), # vermillion
+                       "boomerangOriginal":  (0.90,0.62,0.00), # orange
                       }
     for case_idx, case in enumerate(cases):
         base_position = case_idx * bar_group_area - 0.5*bar_group_height
@@ -201,7 +207,7 @@ def produce_bar_chart_from(name, group_data):
     figure.savefig("results" + os.sep + name + "-bars.svg")
 
 def produce_output(data):
-    for group in ["monovariant", "polyvariant"]:
+    for group in data:
         produce_csv_from(group, data[group])
         produce_bar_chart_from(group, data[group])
 
