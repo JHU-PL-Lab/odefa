@@ -1,5 +1,7 @@
-let phi x1 x2 x3 x4 =
-  (x1 or (not x2) or (not x3)) and ((not x2) or (not x3)) and (x4 or x2)
+let phi formula =
+  (formula.x1 or (not (formula.x2)) or (not (formula.x3))) and
+  ((not (formula.x2)) or (not (formula.x3))) and
+  (formula.x4 or formula.x2)
 in
 let try f =
   (f true) or (f false)
@@ -9,7 +11,13 @@ let sat_solve_4 p =
         try (fun n2 ->
               try (fun n3 ->
                     try (fun n4 ->
-                          p n1 n2 n3 n4
+                          let arg = {x1 = n1,
+                                     x2 = n2,
+                                     x3 = n3,
+                                     x4 = n4
+                                    }
+                          in
+                          p arg
                         )
                   )
             )
