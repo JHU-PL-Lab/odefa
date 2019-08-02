@@ -1,6 +1,7 @@
 # encodings: 
 # regex-NULL (unmatchable pattern) = ["emptyset"]
 # regex-BLANK (Empty/blank pattern) = ["epsilon"]
+# symbol = ["symbol", <string>]
 # alt = ["alt", <regex>, <regex>] 
 # seq = ["seq", <regex>, <regex>]
 # rep = ["rep", <regex>]
@@ -14,7 +15,7 @@ let get_second lst =
   match lst with 
   | hd :: tl -> 
     (match tl with 
-     | hd2 :: tl2 -> snd 
+     | hd2 :: tl2 -> hd2 
      end
     )
   end 
@@ -226,7 +227,6 @@ let rec eq_c_re c re =
 in
 
 # Matt Might says this is regex regex-atom -> regex 
-# TODO: once everything works, change the if portions of the match_seq 
 # to a comparison without calling a function. 
 let rec regex_derivative re c = 
   if (regex_epsilon_q re) then (regex_emptyset) 
@@ -317,6 +317,8 @@ in
 #(check_expect (regex_derivative (["symbol", "baz"]) (["symbol", "f"])) (["emptyset"])) 
 #(check_expect (regex_derivative (["seq", ["symbol", "foo"], ["symbol", "barn"]]) (["symbol", "foo"])) (["symbol", "barn"]))
 
-(check_expect (regex_match (["seq", ["symbol", "foo"], ["rep", ["symbol", "bar"]]]) 
-  ([["symbol", "foo"], ["symbol", "bar"]])) false)
+#(check_expect (regex_match (["seq", ["symbol", "foo"], ["rep", ["symbol", "bar"]]]) 
+#  ([["symbol", "foo"], ["symbol", "bar"]])) false)
+
+regex_match (["rep", ["symbol", "bar"]]) (["symbol", "bar"])
 
