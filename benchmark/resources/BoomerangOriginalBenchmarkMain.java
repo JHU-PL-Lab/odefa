@@ -16,8 +16,8 @@ import java.util.LinkedList;
 import java.util.List;
 
 import boomerang.AliasFinder;
+import boomerang.BoomerangContext;
 import boomerang.cache.AliasResults;
-import boomerang.context.AllCallersRequester;
 import boomerang.preanalysis.PreparationTransformer;
 import soot.G;
 import soot.PackManager;
@@ -25,26 +25,29 @@ import soot.Scene;
 import soot.SootClass;
 import soot.SootMethod;
 import soot.Transform;
-import soot.Unit;
+import soot.jimple.infoflow.solver.cfg.BackwardsInfoflowCFG;
 import soot.jimple.infoflow.solver.cfg.InfoflowCFG;
-import soot.jimple.toolkits.ide.icfg.BiDiInterproceduralCFG;
 import soot.options.Options;
 
 /**
- * This class, which is derived from example.Example in the original Boomerang reference implementation
- * (<url>https://github.com/johspaeth/boomerang-artifact</url>), performs an analysis of the class of the
- * provided name using the original Boomerang framework.
+ * This class, which is derived from example.Example in the original Boomerang
+ * reference implementation (
+ * <url>https://github.com/johspaeth/boomerang-artifact</url>), performs an
+ * analysis of the class of the provided name using the original Boomerang
+ * framework.
  */
 public class BoomerangOriginalBenchmarkMain {
 	public static void main(String[] args) {
 		String className = args[0];
 		List<String> queryVars = new ArrayList<>(Arrays.asList(args));
 		queryVars.remove(0);
-		
+
 		// Set up Boomerang structures
 		initializeSoot(className);
 		InfoflowCFG icfg = new InfoflowCFG();
-		AliasFinder af = new AliasFinder(icfg);
+		BoomerangContext context = new BoomerangContext(icfg, new BackwardsInfoflowCFG(icfg));
+		context.budgetInMilliSeconds = Long.MAX_VALUE;
+		AliasFinder af = new AliasFinder(context);
 		List<Query> queries = new ArrayList<>();
 		for (String queryVar : queryVars) {
 			String methodSpec = "<" + className + ": void main(java.lang.String[])>";
@@ -65,19 +68,24 @@ public class BoomerangOriginalBenchmarkMain {
 					startindex--;
 				}
 				startindex++;
-				units = Integer.valueOf(msg.substring(startindex,endindex));
+				units = Integer.valueOf(msg.substring(startindex, endindex));
 			}
 			queries.add(new Query(methodSpec, queryVar, units - 1));
 		}
-		
+
 		// Time and perform queries
-		long startTime = System.currentTimeMillis();
-		for (Query query : queries) {
-			AliasResults aliases = af.findAliasAtStmt(query.getAccessGraph(), query.getStatement());
-			aliases.withMethodOfAllocationSite(icfg);
+		try {
+			long startTime = System.currentTimeMillis();
+			for (Query query : queries) {
+				AliasResults aliases = af.findAliasAtStmt(query.getAccessGraph(), query.getStatement());
+				aliases.withMethodOfAllocationSite(icfg);
+			}
+			long stopTime = System.currentTimeMillis();
+			System.out.println("Analysis took " + (stopTime - startTime) + " ms");
+		} catch (RuntimeException e) {
+			// Exiting with zero exit code but still logging the exception.
+			e.printStackTrace();
 		}
-		long stopTime = System.currentTimeMillis();
-		System.out.println("Analysis took " + (stopTime - startTime) + " ms");
 	}
 
 	@SuppressWarnings("static-access")

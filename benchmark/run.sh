@@ -109,8 +109,9 @@ scala -version
 
 # Utility functions
 
-function streamSetJavaPackage {
-    sed -r 's/^package.*$/package '$1';/g'
+function streamRewriteJavaResource {
+    sed -r 's/^package.*$/package '$1';/g' |\
+    sed -r 's/import .*\.TestUtils\.\*;/import '$1'.TestUtils.*;/g'
 }
 
 # Analysis preparation functions
@@ -125,17 +126,26 @@ function ready_p4f {
 
 function ready_boomerang_spds {
     ls -1 cases/*.java | while read line; do
-        cat "$line" | streamSetJavaPackage "${BOOMERANG_SPDS_EXAMPLE_PACKAGE}" > "${BOOMERANG_SPDS_EXAMPLE_PATH}/$(basename "$line")"
+        cat "$line" | streamRewriteJavaResource "${BOOMERANG_SPDS_EXAMPLE_PACKAGE}" > "${BOOMERANG_SPDS_EXAMPLE_PATH}/$(basename "$line")"
     done
-    cat "${RESOURCES_PATH}/BoomerangSPDSBenchmarkMain.java" | streamSetJavaPackage "${BOOMERANG_SPDS_EXAMPLE_PACKAGE}" > "${BOOMERANG_SPDS_EXAMPLE_PATH}/BoomerangSPDSBenchmarkMain.java"
+    for supportClass in BoomerangSPDSBenchmarkMain TestUtils; do
+        cat "${RESOURCES_PATH}/$supportClass.java" | streamRewriteJavaResource "${BOOMERANG_SPDS_EXAMPLE_PACKAGE}" > "${BOOMERANG_SPDS_EXAMPLE_PATH}/$supportClass.java"
+    done
     (cd "${BOOMERANG_SPDS}" && mvn compile)
 }
 
 function ready_boomerang_original {
     ls -1 cases/*.java | while read line; do
-        cat "$line" | streamSetJavaPackage "${BOOMERANG_ORIGINAL_OBJECT_PACKAGE}" > "${BOOMERANG_ORIGINAL_OBJECT_PATH}/$(basename "$line")"
+        cat "$line" | streamRewriteJavaResource "${BOOMERANG_ORIGINAL_OBJECT_PACKAGE}" > "${BOOMERANG_ORIGINAL_OBJECT_PATH}/$(basename "$line")"
     done
-    cat "${RESOURCES_PATH}/BoomerangOriginalBenchmarkMain.java" | streamSetJavaPackage "${BOOMERANG_ORIGINAL_META_PACKAGE}" > "${BOOMERANG_ORIGINAL_META_PATH}/BoomerangOriginalBenchmarkMain.java"
+    dest="${BOOMERANG_ORIGINAL_META_PATH}"
+    for supportClass in BoomerangOriginalBenchmarkMain . TestUtils; do
+        if [ $supportClass == "." ]; then
+            dest="${BOOMERANG_ORIGINAL_OBJECT_PATH}"
+            continue
+        fi
+        cat "${RESOURCES_PATH}/$supportClass.java" | streamRewriteJavaResource "${BOOMERANG_ORIGINAL_META_PACKAGE}" > "$dest/$supportClass.java"
+    done;
     (cd "${BOOMERANG_ORIGINAL}/Boomerang" && mkdir -p bin && javac -cp "$(ls -1 lib | while read line; do echo -n "lib/$line:"; done):../builds/boomerang.jar" -d bin $(find example -name '*.java') $(find exampleTarget -name '*.java'))
 }
 
@@ -190,7 +200,7 @@ function boomerangSPDS {
     cd "${BOOMERANG_SPDS}"
     classname="$(basename ${JAVA_SOURCE})"
     classname="${classname//.java/}"
-    /usr/bin/time -v /usr/bin/timeout --foreground "${TIMEOUT}" mvn exec:java -pl boomerangPDS -Dexec.mainClass=$BOOMERANG_SPDS_EXAMPLE_PACKAGE.BoomerangSPDSBenchmarkMain -Dexec.arguments="${BOOMERANG_SPDS_EXAMPLE_PACKAGE}.${classname}"
+    MAVEN_OPTS="-Xss256m" /usr/bin/time -v /usr/bin/timeout --foreground "${TIMEOUT}" mvn exec:java -pl boomerangPDS -Dexec.mainClass=$BOOMERANG_SPDS_EXAMPLE_PACKAGE.BoomerangSPDSBenchmarkMain -Dexec.arguments="${BOOMERANG_SPDS_EXAMPLE_PACKAGE}.${classname}"
   ) &>> "${RESULT_FILE}"
 }
 
@@ -202,7 +212,7 @@ function boomerangOriginal {
     classname="$(basename ${JAVA_SOURCE})"
     classname="${classname//.java/}"
     vars="$(cat ${JAVA_SOURCE} | egrep -o 'queryFor\([a-zA-Z0-9_]+\);' | egrep -o '\([a-zA-Z0-9_]+\)' | tr -d '()')"
-    /usr/bin/time -v /usr/bin/timeout --foreground "${TIMEOUT}" java -cp "$(ls -1 lib | while read line; do echo -n "lib/$line:"; done):../builds/boomerang.jar:bin" "${BOOMERANG_ORIGINAL_META_PACKAGE}.BoomerangOriginalBenchmarkMain" "${BOOMERANG_ORIGINAL_OBJECT_PACKAGE}.${classname}" $vars
+    /usr/bin/time -v /usr/bin/timeout --foreground "${TIMEOUT}" java -Xss256m -cp "$(ls -1 lib | while read line; do echo -n "lib/$line:"; done):../builds/boomerang.jar:bin" "${BOOMERANG_ORIGINAL_META_PACKAGE}.BoomerangOriginalBenchmarkMain" "${BOOMERANG_ORIGINAL_OBJECT_PACKAGE}.${classname}" $vars
   ) &>> "${RESULT_FILE}"
 }
 

@@ -124,7 +124,12 @@ public class BoomerangSPDSBenchmarkMain {
                     public boolean onTheFlyCallGraph() {
                         //Must be turned of if no SeedFactory is specified.
                         return false;
-                    };
+                    }
+
+                    @Override
+                    public int analysisTimeoutMS() {
+                        return Integer.MAX_VALUE;
+                    }
                 }) {
                     @Override
                     public BiDiInterproceduralCFG<Unit, SootMethod> icfg() {
