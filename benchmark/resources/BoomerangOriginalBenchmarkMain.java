@@ -10,6 +10,8 @@ As a consequence, this file is licensed according to the GPL 3.0 found at
 
 package example;
 
+import java.lang.management.GarbageCollectorMXBean;
+import java.lang.management.ManagementFactory;
 import java.util.ArrayList;
 import java.util.Arrays;
 import java.util.LinkedList;
@@ -82,7 +84,12 @@ public class BoomerangOriginalBenchmarkMain {
 			}
 			long stopTime = System.currentTimeMillis();
 			System.out.println("Analysis took " + (stopTime - startTime) + " ms");
-		} catch (RuntimeException e) {
+            long collectionTime = 0;
+            for (GarbageCollectorMXBean garbageCollectorMXBean : ManagementFactory.getGarbageCollectorMXBeans()) {
+                collectionTime += garbageCollectorMXBean.getCollectionTime();
+            }
+            System.out.println("GC took " + collectionTime + " ms");
+        } catch (RuntimeException e) {
 			// Exiting with zero exit code but still logging the exception.
 			e.printStackTrace();
 		}

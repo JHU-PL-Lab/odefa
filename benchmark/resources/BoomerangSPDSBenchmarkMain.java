@@ -10,6 +10,8 @@ As a consequence, this file is licensed according to the EPL 2.0 found at
 package boomerang.example;
 
 import java.io.File;
+import java.lang.management.GarbageCollectorMXBean;
+import java.lang.management.ManagementFactory;
 import java.util.ArrayList;
 import java.util.LinkedList;
 import java.util.List;
@@ -150,6 +152,11 @@ public class BoomerangSPDSBenchmarkMain {
                 }
                 long stopTime = System.currentTimeMillis();
                 System.out.println("Total analysis time: " + (stopTime - startTime) + " ms");
+                long collectionTime = 0;
+                for (GarbageCollectorMXBean garbageCollectorMXBean : ManagementFactory.getGarbageCollectorMXBeans()) {
+                    collectionTime += garbageCollectorMXBean.getCollectionTime();
+                }
+                System.out.println("GC took " + collectionTime + " ms");
             }
 
             private List<BackwardQuery> createQueries() {
