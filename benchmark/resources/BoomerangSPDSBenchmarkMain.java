@@ -101,9 +101,6 @@ public class BoomerangSPDSBenchmarkMain {
         if (c != null) {
             c.setApplicationClass();
         }
-        for (SootMethod m : c.getMethods()) {
-            System.out.println(m);
-        }
     }
 
     private static void analyze() {
