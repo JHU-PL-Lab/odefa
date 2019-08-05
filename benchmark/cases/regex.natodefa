@@ -317,8 +317,7 @@ in
 #(check_expect (regex_derivative (["symbol", "baz"]) (["symbol", "f"])) (["emptyset"])) 
 #(check_expect (regex_derivative (["seq", ["symbol", "foo"], ["symbol", "barn"]]) (["symbol", "foo"])) (["symbol", "barn"]))
 
-#(check_expect (regex_match (["seq", ["symbol", "foo"], ["rep", ["symbol", "bar"]]]) 
-#  ([["symbol", "foo"], ["symbol", "bar"]])) false)
+(check_expect (regex_match (["seq", ["symbol", "foo"], ["rep", ["symbol", "bar"]]]) 
+  ([["symbol", "foo"], ["symbol", "bar"]])) false)
 
-regex_match (["rep", ["symbol", "bar"]]) (["symbol", "bar"])
 
