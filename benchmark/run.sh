@@ -15,33 +15,41 @@ set -o xtrace
 
 echo "START"
 
-TRIALS=10
-TIMEOUT=2h
 declare -A CASES=(
-  [ack]=1
-  [blur]=1
+  #[ack]=1
+  #[blur]=1
   # [church]=1 # Triggers P4F implementation bug. P4F throws exception if non-function appears as operator. Minimal working example: ‘((if (< 1 2) (lambda () 'anything) #t))’.
-  [cpstak]=1
-  [deriv]=1
-  [eta]=1
-  [facehugger]=1
-  [flatten]=1
-  [kcfa-2]=5
-  [kcfa-3]=7
-  [loop2-1]=1
-  [map]=1
-  [mj09]=1
-  [primtest]=1
-  [regex]=1
-  [rsa]=1
-  [sat-1]=4
-  [sat-2]=14
-  [sat-3]=14
+  #[cpstak]=1
+  #[deriv]=1
+  #[eta]=1
+  #[facehugger]=1
+  #[flatten]=1
+  #[kcfa-2]=5
+  #[kcfa-3]=7
+  #[loop2-1]=1
+  #[map]=1
+  #[mj09]=1
+  #[primtest]=1
+  #[regex]=1
+  #[rsa]=1
+  #[sat-1]=4
+  #[sat-2]=14
+  #[sat-3]=14
+  [sat-P4]=1
+  [sat-P6]=1
+  [sat-P8]=1
+  [sat-P10]=1
+  [sat-P12]=1
+  [sat-P14]=1
+  [sat-P16]=1
+  [sat-P18]=1
+  [sat-P20]=1
+  #[sat-P32]=1
   # [state]=1 # Boxes aren’t supported by P4F.
-  [tak]=1
+  #[tak]=1
 )
 
-TRIALS=5
+TRIALS=1
 TIMEOUT=30m
 HERE="$(cd "$(dirname $0)" && pwd)"
 CASES_PATH="${HERE}/cases"
@@ -201,7 +209,7 @@ function boomerangSPDS {
     classname="$(basename ${JAVA_SOURCE})"
     classname="${classname//.java/}"
     MAVEN_OPTS="-Xss256m" /usr/bin/time -v /usr/bin/timeout --foreground "${TIMEOUT}" mvn exec:java -pl boomerangPDS -Dexec.mainClass=$BOOMERANG_SPDS_EXAMPLE_PACKAGE.BoomerangSPDSBenchmarkMain -Dexec.arguments="${BOOMERANG_SPDS_EXAMPLE_PACKAGE}.${classname}"
-  ) &>> "${RESULT_FILE}"
+  ) &>> "${RESULT_FILE}" || true
 }
 
 function boomerangOriginal {
@@ -213,7 +221,7 @@ function boomerangOriginal {
     classname="${classname//.java/}"
     vars="$(cat ${JAVA_SOURCE} | egrep -o 'queryFor\([a-zA-Z0-9_]+\);' | egrep -o '\([a-zA-Z0-9_]+\)' | tr -d '()')"
     /usr/bin/time -v /usr/bin/timeout --foreground "${TIMEOUT}" java -Xss256m -cp "$(ls -1 lib | while read line; do echo -n "lib/$line:"; done):../builds/boomerang.jar:bin" "${BOOMERANG_ORIGINAL_META_PACKAGE}.BoomerangOriginalBenchmarkMain" "${BOOMERANG_ORIGINAL_OBJECT_PACKAGE}.${classname}" $vars
-  ) &>> "${RESULT_FILE}"
+  ) &>> "${RESULT_FILE}" || true
 }
 
 mkdir -p "${RESULTS_PATH}"
@@ -241,13 +249,13 @@ do
     #p4f
     EXPERIMENT=polyvariant
     K="${CASES[${CASE}]}"
-    ddpa
-    kplume
+    #ddpa
+    #kplume
     K=1
-    p4f
+    #p4f
     splume
     boomerangSPDS
-    boomerangOriginal
+    #boomerangOriginal
   done
 done
 

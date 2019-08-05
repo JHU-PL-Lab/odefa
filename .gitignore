@@ -8,6 +8,9 @@
 /*.native
 /setup.*
 
+# Python temp files
+__pycache__
+
 # Execution temp files
 /*.log
 

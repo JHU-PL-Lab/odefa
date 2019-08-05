@@ -1,0 +1,33 @@
+let phi x1 x2 x3 x4 x5 x6 x7 x8 x9 x10 x11 x12 x13 x14 x15 x16 x17 x18 x19 x20 =
+(x1 or x2) and (x1 or (not x2) or (not x3)) and (x3 or x4) and ((not x4) or x1)
+  and ((not x2) or (not x3)) and (x4 or x2)
+in
+let try f =
+  (f true) or (f false)
+in
+let sat_solve_20 p =
+  try (fun n1 ->
+  try (fun n2 ->
+  try (fun n3 ->
+  try (fun n4 ->
+  try (fun n5 ->
+  try (fun n6 ->
+  try (fun n7 ->
+  try (fun n8 ->
+  try (fun n9 ->
+  try (fun n10 ->
+  try (fun n11 ->
+  try (fun n12 ->
+  try (fun n13 ->
+  try (fun n14 ->
+  try (fun n15 ->
+  try (fun n16 ->
+  try (fun n17 ->
+  try (fun n18 ->
+  try (fun n19 ->
+  try (fun n20 ->
+    p n1 n2 n3 n4 n5 n6 n7 n8 n9 n10 n11 n12 n13 n14 n15 n16 n17 n18 n19 n20
+  
+))))))))))))))))))))
+in
+sat_solve_20 phi
