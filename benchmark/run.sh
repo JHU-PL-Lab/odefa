@@ -16,40 +16,42 @@ set -o xtrace
 echo "START"
 
 declare -A CASES=(
-  #[ack]=1
-  #[blur]=1
+  [ack]=1
+  [blur]=1
   # [church]=1 # Triggers P4F implementation bug. P4F throws exception if non-function appears as operator. Minimal working example: ‘((if (< 1 2) (lambda () 'anything) #t))’.
-  #[cpstak]=1
-  #[deriv]=1
-  #[eta]=1
-  #[facehugger]=1
-  #[flatten]=1
-  #[kcfa-2]=5
-  #[kcfa-3]=7
-  #[loop2-1]=1
-  #[map]=1
-  #[mj09]=1
-  #[primtest]=1
-  #[regex]=1
-  #[rsa]=1
-  #[sat-1]=4
-  #[sat-2]=14
-  #[sat-3]=14
-  [sat-P4]=1
-  [sat-P6]=1
-  [sat-P8]=1
-  [sat-P10]=1
-  [sat-P12]=1
-  [sat-P14]=1
-  [sat-P16]=1
-  [sat-P18]=1
-  [sat-P20]=1
+  [cpstak]=1
+  [deriv]=1
+  [eta]=1
+  [facehugger]=1
+  [flatten]=1
+  [kcfa-2]=5
+  [kcfa-3]=7
+  [loop2-1]=1
+  [map]=1
+  [mj09]=1
+  [primtest]=1
+  [regex]=1
+  [rsa]=1
+  [sat-1]=4
+  [sat-2]=14
+  [sat-3]=14
+  #[sat-P4]=1
+  #[sat-P6]=1
+  #[sat-P8]=1
+  #[sat-P10]=1
+  #[sat-P12]=1
+  #[sat-P14]=1
+  #[sat-P16]=1
+  #[sat-P18]=1
+  #[sat-P20]=1
+  #[sat-P22]=1
+  #[sat-P24]=1
   #[sat-P32]=1
   # [state]=1 # Boxes aren’t supported by P4F.
-  #[tak]=1
+  [tak]=1
 )
 
-TRIALS=1
+TRIALS=10
 TIMEOUT=30m
 HERE="$(cd "$(dirname $0)" && pwd)"
 CASES_PATH="${HERE}/cases"
@@ -193,7 +195,7 @@ function p4f {
   ANALYSIS=p4f
   configure_result
   rm -rf "${P4F_STATISTICS}"
-  if (cd "${P4F}" && /usr/bin/time -v /usr/bin/timeout --foreground "${TIMEOUT}" scala -J-Xmx7g -J-Xss256m -cp "${P4F_CLASSPATH}" org.ucombinator.cfa.RunCFA --kcfa --k "${K}" --kalloc p4f --dump-statistics "${SCHEME_SOURCE}" &>> "${RESULT_FILE}")
+  if (cd "${P4F}" && /usr/bin/time -v /usr/bin/timeout --foreground "${TIMEOUT}" scala -J-Xmx16g -J-Xss256m -cp "${P4F_CLASSPATH}" org.ucombinator.cfa.RunCFA --kcfa --k "${K}" --kalloc p4f --dump-statistics "${SCHEME_SOURCE}" &>> "${RESULT_FILE}")
   then
     cat "${P4F_STATISTICS}/"*/*".txt" &>> "${RESULT_FILE}"
   else
@@ -208,7 +210,7 @@ function boomerangSPDS {
     cd "${BOOMERANG_SPDS}"
     classname="$(basename ${JAVA_SOURCE})"
     classname="${classname//.java/}"
-    MAVEN_OPTS="-Xss256m" /usr/bin/time -v /usr/bin/timeout --foreground "${TIMEOUT}" mvn exec:java -pl boomerangPDS -Dexec.mainClass=$BOOMERANG_SPDS_EXAMPLE_PACKAGE.BoomerangSPDSBenchmarkMain -Dexec.arguments="${BOOMERANG_SPDS_EXAMPLE_PACKAGE}.${classname}"
+    MAVEN_OPTS="-Xss256m -Xmx16g" /usr/bin/time -v /usr/bin/timeout --foreground "${TIMEOUT}" mvn exec:java -pl boomerangPDS -Dexec.mainClass=$BOOMERANG_SPDS_EXAMPLE_PACKAGE.BoomerangSPDSBenchmarkMain -Dexec.arguments="${BOOMERANG_SPDS_EXAMPLE_PACKAGE}.${classname}"
   ) &>> "${RESULT_FILE}" || true
 }
 
@@ -220,7 +222,7 @@ function boomerangOriginal {
     classname="$(basename ${JAVA_SOURCE})"
     classname="${classname//.java/}"
     vars="$(cat ${JAVA_SOURCE} | egrep -o 'queryFor\([a-zA-Z0-9_]+\);' | egrep -o '\([a-zA-Z0-9_]+\)' | tr -d '()')"
-    /usr/bin/time -v /usr/bin/timeout --foreground "${TIMEOUT}" java -Xss256m -cp "$(ls -1 lib | while read line; do echo -n "lib/$line:"; done):../builds/boomerang.jar:bin" "${BOOMERANG_ORIGINAL_META_PACKAGE}.BoomerangOriginalBenchmarkMain" "${BOOMERANG_ORIGINAL_OBJECT_PACKAGE}.${classname}" $vars
+    /usr/bin/time -v /usr/bin/timeout --foreground "${TIMEOUT}" java -Xss256m -Xmx16g -cp "$(ls -1 lib | while read line; do echo -n "lib/$line:"; done):../builds/boomerang.jar:bin" "${BOOMERANG_ORIGINAL_META_PACKAGE}.BoomerangOriginalBenchmarkMain" "${BOOMERANG_ORIGINAL_OBJECT_PACKAGE}.${classname}" $vars
   ) &>> "${RESULT_FILE}" || true
 }
 
