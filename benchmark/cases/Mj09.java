@@ -1,7 +1,6 @@
 package boomerang.example;
 
 import boomerang.example.TestUtils.*;
-import fj.test.Bool;
 
 import java.util.function.Function;
 
