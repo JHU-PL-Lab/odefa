@@ -2,11 +2,29 @@
 
 from resultsLib import *
 
+import argparse
 import csv
 import matplotlib.pyplot as mplot
 import os
 
-def read_csvs():
+def default_csv_files():
+    files = []
+    for csv_basename in os.listdir("results"):
+        if not csv_basename.endswith("-table.csv"): continue
+        files.append("results" + os.sep + csv_basename)
+    return files
+
+def parse_args():
+    parser = argparse.ArgumentParser(description="Convert a benchmark CSV into a vector bar chart.")
+    parser.add_argument("--csv-files", metavar="CSV_FILE", type=str,
+                        nargs='+', default=default_csv_files(),
+                        help="The CSV files to convert.")
+    parser.add_argument("--output-dir", metavar="OUTPUT_DIR", type=str,
+                        default="results",
+                        help="The directory in which to write the charts.")
+    return parser.parse_args()
+
+def read_csvs(csv_files):
     """
     Reads the result CSVs from the results directory.  Produces a nested
     dictionary data structure of the following form:
@@ -22,11 +40,13 @@ def read_csvs():
                       iterations of this test case.
     """
     ret = {}
-    for result_csv_filename in os.listdir("results"):
-        if not result_csv_filename.endswith("-table.csv"): continue
-        with open("results" + os.sep + result_csv_filename) as f:
+    for result_csv_filename in csv_files:
+        with open(result_csv_filename) as f:
             rows = list(csv.reader(f))
-        group_name = result_csv_filename[:-10]
+        group_name = os.path.basename(result_csv_filename)
+        group_name = os.path.splitext(group_name)[0]
+        if '-' in group_name:
+            group_name = group_name[:group_name.find('-')]
         analyses = rows[0][1:]
         rows = rows[1:]
         cases = []
@@ -48,7 +68,7 @@ def read_csvs():
                            }
     return ret
 
-def produce_bar_chart_from(name, group_data):
+def produce_bar_chart_from(output_dir, name, group_data):
     """
     Produces a bar chart from the provided experiment data.
     """
@@ -114,12 +134,13 @@ def produce_bar_chart_from(name, group_data):
         ],
         list(reversed(analyses))
     )
-    figure.savefig("results" + os.sep + name + "-bars.svg")
+    figure.savefig(output_dir + os.sep + name + "-bars.svg")
 
 def main():
-    data = read_csvs()
+    args = parse_args()
+    data = read_csvs(args.csv_files)
     for group in data:
         if data[group]["cases"] and data[group]["analyses"]:
-            produce_bar_chart_from(group, data[group])
+            produce_bar_chart_from(args.output_dir, group, data[group])
 
 main()
