@@ -1,0 +1,6 @@
+let rec pathological x =
+    if x == x then pathological x else
+    if x == x then pathological x else
+    0
+in
+pathological 5
