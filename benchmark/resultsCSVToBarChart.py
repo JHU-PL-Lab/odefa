@@ -79,7 +79,7 @@ def produce_bar_chart_from(output_dir, name, group_data):
     figure = mplot.figure(figsize=(10,0.75*len(cases)*len(analyses)))
     ax = figure.add_axes([0.2,0.2,0.7,0.7])
     MIN_TIME = 1
-    MAX_TIME = 1000000
+    MAX_TIME = 1000 * 60 * 30 # 30 minutes
     ax.set_xlim(MIN_TIME, MAX_TIME)
     bar_group_area = 2
     bar_group_height = 0.7*bar_group_area
