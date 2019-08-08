@@ -17,7 +17,7 @@
   (lambda (x16)
   (lambda (x17)
   (lambda (x18)
-    (and (or x1 x2) (or x1 (not x2) (not x3)) (or x3 x4) (or (not x4) x1) (or (not x2) (not x3)) (or x4 x2)))))))))))))
+    (and (or x1 x2) (or x1 (not x2) (not x3)) (or x3 x4) (or (not x4) x1) (or (not x2) (not x3)) (or x4 x2)))))))
 (define try (lambda (f) (or (f #t) (f #f))))
 (define sat-solve-18 (lambda (p)
   (try (lambda (n1)

@@ -15,7 +15,7 @@ function make_scm {
         for n in $(seq 1 $size); do
             echo "  (lambda (x$n)"
         done
-        echo "    (and (or x1 x2) (or x1 (not x2) (not x3)) (or x3 x4) (or (not x4) x1) (or (not x2) (not x3)) (or x4 x2)))))))))))))"
+        echo "    (and (or x1 x2) (or x1 (not x2) (not x3)) (or x3 x4) (or (not x4) x1) (or (not x2) (not x3)) (or x4 x2)))))))"
         echo "(define try (lambda (f) (or (f #t) (f #f))))"
         echo "(define sat-solve-$size (lambda (p)"
         for n in $(seq 1 $size); do
