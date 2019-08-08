@@ -2,6 +2,7 @@
 
 from resultsLib import *
 
+import argparse
 import csv
 import os
 import re
@@ -15,7 +16,13 @@ RESULT_TIME_REGEXES = [
         re.compile("Total analysis time: ([0-9]+) ms"),
     ]
 
-def read_files():
+def parse_args():
+    parser = argparse.ArgumentParser(description="Extract information from benchmark output into CSVs.")
+    parser.add_argument("--dir", metavar="DIR", type=str, default="results",
+                        help="The directory containing the benchmark output.")
+    return parser.parse_args()
+
+def read_files(results_directory):
     """
     Reads all files in the results/ directory, taking them to be a set of
     results from the benchmarking script.  The returned value is a dictionary
@@ -26,7 +33,7 @@ def read_files():
     """
     data = {}
     # For each result file...
-    for result_filename in os.listdir("results"):
+    for result_filename in os.listdir(results_directory):
         if not result_filename.endswith(".txt"): continue
         # Establish a local name for the experiment as a dictionary mapping each
         # property to its value.
@@ -40,7 +47,7 @@ def read_files():
         result_name.sort()
         result_name = frozenset(result_name)
         # Now extract the results
-        result_pathname = "results" + os.sep + result_filename
+        result_pathname = results_directory + os.sep + result_filename
         with open(result_pathname) as f:
             content = f.read()
             result = {}
@@ -109,11 +116,11 @@ def aggregate_data(data):
             }
     return experiments
 
-def produce_csv_from(name, group_data):
+def produce_csv_from(results_directory, name, group_data):
     """
     Produces a CSV file for the provided experiment data.
     """
-    with open("results" + os.sep + name + "-table.csv", 'w') as csvfile:
+    with open(results_directory + os.sep + name + "-table.csv", 'w') as csvfile:
         writer = csv.writer(csvfile, quoting=csv.QUOTE_MINIMAL)
         # Extract the data for this case.
         analyses = analyses_in_preferred_order(group_data["analyses"])
@@ -129,10 +136,12 @@ def produce_csv_from(name, group_data):
             writer.writerow(row)
 
 def main():
-    data = read_files()
+    args = parse_args()
+    results_directory = args.dir
+    data = read_files(results_directory)
     data = aggregate_data(data)
     for group in data:
         if data[group]["cases"] and data[group]["analyses"]:
-            produce_csv_from(group, data[group])
+            produce_csv_from(results_directory, group, data[group])
 
 main()
