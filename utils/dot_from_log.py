@@ -3,7 +3,7 @@
 
 import argparse
 import codecs
-import collections
+import collections.abc
 import json
 import re
 import sys
@@ -14,7 +14,7 @@ class Objdict(object):
     def __str__(self):
         return str(vars(self))
 
-class ImmutableDict(collections.Mapping):
+class ImmutableDict(collections.abc.Mapping):
     def __init__(self, somedict):
         self._dict = dict(somedict)   # make a copy
         self._hash = None
