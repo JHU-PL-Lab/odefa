@@ -112,6 +112,32 @@ let unary_operator_to_yojson = function
   | Unary_operator_bool_not ->  `String "not"
 ;;
 
+(** A type describing the different kinds of contextual behavior analysis may
+    be asked to exhibit at call sites. *)
+type contextuality_call_site_annotation =
+  | Call_site_acontextual
+  | Call_site_acontextual_for of Ident_set.t
+  | Call_site_contextual
+[@@deriving eq, ord, to_yojson]
+;;
+
+(** A type to describe the annotations on a call site. *)
+type call_site_annotations =
+  { csa_contextuality : contextuality_call_site_annotation;
+    csa_unit : unit; (* This is just here to make "where" record clauses work
+                        without compiler warnings so code can be future-proofed
+                        against new annotation forms. *)
+  }
+[@@deriving eq, ord, to_yojson]
+;;
+
+(** A default value for call site annotations. *)
+let default_call_site_annotations =
+  { csa_contextuality = Call_site_contextual;
+    csa_unit = ();
+  }
+;;
+
 (** A type to express record values. *)
 type record_value =
   | Record_value of var Ident_map.t
@@ -119,17 +145,17 @@ type record_value =
 
 (** A type to express function values. *)
 and function_value =
-    | Function_value of var * expr
+  | Function_value of var * expr
 [@@deriving eq, ord, to_yojson]
 
 (** A type to express reference values. *)
 and ref_value =
-    | Ref_value of var
+  | Ref_value of var
 [@@deriving eq, ord, to_yojson]
 
 (** A type to represent values. *)
 and value =
-    | Value_record of record_value
+  | Value_record of record_value
   | Value_function of function_value
   | Value_ref of ref_value
   | Value_int of int
@@ -139,9 +165,9 @@ and value =
 
 (** A type to represent the bodies of clauses. *)
 and clause_body =
-    | Value_body of value
+  | Value_body of value
   | Var_body of var
-  | Appl_body of var * var
+  | Appl_body of var * var * call_site_annotations
   | Conditional_body of var * pattern * function_value * function_value
   | Projection_body of var * ident
   | Deref_body of var
@@ -152,7 +178,7 @@ and clause_body =
 
 (** A type to represent clauses. *)
 and clause =
-    | Clause of var * clause_body
+  | Clause of var * clause_body
 [@@deriving eq, ord, to_yojson]
 
 (** A type to represent expressions. *)
@@ -160,7 +186,7 @@ and expr = Expr of clause list [@@deriving eq, ord, to_yojson]
 
 (** A type representing conditional patterns. *)
 and pattern =
-    | Record_pattern of pattern Ident_map.t
+  | Record_pattern of pattern Ident_map.t
   | Fun_pattern
   | Ref_pattern
   | Int_pattern

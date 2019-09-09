@@ -110,7 +110,8 @@ struct
           (* Function Top: Parameter Variable *)
           begin
             let%orzero (Enter_clause(x,x',c)) = acl1 in
-            let%orzero (Abs_clause(_,Abs_appl_body (_,x3''))) = c in
+            (* NOTE: ignoring call site annotations as none apply to DDPA. *)
+            let%orzero (Abs_clause(_,Abs_appl_body (_,x3'',_))) = c in
             begin
               if not (equal_abstract_var x' x3'') then
                 raise @@ Utils.Invariant_failure "Ill-formed wiring node."
@@ -126,7 +127,8 @@ struct
           (* Function Bottom: Flow Check *)
           begin
             let%orzero (Exit_clause(x,_,c)) = acl1 in
-            let%orzero (Abs_clause(x1'',Abs_appl_body(x2'',x3''))) = c in
+            (* NOTE: ignoring call site annotations as none apply to DDPA. *)
+            let%orzero (Abs_clause(x1'',Abs_appl_body(x2'',x3'',_))) = c in
             begin
               if not (equal_abstract_var x x1'') then
                 raise @@ Utils.Invariant_failure "Ill-formed wiring node."
@@ -134,7 +136,8 @@ struct
                 ()
             end;
             (* x =(up)c _ (for functions) *)
-            return ( Function_call_flow_validation(x2'',x3'',acl0,ctx,Unannotated_clause(c),ctx,x)
+            return ( Function_call_flow_validation(x2'',x3'',acl0,ctx,
+                                                   Unannotated_clause(c),ctx,x)
                    , Program_point_state(Unannotated_clause(c),ctx)
                    )
           end
@@ -159,7 +162,8 @@ struct
           (* Function Top: Non-Local Variable *)
           begin
             let%orzero (Enter_clause(x'',x',c)) = acl1 in
-            let%orzero (Abs_clause(_,Abs_appl_body(x2'',x3''))) = c in
+            (* NOTE: ignoring call site annotations as none apply to DDPA. *)
+            let%orzero (Abs_clause(_,Abs_appl_body(x2'',x3'',_))) = c in
             begin
               if not (equal_abstract_var x' x3'') then
                 raise @@ Utils.Invariant_failure "Ill-formed wiring node."
@@ -340,7 +344,8 @@ struct
           (* Side Effect Search Start: Function Flow Check *)
           begin
             let%orzero (Exit_clause(x0'',_,c)) = acl1 in
-            let%orzero (Abs_clause(_,Abs_appl_body(_,_))) = c in
+            (* NOTE: ignoring call site annotations as none apply to DDPA. *)
+            let%orzero (Abs_clause(_,Abs_appl_body(_,_,_))) = c in
             return ( Side_effect_search_start_function_flow_check_1_of_2(
                 ctx,acl0,c,x0'')
                    , Program_point_state(Unannotated_clause(c),ctx)
@@ -350,7 +355,8 @@ struct
           (* Side Effect Search Start: Function Flow Validated *)
           begin
             let%orzero (Exit_clause(x0'',x',c)) = acl1 in
-            let%orzero (Abs_clause(_,Abs_appl_body(_,_))) = c in
+            (* NOTE: ignoring call site annotations as none apply to DDPA. *)
+            let%orzero (Abs_clause(_,Abs_appl_body(_,_,_))) = c in
             return ( Side_effect_search_start_function_flow_validated_1_of_4(
                 acl0,ctx,x0'',x'
               )

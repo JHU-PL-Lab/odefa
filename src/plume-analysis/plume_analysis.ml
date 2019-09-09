@@ -876,10 +876,11 @@ struct
         | Unannotated_clause
             (Abs_clause
                (clause_name,
-                Abs_appl_body(appl_fun,appl_arg))) ->
-          (* Clause to wire in is a function application. Function applications
-             involve plume_arg_map (for arguments) and plume_wire_map (for
-             functions).
+                Abs_appl_body(appl_fun,appl_arg,annots)) as cl) ->
+          (* The clause we want to wire is a function application.  We'll build
+             a wiring routine that waits in plume_arg_map (for proof that an
+             argument value exists) and then adds a wiring tool to
+             plume_wire_map (which wires each function of which it is notified).
           *)
           (* This function would go into plume_arg_map.  It would execute after
              value for the argument is found, which would edit the wire_map to
@@ -892,11 +893,27 @@ struct
                  (Enum of new edges, call_site, enter, exit)
               *)
               let function_value_response =
-                fun value -> fun graph ->
+                fun value graph ->
                   match value with
                   | Abs_value_function fun_val ->
+                    (* Determine the new context for this wiring. *)
+                    let acontextual_call =
+                      match annots.csa_contextuality with
+                      | Call_site_contextual -> false
+                      | Call_site_acontextual -> true
+                      | Call_site_acontextual_for vars ->
+                        let Abs_function_value(Abs_var(param),_) = fun_val in
+                        Ident_set.mem param vars
+                    in
+                    let new_ctx =
+                      if acontextual_call then
+                        ctx
+                      else
+                        C.push cl ctx
+                    in
                     let wire_result =
-                      wire_fun node fun_val appl_arg clause_name graph in
+                      wire_fun new_ctx node fun_val appl_arg clause_name graph
+                    in
                     Some wire_result
                   | _ -> None
               in

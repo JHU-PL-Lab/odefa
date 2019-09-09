@@ -5,12 +5,10 @@ exception Argument_parse_failure;;
 (** Determines the type of translation to perform. *)
 type translator_mode =
   | Odefa_natural_to_odefa
-  | Scheme_to_odefa_natural
 ;;
 
 let named_translator_modes =
   [ (Odefa_natural_to_odefa, "odefa-natural-to-odefa");
-    (Scheme_to_odefa_natural, "scheme-to-odefa-natural")
   ]
 ;;
 
@@ -19,6 +17,7 @@ let named_translator_modes =
 type translator_args = {
   ta_mode : translator_mode;
   ta_parseable : bool;
+  ta_contextual_recursion : bool;
 };;
 
 let logging_option_parser : unit BatOptParse.Opt.t =
@@ -68,6 +67,7 @@ let logging_option_parser : unit BatOptParse.Opt.t =
 type parsers =
   { parse_mode : translator_mode BatOptParse.Opt.t;
     parse_parseable : bool BatOptParse.Opt.t;
+    parse_acontextual_recursion : bool BatOptParse.Opt.t;
     parse_logging : unit BatOptParse.Opt.t;
   }
 ;;
@@ -93,6 +93,7 @@ let make_parsers () : parsers =
         )
   ;
     parse_parseable = BatOptParse.StdOpt.store_true ();
+    parse_acontextual_recursion = BatOptParse.StdOpt.store_false ();
     parse_logging = logging_option_parser;
   }
 ;;
@@ -124,6 +125,11 @@ let parse_args () : translator_args =
     parsers.parse_parseable;
   BatOptParse.OptParser.add
     cli_parser
+    ~short_name:'a'
+    ~long_name:"acontextual-recursion"
+    parsers.parse_acontextual_recursion;
+  BatOptParse.OptParser.add
+    cli_parser
     ~short_name:'l'
     ~long_name:"log"
     parsers.parse_logging;
@@ -136,6 +142,9 @@ let parse_args () : translator_args =
           insist "mode" parsers.parse_mode;
         ta_parseable =
           Option.default false @@ parsers.parse_parseable.option_get ();
+        ta_contextual_recursion =
+          Option.default true @@
+          parsers.parse_acontextual_recursion.option_get ();
       }
     | _ ->
       raise @@ ParseFailure(

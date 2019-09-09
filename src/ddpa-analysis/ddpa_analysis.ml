@@ -872,7 +872,8 @@ struct
         | Unannotated_clause
             (Abs_clause
                (clause_name,
-                Abs_appl_body(appl_fun,appl_arg)) as abs_cl) ->
+                Abs_appl_body(appl_fun,appl_arg,_)) as abs_cl) ->
+          (* NOTE: ignoring call site annotations as none apply to DDPA. *)
           (* Clause to wire in is a function application. Function applications
              involve ddpa_arg_map (for arguments) and ddpa_wire_map (for
              functions).

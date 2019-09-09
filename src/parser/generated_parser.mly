@@ -21,6 +21,7 @@ module List = BatList;;
 %token COLON
 %token LEFT_ARROW
 %token BANG
+%token ANNOTATION_ACONTEXTUAL
 %token DOT
 %token KEYWORD_FUN
 %token KEYWORD_INT
@@ -85,8 +86,8 @@ clause_body:
       { Value_body($1) }
   | variable
       { Var_body($1) }
-  | variable variable
-      { Appl_body($1,$2) }
+  | variable variable call_site_annotations
+      { Appl_body($1,$2,$3) }
   | variable TILDE pattern QUESTION_MARK function_value COLON function_value
       { Conditional_body($1,$3,$5,$7) }
   | variable DOT identifier
@@ -114,6 +115,29 @@ clause_body:
   | KEYWORD_NOT variable
       { Unary_operation_body(Unary_operator_bool_not,$2) }
   ;
+
+call_site_annotations:
+  | (* nothing *)
+    { default_call_site_annotations }
+  | call_site_annotation call_site_annotations
+    { $1 $2 }
+
+call_site_annotation:
+  | ANNOTATION_ACONTEXTUAL
+      { (fun x -> { x with csa_contextuality = Call_site_acontextual }) }
+  | ANNOTATION_ACONTEXTUAL OPEN_PAREN IDENTIFIER CLOSE_PAREN
+      { (fun x ->
+          let contextuality =
+            match x.csa_contextuality with
+            | Call_site_acontextual -> Call_site_acontextual
+            | Call_site_acontextual_for vars ->
+              Call_site_acontextual_for (Ident_set.add (Ident $3) vars)
+            | Call_site_contextual ->
+              Call_site_acontextual_for (Ident_set.singleton (Ident $3))
+          in
+          { x with csa_contextuality = contextuality }
+        )
+      }
 
 value:
   | record_value

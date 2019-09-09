@@ -133,7 +133,7 @@ and calc_clause_body (b : clause_body) (db : depth_bindings)
   match b with
   | Value_body v -> calc_value v db
   | Var_body x -> ss_var_ref x db empty
-  | Appl_body (x1, x2) ->
+  | Appl_body (x1, x2, _) ->
     let ss = ss_vars_ref [x1;x2] db empty in
     { ss with
       ss_num_function_calls = ss.ss_num_function_calls + 1

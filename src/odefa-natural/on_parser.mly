@@ -182,7 +182,7 @@ unary_expr:
 
 appl_expr:
   | appl_expr simple_expr
-    { Appl($1, $2) }
+    { Appl($1, $2, default_call_site_annotations) }
   | simple_expr { $1 }
 ;
 

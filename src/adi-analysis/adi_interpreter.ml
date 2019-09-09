@@ -158,12 +158,30 @@ struct
               lift_value v
             | Var_body (Var(x', _)) ->
               lookup x'
-            | Appl_body (Var(x',_), Var(x'', _)) ->
+            | Appl_body (Var(x',_), Var(x'', _), annots) ->
               let%bind x'value = lookup x' in
               let%orzero Abstract_function(fv, env') = x'value in
               let Function_value(Var(parameter, _), body) = fv in
               let%bind x''value = lookup x'' in
-              push_context (Abstract_ast_utils.lift_clause cl) @@
+              (* Determine whether this call site should be handled contextually
+                 or acontextually. *)
+              let call_site_is_contextual =
+                match annots.csa_contextuality with
+                | Call_site_contextual -> true
+                | Call_site_acontextual -> false
+                | Call_site_acontextual_for vars ->
+                  not @@ Ident_set.mem parameter vars
+              in
+              (* Establish the context of the callee at this site.  We do this
+                 by selecting the appropriate reader filter for the computation.
+              *)
+              (if call_site_is_contextual then
+                 (* Don't change the context. *)
+                 identity
+               else
+                 (* Extend the context with the call site. *)
+                 push_context (Abstract_ast_utils.lift_clause cl)
+              ) @@
               with_environment env' @@
               assign parameter x''value @@
               evaluate body

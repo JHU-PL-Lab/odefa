@@ -76,7 +76,7 @@ let use_occurrences expression =
         Var_set.empty
       | Var_body variable ->
         Var_set.singleton variable
-      | Appl_body (function_, actual_parameter) ->
+      | Appl_body (function_, actual_parameter, _) ->
         Var_set.of_list [function_; actual_parameter]
       | Conditional_body (subject, _, _, _) ->
         Var_set.singleton subject
@@ -151,7 +151,7 @@ and check_scope_clause_body
         []
     end
   | Var_body (Var(x,_)) -> _bind_filt bound site_x [x]
-  | Appl_body (Var(x1,_),Var(x2,_)) -> _bind_filt bound site_x [x1;x2]
+  | Appl_body (Var(x1,_),Var(x2,_),_) -> _bind_filt bound site_x [x1;x2]
   | Conditional_body (Var(x,_), _, f1, f2) ->
     _bind_filt bound site_x [x] @
     check_scope_function_value bound f1 @
@@ -215,7 +215,7 @@ and map_clause_body_vars (fn : Var.t -> Var.t) (b : clause_body) : clause_body =
   match (b : clause_body) with
   | Value_body v -> Value_body (map_value_vars fn v)
   | Var_body x -> Var_body (fn x)
-  | Appl_body (x1,x2) -> Appl_body(fn x1, fn x2)
+  | Appl_body (x1,x2,annots) -> Appl_body(fn x1, fn x2, annots)
   | Conditional_body (x, p, f1, f2) ->
     Conditional_body (fn x, p, map_function_vars fn f1, map_function_vars fn f2)
   | Projection_body (x, l) -> Projection_body(fn x, l)
@@ -253,7 +253,7 @@ and map_clause_body_labels (fn : Ident.t -> Ident.t) (b : clause_body) : clause_
   match (b : clause_body) with
   | Value_body v -> Value_body (map_value_labels fn v)
   | Var_body x -> Var_body x
-  | Appl_body (x1,x2) -> Appl_body(x1, x2)
+  | Appl_body (x1,x2,annots) -> Appl_body(x1, x2, annots)
   | Conditional_body (x, p, f1, f2) ->
     Conditional_body (x, map_pattern_labels fn p,
                       map_function_labels fn f1, map_function_labels fn f2)
@@ -326,7 +326,7 @@ and transform_exprs_in_clause_body (fn : expr -> expr) (b : clause_body)
   match (b : clause_body) with
   | Value_body v -> Value_body (transform_exprs_in_value fn v)
   | Var_body _ -> b
-  | Appl_body (_, _) -> b
+  | Appl_body (_, _, _) -> b
   | Conditional_body (x, p, f1, f2) ->
     Conditional_body (x, p,
                       transform_exprs_in_function fn f1,

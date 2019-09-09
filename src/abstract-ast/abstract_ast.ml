@@ -27,13 +27,13 @@ type abstract_var =
 [@@deriving eq, ord, to_yojson, show]
 ;;
 
-(** A type to expression abstract record values. *)
+(** A type to express abstract record values. *)
 type abstract_record_value =
   | Abs_record_value of abstract_var Ident_map.t
 [@@deriving eq, ord, to_yojson]
 ;;
 
-(** A type to expression abstract reference values. *)
+(** A type to express abstract reference values. *)
 type abstract_ref_value =
   | Abs_ref_value of abstract_var
 [@@deriving eq, ord, to_yojson]
@@ -57,7 +57,7 @@ and abstract_function_value =
 and abstract_clause_body =
   | Abs_value_body of abstract_value
   | Abs_var_body of abstract_var
-  | Abs_appl_body of abstract_var * abstract_var
+  | Abs_appl_body of abstract_var * abstract_var * call_site_annotations
   | Abs_conditional_body of
       abstract_var * pattern * abstract_function_value * abstract_function_value
   | Abs_projection_body of abstract_var * ident
@@ -107,8 +107,9 @@ and pp_abstract_clause_body formatter b =
   match b with
   | Abs_var_body(x) -> pp_abstract_var formatter x
   | Abs_value_body(v) -> pp_abstract_value formatter v
-  | Abs_appl_body(x1,x2) ->
-    Format.fprintf formatter "%a %a" pp_abstract_var x1 pp_abstract_var x2
+  | Abs_appl_body(x1,x2,annots) ->
+    Format.fprintf formatter "%a %a %a"
+      pp_abstract_var x1 pp_abstract_var x2 pp_call_site_annotations annots
   | Abs_conditional_body(x,p,f1,f2) ->
     Format.fprintf formatter
       "%a ~ %a@[<4> ? @[<2>%a@] : @[<2>%a@]@]"

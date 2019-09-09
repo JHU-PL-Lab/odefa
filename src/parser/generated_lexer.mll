@@ -41,6 +41,7 @@ rule token = parse
   | "."                              { DOT }
   | "<-"                             { LEFT_ARROW }
   | "!"                              { BANG }
+  | "@@acontextual"                  { ANNOTATION_ACONTEXTUAL }
   | "fun"                            { KEYWORD_FUN }
   | "ref"                            { KEYWORD_REF }
   | "int"                            { KEYWORD_INT }

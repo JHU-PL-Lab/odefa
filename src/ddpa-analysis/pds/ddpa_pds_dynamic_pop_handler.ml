@@ -331,7 +331,8 @@ struct
         )]
     | Side_effect_search_start_function_flow_check_2_of_2(ctx,acl0,c,xel) ->
       let%orzero Deref(_,_) = element in
-      let%orzero Abs_clause(_,Abs_appl_body(x2'',x3'')) = c in
+      (* NOTE: ignoring call site annotations as none apply to DDPA. *)
+      let%orzero Abs_clause(_,Abs_appl_body(x2'',x3'',_)) = c in
       let capture_size_2 = Bounded_capture_size.of_int 2 in
       return [ Push element
              ; Push xel
@@ -409,7 +410,8 @@ struct
     | Side_effect_search_function_bottom_flow_check(acl1,acl0,ctx) ->
       let%orzero Side_effect_lookup_var _ = element in
       let%orzero Exit_clause(_,_,c) = acl1 in
-      let%orzero Abs_clause(_,Abs_appl_body(x2'',x3'')) = c in
+      (* NOTE: ignoring call site annotations as none apply to DDPA. *)
+      let%orzero Abs_clause(_,Abs_appl_body(x2'',x3'',_)) = c in
       let capture_size_2 = Bounded_capture_size.of_int 2 in
       return [ Push element
              ; Push Real_flow_huh

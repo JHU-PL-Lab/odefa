@@ -48,7 +48,7 @@ and var_replace_clause_body fn r =
   match r with
   | Value_body(v) -> Value_body(var_replace_value fn v)
   | Var_body(x) -> Var_body(fn x)
-  | Appl_body(x1, x2) -> Appl_body(fn x1, fn x2)
+  | Appl_body(x1, x2, annots) -> Appl_body(fn x1, fn x2, annots)
   | Conditional_body(x,p,f1,f2) ->
     Conditional_body(fn x, p, var_replace_function_value fn f1,
                      var_replace_function_value fn f2)
@@ -160,7 +160,7 @@ let rec evaluate env lastvar cls =
         let v = lookup env x' in
         Environment.add env x v;
         evaluate env (Some x) t
-      | Appl_body(x', x'') ->
+      | Appl_body(x', x'', _) ->
         begin
           match lookup env x' with
           | Value_function(f) ->

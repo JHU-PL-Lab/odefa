@@ -42,7 +42,8 @@ struct
     | Abs_conditional_body _ ->
       (* There's nothing this body that can be inconsistent. *)
       zero ()
-    | Abs_appl_body(xf,xa) ->
+    | Abs_appl_body(xf,xa,_) ->
+      (* Skipping call site annotations; they do not affect error checking. *)
       let%bind (v,filtv) = lookup xf in
       begin
         match v with

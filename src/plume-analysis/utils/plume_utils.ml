@@ -23,10 +23,12 @@ sig
 
   module G : Graph_sig;;
 
-  val wire_fun : G.node -> abstract_function_value -> abstract_var ->
-    abstract_var -> G.t -> (G.edge Enum.t * G.node * G.node * G.node);;
-  val wire_cond : G.node -> abstract_function_value -> abstract_var ->
-    abstract_var -> G.t -> (G.edge Enum.t * G.node * G.node * G.node);;
+  val wire_fun :
+    G.C.t -> G.node -> abstract_function_value -> abstract_var ->
+    abstract_var -> G.t -> G.edge Enum.t * G.node * G.node * G.node;;
+  val wire_cond :
+    G.node -> abstract_function_value -> abstract_var -> abstract_var -> G.t ->
+    G.edge Enum.t * G.node * G.node * G.node;;
 
 end;;
 
@@ -43,12 +45,12 @@ struct
 
   open E;;
 
-  let wire_fun site_node func x1 x2 graph : (edge Enum.t * node * node * node) =
-    let Node(acl, ctx) = site_node in
+  let wire_fun new_context site_node func x1 x2 graph
+    : (edge Enum.t * node * node * node) =
+    let Node(acl, _) = site_node in
     begin
       match acl with
       | Unannotated_clause abcl ->
-        let new_context = C.push abcl ctx in
         let Abs_function_value(x0, Abs_expr(body)) = func in
         let wire_in_node = Node(Enter_clause(x0, x1, abcl), new_context) in
         let start_node = Node(Start_clause (rv body), new_context) in

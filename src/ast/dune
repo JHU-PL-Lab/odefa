@@ -4,6 +4,7 @@
   (synopsis "AST for Odefa")
   (libraries
     batteries
+    gmap
     jhupllib
     odefa.utils
     ppx_deriving_yojson.runtime

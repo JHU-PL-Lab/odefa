@@ -124,7 +124,7 @@ and lift_clause_body b =
   match b with
   | Value_body v -> Abs_value_body(lift_value v)
   | Var_body x -> Abs_var_body(lift_var x)
-  | Appl_body(x,x') -> Abs_appl_body(lift_var x, lift_var x')
+  | Appl_body(x,x',annots) -> Abs_appl_body(lift_var x, lift_var x', annots)
   | Conditional_body(x,p,f1,f2) ->
     Abs_conditional_body(lift_var x,p,lift_function_value f1,lift_function_value f2)
   | Projection_body(x,i) -> Abs_projection_body(lift_var x,i)

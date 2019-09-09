@@ -1,0 +1,4 @@
+let rec f x = 
+	fun y -> f
+in 
+f 0 0 0

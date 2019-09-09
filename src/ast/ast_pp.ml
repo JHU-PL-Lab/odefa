@@ -61,6 +61,41 @@ let pp_unary_operator formatter unop =
 ;;
 let show_unary_operator = pp_to_string pp_unary_operator;;
 
+let pp_call_site_annotations formatter annot =
+  (* We're going to inline a record reconstruction here not because we actually
+     want it to happen at runtime but because it will help draw attention to
+     this code if a new annotation is added to the record type.  We'll make
+     sure that it's in a form that is easy for the compiler to prove is dead
+     code. *)
+  if false then begin
+    ignore @@ { csa_contextuality = annot.csa_contextuality;
+                csa_unit = annot.csa_unit
+              }
+  end;
+  (* Print contextuality annotation. *)
+  begin
+    match annot.csa_contextuality with
+    | Call_site_contextual -> ()
+    | Call_site_acontextual -> Format.pp_print_string formatter "@@acontextual"
+    | Call_site_acontextual_for names ->
+      let printer formatter name =
+        Format.pp_print_string formatter "@@acontextual(";
+        pp_ident formatter name;
+        Format.pp_print_string formatter ")";
+      in
+      let rec loop names =
+        match names with
+        | [] -> ()
+        | [name] -> printer formatter name;
+        | name::names' ->
+          printer formatter name;
+          Format.pp_print_char formatter ' ';
+          loop names'
+      in
+      loop @@ Ident_set.to_list names;
+  end;
+;;
+
 let pp_record_value formatter (Record_value(els)) =
   let pp_element formatter (k,v) =
     Format.fprintf formatter "%a=%a" pp_ident k pp_var v
@@ -90,7 +125,9 @@ and pp_clause_body formatter b =
   match b with
   | Var_body(x) -> pp_var formatter x
   | Value_body(v) -> pp_value formatter v
-  | Appl_body(x1,x2) -> Format.fprintf formatter "%a %a" pp_var x1 pp_var x2
+  | Appl_body(x1,x2,annots) ->
+    Format.fprintf formatter "%a %a %a"
+      pp_var x1 pp_var x2 pp_call_site_annotations annots
   | Conditional_body(x,p,f1,f2) ->
     Format.fprintf formatter
       "%a ~ %a@[<4> ? @[<2>%a@] : @[<2>%a@]@]"
@@ -111,7 +148,15 @@ and pp_clause formatter c =
   | Clause(x,b) -> Format.fprintf formatter "%a = %a" pp_var x pp_clause_body b
 
 and pp_expr formatter (Expr(cls)) =
-  pp_concat_sep ";" pp_clause formatter @@ List.enum cls
+  match cls with
+  | [] ->
+    raise @@ Jhupllib.Utils.Invariant_failure(
+      "attempted to pretty print empty expression")
+  | [cl] ->
+    pp_clause formatter cl
+  | _::_::_ ->
+    pp_concat_sep ";" pp_clause formatter @@ List.enum cls;
+    Format.pp_print_char formatter ';';
 
 and pp_pattern formatter p =
   match p with

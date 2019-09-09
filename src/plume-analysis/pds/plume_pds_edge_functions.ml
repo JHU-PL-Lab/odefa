@@ -106,13 +106,13 @@ struct
                      )
             end
             ;
-            (* Rewind *)
-            (* This is handled below in untargeted dynamic pops. *)
             (* ********** Function Wiring ********** *)
             (* Function Top: Parameter Variable *)
             begin
               let%orzero Node(Enter_clause(x,x',c), _) = n1 in
-              let%orzero (Abs_clause(_,Abs_appl_body (_,x3''))) = c in
+              let%orzero (Abs_clause(_,Abs_appl_body (_,x3'',_))) = c in
+              (* NOTE: ignoring call site annotations as none apply to Plume
+                 lookup. *)
               begin
                 if not (equal_abstract_var x' x3'') then
                   raise @@ Utils.Invariant_failure "Ill-formed wiring node."
@@ -140,7 +140,9 @@ struct
             (* Function Top: Non-Local Variable *)
             begin
               let%orzero Node(Enter_clause(x'',x',c), _) = n1 in
-              let%orzero (Abs_clause(_,Abs_appl_body(x2'',x3''))) = c in
+              let%orzero (Abs_clause(_,Abs_appl_body(x2'',x3'',_))) = c in
+              (* NOTE: ignoring call site annotations as none apply to Plume
+                 lookup. *)
               begin
                 if not (equal_abstract_var x' x3'') then
                   raise @@ Utils.Invariant_failure "Ill-formed wiring node."
