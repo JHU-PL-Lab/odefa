@@ -35,20 +35,30 @@ declare -A CASES=(
   [sat-1]=4
   [sat-2]=14
   [sat-3]=14
-  #[sat-P4]=1
-  #[sat-P6]=1
-  #[sat-P8]=1
-  #[sat-P10]=1
-  #[sat-P12]=1
-  #[sat-P14]=1
-  #[sat-P16]=1
-  #[sat-P18]=1
-  #[sat-P20]=1
-  #[sat-P22]=1
-  #[sat-P24]=1
-  #[sat-P32]=1
-  # [state]=1 # Boxes aren’t supported by P4F.
+ # [state]=1 # Boxes aren’t supported by P4F.
   [tak]=1
+#)
+#declare -A CASES=(
+  [sat-P4]=1
+  [sat-P6]=1
+  [sat-P8]=1
+  [sat-P10]=1
+  [sat-P12]=1
+  [sat-P14]=1
+  [sat-P16]=1
+  [sat-P18]=1
+  [sat-P20]=1
+  [sat-P22]=1
+  [sat-P24]=1
+#)
+#declare -A CASES=(
+  [recurse-S2]=1
+  [recurse-S3]=1
+  [recurse-S4]=1
+  [recurse-S5]=1
+  [recurse-S6]=1
+  [recurse-S7]=1
+  [recurse-S8]=1
 )
 
 TRIALS=10
@@ -166,7 +176,7 @@ function ddpa {
   configure_result
   cat "${NATODEFA_SOURCE}" | \
     tr '*/%' '+' | \
-    "${NATODEFA_TRANSLATOR}" -p |\
+    "${NATODEFA_TRANSLATOR}" -p -a |\
     /usr/bin/time -v /usr/bin/timeout --foreground "${TIMEOUT}" "${ODEFA_TOPLOOP}" -S"${K}"ddpa --analyze-variables=all --report-sizes --report-analysis-time --report-source-statistics --disable-evaluation --disable-inconsistency-check \
     &>> "${RESULT_FILE}" || true
 }
@@ -176,7 +186,7 @@ function kplume {
   configure_result
   cat "${NATODEFA_SOURCE}" | \
     tr '*/%' '+' | \
-    "${NATODEFA_TRANSLATOR}" -p |\
+    "${NATODEFA_TRANSLATOR}" -p -a |\
     /usr/bin/time -v /usr/bin/timeout --foreground "${TIMEOUT}" "${ODEFA_TOPLOOP}" -S"${K}"plume --analyze-variables=all --report-sizes --report-analysis-time --report-source-statistics --disable-evaluation --disable-inconsistency-check \
     &>> "${RESULT_FILE}" || true
 }
@@ -186,7 +196,7 @@ function splume {
   configure_result
   cat "${NATODEFA_SOURCE}" | \
     tr '*/%' '+' | \
-    "${NATODEFA_TRANSLATOR}" -p |\
+    "${NATODEFA_TRANSLATOR}" -p -a |\
     /usr/bin/time -v /usr/bin/timeout --foreground "${TIMEOUT}" "${ODEFA_TOPLOOP}" -Ssplume --analyze-variables=all --report-sizes --report-analysis-time --report-source-statistics --disable-evaluation --disable-inconsistency-check \
     &>> "${RESULT_FILE}" || true
 }
@@ -199,7 +209,9 @@ function p4f {
   then
     cat "${P4F_STATISTICS}/"*/*".txt" &>> "${RESULT_FILE}"
   else
-    pkill sbt scala java || true
+    # P4F doesn't get killed properly by timeout
+    pids=$(ps ax | grep java | grep RunCFA | egrep -o '^ *[0-9]+')
+    if [ -n "$pids" ]; then kill -9 $pids; fi
   fi
 }
 
@@ -237,24 +249,19 @@ ready_boomerang_original
 # Run benchmarks
 for TRIAL in $(seq 1 "${TRIALS}")
 do
-  echo "######## Trial $TRIAL"
+  echo "######## Trial $TRIAL/$TRIALS"
   for CASE in "${!CASES[@]}"
   do
     echo "##### Case $CASE"
     SCHEME_SOURCE="${CASES_PATH}/${CASE}.scm"
     NATODEFA_SOURCE="${CASES_PATH}/${CASE}.natodefa"
     JAVA_SOURCE="${CASES_PATH}/$(echo "${CASE^}" | tr '-' '_').java"
-    #EXPERIMENT=monovariant
-    #K=0
-    #ddpa
-    #kplume
-    #p4f
     EXPERIMENT=polyvariant
     K="${CASES[${CASE}]}"
-    #ddpa
-    #kplume
+    ddpa
+    kplume
     K=1
-    #p4f
+    p4f
     splume
     boomerangSPDS
     #boomerangOriginal
