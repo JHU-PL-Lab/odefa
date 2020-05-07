@@ -33,6 +33,7 @@ rule token = parse
 | ","                  { COMMA }
 | "="                  { EQUALS }
 | "."                  { DOT }
+| "::"                 { DOUBLE_COLON }
 | "and"                { AND }
 | "or"                 { OR }
 | "not"                { NOT }

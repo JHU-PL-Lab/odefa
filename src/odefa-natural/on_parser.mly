@@ -18,6 +18,7 @@ exception On_Parse_error of string;;
 %token EQUALS
 %token ARROW
 %token DOT
+%token DOUBLE_COLON
 %token FUNCTION
 %token WITH
 %token LET
@@ -97,6 +98,8 @@ expr:
       { RecordProj($1, $3) }
   | INPUT
       { Input }
+  | expr DOUBLE_COLON expr
+      { ListCons($1, $3) }
 ;
 
 fun_sig:

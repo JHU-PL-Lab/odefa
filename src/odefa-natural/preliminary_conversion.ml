@@ -78,6 +78,21 @@ let list_transform (e : expr) : expr m =
         list_fold_right_m list_maker expr_list empty_rec
       in
       return record_equivalent
+    (* Here  we "cons" the expression with the list during natodefa-to-odefa translation. 
+       Simple, but can introduce pitfalls such as:
+       - How do we know if what we are consing to is not a list? How do we typecheck?
+       - What if we wish to lazily cons, eg. as part of a freeze Fun x -> x :: [y]
+      The latter question should be a non-issue due to the encoding, however. - KQ
+    *)
+    | ListCons (expr, expr_list) ->
+      let%bind clean_expr = recurse expr in
+      let%bind record_list = recurse expr_list in
+      let new_map =
+        Ident_map.empty
+        |> Ident_map.add lbl_head clean_expr
+        |> Ident_map.add lbl_tail record_list
+      in
+      return @@ Record new_map
     | Match (match_e, pat_expr_list) ->
       let%bind new_match_e = recurse match_e in
       (* routine to pass into List.map... *)
