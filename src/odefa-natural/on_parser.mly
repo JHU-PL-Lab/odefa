@@ -5,12 +5,14 @@ exception On_Parse_error of string;;
 %}
 
 %token <string> IDENTIFIER
+%token <string> VARIANT_LABEL
 %token <int> INT_LITERAL
 %token <bool> BOOL
 %token EOF
 %token OPEN_BRACE
 %token CLOSE_BRACE
 %token COMMA
+%token BACKTICK
 %token OPEN_PAREN
 %token CLOSE_PAREN
 %token OPEN_BRACKET
@@ -18,7 +20,7 @@ exception On_Parse_error of string;;
 %token EQUALS
 %token ARROW
 %token DOT
-%token DOUBLE_COLON
+%token COLON
 %token FUNCTION
 %token WITH
 %token LET
@@ -98,7 +100,7 @@ expr:
       { RecordProj($1, $3) }
   | INPUT
       { Input }
-  | expr DOUBLE_COLON expr
+  | expr COLON expr /* Using ":" for cons to follow Haskell syntax */
       { ListCons($1, $3) }
 ;
 
@@ -117,6 +119,7 @@ fun_sig_list:
 
 unary_expr:
   | NOT simple_expr { Not($2) }
+  | VARIANT_LABEL simple_expr { VariantExpr(Variant_label $1, $2) }
   | appl_expr { $1 }
 
 appl_expr:
@@ -184,7 +187,9 @@ ident_decl:
 /* TODO: Add pattern matching, variants, lists, and list consing */
 
 /* Lists are enclosed in square brackets and delimited by commas
-   ex) [1, 2, 3] */
+   ex) [1, 2, true]
+   Unlike ocaml, natodefa lists may be heterogenous
+*/
 list_body:
   | expr COMMA list_body { $1 :: $3 }
   | expr { [$1] }

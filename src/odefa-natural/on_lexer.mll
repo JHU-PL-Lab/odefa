@@ -11,6 +11,7 @@
 
 let digit = ['0'-'9']
 let alpha = ['a'-'z'] | ['A'-'Z']
+let alpha_upper = ['A'-'Z']
 let whitespace = [' ' '\t']
 let newline = '\n'
 let comment = '#' [^'\n']* '\n'
@@ -33,7 +34,7 @@ rule token = parse
 | ","                  { COMMA }
 | "="                  { EQUALS }
 | "."                  { DOT }
-| "::"                 { DOUBLE_COLON }
+| ":"                  { COLON }
 | "and"                { AND }
 | "or"                 { OR }
 | "not"                { NOT }
@@ -58,7 +59,8 @@ rule token = parse
 | "=="                 { EQUAL_EQUAL }
 | "<"                  { LESS }
 | "<="                 { LESS_EQUAL }
-| digit+ as n         { INT_LITERAL (int_of_string n) }
+| digit+ as n          { INT_LITERAL (int_of_string n) }
 | ident_start ident_cont* as s     { IDENTIFIER s }
+| "`" alpha_upper alpha* as s { VARIANT_LABEL s }
 
 {}
