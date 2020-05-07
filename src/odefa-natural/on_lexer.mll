@@ -35,9 +35,12 @@ rule token = parse
 | "="                  { EQUALS }
 | "."                  { DOT }
 | ":"                  { COLON }
+| "_"                  { UNDERSCORE }
+| "|"                  { PIPE }
 | "and"                { AND }
 | "or"                 { OR }
 | "not"                { NOT }
+| "int"                { INT }
 | "fun"                { FUNCTION }
 | "function"           { FUNCTION }
 | "with"               { WITH }
@@ -51,6 +54,7 @@ rule token = parse
 | "false"              { BOOL false }
 | "true"               { BOOL true }
 | "input"              { INPUT }
+| "match"              { MATCH }
 | "+"                  { PLUS }
 | "-"                  { MINUS }
 | "*"                  { ASTERISK }

@@ -21,6 +21,8 @@ exception On_Parse_error of string;;
 %token ARROW
 %token DOT
 %token COLON
+%token UNDERSCORE
+%token PIPE
 %token FUNCTION
 %token WITH
 %token LET
@@ -32,7 +34,9 @@ exception On_Parse_error of string;;
 %token AND
 %token OR
 %token NOT
+%token INT
 %token INPUT
+%token MATCH
 %token PLUS
 %token MINUS
 %token ASTERISK
@@ -102,6 +106,8 @@ expr:
       { Input }
   | expr COLON expr /* Using ":" for cons to follow Haskell syntax */
       { ListCons($1, $3) }
+  | MATCH expr WITH pattern_list
+      { Match($2, $4) }
 ;
 
 fun_sig:
@@ -195,21 +201,36 @@ list_body:
   | expr { [$1] }
 ;
 
-/*
 pattern_list:
-  | PIPE pattern ARROW expr pattern_list { ($1, $2) :: $3 }
-  | PIPE pattern ARROW expr { [($1, $2)] }
+  | PIPE pattern ARROW expr pattern_list { ($2, $4) :: $5 }
+  | PIPE pattern ARROW expr { [($2, $4)] }
 ;
 
 pattern:
   | UNDERSCORE { AnyPat }
   | INT { IntPat }
-  | BOOL true { TruePat }
-  | BOOL false { FalsePat }
-  | { RecPat of pattern Ident_map.t}
-  | { VariantPat of variant_content }
-  | { VarPat of ident }
-  | { FunPat }
-  | { EmptyListPat }
-  | { ListDestructPat of pattern * pattern }
-*/
+  | BOOL { if $1 then TruePat else FalsePat }
+  | OPEN_BRACE rec_pattern_body CLOSE_BRACE { RecPat $2 }
+  | VARIANT_LABEL pattern { VariantPat(Variant(Variant_label $1, $2)) }
+  | ident_decl { VarPat $1 }
+  | FUNCTION { FunPat }
+  | OPEN_BRACKET CLOSE_BRACKET { EmptyLstPat }
+  | pattern COLON pattern { LstDestructPat($1, $3) }
+;
+
+rec_pattern_body:
+  | label EQUALS pattern
+      { let (Label k) = $1 in
+        let key = Ident k in
+        Ident_map.singleton key $3 }
+  | label EQUALS pattern COMMA rec_pattern_body
+      { let (Label k) = $1 in
+        let key = Ident k in
+        let old_map = $5 in
+        let dup_check = Ident_map.mem key old_map in
+        if dup_check then raise (On_Parse_error "Duplicate label names in record!")
+        else
+        let new_map = Ident_map.add key $3 old_map in
+        new_map
+      }
+; 
