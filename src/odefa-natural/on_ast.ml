@@ -41,6 +41,7 @@ and pattern = AnyPat | IntPat | TruePat | FalsePat | RecPat of pattern Ident_map
             | FunPat | EmptyLstPat | LstDestructPat of pattern * pattern
 
 and expr =
+  | Int of int | Bool of bool
   | Var of ident | Function of ident list * expr
   | Input
   | Appl of expr * expr
@@ -51,8 +52,9 @@ and expr =
   | Modulus of expr * expr | Equal of expr * expr
   | LessThan of expr * expr | Leq of expr * expr
   | And of expr * expr| Or of expr * expr | Not of expr
-  | If of expr * expr * expr | Int of int | Bool of bool
+  | If of expr * expr * expr
   | Record of expr Ident_map.t | RecordProj of expr * label
+  (* TODO: Add pattern matching, variants, lists, and list consing *)
   | Match of expr * (pattern * expr) list
   | VariantExpr of variant_label * expr
   | List of expr list | ListCons of expr * expr

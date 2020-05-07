@@ -13,6 +13,8 @@ exception On_Parse_error of string;;
 %token COMMA
 %token OPEN_PAREN
 %token CLOSE_PAREN
+%token OPEN_BRACKET
+%token CLOSE_BRACKET
 %token EQUALS
 %token ARROW
 %token DOT
@@ -131,6 +133,10 @@ simple_expr:
       { Record $2 }
   | OPEN_BRACE CLOSE_BRACE
       { Record (Ident_map.empty) }
+  | OPEN_BRACKET list_body CLOSE_BRACKET
+      { List $2 }
+  | OPEN_BRACKET CLOSE_BRACKET
+      { List [] }
   | OPEN_PAREN expr CLOSE_PAREN
       { $2 }
 ;
@@ -171,3 +177,31 @@ ident_usage:
 ident_decl:
   | IDENTIFIER { Ident $1 }
 ;
+
+/* TODO: Add pattern matching, variants, lists, and list consing */
+
+/* Lists are enclosed in square brackets and delimited by commas
+   ex) [1, 2, 3] */
+list_body:
+  | expr COMMA list_body { $1 :: $3 }
+  | expr { [$1] }
+;
+
+/*
+pattern_list:
+  | PIPE pattern ARROW expr pattern_list { ($1, $2) :: $3 }
+  | PIPE pattern ARROW expr { [($1, $2)] }
+;
+
+pattern:
+  | UNDERSCORE { AnyPat }
+  | INT { IntPat }
+  | BOOL true { TruePat }
+  | BOOL false { FalsePat }
+  | { RecPat of pattern Ident_map.t}
+  | { VariantPat of variant_content }
+  | { VarPat of ident }
+  | { FunPat }
+  | { EmptyListPat }
+  | { ListDestructPat of pattern * pattern }
+*/
