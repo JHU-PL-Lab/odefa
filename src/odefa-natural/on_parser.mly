@@ -12,7 +12,6 @@ exception On_Parse_error of string;;
 %token OPEN_BRACE
 %token CLOSE_BRACE
 %token COMMA
-%token BACKTICK
 %token OPEN_PAREN
 %token CLOSE_PAREN
 %token OPEN_BRACKET
@@ -52,10 +51,15 @@ exception On_Parse_error of string;;
 %right prec_let                         /* Let ... In ... */
 %right prec_fun                         /* function declaration */
 %right prec_if                          /* If ... Then ... Else */
+%right prec_clause                      /* | x -> ... */
+%right prec_match
+%left PIPE                              /* | ... */
 %right OR                               /* Or */
 %right AND                              /* And */
 %left EQUAL_EQUAL LESS LESS_EQUAL       /* = < <= */
+%right COLON                            /* : */
 %left PLUS MINUS ASTERISK SLASH PERCENT /* + - * / % */
+%left VARIANT_LABEL                     /* 'A ... */
 %left DOT                               /* record access */
 
 %start <On_ast.expr> prog
@@ -106,6 +110,8 @@ expr:
       { Input }
   | expr COLON expr /* Using ":" for cons to follow Haskell syntax */
       { ListCons($1, $3) }
+  | MATCH expr WITH PIPE pattern_list
+      { Match($2, $5) }
   | MATCH expr WITH pattern_list
       { Match($2, $4) }
 ;
@@ -202,9 +208,15 @@ list_body:
 ;
 
 pattern_list:
-  | PIPE pattern ARROW expr pattern_list { ($2, $4) :: $5 }
-  | PIPE pattern ARROW expr { [($2, $4)] }
+  | pattern_clause PIPE pattern_list
+      { $1 :: $3 }
+  | pattern_clause %prec prec_match
+      { [$1] }
 ;
+
+pattern_clause:
+  | pattern ARROW expr %prec prec_clause
+      { ($1, $3) }
 
 pattern:
   | UNDERSCORE { AnyPat }
@@ -233,4 +245,4 @@ rec_pattern_body:
         let new_map = Ident_map.add key $3 old_map in
         new_map
       }
-; 
+;
