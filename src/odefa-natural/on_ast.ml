@@ -54,7 +54,6 @@ and expr =
   | And of expr * expr| Or of expr * expr | Not of expr
   | If of expr * expr * expr
   | Record of expr Ident_map.t | RecordProj of expr * label
-  (* TODO: Add pattern matching, variants, lists, and list consing *)
   | Match of expr * (pattern * expr) list
   | VariantExpr of variant_label * expr
   | List of expr list | ListCons of expr * expr

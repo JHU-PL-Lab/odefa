@@ -194,8 +194,6 @@ ident_decl:
   | IDENTIFIER { Ident $1 }
 ;
 
-/* TODO: Add pattern matching, variants, lists, and list consing */
-
 /* Lists are enclosed in square brackets and delimited by commas
    ex) [1, 2, true]
    Unlike ocaml, natodefa lists may be heterogenous
