@@ -32,9 +32,10 @@ rule token = parse
 | "["                  { OPEN_BRACKET }
 | "]"                  { CLOSE_BRACKET }
 | ","                  { COMMA }
+| "`"                  { BACKTICK }
 | "="                  { EQUALS }
 | "."                  { DOT }
-| ":"                  { COLON }
+| "::"                  { DOUBLE_COLON }
 | "_"                  { UNDERSCORE }
 | "|"                  { PIPE }
 | "and"                { AND }
@@ -55,6 +56,7 @@ rule token = parse
 | "true"               { BOOL true }
 | "input"              { INPUT }
 | "match"              { MATCH }
+| "end"                { END }
 | "+"                  { PLUS }
 | "-"                  { MINUS }
 | "*"                  { ASTERISK }
@@ -65,6 +67,5 @@ rule token = parse
 | "<="                 { LESS_EQUAL }
 | digit+ as n          { INT_LITERAL (int_of_string n) }
 | ident_start ident_cont* as s     { IDENTIFIER s }
-| "`" alpha_upper alpha* as s { VARIANT_LABEL s }
 
 {}

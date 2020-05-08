@@ -5,13 +5,13 @@ exception On_Parse_error of string;;
 %}
 
 %token <string> IDENTIFIER
-%token <string> VARIANT_LABEL
 %token <int> INT_LITERAL
 %token <bool> BOOL
 %token EOF
 %token OPEN_BRACE
 %token CLOSE_BRACE
 %token COMMA
+%token BACKTICK
 %token OPEN_PAREN
 %token CLOSE_PAREN
 %token OPEN_BRACKET
@@ -19,7 +19,7 @@ exception On_Parse_error of string;;
 %token EQUALS
 %token ARROW
 %token DOT
-%token COLON
+%token DOUBLE_COLON
 %token UNDERSCORE
 %token PIPE
 %token FUNCTION
@@ -36,6 +36,7 @@ exception On_Parse_error of string;;
 %token INT
 %token INPUT
 %token MATCH
+%token END
 %token PLUS
 %token MINUS
 %token ASTERISK
@@ -51,15 +52,12 @@ exception On_Parse_error of string;;
 %right prec_let                         /* Let ... In ... */
 %right prec_fun                         /* function declaration */
 %right prec_if                          /* If ... Then ... Else */
-%right prec_clause                      /* | x -> ... */
-%right prec_match
-%left PIPE                              /* | ... */
+%right DOUBLE_COLON                     /* :: */
 %right OR                               /* Or */
 %right AND                              /* And */
 %left EQUAL_EQUAL LESS LESS_EQUAL       /* = < <= */
-%right COLON                            /* : */
 %left PLUS MINUS ASTERISK SLASH PERCENT /* + - * / % */
-%left VARIANT_LABEL                     /* 'A ... */
+%right prec_variant                     /* 'A expr */
 %left DOT                               /* record access */
 
 %start <On_ast.expr> prog
@@ -108,11 +106,11 @@ expr:
       { RecordProj($1, $3) }
   | INPUT
       { Input }
-  | expr COLON expr /* Using ":" for cons to follow Haskell syntax */
+  | expr DOUBLE_COLON expr
       { ListCons($1, $3) }
-  | MATCH expr WITH PIPE pattern_list
+  | MATCH expr WITH PIPE match_expr_list END
       { Match($2, $5) }
-  | MATCH expr WITH pattern_list
+  | MATCH expr WITH match_expr_list END
       { Match($2, $4) }
 ;
 
@@ -131,7 +129,7 @@ fun_sig_list:
 
 unary_expr:
   | NOT simple_expr { Not($2) }
-  | VARIANT_LABEL simple_expr { VariantExpr(Variant_label $1, $2) }
+  | BACKTICK variant_label simple_expr { VariantExpr($2, $3) }
   | appl_expr { $1 }
 
 appl_expr:
@@ -207,27 +205,32 @@ list_body:
   | expr { [$1] }
 ;
 
-pattern_list:
-  | pattern_clause PIPE pattern_list
+variant_label:
+  | IDENTIFIER { Variant_label $1 }
+
+match_expr_list:
+  | match_expr PIPE match_expr_list
       { $1 :: $3 }
-  | pattern_clause %prec prec_match
+  | match_expr
       { [$1] }
 ;
 
-pattern_clause:
-  | pattern ARROW expr %prec prec_clause
+match_expr:
+  | pattern ARROW expr
       { ($1, $3) }
 
 pattern:
   | UNDERSCORE { AnyPat }
   | INT { IntPat }
   | BOOL { if $1 then TruePat else FalsePat }
-  | OPEN_BRACE rec_pattern_body CLOSE_BRACE { RecPat $2 }
-  | VARIANT_LABEL pattern { VariantPat(Variant(Variant_label $1, $2)) }
-  | ident_decl { VarPat $1 }
   | FUNCTION { FunPat }
+  | IDENTIFIER { VarPat(Ident($1)) }
+  | BACKTICK variant_label pattern { VariantPat(Variant($2, $3)) } %prec prec_variant
+  | OPEN_BRACE rec_pattern_body CLOSE_BRACE { RecPat $2 }
+  | OPEN_BRACE CLOSE_BRACE { RecPat (Ident_map.empty) }
   | OPEN_BRACKET CLOSE_BRACKET { EmptyLstPat }
-  | pattern COLON pattern { LstDestructPat($1, $3) }
+  | pattern DOUBLE_COLON pattern { LstDestructPat($1, $3) }
+  | OPEN_PAREN pattern CLOSE_PAREN { $2 }
 ;
 
 rec_pattern_body:
