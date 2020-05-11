@@ -1,7 +1,6 @@
-[submodule "smbc"]
-  path = vendor/smbc
-  url =  https://github.com/c-cube/smbc.git
-
-[submodule "rosette"]
- path = vendor/rosette
- url =  https://github.com/emina/rosette.git
+[submodule "vendor/smbc"]
+	path = vendor/smbc
+	url = https://github.com/c-cube/smbc.git
+[submodule "vendor/rosette"]
+	path = vendor/rosette
+	url = https://github.com/emina/rosette.git
