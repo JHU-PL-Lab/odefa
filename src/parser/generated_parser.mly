@@ -162,6 +162,10 @@ bool_value:
 pattern:
   | record_pattern
       { $1 }
+  | atomic_pattern
+      { Atomic_pattern($1) }
+
+atomic_pattern:
   | KEYWORD_FUN
       { Fun_pattern }
   | KEYWORD_INT
@@ -182,8 +186,8 @@ record_pattern:
   ;
 
 record_pattern_element:
-  | identifier EQUALS pattern
-      { ($1,$3) }
+  | identifier EQUALS atomic_pattern
+      { ($1, $3) }
   ;
 
 bool_pattern:

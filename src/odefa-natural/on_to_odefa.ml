@@ -740,17 +740,37 @@ and
         let%bind cond_var = fresh_var "match_cond" in
         let rec pat_conversion = fun pat ->
           (match pat with
-           | On_ast.AnyPat -> Ast.Any_pattern
-           | On_ast.IntPat -> Ast.Int_pattern
-           | On_ast.TruePat -> Ast.Bool_pattern(true)
-           | On_ast.FalsePat -> Ast.Bool_pattern(false)
-           | On_ast.FunPat -> Ast.Fun_pattern
+           | On_ast.AnyPat -> Ast.Atomic_pattern(Any_pattern)
+           | On_ast.IntPat -> Ast.Atomic_pattern(Int_pattern)
+           | On_ast.TruePat -> Ast.Atomic_pattern(Bool_pattern(true))
+           | On_ast.FalsePat -> Ast.Atomic_pattern(Bool_pattern(false))
+           | On_ast.FunPat -> Ast.Atomic_pattern(Fun_pattern)
            | On_ast.RecPat (patmap) ->
+             let pat_atom_conversion entry =
+             begin
+             match entry with
+             | On_ast.AnyPat -> Ast.Any_pattern
+             | On_ast.IntPat -> Ast.Int_pattern
+             | On_ast.TruePat -> Ast.Bool_pattern(true)
+             | On_ast.FalsePat -> Ast.Bool_pattern(false)
+             | On_ast.FunPat -> Ast.Fun_pattern
+             | On_ast.RecPat _ -> raise @@ Utils.Not_yet_implemented
+                "match_converter: Deep pattern matching not implemented!"
+             | On_ast.VariantPat (_) ->
+               raise @@ Utils.Invariant_failure
+               "match_converter: Variants patterns should have been encoded!"
+             | On_ast.VarPat (_) ->
+               raise @@ Utils.Invariant_failure
+               "match_converter: Var patterns should have been encoded!"
+             | On_ast.EmptyLstPat | On_ast.LstDestructPat _ ->
+               raise @@ Utils.Invariant_failure
+               "match_converter: List patterns should have been encoded!"
+             end in
              let rec_conversion =
                fun key -> fun entry -> fun acc ->
                  let (On_ast.Ident key_str) = key in
                  let new_key = Ast.Ident key_str in
-                 let new_entry = pat_conversion entry in
+                 let new_entry = pat_atom_conversion entry in
                  Ast.Ident_map.add new_key new_entry acc
              in
              let new_pat_map =
@@ -781,7 +801,8 @@ and
         return @@ Ast.Expr([match_clause; if_clause])
       )
     in
-    (* The base case is our EXPLODING clause *)
+    (* The base case is our EXPLODING clause
+       TODO: Replace this with "abort" encoding *)
     let%bind explode_expr =
       let%bind zero_var = fresh_var "zero" in
       let zero_clause = Ast.Clause(zero_var, Ast.Value_body(Ast.Value_int(0))) in

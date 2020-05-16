@@ -118,6 +118,39 @@ let cond_wire (conditional_site_x : var) (Expr(body)) =
 
 let stdin_input_source (_:var) = Value_int(read_int());;
 
+let matches env x p =
+  let v = lookup env x in
+  let matches_atomic v' p_atom =
+    begin
+    match v', p_atom with
+    | _, Any_pattern -> true
+    | (Value_function(Function_value(_)), Fun_pattern) -> true
+    | (Value_int(_), Int_pattern) -> true
+    | (Value_bool actual_bool, Bool_pattern pat_bool) -> actual_bool = pat_bool
+    | _ -> false
+    end
+  in
+  match p with
+  | Atomic_pattern p_atom -> matches_atomic v p_atom
+  | Record_pattern p_record ->
+    begin
+    match v with
+    | Value_record(Record_value(els)) ->
+      p_record
+      |> Ident_map.enum
+      |> Enum.for_all
+        (fun (idnt, p_atom) -> 
+          try
+            let rec_val = lookup env @@ Ident_map.find idnt els in
+            matches_atomic rec_val p_atom
+           with
+            Not_found -> false
+        )
+    | _ -> false
+    end
+;;
+
+(*
 let rec matches env x p =
   let v = lookup env x in
   match v,p with
@@ -139,6 +172,7 @@ let rec matches env x p =
     actual_boolean = pattern_boolean
   | _ -> false
 ;;
+*)
 
 let rec evaluate
     ?input_source:(input_source=stdin_input_source)

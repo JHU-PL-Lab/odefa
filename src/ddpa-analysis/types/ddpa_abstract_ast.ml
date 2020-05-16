@@ -330,7 +330,8 @@ module Pattern_ord =
 struct
   type t = pattern
   let compare = compare_pattern
-end;;
+end
+;;
 
 module Pattern_set =
 struct
@@ -338,4 +339,5 @@ struct
   let pp = Pp_utils.pp_set pp_pattern enum;;
   let show = Pp_utils.pp_to_string pp;;
   let to_yojson = Yojson_utils.set_to_yojson pattern_to_yojson enum;;
-end;;
+end
+;;
