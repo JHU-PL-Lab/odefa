@@ -70,6 +70,7 @@ let rec pat_vars (pat : On_ast.pattern) : On_ast.Ident_set.t =
   | On_ast.IntPat -> On_ast.Ident_set.empty
   | On_ast.TruePat -> On_ast.Ident_set.empty
   | On_ast.FalsePat -> On_ast.Ident_set.empty
+  | On_ast.RecTypePat -> On_ast.Ident_set.empty
   | On_ast.RecPat m ->
     m
     |> On_ast.Ident_map.enum
@@ -96,6 +97,7 @@ let rec pat_rename_vars
   | On_ast.IntPat -> pat
   | On_ast.TruePat -> pat
   | On_ast.FalsePat -> pat
+  | On_ast.RecTypePat -> pat
   | On_ast.RecPat m ->
     On_ast.RecPat(On_ast.Ident_map.map (pat_rename_vars renaming) m)
   | On_ast.VariantPat(Variant(lbl,pat')) ->
@@ -738,6 +740,7 @@ and
       (
         let (curr_pat, curr_pat_expr) = curr in
         let%bind cond_var = fresh_var "match_cond" in
+        (* TODO: Make this somewhat less cumbersome *)
         let rec pat_conversion = fun pat ->
           (match pat with
            | On_ast.AnyPat -> Ast.Atomic_pattern(Any_pattern)
@@ -745,6 +748,7 @@ and
            | On_ast.TruePat -> Ast.Atomic_pattern(Bool_pattern(true))
            | On_ast.FalsePat -> Ast.Atomic_pattern(Bool_pattern(false))
            | On_ast.FunPat -> Ast.Atomic_pattern(Fun_pattern)
+           | On_ast.RecTypePat -> Ast.Atomic_pattern(Rec_pattern)
            | On_ast.RecPat (patmap) ->
              let pat_atom_conversion entry =
              begin
@@ -754,6 +758,8 @@ and
              | On_ast.TruePat -> Ast.Bool_pattern(true)
              | On_ast.FalsePat -> Ast.Bool_pattern(false)
              | On_ast.FunPat -> Ast.Fun_pattern
+             | On_ast.RecTypePat -> Ast.Rec_pattern
+             (* | On_ast.RecPat (_) -> Ast.Rec_pattern *)
              | On_ast.RecPat _ -> raise @@ Utils.Not_yet_implemented
                 "match_converter: Deep pattern matching not implemented!"
              | On_ast.VariantPat (_) ->

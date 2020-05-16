@@ -22,6 +22,7 @@ module List = BatList;;
 %token KEYWORD_INPUT
 %token KEYWORD_FUN
 %token KEYWORD_INT
+%token KEYWORD_RECORD
 %token KEYWORD_TRUE
 %token KEYWORD_FALSE
 %token KEYWORD_AND
@@ -172,6 +173,8 @@ atomic_pattern:
       { Int_pattern }
   | bool_pattern
       { Bool_pattern($1) }
+  | KEYWORD_RECORD
+      { Rec_pattern }
   | KEYWORD_ANY
       { Any_pattern }
   | UNDERSCORE

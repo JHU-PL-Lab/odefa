@@ -42,6 +42,7 @@ rule token = parse
   | "input"                          { KEYWORD_INPUT }
   | "fun"                            { KEYWORD_FUN }
   | "int"                            { KEYWORD_INT }
+  | "record"                         { KEYWORD_RECORD }
   | "true"                           { KEYWORD_TRUE }
   | "false"                          { KEYWORD_FALSE }
   | "and"                            { KEYWORD_AND }

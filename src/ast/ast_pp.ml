@@ -103,6 +103,7 @@ and pp_atomic_pattern formatter p_atom =
   match p_atom with
   | Fun_pattern -> Format.pp_print_string formatter "fun"
   | Int_pattern -> Format.pp_print_string formatter "int"
+  | Rec_pattern -> Format.pp_print_string formatter "record"
   | Bool_pattern(b) ->
   Format.pp_print_string formatter @@ if b then "true" else "false"
   | Any_pattern -> Format.pp_print_string formatter "any"

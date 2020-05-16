@@ -153,6 +153,7 @@ and pattern_atom =
   | Fun_pattern
   | Int_pattern
   | Bool_pattern of bool
+  | Rec_pattern (* Too confusing? TODO: Change Record_pattern to Record_of_patterns *)
   | Any_pattern
 [@@deriving eq, ord, yojson]
 

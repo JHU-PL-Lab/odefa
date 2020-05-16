@@ -36,7 +36,8 @@ type funsig = Funsig of ident * ident list * expr
 
 and variant_content = Variant of variant_label * pattern
 
-and pattern = AnyPat | IntPat | TruePat | FalsePat | RecPat of pattern Ident_map.t
+and pattern = AnyPat | IntPat | TruePat | FalsePat | RecTypePat
+            | RecPat of pattern Ident_map.t
             | VariantPat of variant_content | VarPat of ident
             | FunPat | EmptyLstPat | LstDestructPat of pattern * pattern
 

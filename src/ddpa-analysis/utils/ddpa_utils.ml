@@ -210,6 +210,7 @@ let abstract_pattern_match (v : abstract_value) (p : pattern)
     | (Abs_value_function _, Fun_pattern) -> true
     | (Abs_value_int, Int_pattern) -> true
     | (Abs_value_bool b, Bool_pattern b') -> b = b'
+    | (Abs_value_record _, Rec_pattern) -> true
     | _ -> false
     end
   in

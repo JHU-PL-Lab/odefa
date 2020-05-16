@@ -44,6 +44,7 @@ rule token = parse
 | "int"                { INT }
 | "fun"                { FUNCTION }
 | "function"           { FUNCTION }
+| "record"             { RECORD }
 | "with"               { WITH }
 | "if"                 { IF }
 | "then"               { THEN }

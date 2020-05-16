@@ -127,6 +127,7 @@ let matches env x p =
     | (Value_function(Function_value(_)), Fun_pattern) -> true
     | (Value_int(_), Int_pattern) -> true
     | (Value_bool actual_bool, Bool_pattern pat_bool) -> actual_bool = pat_bool
+    | (Value_record(_), Rec_pattern) -> true
     | _ -> false
     end
   in

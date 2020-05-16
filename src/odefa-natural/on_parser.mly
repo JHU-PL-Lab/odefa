@@ -23,6 +23,7 @@ exception On_Parse_error of string;;
 %token UNDERSCORE
 %token PIPE
 %token FUNCTION
+%token RECORD
 %token WITH
 %token LET
 %token IN
@@ -222,6 +223,7 @@ pattern:
   | INT { IntPat }
   | BOOL { if $1 then TruePat else FalsePat }
   | FUNCTION { FunPat }
+  | RECORD { RecTypePat }
   | IDENTIFIER { VarPat(Ident($1)) }
   | BACKTICK variant_label pattern { VariantPat(Variant($2, $3)) } %prec prec_variant
   | OPEN_BRACE rec_pattern_body CLOSE_BRACE { RecPat $2 }
