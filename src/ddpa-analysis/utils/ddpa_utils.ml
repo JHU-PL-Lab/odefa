@@ -200,3 +200,20 @@ let abstract_binary_operation
     singleton @@ Abs_value_bool(b1 <> b2)
   | _ -> None
 ;;
+
+let abstract_pattern_match (v : abstract_value) (p : pattern)
+  : abstract_value Enum.t =
+  match v, p with
+    | (_, Any_pattern) ->
+      Enum.singleton @@ Abs_value_bool(true)
+    | (Abs_value_function _, Fun_pattern) ->
+      Enum.singleton @@ Abs_value_bool(true)
+    | (Abs_value_int, Int_pattern) ->
+      Enum.singleton @@ Abs_value_bool(true)
+    | (Abs_value_bool b, Bool_pattern b') ->
+      Enum.singleton @@ Abs_value_bool(b = b')
+    | (Abs_value_record _, Record_pattern _) ->
+      List.enum [Abs_value_bool(true); Abs_value_bool(false)]
+    | _ ->
+      Enum.singleton @@ Abs_value_bool(false)
+;;
