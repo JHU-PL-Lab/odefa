@@ -1,0 +1,3701 @@
+smbc version: version: 
+==== REGEX ====
+=======================
+run on regex/regex_0.smt2
+-----------------------
+- smbc
+(result SAT :model ((val p (>2 (+2 Eps (Atom A)) (Star (Atom B))))))
+0:00.08
+-----------------------
+- hbmc
+Counterexample!
+p: (>2 (Atom A) (Star (Atom B)))
+
+0:13.24
+-----------------------
+- lazy smallcheck
+OK, required 3 tests at depth 0
+OK, required 22 tests at depth 1
+OK, required 535 tests at depth 2
+Counter example found:
+Atom A :> (Atom B :> Atom B)
+0:02.61
+-----------------------
+- cvc4
+<stdin>:1.12: No set-logic command was given before this point.
+<stdin>:1.12: CVC4 will make all theories available.
+<stdin>:1.12: Consider setting a stricter logic for (likely) better performance.
+<stdin>:1.12: To suppress this warning in the future use (set-logic ALL).
+Type list3 involving Boolean sort is not supported.
+0:00.02
+-----------------------
+- inox (z3)
+/home/simon/workspace/papers/cade_2017_smbc/eval/programs//inox: line 5: 10400 CPU time limit exceeded (core dumped) java -Xmx2G -Xms512M -Xss64M -classpath "${SCALACLASSPATH}" -Dscala.usejavacp=true inox.Main $@ 2>&1
+Command exited with non-zero status 152
+0:59.09
+ERROR
+-----------------------
+- inox (cvc4)
+[[34m  Info  [0m]  => UNKNOWN
+Command exited with non-zero status 1
+1:00.61
+ERROR
+=======================
+run on regex/regex_10.smt2
+-----------------------
+- smbc
+(TIMEOUT)
+1:00.00
+-----------------------
+- hbmc
+Command terminated by signal 24
+1:05.33
+ERROR
+-----------------------
+- lazy smallcheck
+OK, required 2 tests at depth 0
+OK, required 490 tests at depth 1
+Counter example found:
+Atom A
+Atom B
+Cons A (Cons B Nil)
+0:03.14
+-----------------------
+- cvc4
+<stdin>:1.12: No set-logic command was given before this point.
+<stdin>:1.12: CVC4 will make all theories available.
+<stdin>:1.12: Consider setting a stricter logic for (likely) better performance.
+<stdin>:1.12: To suppress this warning in the future use (set-logic ALL).
+Type list3 involving Boolean sort is not supported.
+0:00.02
+-----------------------
+- inox (z3)
+/home/simon/workspace/papers/cade_2017_smbc/eval/programs//inox: line 5: 11981 CPU time limit exceeded (core dumped) java -Xmx2G -Xms512M -Xss64M -classpath "${SCALACLASSPATH}" -Dscala.usejavacp=true inox.Main $@ 2>&1
+Command exited with non-zero status 152
+1:03.14
+ERROR
+-----------------------
+- inox (cvc4)
+[[34m  Info  [0m]  => UNKNOWN
+Command exited with non-zero status 1
+1:01.99
+ERROR
+=======================
+run on regex/regex_11.smt2
+-----------------------
+- smbc
+(TIMEOUT)
+1:00.00
+-----------------------
+- hbmc
+Command terminated by signal 24
+1:05.61
+ERROR
+-----------------------
+- lazy smallcheck
+OK, required 2 tests at depth 0
+OK, required 490 tests at depth 1
+OK, required 856266 tests at depth 2
+./lsc.sh: line 16: 13092 Killed                  runghc $HS_FILE
+Command exited with non-zero status 137
+1:00.03
+ERROR
+-----------------------
+- cvc4
+<stdin>:1.12: No set-logic command was given before this point.
+<stdin>:1.12: CVC4 will make all theories available.
+<stdin>:1.12: Consider setting a stricter logic for (likely) better performance.
+<stdin>:1.12: To suppress this warning in the future use (set-logic ALL).
+Type list3 involving Boolean sort is not supported.
+0:00.02
+-----------------------
+- inox (z3)
+/home/simon/workspace/papers/cade_2017_smbc/eval/programs//inox: line 5: 13657 CPU time limit exceeded (core dumped) java -Xmx2G -Xms512M -Xss64M -classpath "${SCALACLASSPATH}" -Dscala.usejavacp=true inox.Main $@ 2>&1
+Command exited with non-zero status 152
+1:03.84
+ERROR
+-----------------------
+- inox (cvc4)
+[[34m  Info  [0m]  => UNKNOWN
+Command exited with non-zero status 1
+1:00.64
+ERROR
+=======================
+run on regex/regex_1.smt2
+-----------------------
+- smbc
+(result SAT :model ((val p (Star (+2 (Atom B) (+2 Nil22 (Atom A)))))))
+0:05.01
+-----------------------
+- hbmc
+terminate called after throwing an instance of 'N7Minisat20OutOfMemoryExceptionE'
+Command terminated by signal 6
+0:40.48
+ERROR
+-----------------------
+- lazy smallcheck
+OK, required 3 tests at depth 0
+OK, required 22 tests at depth 1
+OK, required 535 tests at depth 2
+Counter example found:
+(Atom A :> Atom B) :> (Atom A :> Atom B)
+0:05.64
+-----------------------
+- cvc4
+<stdin>:1.12: No set-logic command was given before this point.
+<stdin>:1.12: CVC4 will make all theories available.
+<stdin>:1.12: Consider setting a stricter logic for (likely) better performance.
+<stdin>:1.12: To suppress this warning in the future use (set-logic ALL).
+Type list3 involving Boolean sort is not supported.
+0:00.02
+-----------------------
+- inox (z3)
+/home/simon/workspace/papers/cade_2017_smbc/eval/programs//inox: line 5: 15008 CPU time limit exceeded (core dumped) java -Xmx2G -Xms512M -Xss64M -classpath "${SCALACLASSPATH}" -Dscala.usejavacp=true inox.Main $@ 2>&1
+Command exited with non-zero status 152
+0:58.88
+ERROR
+-----------------------
+- inox (cvc4)
+[[34m  Info  [0m]  => UNKNOWN
+Command exited with non-zero status 1
+1:00.61
+ERROR
+=======================
+run on regex/regex_2.smt2
+-----------------------
+- smbc
+(result SAT :model ((val p (>2 (+2 Eps (Star (Atom A))) (Star (Atom B))))))
+0:00.25
+-----------------------
+- hbmc
+terminate called after throwing an instance of 'N7Minisat20OutOfMemoryExceptionE'
+Command terminated by signal 6
+0:42.81
+ERROR
+-----------------------
+- lazy smallcheck
+OK, required 3 tests at depth 0
+OK, required 22 tests at depth 1
+OK, required 535 tests at depth 2
+Counter example found:
+(Atom A :> Atom A) :> (Atom B :> Atom B)
+0:05.52
+-----------------------
+- cvc4
+<stdin>:1.12: No set-logic command was given before this point.
+<stdin>:1.12: CVC4 will make all theories available.
+<stdin>:1.12: Consider setting a stricter logic for (likely) better performance.
+<stdin>:1.12: To suppress this warning in the future use (set-logic ALL).
+Type list3 involving Boolean sort is not supported.
+0:00.02
+-----------------------
+- inox (z3)
+/home/simon/workspace/papers/cade_2017_smbc/eval/programs//inox: line 5: 15755 CPU time limit exceeded (core dumped) java -Xmx2G -Xms512M -Xss64M -classpath "${SCALACLASSPATH}" -Dscala.usejavacp=true inox.Main $@ 2>&1
+Command exited with non-zero status 152
+0:58.97
+ERROR
+-----------------------
+- inox (cvc4)
+[[34m  Info  [0m]  => UNKNOWN
+Command exited with non-zero status 1
+1:00.61
+ERROR
+=======================
+run on regex/regex_3.smt2
+-----------------------
+- smbc
+(result SAT :model ((val p (Star (+2 (Atom B) (+2 Nil22 (Atom A)))))))
+0:05.07
+-----------------------
+- hbmc
+terminate called after throwing an instance of 'N7Minisat20OutOfMemoryExceptionE'
+Command terminated by signal 6
+0:41.30
+ERROR
+-----------------------
+- lazy smallcheck
+OK, required 3 tests at depth 0
+OK, required 22 tests at depth 1
+OK, required 535 tests at depth 2
+Counter example found:
+(Atom A :> Atom B) :> (Atom B :> Atom A)
+0:05.86
+-----------------------
+- cvc4
+<stdin>:1.12: No set-logic command was given before this point.
+<stdin>:1.12: CVC4 will make all theories available.
+<stdin>:1.12: Consider setting a stricter logic for (likely) better performance.
+<stdin>:1.12: To suppress this warning in the future use (set-logic ALL).
+Type list3 involving Boolean sort is not supported.
+0:00.02
+-----------------------
+- inox (z3)
+/home/simon/workspace/papers/cade_2017_smbc/eval/programs//inox: line 5: 16531 CPU time limit exceeded (core dumped) java -Xmx2G -Xms512M -Xss64M -classpath "${SCALACLASSPATH}" -Dscala.usejavacp=true inox.Main $@ 2>&1
+Command exited with non-zero status 152
+0:59.17
+ERROR
+-----------------------
+- inox (cvc4)
+/home/simon/workspace/papers/cade_2017_smbc/eval/programs//inox: line 5: 16888 CPU time limit exceeded (core dumped) java -Xmx2G -Xms512M -Xss64M -classpath "${SCALACLASSPATH}" -Dscala.usejavacp=true inox.Main $@ 2>&1
+Command exited with non-zero status 152
+1:47.98
+ERROR
+=======================
+run on regex/regex_4.smt2
+-----------------------
+- smbc
+(result SAT :model ((val p (Star (+2 (Atom B) (Atom A))))))
+0:03.71
+-----------------------
+- hbmc
+terminate called after throwing an instance of 'Minisat::OutOfMemoryException'
+Command terminated by signal 6
+0:40.34
+ERROR
+-----------------------
+- lazy smallcheck
+OK, required 3 tests at depth 0
+OK, required 22 tests at depth 1
+OK, required 535 tests at depth 2
+Counter example found:
+Star (Atom A :+ Atom B)
+0:08.52
+-----------------------
+- cvc4
+<stdin>:1.12: No set-logic command was given before this point.
+<stdin>:1.12: CVC4 will make all theories available.
+<stdin>:1.12: Consider setting a stricter logic for (likely) better performance.
+<stdin>:1.12: To suppress this warning in the future use (set-logic ALL).
+Type list3 involving Boolean sort is not supported.
+0:00.02
+-----------------------
+- inox (z3)
+/home/simon/workspace/papers/cade_2017_smbc/eval/programs//inox: line 5: 17502 CPU time limit exceeded (core dumped) java -Xmx2G -Xms512M -Xss64M -classpath "${SCALACLASSPATH}" -Dscala.usejavacp=true inox.Main $@ 2>&1
+Command exited with non-zero status 152
+0:59.07
+ERROR
+-----------------------
+- inox (cvc4)
+/home/simon/workspace/papers/cade_2017_smbc/eval/programs//inox: line 5: 17808 CPU time limit exceeded (core dumped) java -Xmx2G -Xms512M -Xss64M -classpath "${SCALACLASSPATH}" -Dscala.usejavacp=true inox.Main $@ 2>&1
+Command exited with non-zero status 152
+1:47.63
+ERROR
+=======================
+run on regex/regex_5.smt2
+-----------------------
+- smbc
+(result SAT :model ((val p (Star (+2 (Atom B) (Atom A))))))
+0:03.71
+-----------------------
+- hbmc
+terminate called after throwing an instance of 'Minisat::OutOfMemoryException'
+Command terminated by signal 6
+0:38.97
+ERROR
+-----------------------
+- lazy smallcheck
+OK, required 3 tests at depth 0
+OK, required 22 tests at depth 1
+OK, required 535 tests at depth 2
+Counter example found:
+Star (Atom A :+ Atom B)
+0:08.55
+-----------------------
+- cvc4
+<stdin>:1.12: No set-logic command was given before this point.
+<stdin>:1.12: CVC4 will make all theories available.
+<stdin>:1.12: Consider setting a stricter logic for (likely) better performance.
+<stdin>:1.12: To suppress this warning in the future use (set-logic ALL).
+Type list3 involving Boolean sort is not supported.
+0:00.02
+-----------------------
+- inox (z3)
+/home/simon/workspace/papers/cade_2017_smbc/eval/programs//inox: line 5: 18198 CPU time limit exceeded (core dumped) java -Xmx2G -Xms512M -Xss64M -classpath "${SCALACLASSPATH}" -Dscala.usejavacp=true inox.Main $@ 2>&1
+Command exited with non-zero status 152
+0:59.11
+ERROR
+-----------------------
+- inox (cvc4)
+[[34m  Info  [0m]  => UNKNOWN
+Command exited with non-zero status 1
+1:00.62
+ERROR
+=======================
+run on regex/regex_6.smt2
+-----------------------
+- smbc
+(TIMEOUT)
+1:00.10
+-----------------------
+- hbmc
+terminate called after throwing an instance of 'Minisat::OutOfMemoryException'
+Command terminated by signal 6
+0:40.31
+ERROR
+-----------------------
+- lazy smallcheck
+OK, required 3 tests at depth 0
+OK, required 22 tests at depth 1
+OK, required 535 tests at depth 2
+Counter example found:
+Star (Atom A :+ Atom B)
+0:10.28
+-----------------------
+- cvc4
+<stdin>:1.12: No set-logic command was given before this point.
+<stdin>:1.12: CVC4 will make all theories available.
+<stdin>:1.12: Consider setting a stricter logic for (likely) better performance.
+<stdin>:1.12: To suppress this warning in the future use (set-logic ALL).
+Type list3 involving Boolean sort is not supported.
+0:00.02
+-----------------------
+- inox (z3)
+/home/simon/workspace/papers/cade_2017_smbc/eval/programs//inox: line 5: 19834 CPU time limit exceeded (core dumped) java -Xmx2G -Xms512M -Xss64M -classpath "${SCALACLASSPATH}" -Dscala.usejavacp=true inox.Main $@ 2>&1
+Command exited with non-zero status 152
+0:58.96
+ERROR
+-----------------------
+- inox (cvc4)
+/home/simon/workspace/papers/cade_2017_smbc/eval/programs//inox: line 5: 20200 CPU time limit exceeded (core dumped) java -Xmx2G -Xms512M -Xss64M -classpath "${SCALACLASSPATH}" -Dscala.usejavacp=true inox.Main $@ 2>&1
+Command exited with non-zero status 152
+1:45.19
+ERROR
+=======================
+run on regex/regex_7.smt2
+-----------------------
+- smbc
+(result SAT :model ((val b B) 
+                    (val a A) 
+                    (val q (Atom B)) 
+                    (val p (Atom A))))
+0:00.00
+-----------------------
+- hbmc
+Counterexample!
+p: Atom B
+q: Atom A
+a: A
+b: B
+
+0:00.07
+-----------------------
+- lazy smallcheck
+OK, required 7 tests at depth 0
+Counter example found:
+Atom A
+Atom B
+A
+B
+0:00.33
+-----------------------
+- cvc4
+<stdin>:1.12: No set-logic command was given before this point.
+<stdin>:1.12: CVC4 will make all theories available.
+<stdin>:1.12: Consider setting a stricter logic for (likely) better performance.
+<stdin>:1.12: To suppress this warning in the future use (set-logic ALL).
+Type list3 involving Boolean sort is not supported.
+0:00.02
+-----------------------
+- inox (z3)
+/home/simon/workspace/papers/cade_2017_smbc/eval/programs//inox: line 5: 20286 CPU time limit exceeded (core dumped) java -Xmx2G -Xms512M -Xss64M -classpath "${SCALACLASSPATH}" -Dscala.usejavacp=true inox.Main $@ 2>&1
+Command exited with non-zero status 152
+0:59.12
+ERROR
+-----------------------
+- inox (cvc4)
+[[34m  Info  [0m]  => UNKNOWN
+Command exited with non-zero status 1
+14:56:26
+ERROR
+=======================
+run on regex/regex_8.smt2
+-----------------------
+- smbc
+(TIMEOUT)
+1:00.00
+-----------------------
+- hbmc
+Command terminated by signal 24
+1:05.23
+ERROR
+-----------------------
+- lazy smallcheck
+OK, required 6 tests at depth 0
+OK, required 510 tests at depth 1
+Counter example found:
+Atom A
+Atom B
+Cons A (Cons B Nil)
+0:02.99
+-----------------------
+- cvc4
+<stdin>:1.12: No set-logic command was given before this point.
+<stdin>:1.12: CVC4 will make all theories available.
+<stdin>:1.12: Consider setting a stricter logic for (likely) better performance.
+<stdin>:1.12: To suppress this warning in the future use (set-logic ALL).
+Type list3 involving Boolean sort is not supported.
+0:00.02
+-----------------------
+- inox (z3)
+/home/simon/workspace/papers/cade_2017_smbc/eval/programs//inox: line 5: 21567 CPU time limit exceeded (core dumped) java -Xmx2G -Xms512M -Xss64M -classpath "${SCALACLASSPATH}" -Dscala.usejavacp=true inox.Main $@ 2>&1
+Command exited with non-zero status 152
+1:03.02
+ERROR
+-----------------------
+- inox (cvc4)
+[[34m  Info  [0m]  => UNKNOWN
+Command exited with non-zero status 1
+1:00.82
+ERROR
+=======================
+run on regex/regex_9.smt2
+-----------------------
+- smbc
+(TIMEOUT)
+1:00.00
+-----------------------
+- hbmc
+Command terminated by signal 24
+1:05.09
+ERROR
+-----------------------
+- lazy smallcheck
+OK, required 2 tests at depth 0
+OK, required 490 tests at depth 1
+Counter example found:
+Atom A
+Atom B
+Cons A (Cons B Nil)
+0:03.45
+-----------------------
+- cvc4
+<stdin>:1.12: No set-logic command was given before this point.
+<stdin>:1.12: CVC4 will make all theories available.
+<stdin>:1.12: Consider setting a stricter logic for (likely) better performance.
+<stdin>:1.12: To suppress this warning in the future use (set-logic ALL).
+Type list3 involving Boolean sort is not supported.
+0:00.02
+-----------------------
+- inox (z3)
+/home/simon/workspace/papers/cade_2017_smbc/eval/programs//inox: line 5: 21771 CPU time limit exceeded (core dumped) java -Xmx2G -Xms512M -Xss64M -classpath "${SCALACLASSPATH}" -Dscala.usejavacp=true inox.Main $@ 2>&1
+Command exited with non-zero status 152
+0:59.31
+ERROR
+-----------------------
+- inox (cvc4)
+[[34m  Info  [0m]  => UNKNOWN
+Command exited with non-zero status 1
+1:01.80
+ERROR
+==== PALINDROMES ====
+=======================
+run on palindromes/long_rev_sum1.smt2
+-----------------------
+- smbc
+(result UNSAT)
+0:00.05
+-----------------------
+- hbmc
+Contradiction!
+No value found.
+0:00.11
+-----------------------
+- lazy smallcheck
+OK, required 2 tests at depth 0
+OK, required 4 tests at depth 1
+OK, required 6 tests at depth 2
+OK, required 8 tests at depth 3
+OK, required 10 tests at depth 4
+OK, required 12 tests at depth 5
+OK, required 2555 tests at depth 6
+OK, required 8982 tests at depth 7
+OK, required 16496 tests at depth 8
+OK, required 21717 tests at depth 9
+OK, required 24619 tests at depth 10
+OK, required 26110 tests at depth 11
+OK, required 26838 tests at depth 12
+OK, required 27164 tests at depth 13
+OK, required 27291 tests at depth 14
+OK, required 27331 tests at depth 15
+OK, required 27340 tests at depth 16
+OK, required 27341 tests at depth 17
+OK, required 27341 tests at depth 18
+OK, required 27341 tests at depth 19
+OK, required 27341 tests at depth 20
+OK, required 27341 tests at depth 21
+OK, required 27341 tests at depth 22
+OK, required 27341 tests at depth 23
+OK, required 27341 tests at depth 24
+OK, required 27341 tests at depth 25
+OK, required 27341 tests at depth 26
+OK, required 27341 tests at depth 27
+OK, required 27341 tests at depth 28
+OK, required 27341 tests at depth 29
+OK, required 27341 tests at depth 30
+OK, required 27341 tests at depth 31
+OK, required 27341 tests at depth 32
+OK, required 27341 tests at depth 33
+OK, required 27341 tests at depth 34
+OK, required 27341 tests at depth 35
+OK, required 27341 tests at depth 36
+OK, required 27341 tests at depth 37
+OK, required 27341 tests at depth 38
+OK, required 27341 tests at depth 39
+OK, required 27341 tests at depth 40
+OK, required 27341 tests at depth 41
+OK, required 27341 tests at depth 42
+OK, required 27341 tests at depth 43
+OK, required 27341 tests at depth 44
+OK, required 27341 tests at depth 45
+OK, required 27341 tests at depth 46
+OK, required 27341 tests at depth 47
+OK, required 27341 tests at depth 48
+OK, required 27341 tests at depth 49
+OK, required 27341 tests at depth 50
+OK, required 27341 tests at depth 51
+OK, required 27341 tests at depth 52
+OK, required 27341 tests at depth 53
+OK, required 27341 tests at depth 54
+OK, required 27341 tests at depth 55
+OK, required 27341 tests at depth 56
+OK, required 27341 tests at depth 57
+OK, required 27341 tests at depth 58
+OK, required 27341 tests at depth 59
+OK, required 27341 tests at depth 60
+OK, required 27341 tests at depth 61
+OK, required 27341 tests at depth 62
+OK, required 27341 tests at depth 63
+OK, required 27341 tests at depth 64
+OK, required 27341 tests at depth 65
+OK, required 27341 tests at depth 66
+OK, required 27341 tests at depth 67
+OK, required 27341 tests at depth 68
+OK, required 27341 tests at depth 69
+OK, required 27341 tests at depth 70
+OK, required 27341 tests at depth 71
+OK, required 27341 tests at depth 72
+OK, required 27341 tests at depth 73
+OK, required 27341 tests at depth 74
+OK, required 27341 tests at depth 75
+OK, required 27341 tests at depth 76
+OK, required 27341 tests at depth 77
+OK, required 27341 tests at depth 78
+OK, required 27341 tests at depth 79
+OK, required 27341 tests at depth 80
+OK, required 27341 tests at depth 81
+OK, required 27341 tests at depth 82
+OK, required 27341 tests at depth 83
+OK, required 27341 tests at depth 84
+OK, required 27341 tests at depth 85
+OK, required 27341 tests at depth 86
+OK, required 27341 tests at depth 87
+OK, required 27341 tests at depth 88
+OK, required 27341 tests at depth 89
+OK, required 27341 tests at depth 90
+OK, required 27341 tests at depth 91
+OK, required 27341 tests at depth 92
+OK, required 27341 tests at depth 93
+OK, required 27341 tests at depth 94
+OK, required 27341 tests at depth 95
+OK, required 27341 tests at depth 96
+OK, required 27341 tests at depth 97
+OK, required 27341 tests at depth 98
+OK, required 27341 tests at depth 99
+OK, required 27341 tests at depth 100
+OK, required 27341 tests at depth 101
+OK, required 27341 tests at depth 102
+OK, required 27341 tests at depth 103
+OK, required 27341 tests at depth 104
+OK, required 27341 tests at depth 105
+OK, required 27341 tests at depth 106
+OK, required 27341 tests at depth 107
+OK, required 27341 tests at depth 108
+OK, required 27341 tests at depth 109
+OK, required 27341 tests at depth 110
+OK, required 27341 tests at depth 111
+OK, required 27341 tests at depth 112
+OK, required 27341 tests at depth 113
+OK, required 27341 tests at depth 114
+OK, required 27341 tests at depth 115
+OK, required 27341 tests at depth 116
+OK, required 27341 tests at depth 117
+OK, required 27341 tests at depth 118
+OK, required 27341 tests at depth 119
+OK, required 27341 tests at depth 120
+OK, required 27341 tests at depth 121
+OK, required 27341 tests at depth 122
+OK, required 27341 tests at depth 123
+OK, required 27341 tests at depth 124
+OK, required 27341 tests at depth 125
+OK, required 27341 tests at depth 126
+OK, required 27341 tests at depth 127
+OK, required 27341 tests at depth 128
+OK, required 27341 tests at depth 129
+OK, required 27341 tests at depth 130
+OK, required 27341 tests at depth 131
+OK, required 27341 tests at depth 132
+OK, required 27341 tests at depth 133
+OK, required 27341 tests at depth 134
+OK, required 27341 tests at depth 135
+OK, required 27341 tests at depth 136
+OK, required 27341 tests at depth 137
+OK, required 27341 tests at depth 138
+OK, required 27341 tests at depth 139
+OK, required 27341 tests at depth 140
+OK, required 27341 tests at depth 141
+OK, required 27341 tests at depth 142
+OK, required 27341 tests at depth 143
+OK, required 27341 tests at depth 144
+OK, required 27341 tests at depth 145
+OK, required 27341 tests at depth 146
+OK, required 27341 tests at depth 147
+OK, required 27341 tests at depth 148
+OK, required 27341 tests at depth 149
+OK, required 27341 tests at depth 150
+OK, required 27341 tests at depth 151
+OK, required 27341 tests at depth 152
+OK, required 27341 tests at depth 153
+OK, required 27341 tests at depth 154
+OK, required 27341 tests at depth 155
+OK, required 27341 tests at depth 156
+OK, required 27341 tests at depth 157
+OK, required 27341 tests at depth 158
+OK, required 27341 tests at depth 159
+OK, required 27341 tests at depth 160
+OK, required 27341 tests at depth 161
+OK, required 27341 tests at depth 162
+OK, required 27341 tests at depth 163
+OK, required 27341 tests at depth 164
+OK, required 27341 tests at depth 165
+OK, required 27341 tests at depth 166
+OK, required 27341 tests at depth 167
+OK, required 27341 tests at depth 168
+OK, required 27341 tests at depth 169
+OK, required 27341 tests at depth 170
+OK, required 27341 tests at depth 171
+OK, required 27341 tests at depth 172
+OK, required 27341 tests at depth 173
+OK, required 27341 tests at depth 174
+OK, required 27341 tests at depth 175
+OK, required 27341 tests at depth 176
+OK, required 27341 tests at depth 177
+OK, required 27341 tests at depth 178
+OK, required 27341 tests at depth 179
+OK, required 27341 tests at depth 180
+OK, required 27341 tests at depth 181
+OK, required 27341 tests at depth 182
+OK, required 27341 tests at depth 183
+OK, required 27341 tests at depth 184
+OK, required 27341 tests at depth 185
+OK, required 27341 tests at depth 186
+OK, required 27341 tests at depth 187
+OK, required 27341 tests at depth 188
+OK, required 27341 tests at depth 189
+OK, required 27341 tests at depth 190
+OK, required 27341 tests at depth 191
+OK, required 27341 tests at depth 192
+OK, required 27341 tests at depth 193
+OK, required 27341 tests at depth 194
+OK, required 27341 tests at depth 195
+OK, required 27341 tests at depth 196
+OK, required 27341 tests at depth 197
+OK, required 27341 tests at depth 198
+OK, required 27341 tests at depth 199
+OK, required 27341 tests at depth 200
+OK, required 27341 tests at depth 201
+OK, required 27341 tests at depth 202
+OK, required 27341 tests at depth 203
+OK, required 27341 tests at depth 204
+OK, required 27341 tests at depth 205
+OK, required 27341 tests at depth 206
+OK, required 27341 tests at depth 207
+OK, required 27341 tests at depth 208
+OK, required 27341 tests at depth 209
+OK, required 27341 tests at depth 210
+OK, required 27341 tests at depth 211
+OK, required 27341 tests at depth 212
+OK, required 27341 tests at depth 213
+OK, required 27341 tests at depth 214
+OK, required 27341 tests at depth 215
+OK, required 27341 tests at depth 216
+OK, required 27341 tests at depth 217
+OK, required 27341 tests at depth 218
+OK, required 27341 tests at depth 219
+OK, required 27341 tests at depth 220
+OK, required 27341 tests at depth 221
+OK, required 27341 tests at depth 222
+OK, required 27341 tests at depth 223
+OK, required 27341 tests at depth 224
+OK, required 27341 tests at depth 225
+./lsc.sh: line 16: 22781 Killed                  runghc $HS_FILE
+Command exited with non-zero status 137
+1:00.38
+ERROR
+-----------------------
+- cvc4
+<stdin>:1.12: No set-logic command was given before this point.
+<stdin>:1.12: CVC4 will make all theories available.
+<stdin>:1.12: Consider setting a stricter logic for (likely) better performance.
+<stdin>:1.12: To suppress this warning in the future use (set-logic ALL).
+CVC4 interrupted by timeout.
+Command terminated by signal 6
+1:00.09
+ERROR
+-----------------------
+- inox (z3)
+[[34m  Info  [0m]  => UNSAT
+0:01.69
+-----------------------
+- inox (cvc4)
+[[34m  Info  [0m]  => UNSAT
+0:05.27
+=======================
+run on palindromes/long_rev_sum2.smt2
+-----------------------
+- smbc
+(result UNSAT)
+0:13.28
+-----------------------
+- hbmc
+terminate called after throwing an instance of 'Minisat::OutOfMemoryException'
+Command terminated by signal 6
+1:04.85
+ERROR
+-----------------------
+- lazy smallcheck
+OK, required 2 tests at depth 0
+OK, required 4 tests at depth 1
+OK, required 6 tests at depth 2
+OK, required 8 tests at depth 3
+OK, required 10 tests at depth 4
+OK, required 12 tests at depth 5
+OK, required 14 tests at depth 6
+OK, required 16 tests at depth 7
+OK, required 18 tests at depth 8
+OK, required 20 tests at depth 9
+OK, required 22 tests at depth 10
+OK, required 24 tests at depth 11
+OK, required 26 tests at depth 12
+OK, required 28 tests at depth 13
+OK, required 30 tests at depth 14
+OK, required 32 tests at depth 15
+OK, required 34 tests at depth 16
+OK, required 36 tests at depth 17
+OK, required 38 tests at depth 18
+OK, required 40 tests at depth 19
+OK, required 42 tests at depth 20
+OK, required 44 tests at depth 21
+OK, required 46 tests at depth 22
+OK, required 48 tests at depth 23
+OK, required 50 tests at depth 24
+OK, required 52 tests at depth 25
+OK, required 54 tests at depth 26
+OK, required 56 tests at depth 27
+OK, required 58 tests at depth 28
+OK, required 60 tests at depth 29
+OK, required 62 tests at depth 30
+OK, required 64 tests at depth 31
+OK, required 66 tests at depth 32
+OK, required 68 tests at depth 33
+OK, required 70 tests at depth 34
+OK, required 72 tests at depth 35
+OK, required 74 tests at depth 36
+OK, required 76 tests at depth 37
+OK, required 78 tests at depth 38
+OK, required 80 tests at depth 39
+OK, required 82 tests at depth 40
+OK, required 84 tests at depth 41
+OK, required 86 tests at depth 42
+OK, required 88 tests at depth 43
+OK, required 90 tests at depth 44
+OK, required 92 tests at depth 45
+OK, required 94 tests at depth 46
+OK, required 96 tests at depth 47
+OK, required 98 tests at depth 48
+OK, required 100 tests at depth 49
+OK, required 102 tests at depth 50
+OK, required 104 tests at depth 51
+OK, required 106 tests at depth 52
+OK, required 108 tests at depth 53
+OK, required 110 tests at depth 54
+OK, required 112 tests at depth 55
+OK, required 114 tests at depth 56
+OK, required 116 tests at depth 57
+OK, required 118 tests at depth 58
+OK, required 120 tests at depth 59
+OK, required 122 tests at depth 60
+OK, required 124 tests at depth 61
+OK, required 126 tests at depth 62
+OK, required 128 tests at depth 63
+OK, required 130 tests at depth 64
+OK, required 132 tests at depth 65
+OK, required 134 tests at depth 66
+OK, required 136 tests at depth 67
+OK, required 138 tests at depth 68
+OK, required 140 tests at depth 69
+OK, required 142 tests at depth 70
+OK, required 144 tests at depth 71
+OK, required 146 tests at depth 72
+OK, required 148 tests at depth 73
+OK, required 150 tests at depth 74
+OK, required 152 tests at depth 75
+OK, required 154 tests at depth 76
+OK, required 156 tests at depth 77
+OK, required 158 tests at depth 78
+OK, required 160 tests at depth 79
+OK, required 162 tests at depth 80
+OK, required 164 tests at depth 81
+OK, required 166 tests at depth 82
+OK, required 168 tests at depth 83
+OK, required 170 tests at depth 84
+OK, required 172 tests at depth 85
+OK, required 174 tests at depth 86
+OK, required 176 tests at depth 87
+OK, required 178 tests at depth 88
+OK, required 180 tests at depth 89
+OK, required 182 tests at depth 90
+OK, required 184 tests at depth 91
+OK, required 186 tests at depth 92
+OK, required 188 tests at depth 93
+OK, required 190 tests at depth 94
+OK, required 192 tests at depth 95
+OK, required 194 tests at depth 96
+OK, required 196 tests at depth 97
+OK, required 198 tests at depth 98
+OK, required 200 tests at depth 99
+OK, required 202 tests at depth 100
+OK, required 204 tests at depth 101
+OK, required 206 tests at depth 102
+OK, required 208 tests at depth 103
+OK, required 210 tests at depth 104
+OK, required 212 tests at depth 105
+OK, required 214 tests at depth 106
+OK, required 216 tests at depth 107
+OK, required 218 tests at depth 108
+OK, required 220 tests at depth 109
+OK, required 222 tests at depth 110
+OK, required 224 tests at depth 111
+OK, required 226 tests at depth 112
+OK, required 228 tests at depth 113
+OK, required 230 tests at depth 114
+OK, required 232 tests at depth 115
+OK, required 234 tests at depth 116
+OK, required 236 tests at depth 117
+OK, required 238 tests at depth 118
+OK, required 240 tests at depth 119
+OK, required 242 tests at depth 120
+OK, required 244 tests at depth 121
+OK, required 246 tests at depth 122
+OK, required 248 tests at depth 123
+OK, required 250 tests at depth 124
+OK, required 252 tests at depth 125
+OK, required 254 tests at depth 126
+OK, required 256 tests at depth 127
+OK, required 258 tests at depth 128
+OK, required 260 tests at depth 129
+OK, required 262 tests at depth 130
+OK, required 264 tests at depth 131
+OK, required 266 tests at depth 132
+OK, required 268 tests at depth 133
+OK, required 270 tests at depth 134
+OK, required 272 tests at depth 135
+OK, required 274 tests at depth 136
+OK, required 276 tests at depth 137
+OK, required 278 tests at depth 138
+OK, required 280 tests at depth 139
+OK, required 282 tests at depth 140
+OK, required 284 tests at depth 141
+OK, required 286 tests at depth 142
+OK, required 288 tests at depth 143
+OK, required 290 tests at depth 144
+OK, required 292 tests at depth 145
+OK, required 294 tests at depth 146
+OK, required 296 tests at depth 147
+OK, required 298 tests at depth 148
+OK, required 300 tests at depth 149
+OK, required 302 tests at depth 150
+OK, required 304 tests at depth 151
+OK, required 306 tests at depth 152
+OK, required 308 tests at depth 153
+OK, required 310 tests at depth 154
+OK, required 312 tests at depth 155
+OK, required 314 tests at depth 156
+OK, required 316 tests at depth 157
+OK, required 318 tests at depth 158
+OK, required 320 tests at depth 159
+OK, required 322 tests at depth 160
+OK, required 324 tests at depth 161
+OK, required 326 tests at depth 162
+OK, required 328 tests at depth 163
+OK, required 330 tests at depth 164
+OK, required 332 tests at depth 165
+OK, required 334 tests at depth 166
+OK, required 336 tests at depth 167
+OK, required 338 tests at depth 168
+OK, required 340 tests at depth 169
+OK, required 342 tests at depth 170
+OK, required 344 tests at depth 171
+OK, required 346 tests at depth 172
+OK, required 348 tests at depth 173
+OK, required 350 tests at depth 174
+OK, required 352 tests at depth 175
+OK, required 354 tests at depth 176
+OK, required 356 tests at depth 177
+OK, required 358 tests at depth 178
+OK, required 360 tests at depth 179
+OK, required 362 tests at depth 180
+OK, required 364 tests at depth 181
+OK, required 366 tests at depth 182
+OK, required 368 tests at depth 183
+OK, required 370 tests at depth 184
+OK, required 372 tests at depth 185
+OK, required 374 tests at depth 186
+OK, required 376 tests at depth 187
+OK, required 378 tests at depth 188
+OK, required 380 tests at depth 189
+OK, required 382 tests at depth 190
+OK, required 384 tests at depth 191
+OK, required 386 tests at depth 192
+OK, required 388 tests at depth 193
+OK, required 390 tests at depth 194
+OK, required 392 tests at depth 195
+OK, required 394 tests at depth 196
+OK, required 396 tests at depth 197
+OK, required 398 tests at depth 198
+OK, required 400 tests at depth 199
+OK, required 40799 tests at depth 200
+OK, required 41001 tests at depth 201
+OK, required 41001 tests at depth 202
+OK, required 41001 tests at depth 203
+OK, required 41001 tests at depth 204
+OK, required 41001 tests at depth 205
+OK, required 41001 tests at depth 206
+OK, required 41001 tests at depth 207
+OK, required 41001 tests at depth 208
+OK, required 41001 tests at depth 209
+./lsc.sh: line 16: 23993 Killed                  runghc $HS_FILE
+Command exited with non-zero status 137
+0:59.65
+ERROR
+-----------------------
+- cvc4
+<stdin>:1.12: No set-logic command was given before this point.
+<stdin>:1.12: CVC4 will make all theories available.
+<stdin>:1.12: Consider setting a stricter logic for (likely) better performance.
+<stdin>:1.12: To suppress this warning in the future use (set-logic ALL).
+unknown
+1:00.02
+-----------------------
+- inox (z3)
+/home/simon/workspace/papers/cade_2017_smbc/eval/programs//inox: line 5: 24038 CPU time limit exceeded (core dumped) java -Xmx2G -Xms512M -Xss64M -classpath "${SCALACLASSPATH}" -Dscala.usejavacp=true inox.Main $@ 2>&1
+Command exited with non-zero status 152
+1:03.70
+ERROR
+-----------------------
+- inox (cvc4)
+/home/simon/workspace/papers/cade_2017_smbc/eval/programs//inox: line 5: 24084 CPU time limit exceeded (core dumped) java -Xmx2G -Xms512M -Xss64M -classpath "${SCALACLASSPATH}" -Dscala.usejavacp=true inox.Main $@ 2>&1
+Command exited with non-zero status 152
+1:03.39
+ERROR
+=======================
+run on palindromes/long_rev_sum3.smt2
+-----------------------
+- smbc
+(result SAT
+  :model ((val l_5
+            (cons
+              (s
+                (s
+                  (s
+                    (s
+                      (s
+                        (s
+                          (s
+                            (s
+                              (s
+                                (s
+                                  (s
+                                    (s
+                                      (s
+                                        (s
+                                          (s
+                                            (s
+                                              (s
+                                                (s
+                                                  (s
+                                                    (s
+                                                      (s
+                                                        (s
+                                                          (s
+                                                            (s
+                                                              (s
+                                                                (s
+                                                                  (s
+                                                                    (
+                                                                    s
+                                                                    (s
+                                                                    (s
+                                                                    (s
+                                                                    (s
+                                                                    (s
+                                                                    (s
+                                                                    (s
+                                                                    (s
+                                                                    (s
+                                                                    (s
+                                                                    (s
+                                                                    (s
+                                                                    (s
+                                                                    (s
+                                                                    (s
+                                                                    (s
+                                                                    (s
+                                                                    (s
+                                                                    (s
+                                                                    (s
+                                                                    (s
+                                                                    (s
+                                                                    (s
+                                                                    (s
+                                                                    (s
+                                                                    (s
+                                                                    (s
+                                                                    (s
+                                                                    (s
+                                                                    (s
+                                                                    (s
+                                                                    (s
+                                                                    (s
+                                                                    (s
+                                                                    (s
+                                                                    (s
+                                                                    (s
+                                                                    (s
+                                                                    (s
+                                                                    (s
+                                                                    (s
+                                                                    (s
+                                                                    (s
+                                                                    (s
+                                                                    (s
+                                                                    (s
+                                                                    (s
+                                                                    (s
+                                                                    (s
+                                                                    (s
+                                                                    (s
+                                                                    (s
+                                                                    (s
+                                                                    (s
+                                                                    (s
+                                                                    (s
+                                                                    (s
+                                                                    (s
+                                                                    (s
+                                                                    (s
+                                                                    (s
+                                                                    (s
+                                                                    (s
+                                                                    (s
+                                                                    (s
+                                                                    (s
+                                                                    (s
+                                                                    (s
+                                                                    (s
+                                                                    (s
+                                                                    (s
+                                                                    (s
+                                                                    (s
+                                                                    (s
+                                                                    (s
+                                                                    (s
+                                                                    (s
+                                                                    (s
+                                                                    (s
+                                                                    (s
+                                                                    (s
+                                                                    (s
+                                                                    (s
+                                                                    (s
+                                                                    (s
+                                                                    (s
+                                                                    (s
+                                                                    (s
+                                                                    (s
+                                                                    (s
+                                                                    (s
+                                                                    (s
+                                                                    (s
+                                                                    (s
+                                                                    (s
+                                                                    (s
+                                                                    (s
+                                                                    (s
+                                                                    (s
+                                                                    (s
+                                                                    (s
+                                                                    (s
+                                                                    (s
+                                                                    (s
+                                                                    (s
+                                                                    (s
+                                                                    (s
+                                                                    (s
+                                                                    (s
+                                                                    (s
+                                                                    (s
+                                                                    (s
+                                                                    (s
+                                                                    (s
+                                                                    (s
+                                                                    (s
+                                                                    (s
+                                                                    (s
+                                                                    (s
+                                                                    (s
+                                                                    (s
+                                                                    (s
+                                                                    (s
+                                                                    (s
+                                                                    (s
+                                                                    (s
+                                                                    (s
+                                                                    (s
+                                                                    (s
+                                                                    (s
+                                                                    (s
+                                                                    (s
+                                                                    (s
+                                                                    (s
+                                                                    (s
+                                                                    (s
+                                                                    (s
+                                                                    (s
+                                                                    (s
+                                                                    (s
+                                                                    (s
+                                                                    (s
+                                                                    (s
+                                                                    (s
+                                                                    (s
+                                                                    (s
+                                                                    (s
+                                                                    (s
+                                                                    (s
+                                                                    (s
+                                                                    (s
+                                                                    (s
+                                                                    (s
+                                                                    (s
+                                                                    (s
+                                                                    (s
+                                                                    (s
+                                                                    (s
+                                                                    (s
+                                                                    (s
+                                                                    (s
+                                                                    (s
+                                                                    (s
+                                                                    (s
+                                                                    (s
+                                                                    (s
+                                                                    (s
+                                                                    (s
+                                                                    (s
+                                                                    (s
+                                                                    (s
+                                                                    (s
+                                                                    (s
+                                                                    (s
+                                                                    (s
+                                                                    (s
+                                                                    (s
+                                                                    (s
+                                                                    (s
+                                                                    (s
+                                                                    (s
+                                                                    (s
+                                                                    (s
+                                                                    (s
+                                                                    (s
+                                                                    (s
+                                                                    (s
+                                                                    (s
+                                                                    (s
+                                                                    (s
+                                                                    (s
+                                                                    (s
+                                                                    (s
+                                                                    (s
+                                                                    (s
+                                                                    (s
+                                                                    (s
+                                                                    (s
+                                                                    (s
+                                                                    (s
+                                                                    (s
+                                                                    (s
+                                                                    (s
+                                                                    (s
+                                                                    (s
+                                                                    (s
+                                                                    (s
+                                                                    (s
+                                                                    (s
+                                                                    (s
+                                                                    (s
+                                                                    (s
+                                                                    (s
+                                                                    (s
+                                                                    (s
+                                                                    (s
+                                                                    (s
+                                                                    (s
+                                                                    (s
+                                                                    (s
+                                                                    (s (s z)))))))))))))))))))))))))))))))))))))))))))))))))))))))))))))))))))))))))))))))))))))))))))))))))))))))))))))))))))))))))))))))))))))))))))))))))))))))))))))))))))))))))))))))))))))))))))))))))))))))))))))))))))))))))))))))))))))))))))))))))))))))))) 
+              (cons
+                (s
+                  (s
+                    (s
+                      (s
+                        (s
+                          (s
+                            (s
+                              (s
+                                (s
+                                  (s
+                                    (s
+                                      (s
+                                        (s
+                                          (s
+                                            (s
+                                              (s
+                                                (s
+                                                  (s
+                                                    (s
+                                                      (s
+                                                        (s
+                                                          (s
+                                                            (s
+                                                              (s
+                                                                (s
+                                                                  (s
+                                                                    (
+                                                                    s
+                                                                    (s
+                                                                    (s
+                                                                    (s
+                                                                    (s
+                                                                    (s
+                                                                    (s
+                                                                    (s
+                                                                    (s
+                                                                    (s
+                                                                    (s
+                                                                    (s
+                                                                    (s
+                                                                    (s
+                                                                    (s
+                                                                    (s
+                                                                    (s
+                                                                    (s
+                                                                    (s
+                                                                    (s
+                                                                    (s
+                                                                    (s
+                                                                    (s
+                                                                    (s
+                                                                    (s
+                                                                    (s
+                                                                    (s
+                                                                    (s
+                                                                    (s
+                                                                    (s
+                                                                    (s
+                                                                    (s
+                                                                    (s
+                                                                    (s
+                                                                    (s
+                                                                    (s
+                                                                    (s
+                                                                    (s
+                                                                    (s
+                                                                    (s
+                                                                    (s
+                                                                    (s
+                                                                    (s
+                                                                    (s
+                                                                    (s
+                                                                    (s
+                                                                    (s
+                                                                    (s
+                                                                    (s
+                                                                    (s
+                                                                    (s
+                                                                    (s
+                                                                    (s
+                                                                    (s
+                                                                    (s
+                                                                    (s
+                                                                    (s
+                                                                    (s
+                                                                    (s
+                                                                    (s
+                                                                    (s
+                                                                    (s
+                                                                    (s
+                                                                    (s
+                                                                    (s
+                                                                    (s
+                                                                    (s
+                                                                    (s
+                                                                    (s
+                                                                    (s
+                                                                    (s
+                                                                    (s
+                                                                    (s
+                                                                    (s
+                                                                    (s
+                                                                    (s
+                                                                    (s
+                                                                    (s
+                                                                    (s
+                                                                    (s
+                                                                    (s
+                                                                    (s
+                                                                    (s
+                                                                    (s
+                                                                    (s
+                                                                    (s
+                                                                    (s
+                                                                    (s
+                                                                    (s
+                                                                    (s
+                                                                    (s
+                                                                    (s
+                                                                    (s
+                                                                    (s
+                                                                    (s
+                                                                    (s
+                                                                    (s
+                                                                    (s
+                                                                    (s
+                                                                    (s
+                                                                    (s
+                                                                    (s
+                                                                    (s
+                                                                    (s
+                                                                    (s
+                                                                    (s
+                                                                    (s
+                                                                    (s
+                                                                    (s
+                                                                    (s
+                                                                    (s
+                                                                    (s
+                                                                    (s
+                                                                    (s
+                                                                    (s
+                                                                    (s
+                                                                    (s
+                                                                    (s
+                                                                    (s
+                                                                    (s
+                                                                    (s
+                                                                    (s
+                                                                    (s
+                                                                    (s
+                                                                    (s
+                                                                    (s
+                                                                    (s
+                                                                    (s
+                                                                    (s
+                                                                    (s
+                                                                    (s
+                                                                    (s
+                                                                    (s
+                                                                    (s
+                                                                    (s
+                                                                    (s
+                                                                    (s
+                                                                    (s
+                                                                    (s
+                                                                    (s
+                                                                    (s
+                                                                    (s
+                                                                    (s
+                                                                    (s
+                                                                    (s
+                                                                    (s
+                                                                    (s
+                                                                    (s
+                                                                    (s
+                                                                    (s
+                                                                    (s
+                                                                    (s
+                                                                    (s
+                                                                    (s
+                                                                    (s
+                                                                    (s
+                                                                    (s
+                                                                    (s
+                                                                    (s
+                                                                    (s
+                                                                    (s
+                                                                    (s
+                                                                    (s
+                                                                    (s
+                                                                    (s
+                                                                    (s
+                                                                    (s
+                                                                    (s
+                                                                    (s
+                                                                    (s
+                                                                    (s
+                                                                    (s
+                                                                    (s
+                                                                    (s
+                                                                    (s
+                                                                    (s
+                                                                    (s
+                                                                    (s
+                                                                    (s
+                                                                    (s
+                                                                    (s
+                                                                    (s
+                                                                    (s
+                                                                    (s
+                                                                    (s
+                                                                    (s
+                                                                    (s
+                                                                    (s
+                                                                    (s
+                                                                    (s
+                                                                    (s
+                                                                    (s
+                                                                    (s
+                                                                    (s
+                                                                    (s
+                                                                    (s
+                                                                    (s
+                                                                    (s
+                                                                    (s
+                                                                    (s
+                                                                    (s
+                                                                    (s
+                                                                    (s
+                                                                    (s
+                                                                    (s
+                                                                    (s
+                                                                    (s
+                                                                    (s
+                                                                    (s
+                                                                    (s
+                                                                    (s
+                                                                    (s
+                                                                    (s
+                                                                    (s
+                                                                    (s
+                                                                    (s
+                                                                    (s
+                                                                    (s
+                                                                    (s
+                                                                    (s
+                                                                    (s
+                                                                    (s
+                                                                    (s (s z)))))))))))))))))))))))))))))))))))))))))))))))))))))))))))))))))))))))))))))))))))))))))))))))))))))))))))))))))))))))))))))))))))))))))))))))))))))))))))))))))))))))))))))))))))))))))))))))))))))))))))))))))))))))))))))))))))))))))))))))))))))))))) 
+                nil)))))
+0:00.45
+-----------------------
+- hbmc
+Counterexample!
+l_5: cons
+  (s (s (s (s (s (s (s (s (s (s (s (s (s (s (s (s (s (s (s (s (s (s (s (s (s (s (s (s (s (s (s (s (s (s (s (s (s (s (s (s (s (s (s (s (s (s (s (s (s (s (s (s (s (s (s (s (s (s (s (s (s (s (s (s (s (s (s (s (s (s (s (s (s (s (s (s (s (s (s (s (s (s (s (s (s (s (s (s (s (s (s (s (s (s (s (s (s (s (s (s (s (s (s (s (s (s (s (s (s (s (s (s (s (s (s (s (s (s (s (s (s (s (s (s (s (s (s (s (s (s (s (s (s (s (s (s (s (s (s (s (s (s (s (s (s (s (s (s (s (s (s (s (s (s (s (s (s (s (s (s (s (s (s (s (s (s (s (s (s (s (s (s (s (s (s (s (s (s (s (s (s (s (s (s (s (s (s (s (s (s (s (s (s (s (s (s (s (s (s (s (s (s (s (s (s (s (s (s (s (s (s (s (s (s (s (s (s (s (s (s (s (s (s (s (s (s (s (s (s (s (s (s (s (s (s (s (s (s (s (s (s (s (s (s (s (s (s (s (s (s z))))))))))))))))))))))))))))))))))))))))))))))))))))))))))))))))))))))))))))))))))))))))))))))))))))))))))))))))))))))))))))))))))))))))))))))))))))))))))))))))))))))))))))))))))))))))))))))))))))))))))))))))))))))))))))))))))))))))))))))))))))))))))
+  (cons
+     (s (s (s (s (s (s (s (s (s (s (s (s (s (s (s (s (s (s (s (s (s (s (s (s (s (s (s (s (s (s (s (s (s (s (s (s (s (s (s (s (s (s (s (s (s (s (s (s (s (s (s (s (s (s (s (s (s (s (s (s (s (s (s (s (s (s (s (s (s (s (s (s (s (s (s (s (s (s (s (s (s (s (s (s (s (s (s (s (s (s (s (s (s (s (s (s (s (s (s (s (s (s (s (s (s (s (s (s (s (s (s (s (s (s (s (s (s (s (s (s (s (s (s (s (s (s (s (s (s (s (s (s (s (s (s (s (s (s (s (s (s (s (s (s (s (s (s (s (s (s (s (s (s (s (s (s (s (s (s (s (s (s (s (s (s (s (s (s (s (s (s (s (s (s (s (s (s (s (s (s (s (s (s (s (s (s (s (s (s (s (s (s (s (s (s (s (s (s (s (s (s (s (s (s (s (s (s (s (s (s (s (s (s (s (s (s (s (s (s (s (s (s (s (s (s (s (s (s (s (s (s (s (s (s (s (s (s (s (s (s (s (s (s (s (s (s (s (s (s (s z))))))))))))))))))))))))))))))))))))))))))))))))))))))))))))))))))))))))))))))))))))))))))))))))))))))))))))))))))))))))))))))))))))))))))))))))))))))))))))))))))))))))))))))))))))))))))))))))))))))))))))))))))))))))))))))))))))))))))))))))))))))))))
+     nil)
+
+0:02.81
+-----------------------
+- lazy smallcheck
+OK, required 2 tests at depth 0
+OK, required 4 tests at depth 1
+OK, required 11 tests at depth 2
+OK, required 20 tests at depth 3
+OK, required 30 tests at depth 4
+OK, required 42 tests at depth 5
+OK, required 56 tests at depth 6
+OK, required 72 tests at depth 7
+OK, required 90 tests at depth 8
+OK, required 110 tests at depth 9
+OK, required 132 tests at depth 10
+OK, required 156 tests at depth 11
+OK, required 182 tests at depth 12
+OK, required 210 tests at depth 13
+OK, required 240 tests at depth 14
+OK, required 272 tests at depth 15
+OK, required 306 tests at depth 16
+OK, required 342 tests at depth 17
+OK, required 380 tests at depth 18
+OK, required 420 tests at depth 19
+OK, required 462 tests at depth 20
+OK, required 506 tests at depth 21
+OK, required 552 tests at depth 22
+OK, required 600 tests at depth 23
+OK, required 650 tests at depth 24
+OK, required 702 tests at depth 25
+OK, required 756 tests at depth 26
+OK, required 812 tests at depth 27
+OK, required 870 tests at depth 28
+OK, required 930 tests at depth 29
+OK, required 992 tests at depth 30
+OK, required 1056 tests at depth 31
+OK, required 1122 tests at depth 32
+OK, required 1190 tests at depth 33
+OK, required 1260 tests at depth 34
+OK, required 1332 tests at depth 35
+OK, required 1406 tests at depth 36
+OK, required 1482 tests at depth 37
+OK, required 1560 tests at depth 38
+OK, required 1640 tests at depth 39
+OK, required 1722 tests at depth 40
+OK, required 1806 tests at depth 41
+OK, required 1892 tests at depth 42
+OK, required 1980 tests at depth 43
+OK, required 2070 tests at depth 44
+OK, required 2162 tests at depth 45
+OK, required 2256 tests at depth 46
+OK, required 2352 tests at depth 47
+OK, required 2450 tests at depth 48
+OK, required 2550 tests at depth 49
+OK, required 2652 tests at depth 50
+OK, required 2756 tests at depth 51
+OK, required 2862 tests at depth 52
+OK, required 2970 tests at depth 53
+OK, required 3080 tests at depth 54
+OK, required 3192 tests at depth 55
+OK, required 3306 tests at depth 56
+OK, required 3422 tests at depth 57
+OK, required 3540 tests at depth 58
+OK, required 3660 tests at depth 59
+OK, required 3782 tests at depth 60
+OK, required 3906 tests at depth 61
+OK, required 4032 tests at depth 62
+OK, required 4160 tests at depth 63
+OK, required 4290 tests at depth 64
+OK, required 4422 tests at depth 65
+OK, required 4556 tests at depth 66
+OK, required 4692 tests at depth 67
+OK, required 4830 tests at depth 68
+OK, required 4970 tests at depth 69
+OK, required 5112 tests at depth 70
+OK, required 5256 tests at depth 71
+OK, required 5402 tests at depth 72
+OK, required 5550 tests at depth 73
+OK, required 5700 tests at depth 74
+OK, required 5852 tests at depth 75
+OK, required 6006 tests at depth 76
+OK, required 6162 tests at depth 77
+OK, required 6320 tests at depth 78
+OK, required 6480 tests at depth 79
+OK, required 6642 tests at depth 80
+OK, required 6806 tests at depth 81
+OK, required 6972 tests at depth 82
+OK, required 7140 tests at depth 83
+OK, required 7310 tests at depth 84
+OK, required 7482 tests at depth 85
+OK, required 7656 tests at depth 86
+OK, required 7832 tests at depth 87
+OK, required 8010 tests at depth 88
+OK, required 8190 tests at depth 89
+OK, required 8372 tests at depth 90
+OK, required 8556 tests at depth 91
+OK, required 8742 tests at depth 92
+OK, required 8930 tests at depth 93
+OK, required 9120 tests at depth 94
+OK, required 9312 tests at depth 95
+OK, required 9506 tests at depth 96
+OK, required 9702 tests at depth 97
+OK, required 9900 tests at depth 98
+OK, required 10100 tests at depth 99
+OK, required 10302 tests at depth 100
+OK, required 10506 tests at depth 101
+OK, required 10712 tests at depth 102
+OK, required 10920 tests at depth 103
+OK, required 11130 tests at depth 104
+OK, required 11342 tests at depth 105
+OK, required 11556 tests at depth 106
+OK, required 11772 tests at depth 107
+OK, required 11990 tests at depth 108
+OK, required 12210 tests at depth 109
+OK, required 12432 tests at depth 110
+OK, required 12656 tests at depth 111
+OK, required 12882 tests at depth 112
+OK, required 13110 tests at depth 113
+OK, required 13340 tests at depth 114
+OK, required 13572 tests at depth 115
+OK, required 13806 tests at depth 116
+OK, required 14042 tests at depth 117
+OK, required 14280 tests at depth 118
+OK, required 14520 tests at depth 119
+OK, required 14762 tests at depth 120
+OK, required 15006 tests at depth 121
+OK, required 15252 tests at depth 122
+OK, required 15500 tests at depth 123
+OK, required 15750 tests at depth 124
+OK, required 16002 tests at depth 125
+OK, required 16256 tests at depth 126
+OK, required 16512 tests at depth 127
+OK, required 16770 tests at depth 128
+OK, required 17030 tests at depth 129
+OK, required 17292 tests at depth 130
+OK, required 17556 tests at depth 131
+OK, required 17822 tests at depth 132
+OK, required 18090 tests at depth 133
+OK, required 18360 tests at depth 134
+OK, required 18632 tests at depth 135
+OK, required 18906 tests at depth 136
+OK, required 19182 tests at depth 137
+OK, required 19460 tests at depth 138
+OK, required 19740 tests at depth 139
+OK, required 20022 tests at depth 140
+OK, required 20306 tests at depth 141
+OK, required 20592 tests at depth 142
+OK, required 20880 tests at depth 143
+OK, required 21170 tests at depth 144
+OK, required 21462 tests at depth 145
+OK, required 21756 tests at depth 146
+OK, required 22052 tests at depth 147
+OK, required 22350 tests at depth 148
+OK, required 22650 tests at depth 149
+OK, required 22952 tests at depth 150
+OK, required 23256 tests at depth 151
+OK, required 23562 tests at depth 152
+OK, required 23870 tests at depth 153
+OK, required 24180 tests at depth 154
+OK, required 24492 tests at depth 155
+OK, required 24806 tests at depth 156
+OK, required 25122 tests at depth 157
+OK, required 25440 tests at depth 158
+OK, required 25760 tests at depth 159
+OK, required 26082 tests at depth 160
+OK, required 26406 tests at depth 161
+./lsc.sh: line 16: 24139 Killed                  runghc $HS_FILE
+Command exited with non-zero status 137
+1:00.02
+ERROR
+-----------------------
+- cvc4
+<stdin>:1.12: No set-logic command was given before this point.
+<stdin>:1.12: CVC4 will make all theories available.
+<stdin>:1.12: Consider setting a stricter logic for (likely) better performance.
+<stdin>:1.12: To suppress this warning in the future use (set-logic ALL).
+CVC4 interrupted by timeout.
+Command terminated by signal 6
+1:00.10
+ERROR
+-----------------------
+- inox (z3)
+/home/simon/workspace/papers/cade_2017_smbc/eval/programs//inox: line 5: 24708 CPU time limit exceeded (core dumped) java -Xmx2G -Xms512M -Xss64M -classpath "${SCALACLASSPATH}" -Dscala.usejavacp=true inox.Main $@ 2>&1
+Command exited with non-zero status 152
+0:59.50
+ERROR
+-----------------------
+- inox (cvc4)
+/home/simon/workspace/papers/cade_2017_smbc/eval/programs//inox: line 5: 28182 CPU time limit exceeded (core dumped) java -Xmx2G -Xms512M -Xss64M -classpath "${SCALACLASSPATH}" -Dscala.usejavacp=true inox.Main $@ 2>&1
+Command exited with non-zero status 152
+1:01.80
+ERROR
+==== SORTED ====
+=======================
+run on sorted/sorted.smt2
+-----------------------
+- smbc
+(result SAT
+  :model ((val l_5
+            (cons (s (s (s z))) 
+              (cons (s (s (s (s z)))) 
+                (cons (s (s (s (s z)))) (cons (s (s (s (s z)))) nil)))))))
+0:00.00
+-----------------------
+- hbmc
+Counterexample!
+l_5: cons
+  (s (s (s z)))
+  (cons
+     (s (s (s z)))
+     (cons (s (s (s z))) (cons (s (s (s z))) (cons (s (s (s z))) nil))))
+
+0:00.03
+-----------------------
+- lazy smallcheck
+OK, required 2 tests at depth 0
+OK, required 4 tests at depth 1
+OK, required 9 tests at depth 2
+OK, required 21 tests at depth 3
+OK, required 50 tests at depth 4
+OK, required 120 tests at depth 5
+OK, required 285 tests at depth 6
+OK, required 653 tests at depth 7
+Counter example found:
+Cons (S (S (S Z))) (Cons (S (S (S (S Z)))) (Cons (S (S (S (S Z)))) (Cons (S (S (S (S Z)))) Nil)))
+0:00.26
+-----------------------
+- cvc4
+<stdin>:1.12: No set-logic command was given before this point.
+<stdin>:1.12: CVC4 will make all theories available.
+<stdin>:1.12: Consider setting a stricter logic for (likely) better performance.
+<stdin>:1.12: To suppress this warning in the future use (set-logic ALL).
+CVC4 interrupted by timeout.
+Command terminated by signal 6
+1:00.05
+ERROR
+-----------------------
+- inox (z3)
+[[34m  Info  [0m]  => SAT
+[[34m  Info  [0m]   (Empty model)
+0:16.46
+-----------------------
+- inox (cvc4)
+[[34m  Info  [0m]  => SAT
+[[34m  Info  [0m]   (Empty model)
+0:04.15
+=======================
+run on sorted/sorted2.smt2
+-----------------------
+- smbc
+(result UNSAT)
+0:00.00
+-----------------------
+- hbmc
+Contradiction!
+No value found.
+0:00.02
+-----------------------
+- lazy smallcheck
+OK, required 2 tests at depth 0
+OK, required 4 tests at depth 1
+OK, required 9 tests at depth 2
+OK, required 18 tests at depth 3
+OK, required 23 tests at depth 4
+OK, required 23 tests at depth 5
+OK, required 23 tests at depth 6
+OK, required 23 tests at depth 7
+OK, required 23 tests at depth 8
+OK, required 23 tests at depth 9
+OK, required 23 tests at depth 10
+OK, required 23 tests at depth 11
+OK, required 23 tests at depth 12
+OK, required 23 tests at depth 13
+OK, required 23 tests at depth 14
+OK, required 23 tests at depth 15
+OK, required 23 tests at depth 16
+OK, required 23 tests at depth 17
+OK, required 23 tests at depth 18
+OK, required 23 tests at depth 19
+OK, required 23 tests at depth 20
+OK, required 23 tests at depth 21
+OK, required 23 tests at depth 22
+OK, required 23 tests at depth 23
+OK, required 23 tests at depth 24
+OK, required 23 tests at depth 25
+OK, required 23 tests at depth 26
+OK, required 23 tests at depth 27
+OK, required 23 tests at depth 28
+OK, required 23 tests at depth 29
+OK, required 23 tests at depth 30
+OK, required 23 tests at depth 31
+OK, required 23 tests at depth 32
+OK, required 23 tests at depth 33
+OK, required 23 tests at depth 34
+OK, required 23 tests at depth 35
+OK, required 23 tests at depth 36
+OK, required 23 tests at depth 37
+OK, required 23 tests at depth 38
+OK, required 23 tests at depth 39
+OK, required 23 tests at depth 40
+OK, required 23 tests at depth 41
+OK, required 23 tests at depth 42
+OK, required 23 tests at depth 43
+OK, required 23 tests at depth 44
+OK, required 23 tests at depth 45
+OK, required 23 tests at depth 46
+OK, required 23 tests at depth 47
+OK, required 23 tests at depth 48
+OK, required 23 tests at depth 49
+OK, required 23 tests at depth 50
+OK, required 23 tests at depth 51
+OK, required 23 tests at depth 52
+OK, required 23 tests at depth 53
+OK, required 23 tests at depth 54
+OK, required 23 tests at depth 55
+OK, required 23 tests at depth 56
+OK, required 23 tests at depth 57
+OK, required 23 tests at depth 58
+OK, required 23 tests at depth 59
+OK, required 23 tests at depth 60
+OK, required 23 tests at depth 61
+OK, required 23 tests at depth 62
+OK, required 23 tests at depth 63
+OK, required 23 tests at depth 64
+OK, required 23 tests at depth 65
+OK, required 23 tests at depth 66
+OK, required 23 tests at depth 67
+OK, required 23 tests at depth 68
+OK, required 23 tests at depth 69
+OK, required 23 tests at depth 70
+OK, required 23 tests at depth 71
+OK, required 23 tests at depth 72
+OK, required 23 tests at depth 73
+OK, required 23 tests at depth 74
+OK, required 23 tests at depth 75
+OK, required 23 tests at depth 76
+OK, required 23 tests at depth 77
+OK, required 23 tests at depth 78
+OK, required 23 tests at depth 79
+OK, required 23 tests at depth 80
+OK, required 23 tests at depth 81
+OK, required 23 tests at depth 82
+OK, required 23 tests at depth 83
+OK, required 23 tests at depth 84
+OK, required 23 tests at depth 85
+OK, required 23 tests at depth 86
+OK, required 23 tests at depth 87
+OK, required 23 tests at depth 88
+OK, required 23 tests at depth 89
+OK, required 23 tests at depth 90
+OK, required 23 tests at depth 91
+OK, required 23 tests at depth 92
+OK, required 23 tests at depth 93
+OK, required 23 tests at depth 94
+OK, required 23 tests at depth 95
+OK, required 23 tests at depth 96
+OK, required 23 tests at depth 97
+OK, required 23 tests at depth 98
+OK, required 23 tests at depth 99
+OK, required 23 tests at depth 100
+OK, required 23 tests at depth 101
+OK, required 23 tests at depth 102
+OK, required 23 tests at depth 103
+OK, required 23 tests at depth 104
+OK, required 23 tests at depth 105
+OK, required 23 tests at depth 106
+OK, required 23 tests at depth 107
+OK, required 23 tests at depth 108
+OK, required 23 tests at depth 109
+OK, required 23 tests at depth 110
+OK, required 23 tests at depth 111
+OK, required 23 tests at depth 112
+OK, required 23 tests at depth 113
+OK, required 23 tests at depth 114
+OK, required 23 tests at depth 115
+OK, required 23 tests at depth 116
+OK, required 23 tests at depth 117
+OK, required 23 tests at depth 118
+OK, required 23 tests at depth 119
+OK, required 23 tests at depth 120
+OK, required 23 tests at depth 121
+OK, required 23 tests at depth 122
+OK, required 23 tests at depth 123
+OK, required 23 tests at depth 124
+OK, required 23 tests at depth 125
+OK, required 23 tests at depth 126
+OK, required 23 tests at depth 127
+OK, required 23 tests at depth 128
+OK, required 23 tests at depth 129
+OK, required 23 tests at depth 130
+OK, required 23 tests at depth 131
+OK, required 23 tests at depth 132
+OK, required 23 tests at depth 133
+OK, required 23 tests at depth 134
+OK, required 23 tests at depth 135
+OK, required 23 tests at depth 136
+OK, required 23 tests at depth 137
+OK, required 23 tests at depth 138
+OK, required 23 tests at depth 139
+OK, required 23 tests at depth 140
+OK, required 23 tests at depth 141
+OK, required 23 tests at depth 142
+OK, required 23 tests at depth 143
+OK, required 23 tests at depth 144
+OK, required 23 tests at depth 145
+OK, required 23 tests at depth 146
+OK, required 23 tests at depth 147
+OK, required 23 tests at depth 148
+OK, required 23 tests at depth 149
+OK, required 23 tests at depth 150
+OK, required 23 tests at depth 151
+OK, required 23 tests at depth 152
+OK, required 23 tests at depth 153
+OK, required 23 tests at depth 154
+OK, required 23 tests at depth 155
+OK, required 23 tests at depth 156
+OK, required 23 tests at depth 157
+OK, required 23 tests at depth 158
+OK, required 23 tests at depth 159
+OK, required 23 tests at depth 160
+OK, required 23 tests at depth 161
+OK, required 23 tests at depth 162
+OK, required 23 tests at depth 163
+OK, required 23 tests at depth 164
+OK, required 23 tests at depth 165
+OK, required 23 tests at depth 166
+OK, required 23 tests at depth 167
+OK, required 23 tests at depth 168
+OK, required 23 tests at depth 169
+OK, required 23 tests at depth 170
+OK, required 23 tests at depth 171
+OK, required 23 tests at depth 172
+OK, required 23 tests at depth 173
+OK, required 23 tests at depth 174
+OK, required 23 tests at depth 175
+OK, required 23 tests at depth 176
+OK, required 23 tests at depth 177
+OK, required 23 tests at depth 178
+OK, required 23 tests at depth 179
+OK, required 23 tests at depth 180
+OK, required 23 tests at depth 181
+OK, required 23 tests at depth 182
+OK, required 23 tests at depth 183
+OK, required 23 tests at depth 184
+OK, required 23 tests at depth 185
+OK, required 23 tests at depth 186
+OK, required 23 tests at depth 187
+OK, required 23 tests at depth 188
+OK, required 23 tests at depth 189
+OK, required 23 tests at depth 190
+OK, required 23 tests at depth 191
+OK, required 23 tests at depth 192
+OK, required 23 tests at depth 193
+OK, required 23 tests at depth 194
+OK, required 23 tests at depth 195
+OK, required 23 tests at depth 196
+OK, required 23 tests at depth 197
+OK, required 23 tests at depth 198
+OK, required 23 tests at depth 199
+OK, required 23 tests at depth 200
+OK, required 23 tests at depth 201
+OK, required 23 tests at depth 202
+OK, required 23 tests at depth 203
+OK, required 23 tests at depth 204
+OK, required 23 tests at depth 205
+OK, required 23 tests at depth 206
+OK, required 23 tests at depth 207
+OK, required 23 tests at depth 208
+OK, required 23 tests at depth 209
+OK, required 23 tests at depth 210
+OK, required 23 tests at depth 211
+OK, required 23 tests at depth 212
+OK, required 23 tests at depth 213
+OK, required 23 tests at depth 214
+OK, required 23 tests at depth 215
+OK, required 23 tests at depth 216
+OK, required 23 tests at depth 217
+OK, required 23 tests at depth 218
+OK, required 23 tests at depth 219
+OK, required 23 tests at depth 220
+OK, required 23 tests at depth 221
+OK, required 23 tests at depth 222
+OK, required 23 tests at depth 223
+OK, required 23 tests at depth 224
+OK, required 23 tests at depth 225
+OK, required 23 tests at depth 226
+OK, required 23 tests at depth 227
+OK, required 23 tests at depth 228
+OK, required 23 tests at depth 229
+OK, required 23 tests at depth 230
+OK, required 23 tests at depth 231
+OK, required 23 tests at depth 232
+OK, required 23 tests at depth 233
+OK, required 23 tests at depth 234
+OK, required 23 tests at depth 235
+OK, required 23 tests at depth 236
+OK, required 23 tests at depth 237
+OK, required 23 tests at depth 238
+OK, required 23 tests at depth 239
+OK, required 23 tests at depth 240
+OK, required 23 tests at depth 241
+OK, required 23 tests at depth 242
+OK, required 23 tests at depth 243
+OK, required 23 tests at depth 244
+OK, required 23 tests at depth 245
+OK, required 23 tests at depth 246
+OK, required 23 tests at depth 247
+OK, required 23 tests at depth 248
+OK, required 23 tests at depth 249
+OK, required 23 tests at depth 250
+OK, required 23 tests at depth 251
+OK, required 23 tests at depth 252
+OK, required 23 tests at depth 253
+OK, required 23 tests at depth 254
+OK, required 23 tests at depth 255
+OK, required 23 tests at depth 256
+OK, required 23 tests at depth 257
+OK, required 23 tests at depth 258
+OK, required 23 tests at depth 259
+OK, required 23 tests at depth 260
+OK, required 23 tests at depth 261
+OK, required 23 tests at depth 262
+OK, required 23 tests at depth 263
+OK, required 23 tests at depth 264
+OK, required 23 tests at depth 265
+OK, required 23 tests at depth 266
+OK, required 23 tests at depth 267
+OK, required 23 tests at depth 268
+OK, required 23 tests at depth 269
+OK, required 23 tests at depth 270
+OK, required 23 tests at depth 271
+OK, required 23 tests at depth 272
+OK, required 23 tests at depth 273
+OK, required 23 tests at depth 274
+OK, required 23 tests at depth 275
+OK, required 23 tests at depth 276
+OK, required 23 tests at depth 277
+OK, required 23 tests at depth 278
+OK, required 23 tests at depth 279
+OK, required 23 tests at depth 280
+OK, required 23 tests at depth 281
+OK, required 23 tests at depth 282
+OK, required 23 tests at depth 283
+OK, required 23 tests at depth 284
+OK, required 23 tests at depth 285
+OK, required 23 tests at depth 286
+OK, required 23 tests at depth 287
+OK, required 23 tests at depth 288
+OK, required 23 tests at depth 289
+OK, required 23 tests at depth 290
+OK, required 23 tests at depth 291
+OK, required 23 tests at depth 292
+OK, required 23 tests at depth 293
+OK, required 23 tests at depth 294
+OK, required 23 tests at depth 295
+OK, required 23 tests at depth 296
+OK, required 23 tests at depth 297
+OK, required 23 tests at depth 298
+OK, required 23 tests at depth 299
+OK, required 23 tests at depth 300
+OK, required 23 tests at depth 301
+OK, required 23 tests at depth 302
+OK, required 23 tests at depth 303
+OK, required 23 tests at depth 304
+OK, required 23 tests at depth 305
+OK, required 23 tests at depth 306
+OK, required 23 tests at depth 307
+OK, required 23 tests at depth 308
+OK, required 23 tests at depth 309
+OK, required 23 tests at depth 310
+OK, required 23 tests at depth 311
+OK, required 23 tests at depth 312
+OK, required 23 tests at depth 313
+OK, required 23 tests at depth 314
+OK, required 23 tests at depth 315
+OK, required 23 tests at depth 316
+OK, required 23 tests at depth 317
+OK, required 23 tests at depth 318
+OK, required 23 tests at depth 319
+OK, required 23 tests at depth 320
+OK, required 23 tests at depth 321
+OK, required 23 tests at depth 322
+OK, required 23 tests at depth 323
+OK, required 23 tests at depth 324
+OK, required 23 tests at depth 325
+OK, required 23 tests at depth 326
+OK, required 23 tests at depth 327
+OK, required 23 tests at depth 328
+OK, required 23 tests at depth 329
+OK, required 23 tests at depth 330
+OK, required 23 tests at depth 331
+OK, required 23 tests at depth 332
+OK, required 23 tests at depth 333
+OK, required 23 tests at depth 334
+OK, required 23 tests at depth 335
+OK, required 23 tests at depth 336
+OK, required 23 tests at depth 337
+OK, required 23 tests at depth 338
+OK, required 23 tests at depth 339
+OK, required 23 tests at depth 340
+OK, required 23 tests at depth 341
+OK, required 23 tests at depth 342
+OK, required 23 tests at depth 343
+OK, required 23 tests at depth 344
+OK, required 23 tests at depth 345
+OK, required 23 tests at depth 346
+OK, required 23 tests at depth 347
+OK, required 23 tests at depth 348
+OK, required 23 tests at depth 349
+OK, required 23 tests at depth 350
+OK, required 23 tests at depth 351
+OK, required 23 tests at depth 352
+OK, required 23 tests at depth 353
+OK, required 23 tests at depth 354
+OK, required 23 tests at depth 355
+OK, required 23 tests at depth 356
+OK, required 23 tests at depth 357
+OK, required 23 tests at depth 358
+OK, required 23 tests at depth 359
+OK, required 23 tests at depth 360
+OK, required 23 tests at depth 361
+OK, required 23 tests at depth 362
+OK, required 23 tests at depth 363
+OK, required 23 tests at depth 364
+OK, required 23 tests at depth 365
+OK, required 23 tests at depth 366
+OK, required 23 tests at depth 367
+OK, required 23 tests at depth 368
+OK, required 23 tests at depth 369
+OK, required 23 tests at depth 370
+OK, required 23 tests at depth 371
+OK, required 23 tests at depth 372
+OK, required 23 tests at depth 373
+OK, required 23 tests at depth 374
+OK, required 23 tests at depth 375
+OK, required 23 tests at depth 376
+OK, required 23 tests at depth 377
+OK, required 23 tests at depth 378
+OK, required 23 tests at depth 379
+OK, required 23 tests at depth 380
+OK, required 23 tests at depth 381
+OK, required 23 tests at depth 382
+OK, required 23 tests at depth 383
+OK, required 23 tests at depth 384
+OK, required 23 tests at depth 385
+OK, required 23 tests at depth 386
+OK, required 23 tests at depth 387
+OK, required 23 tests at depth 388
+OK, required 23 tests at depth 389
+OK, required 23 tests at depth 390
+OK, required 23 tests at depth 391
+OK, required 23 tests at depth 392
+OK, required 23 tests at depth 393
+OK, required 23 tests at depth 394
+OK, required 23 tests at depth 395
+OK, required 23 tests at depth 396
+OK, required 23 tests at depth 397
+OK, required 23 tests at depth 398
+OK, required 23 tests at depth 399
+OK, required 23 tests at depth 400
+OK, required 23 tests at depth 401
+OK, required 23 tests at depth 402
+OK, required 23 tests at depth 403
+OK, required 23 tests at depth 404
+OK, required 23 tests at depth 405
+OK, required 23 tests at depth 406
+OK, required 23 tests at depth 407
+OK, required 23 tests at depth 408
+OK, required 23 tests at depth 409
+OK, required 23 tests at depth 410
+OK, required 23 tests at depth 411
+OK, required 23 tests at depth 412
+OK, required 23 tests at depth 413
+OK, required 23 tests at depth 414
+OK, required 23 tests at depth 415
+OK, required 23 tests at depth 416
+OK, required 23 tests at depth 417
+OK, required 23 tests at depth 418
+OK, required 23 tests at depth 419
+OK, required 23 tests at depth 420
+OK, required 23 tests at depth 421
+OK, required 23 tests at depth 422
+OK, required 23 tests at depth 423
+OK, required 23 tests at depth 424
+OK, required 23 tests at depth 425
+OK, required 23 tests at depth 426
+OK, required 23 tests at depth 427
+OK, required 23 tests at depth 428
+OK, required 23 tests at depth 429
+OK, required 23 tests at depth 430
+OK, required 23 tests at depth 431
+OK, required 23 tests at depth 432
+OK, required 23 tests at depth 433
+OK, required 23 tests at depth 434
+OK, required 23 tests at depth 435
+OK, required 23 tests at depth 436
+OK, required 23 tests at depth 437
+OK, required 23 tests at depth 438
+OK, required 23 tests at depth 439
+OK, required 23 tests at depth 440
+OK, required 23 tests at depth 441
+OK, required 23 tests at depth 442
+OK, required 23 tests at depth 443
+OK, required 23 tests at depth 444
+OK, required 23 tests at depth 445
+OK, required 23 tests at depth 446
+OK, required 23 tests at depth 447
+OK, required 23 tests at depth 448
+OK, required 23 tests at depth 449
+OK, required 23 tests at depth 450
+OK, required 23 tests at depth 451
+OK, required 23 tests at depth 452
+OK, required 23 tests at depth 453
+OK, required 23 tests at depth 454
+OK, required 23 tests at depth 455
+OK, required 23 tests at depth 456
+OK, required 23 tests at depth 457
+OK, required 23 tests at depth 458
+OK, required 23 tests at depth 459
+OK, required 23 tests at depth 460
+OK, required 23 tests at depth 461
+OK, required 23 tests at depth 462
+OK, required 23 tests at depth 463
+OK, required 23 tests at depth 464
+OK, required 23 tests at depth 465
+OK, required 23 tests at depth 466
+OK, required 23 tests at depth 467
+OK, required 23 tests at depth 468
+OK, required 23 tests at depth 469
+OK, required 23 tests at depth 470
+OK, required 23 tests at depth 471
+OK, required 23 tests at depth 472
+OK, required 23 tests at depth 473
+OK, required 23 tests at depth 474
+OK, required 23 tests at depth 475
+OK, required 23 tests at depth 476
+OK, required 23 tests at depth 477
+OK, required 23 tests at depth 478
+OK, required 23 tests at depth 479
+OK, required 23 tests at depth 480
+OK, required 23 tests at depth 481
+OK, required 23 tests at depth 482
+OK, required 23 tests at depth 483
+OK, required 23 tests at depth 484
+OK, required 23 tests at depth 485
+OK, required 23 tests at depth 486
+OK, required 23 tests at depth 487
+OK, required 23 tests at depth 488
+OK, required 23 tests at depth 489
+OK, required 23 tests at depth 490
+OK, required 23 tests at depth 491
+OK, required 23 tests at depth 492
+OK, required 23 tests at depth 493
+OK, required 23 tests at depth 494
+OK, required 23 tests at depth 495
+OK, required 23 tests at depth 496
+OK, required 23 tests at depth 497
+OK, required 23 tests at depth 498
+OK, required 23 tests at depth 499
+OK, required 23 tests at depth 500
+OK, required 23 tests at depth 501
+OK, required 23 tests at depth 502
+OK, required 23 tests at depth 503
+OK, required 23 tests at depth 504
+OK, required 23 tests at depth 505
+OK, required 23 tests at depth 506
+OK, required 23 tests at depth 507
+OK, required 23 tests at depth 508
+OK, required 23 tests at depth 509
+OK, required 23 tests at depth 510
+OK, required 23 tests at depth 511
+OK, required 23 tests at depth 512
+OK, required 23 tests at depth 513
+OK, required 23 tests at depth 514
+OK, required 23 tests at depth 515
+OK, required 23 tests at depth 516
+OK, required 23 tests at depth 517
+OK, required 23 tests at depth 518
+OK, required 23 tests at depth 519
+OK, required 23 tests at depth 520
+OK, required 23 tests at depth 521
+OK, required 23 tests at depth 522
+OK, required 23 tests at depth 523
+OK, required 23 tests at depth 524
+OK, required 23 tests at depth 525
+OK, required 23 tests at depth 526
+OK, required 23 tests at depth 527
+OK, required 23 tests at depth 528
+OK, required 23 tests at depth 529
+OK, required 23 tests at depth 530
+OK, required 23 tests at depth 531
+OK, required 23 tests at depth 532
+OK, required 23 tests at depth 533
+OK, required 23 tests at depth 534
+OK, required 23 tests at depth 535
+OK, required 23 tests at depth 536
+OK, required 23 tests at depth 537
+OK, required 23 tests at depth 538
+OK, required 23 tests at depth 539
+OK, required 23 tests at depth 540
+OK, required 23 tests at depth 541
+OK, required 23 tests at depth 542
+OK, required 23 tests at depth 543
+OK, required 23 tests at depth 544
+OK, required 23 tests at depth 545
+OK, required 23 tests at depth 546
+OK, required 23 tests at depth 547
+OK, required 23 tests at depth 548
+OK, required 23 tests at depth 549
+OK, required 23 tests at depth 550
+OK, required 23 tests at depth 551
+OK, required 23 tests at depth 552
+OK, required 23 tests at depth 553
+OK, required 23 tests at depth 554
+OK, required 23 tests at depth 555
+OK, required 23 tests at depth 556
+OK, required 23 tests at depth 557
+OK, required 23 tests at depth 558
+OK, required 23 tests at depth 559
+OK, required 23 tests at depth 560
+OK, required 23 tests at depth 561
+OK, required 23 tests at depth 562
+OK, required 23 tests at depth 563
+OK, required 23 tests at depth 564
+OK, required 23 tests at depth 565
+OK, required 23 tests at depth 566
+OK, required 23 tests at depth 567
+OK, required 23 tests at depth 568
+OK, required 23 tests at depth 569
+OK, required 23 tests at depth 570
+OK, required 23 tests at depth 571
+OK, required 23 tests at depth 572
+OK, required 23 tests at depth 573
+OK, required 23 tests at depth 574
+OK, required 23 tests at depth 575
+OK, required 23 tests at depth 576
+OK, required 23 tests at depth 577
+OK, required 23 tests at depth 578
+OK, required 23 tests at depth 579
+OK, required 23 tests at depth 580
+OK, required 23 tests at depth 581
+OK, required 23 tests at depth 582
+OK, required 23 tests at depth 583
+OK, required 23 tests at depth 584
+OK, required 23 tests at depth 585
+OK, required 23 tests at depth 586
+OK, required 23 tests at depth 587
+OK, required 23 tests at depth 588
+OK, required 23 tests at depth 589
+OK, required 23 tests at depth 590
+OK, required 23 tests at depth 591
+OK, required 23 tests at depth 592
+OK, required 23 tests at depth 593
+OK, required 23 tests at depth 594
+OK, required 23 tests at depth 595
+OK, required 23 tests at depth 596
+OK, required 23 tests at depth 597
+OK, required 23 tests at depth 598
+OK, required 23 tests at depth 599
+OK, required 23 tests at depth 600
+OK, required 23 tests at depth 601
+OK, required 23 tests at depth 602
+OK, required 23 tests at depth 603
+OK, required 23 tests at depth 604
+OK, required 23 tests at depth 605
+OK, required 23 tests at depth 606
+OK, required 23 tests at depth 607
+OK, required 23 tests at depth 608
+OK, required 23 tests at depth 609
+OK, required 23 tests at depth 610
+OK, required 23 tests at depth 611
+OK, required 23 tests at depth 612
+OK, required 23 tests at depth 613
+OK, required 23 tests at depth 614
+OK, required 23 tests at depth 615
+OK, required 23 tests at depth 616
+OK, required 23 tests at depth 617
+OK, required 23 tests at depth 618
+OK, required 23 tests at depth 619
+OK, required 23 tests at depth 620
+OK, required 23 tests at depth 621
+OK, required 23 tests at depth 622
+OK, required 23 tests at depth 623
+OK, required 23 tests at depth 624
+OK, required 23 tests at depth 625
+OK, required 23 tests at depth 626
+OK, required 23 tests at depth 627
+OK, required 23 tests at depth 628
+OK, required 23 tests at depth 629
+OK, required 23 tests at depth 630
+OK, required 23 tests at depth 631
+OK, required 23 tests at depth 632
+OK, required 23 tests at depth 633
+OK, required 23 tests at depth 634
+OK, required 23 tests at depth 635
+OK, required 23 tests at depth 636
+OK, required 23 tests at depth 637
+OK, required 23 tests at depth 638
+OK, required 23 tests at depth 639
+OK, required 23 tests at depth 640
+OK, required 23 tests at depth 641
+OK, required 23 tests at depth 642
+OK, required 23 tests at depth 643
+OK, required 23 tests at depth 644
+OK, required 23 tests at depth 645
+OK, required 23 tests at depth 646
+OK, required 23 tests at depth 647
+OK, required 23 tests at depth 648
+OK, required 23 tests at depth 649
+OK, required 23 tests at depth 650
+OK, required 23 tests at depth 651
+OK, required 23 tests at depth 652
+OK, required 23 tests at depth 653
+OK, required 23 tests at depth 654
+OK, required 23 tests at depth 655
+OK, required 23 tests at depth 656
+OK, required 23 tests at depth 657
+OK, required 23 tests at depth 658
+OK, required 23 tests at depth 659
+OK, required 23 tests at depth 660
+OK, required 23 tests at depth 661
+OK, required 23 tests at depth 662
+OK, required 23 tests at depth 663
+OK, required 23 tests at depth 664
+OK, required 23 tests at depth 665
+OK, required 23 tests at depth 666
+OK, required 23 tests at depth 667
+OK, required 23 tests at depth 668
+OK, required 23 tests at depth 669
+OK, required 23 tests at depth 670
+OK, required 23 tests at depth 671
+OK, required 23 tests at depth 672
+OK, required 23 tests at depth 673
+OK, required 23 tests at depth 674
+OK, required 23 tests at depth 675
+OK, required 23 tests at depth 676
+OK, required 23 tests at depth 677
+OK, required 23 tests at depth 678
+OK, required 23 tests at depth 679
+OK, required 23 tests at depth 680
+OK, required 23 tests at depth 681
+OK, required 23 tests at depth 682
+OK, required 23 tests at depth 683
+OK, required 23 tests at depth 684
+OK, required 23 tests at depth 685
+OK, required 23 tests at depth 686
+OK, required 23 tests at depth 687
+OK, required 23 tests at depth 688
+OK, required 23 tests at depth 689
+OK, required 23 tests at depth 690
+OK, required 23 tests at depth 691
+OK, required 23 tests at depth 692
+OK, required 23 tests at depth 693
+OK, required 23 tests at depth 694
+OK, required 23 tests at depth 695
+OK, required 23 tests at depth 696
+OK, required 23 tests at depth 697
+OK, required 23 tests at depth 698
+OK, required 23 tests at depth 699
+OK, required 23 tests at depth 700
+OK, required 23 tests at depth 701
+./lsc.sh: line 16: 29138 Killed                  runghc $HS_FILE
+Command exited with non-zero status 137
+1:00.07
+ERROR
+-----------------------
+- cvc4
+<stdin>:1.12: No set-logic command was given before this point.
+<stdin>:1.12: CVC4 will make all theories available.
+<stdin>:1.12: Consider setting a stricter logic for (likely) better performance.
+<stdin>:1.12: To suppress this warning in the future use (set-logic ALL).
+unsat
+0:00.09
+-----------------------
+- inox (z3)
+[[34m  Info  [0m]  => UNSAT
+0:00.68
+-----------------------
+- inox (cvc4)
+[[34m  Info  [0m]  => UNSAT
+0:00.88
+=======================
+run on sorted/sorted3.smt2
+-----------------------
+- smbc
+(result UNSAT)
+0:01.63
+-----------------------
+- hbmc
+Contradiction!
+No value found.
+0:02.43
+-----------------------
+- lazy smallcheck
+OK, required 2 tests at depth 0
+OK, required 4 tests at depth 1
+OK, required 9 tests at depth 2
+OK, required 21 tests at depth 3
+OK, required 49 tests at depth 4
+OK, required 113 tests at depth 5
+OK, required 257 tests at depth 6
+OK, required 561 tests at depth 7
+OK, required 1063 tests at depth 8
+OK, required 1755 tests at depth 9
+OK, required 2599 tests at depth 10
+OK, required 3551 tests at depth 11
+OK, required 4570 tests at depth 12
+OK, required 5622 tests at depth 13
+OK, required 6674 tests at depth 14
+OK, required 7726 tests at depth 15
+OK, required 8778 tests at depth 16
+OK, required 9830 tests at depth 17
+OK, required 10882 tests at depth 18
+OK, required 11934 tests at depth 19
+OK, required 12986 tests at depth 20
+OK, required 14038 tests at depth 21
+OK, required 15090 tests at depth 22
+OK, required 16142 tests at depth 23
+OK, required 17194 tests at depth 24
+OK, required 18246 tests at depth 25
+OK, required 19298 tests at depth 26
+OK, required 20350 tests at depth 27
+OK, required 21402 tests at depth 28
+OK, required 22454 tests at depth 29
+OK, required 23506 tests at depth 30
+OK, required 24558 tests at depth 31
+OK, required 25610 tests at depth 32
+OK, required 26662 tests at depth 33
+OK, required 27714 tests at depth 34
+OK, required 28766 tests at depth 35
+OK, required 29818 tests at depth 36
+OK, required 30870 tests at depth 37
+OK, required 31922 tests at depth 38
+OK, required 32974 tests at depth 39
+OK, required 34026 tests at depth 40
+OK, required 35078 tests at depth 41
+OK, required 36130 tests at depth 42
+OK, required 37182 tests at depth 43
+OK, required 38234 tests at depth 44
+OK, required 39286 tests at depth 45
+OK, required 40338 tests at depth 46
+OK, required 41390 tests at depth 47
+OK, required 42442 tests at depth 48
+OK, required 43494 tests at depth 49
+OK, required 44546 tests at depth 50
+OK, required 45599 tests at depth 51
+OK, required 46638 tests at depth 52
+OK, required 47552 tests at depth 53
+OK, required 48231 tests at depth 54
+OK, required 48675 tests at depth 55
+OK, required 48946 tests at depth 56
+OK, required 49107 tests at depth 57
+OK, required 49199 tests at depth 58
+OK, required 49248 tests at depth 59
+OK, required 49272 tests at depth 60
+OK, required 49282 tests at depth 61
+OK, required 49285 tests at depth 62
+OK, required 49285 tests at depth 63
+OK, required 49285 tests at depth 64
+OK, required 49285 tests at depth 65
+OK, required 49285 tests at depth 66
+OK, required 49285 tests at depth 67
+OK, required 49285 tests at depth 68
+OK, required 49285 tests at depth 69
+OK, required 49285 tests at depth 70
+OK, required 49285 tests at depth 71
+./lsc.sh: line 16: 29227 Killed                  runghc $HS_FILE
+Command exited with non-zero status 137
+1:00.02
+ERROR
+-----------------------
+- cvc4
+<stdin>:1.12: No set-logic command was given before this point.
+<stdin>:1.12: CVC4 will make all theories available.
+<stdin>:1.12: Consider setting a stricter logic for (likely) better performance.
+<stdin>:1.12: To suppress this warning in the future use (set-logic ALL).
+CVC4 interrupted by timeout.
+Command terminated by signal 6
+1:00.06
+ERROR
+-----------------------
+- inox (z3)
+/home/simon/workspace/papers/cade_2017_smbc/eval/programs//inox: line 5: 29276 CPU time limit exceeded (core dumped) java -Xmx2G -Xms512M -Xss64M -classpath "${SCALACLASSPATH}" -Dscala.usejavacp=true inox.Main $@ 2>&1
+Command exited with non-zero status 152
+0:59.23
+ERROR
+-----------------------
+- inox (cvc4)
+/home/simon/workspace/papers/cade_2017_smbc/eval/programs//inox: line 5: 29636 CPU time limit exceeded (core dumped) java -Xmx2G -Xms512M -Xss64M -classpath "${SCALACLASSPATH}" -Dscala.usejavacp=true inox.Main $@ 2>&1
+Command exited with non-zero status 152
+0:46.15
+ERROR
+=======================
+run on sorted/sorted4.smt2
+-----------------------
+- smbc
+(result SAT
+  :model ((val l_5
+            (cons (s (s z)) 
+              (cons (s (s z)) 
+                (cons (s (s z)) 
+                  (cons (s (s z)) 
+                    (cons (s (s z)) 
+                      (cons (s (s z)) 
+                        (cons (s (s z)) 
+                          (cons (s (s z)) 
+                            (cons (s (s z)) (cons (s (s z)) nil)))))))))))))
+0:00.00
+-----------------------
+- hbmc
+Counterexample!
+l_5: cons
+  (s (s z))
+  (cons
+     (s (s z))
+     (cons
+        (s (s z))
+        (cons
+           (s (s z))
+           (cons
+              (s (s z))
+              (cons
+                 (s (s z))
+                 (cons
+                    (s (s z))
+                    (cons (s (s z)) (cons (s (s z)) (cons (s (s z)) nil)))))))))
+
+0:00.04
+-----------------------
+- lazy smallcheck
+OK, required 2 tests at depth 0
+OK, required 4 tests at depth 1
+OK, required 9 tests at depth 2
+OK, required 21 tests at depth 3
+OK, required 49 tests at depth 4
+OK, required 113 tests at depth 5
+OK, required 257 tests at depth 6
+OK, required 577 tests at depth 7
+OK, required 1281 tests at depth 8
+OK, required 2817 tests at depth 9
+OK, required 5860 tests at depth 10
+OK, required 10940 tests at depth 11
+Counter example found:
+Cons (S (S Z)) (Cons (S (S Z)) (Cons (S (S Z)) (Cons (S (S Z)) (Cons (S (S Z)) (Cons (S (S Z)) (Cons (S (S Z)) (Cons (S (S Z)) (Cons (S (S Z)) (Cons (S (S Z)) Nil)))))))))
+0:00.48
+-----------------------
+- cvc4
+<stdin>:1.12: No set-logic command was given before this point.
+<stdin>:1.12: CVC4 will make all theories available.
+<stdin>:1.12: Consider setting a stricter logic for (likely) better performance.
+<stdin>:1.12: To suppress this warning in the future use (set-logic ALL).
+CVC4 interrupted by timeout.
+Command terminated by signal 6
+1:00.06
+ERROR
+-----------------------
+- inox (z3)
+[[34m  Info  [0m]  => SAT
+[[34m  Info  [0m]   (Empty model)
+0:15.00
+-----------------------
+- inox (cvc4)
+[[34m  Info  [0m]  => SAT
+[[34m  Info  [0m]   (Empty model)
+0:07.72
+==== SUDOKU ====
+=======================
+run on sudoku/sudoku.smt2
+-----------------------
+- smbc
+(result SAT
+  :model ((val s
+            (Sudoku2
+              (Cons
+                (Cons4 (Just C8) 
+                  (Cons4 (Just C1) 
+                    (Cons4 (Just C2) 
+                      (Cons4 (Just C7) 
+                        (Cons4 (Just C5) 
+                          (Cons4 (Just C3) 
+                            (Cons4 (Just C6) 
+                              (Cons4 (Just C4) (Cons4 (Just C9) Nil4))))))))) 
+                (Cons
+                  (Cons4 (Just C9) 
+                    (Cons4 (Just C4) 
+                      (Cons4 (Just C3) 
+                        (Cons4 (Just C6) 
+                          (Cons4 (Just C8) 
+                            (Cons4 (Just C2) 
+                              (Cons4 (Just C1) 
+                                (Cons4 (Just C7) (Cons4 (Just C5) Nil4))))))))) 
+                  (Cons
+                    (Cons4 (Just C6) 
+                      (Cons4 (Just C7) 
+                        (Cons4 (Just C5) 
+                          (Cons4 (Just C4) 
+                            (Cons4 (Just C9) 
+                              (Cons4 (Just C1) 
+                                (Cons4 (Just C2) 
+                                  (Cons4 (Just C8) (Cons4 (Just C3) Nil4))))))))) 
+                    (Cons
+                      (Cons4 (Just C1) 
+                        (Cons4 (Just C5) 
+                          (Cons4 (Just C4) 
+                            (Cons4 (Just C2) 
+                              (Cons4 (Just C3) 
+                                (Cons4 (Just C7) 
+                                  (Cons4 (Just C8) 
+                                    (Cons4 (Just C9) (Cons4 (Just C6) Nil4))))))))) 
+                      (Cons
+                        (Cons4 (Just C3) 
+                          (Cons4 (Just C6) 
+                            (Cons4 (Just C9) 
+                              (Cons4 (Just C8) 
+                                (Cons4 (Just C4) 
+                                  (Cons4 (Just C5) 
+                                    (Cons4 (Just C7) 
+                                      (Cons4 (Just C2) (Cons4 (Just C1) Nil4))))))))) 
+                        (Cons
+                          (Cons4 (Just C2) 
+                            (Cons4 (Just C8) 
+                              (Cons4 (Just C7) 
+                                (Cons4 (Just C1) 
+                                  (Cons4 (Just C6) 
+                                    (Cons4 (Just C9) 
+                                      (Cons4 (Just C5) 
+                                        (Cons4 (Just C3) 
+                                          (Cons4 (Just C4) Nil4))))))))) 
+                          (Cons
+                            (Cons4 (Just C5) 
+                              (Cons4 (Just C2) 
+                                (Cons4 (Just C1) 
+                                  (Cons4 (Just C9) 
+                                    (Cons4 (Just C7) 
+                                      (Cons4 (Just C4) 
+                                        (Cons4 (Just C3) 
+                                          (Cons4 (Just C6) 
+                                            (Cons4 (Just C8) Nil4))))))))) 
+                            (Cons
+                              (Cons4 (Just C4) 
+                                (Cons4 (Just C3) 
+                                  (Cons4 (Just C8) 
+                                    (Cons4 (Just C5) 
+                                      (Cons4 (Just C2) 
+                                        (Cons4 (Just C6) 
+                                          (Cons4 (Just C9) 
+                                            (Cons4 (Just C1) 
+                                              (Cons4 (Just C7) Nil4))))))))) 
+                              (Cons
+                                (Cons4 (Just C7) 
+                                  (Cons4 (Just C9) 
+                                    (Cons4 (Just C6) 
+                                      (Cons4 (Just C3) 
+                                        (Cons4 (Just C1) 
+                                          (Cons4 (Just C8) 
+                                            (Cons4 (Just C4) 
+                                              (Cons4 (Just C5) 
+                                                (Cons4 (Just C2) Nil4))))))))) 
+                                Nil)))))))))))))
+0:12.95
+-----------------------
+- hbmc
+Counterexample!
+s: Sudoku2
+  (Cons
+     (Cons4
+        (Just C8)
+        (Cons4
+           (Just C1)
+           (Cons4
+              (Just C2)
+              (Cons4
+                 (Just C7)
+                 (Cons4
+                    (Just C5)
+                    (Cons4
+                       (Just C3)
+                       (Cons4 (Just C6) (Cons4 (Just C4) (Cons4 (Just C9) Nil4)))))))))
+     (Cons
+        (Cons4
+           (Just C9)
+           (Cons4
+              (Just C4)
+              (Cons4
+                 (Just C3)
+                 (Cons4
+                    (Just C6)
+                    (Cons4
+                       (Just C8)
+                       (Cons4
+                          (Just C2)
+                          (Cons4 (Just C1) (Cons4 (Just C7) (Cons4 (Just C5) Nil4)))))))))
+        (Cons
+           (Cons4
+              (Just C6)
+              (Cons4
+                 (Just C7)
+                 (Cons4
+                    (Just C5)
+                    (Cons4
+                       (Just C4)
+                       (Cons4
+                          (Just C9)
+                          (Cons4
+                             (Just C1)
+                             (Cons4 (Just C2) (Cons4 (Just C8) (Cons4 (Just C3) Nil4)))))))))
+           (Cons
+              (Cons4
+                 (Just C1)
+                 (Cons4
+                    (Just C5)
+                    (Cons4
+                       (Just C4)
+                       (Cons4
+                          (Just C2)
+                          (Cons4
+                             (Just C3)
+                             (Cons4
+                                (Just C7)
+                                (Cons4 (Just C8) (Cons4 (Just C9) (Cons4 (Just C6) Nil4)))))))))
+              (Cons
+                 (Cons4
+                    (Just C3)
+                    (Cons4
+                       (Just C6)
+                       (Cons4
+                          (Just C9)
+                          (Cons4
+                             (Just C8)
+                             (Cons4
+                                (Just C4)
+                                (Cons4
+                                   (Just C5)
+                                   (Cons4 (Just C7) (Cons4 (Just C2) (Cons4 (Just C1) Nil4)))))))))
+                 (Cons
+                    (Cons4
+                       (Just C2)
+                       (Cons4
+                          (Just C8)
+                          (Cons4
+                             (Just C7)
+                             (Cons4
+                                (Just C1)
+                                (Cons4
+                                   (Just C6)
+                                   (Cons4
+                                      (Just C9)
+                                      (Cons4
+                                         (Just C5) (Cons4 (Just C3) (Cons4 (Just C4) Nil4)))))))))
+                    (Cons
+                       (Cons4
+                          (Just C5)
+                          (Cons4
+                             (Just C2)
+                             (Cons4
+                                (Just C1)
+                                (Cons4
+                                   (Just C9)
+                                   (Cons4
+                                      (Just C7)
+                                      (Cons4
+                                         (Just C4)
+                                         (Cons4
+                                            (Just C3)
+                                            (Cons4 (Just C6) (Cons4 (Just C8) Nil4)))))))))
+                       (Cons
+                          (Cons4
+                             (Just C4)
+                             (Cons4
+                                (Just C3)
+                                (Cons4
+                                   (Just C8)
+                                   (Cons4
+                                      (Just C5)
+                                      (Cons4
+                                         (Just C2)
+                                         (Cons4
+                                            (Just C6)
+                                            (Cons4
+                                               (Just C9)
+                                               (Cons4 (Just C1) (Cons4 (Just C7) Nil4)))))))))
+                          (Cons
+                             (Cons4
+                                (Just C7)
+                                (Cons4
+                                   (Just C9)
+                                   (Cons4
+                                      (Just C6)
+                                      (Cons4
+                                         (Just C3)
+                                         (Cons4
+                                            (Just C1)
+                                            (Cons4
+                                               (Just C8)
+                                               (Cons4
+                                                  (Just C4)
+                                                  (Cons4 (Just C5) (Cons4 (Just C2) Nil4)))))))))
+                             Nil)))))))))
+
+0:02.14
+-----------------------
+- lazy smallcheck
+OK, required 1 tests at depth 0
+OK, required 3 tests at depth 1
+OK, required 5 tests at depth 2
+OK, required 7 tests at depth 3
+OK, required 9 tests at depth 4
+OK, required 11 tests at depth 5
+OK, required 13 tests at depth 6
+OK, required 15 tests at depth 7
+OK, required 17 tests at depth 8
+OK, required 19 tests at depth 9
+OK, required 38 tests at depth 10
+OK, required 58 tests at depth 11
+OK, required 78 tests at depth 12
+OK, required 98 tests at depth 13
+OK, required 118 tests at depth 14
+OK, required 138 tests at depth 15
+OK, required 158 tests at depth 16
+OK, required 178 tests at depth 17
+OK, required 198 tests at depth 18
+OK, required 362 tests at depth 19
+./lsc.sh: line 16: 29792 Killed                  runghc $HS_FILE
+Command exited with non-zero status 137
+1:00.03
+ERROR
+-----------------------
+- cvc4
+<stdin>:1.12: No set-logic command was given before this point.
+<stdin>:1.12: CVC4 will make all theories available.
+<stdin>:1.12: Consider setting a stricter logic for (likely) better performance.
+<stdin>:1.12: To suppress this warning in the future use (set-logic ALL).
+Type |list6'| involving Boolean sort is not supported.
+0:00.09
+-----------------------
+- inox (z3)
+/home/simon/workspace/papers/cade_2017_smbc/eval/programs//inox: line 5: 29833 CPU time limit exceeded (core dumped) java -Xmx2G -Xms512M -Xss64M -classpath "${SCALACLASSPATH}" -Dscala.usejavacp=true inox.Main $@ 2>&1
+Command exited with non-zero status 152
+1:02.57
+ERROR
+-----------------------
+- inox (cvc4)
+[[31m[1m Fatal  [0m] Unexpected error from cvc4 solver: Solver encountered exception: smtlib.parser.Parser$UnexpectedEOFException: Unexpected end of file. Expected: [OParen]
+Exception in thread "main" inox.package$FatalError: Unexpected error from cvc4 solver: Solver encountered exception: smtlib.parser.Parser$UnexpectedEOFException: Unexpected end of file. Expected: [OParen]
+	at inox.Reporter.onFatal(Reporter.scala:39)
+	at inox.Reporter.fatalError(Reporter.scala:50)
+	at inox.Reporter.fatalError(Reporter.scala:97)
+	at inox.solvers.smtlib.SMTLIBTarget$class.emit(SMTLIBTarget.scala:63)
+	at inox.solvers.SolverFactory$$anonfun$getFromName$4$$anon$4$underlying$.inox$solvers$smtlib$SMTLIBDebugger$$super$emit(SolverFactory.scala:206)
+	at inox.solvers.smtlib.SMTLIBDebugger$class.emit(SMTLIBDebugger.scala:49)
+	at inox.solvers.SolverFactory$$anonfun$getFromName$4$$anon$4$underlying$.emit(SolverFactory.scala:206)
+	at inox.solvers.smtlib.SMTLIBSolver$class.push(SMTLIBSolver.scala:147)
+	at inox.solvers.SolverFactory$$anonfun$getFromName$4$$anon$4$underlying$.push(SolverFactory.scala:206)
+	at inox.solvers.smtlib.CVC4Solver$class.checkAssumptions(CVC4Solver.scala:33)
+	at inox.solvers.SolverFactory$$anonfun$getFromName$4$$anon$4$underlying$.checkAssumptions(SolverFactory.scala:206)
+	at inox.solvers.unrolling.AbstractUnrollingSolver$class.checkAssumptions(UnrollingSolver.scala:559)
+	at inox.solvers.SolverFactory$$anonfun$getFromName$4$$anon$4.inox$solvers$combinators$TimeoutSolver$$super$checkAssumptions(SolverFactory.scala:193)
+	at inox.solvers.combinators.TimeoutSolver$$anonfun$checkAssumptions$1.apply(TimeoutSolver.scala:44)
+	at inox.solvers.combinators.TimeoutSolver$$anonfun$checkAssumptions$1.apply(TimeoutSolver.scala:44)
+	at inox.utils.TimeoutFor.interruptAfter(TimeoutFor.scala:36)
+	at inox.solvers.combinators.TimeoutSolver$class.checkAssumptions(TimeoutSolver.scala:43)
+	at inox.solvers.SolverFactory$$anonfun$getFromName$4$$anon$4.inox$tip$TipDebugger$$super$checkAssumptions(SolverFactory.scala:193)
+	at inox.tip.TipDebugger$class.checkAssumptions(TipDebugger.scala:62)
+	at inox.solvers.SolverFactory$$anonfun$getFromName$4$$anon$4.checkAssumptions(SolverFactory.scala:193)
+	at inox.solvers.unrolling.AbstractUnrollingSolver$class.check(UnrollingSolver.scala:87)
+	at inox.solvers.SolverFactory$$anonfun$getFromName$4$$anon$4.inox$solvers$combinators$TimeoutSolver$$super$check(SolverFactory.scala:193)
+	at inox.solvers.combinators.TimeoutSolver$$anonfun$check$1.apply(TimeoutSolver.scala:32)
+	at inox.solvers.combinators.TimeoutSolver$$anonfun$check$1.apply(TimeoutSolver.scala:32)
+	at inox.utils.TimeoutFor.interruptAfter(TimeoutFor.scala:36)
+	at inox.solvers.combinators.TimeoutSolver$class.check(TimeoutSolver.scala:31)
+	at inox.solvers.SolverFactory$$anonfun$getFromName$4$$anon$4.inox$tip$TipDebugger$$super$check(SolverFactory.scala:193)
+	at inox.tip.TipDebugger$class.check(TipDebugger.scala:57)
+	at inox.solvers.SolverFactory$$anonfun$getFromName$4$$anon$4.check(SolverFactory.scala:193)
+	at inox.solvers.SimpleSolverAPI$class.solveSAT(SimpleSolverAPI.scala:29)
+	at inox.solvers.SimpleSolverAPI$$anon$1.solveSAT(SimpleSolverAPI.scala:48)
+	at inox.Main$$anonfun$main$1$$anonfun$apply$8.apply(Main.scala:215)
+	at inox.Main$$anonfun$main$1$$anonfun$apply$8.apply(Main.scala:204)
+	at scala.collection.TraversableLike$WithFilter$$anonfun$foreach$1.apply(TraversableLike.scala:733)
+	at scala.collection.immutable.List.foreach(List.scala:381)
+	at scala.collection.TraversableLike$WithFilter.foreach(TraversableLike.scala:732)
+	at inox.Main$$anonfun$main$1.apply(Main.scala:204)
+	at inox.Main$$anonfun$main$1.apply(Main.scala:203)
+	at scala.collection.immutable.List.foreach(List.scala:381)
+	at inox.Main$.main(Main.scala:203)
+	at inox.Main.main(Main.scala)
+Command exited with non-zero status 1
+1:00.68
+ERROR
+==== TYPE CHECKING ====
+=======================
+run on type_checking/ty_infer.smt2
+-----------------------
+- smbc
+(result SAT
+  :model ((val e_2
+            (lam
+              (lam
+                (lam
+                  (app (lam (app (var (s (s (s z)))) (var z) b)) 
+                    (app (var (s z)) (var z) a) b)))))))
+0:00.23
+-----------------------
+- hbmc
+hbmc: trLet: (= (proj1 x) ty_3)
+Command exited with non-zero status 1
+0:00.02
+ERROR
+-----------------------
+- lazy smallcheck
+OK, required 1 tests at depth 0
+OK, required 3 tests at depth 1
+OK, required 10 tests at depth 2
+OK, required 50 tests at depth 3
+OK, required 704 tests at depth 4
+OK, required 198437 tests at depth 5
+./lsc.sh: line 16: 29924 Killed                  runghc $HS_FILE
+Command exited with non-zero status 137
+1:00.02
+ERROR
+-----------------------
+- cvc4
+<stdin>:1.12: No set-logic command was given before this point.
+<stdin>:1.12: CVC4 will make all theories available.
+<stdin>:1.12: Consider setting a stricter logic for (likely) better performance.
+<stdin>:1.12: To suppress this warning in the future use (set-logic ALL).
+CVC4 interrupted by timeout.
+Command terminated by signal 6
+1:00.03
+ERROR
+-----------------------
+- inox (z3)
+/home/simon/workspace/papers/cade_2017_smbc/eval/programs//inox: line 5: 29980 CPU time limit exceeded (core dumped) java -Xmx2G -Xms512M -Xss64M -classpath "${SCALACLASSPATH}" -Dscala.usejavacp=true inox.Main $@ 2>&1
+Command exited with non-zero status 152
+0:59.44
+ERROR
+-----------------------
+- inox (cvc4)
+[[34m  Info  [0m]  => UNKNOWN
+Command exited with non-zero status 1
+1:00.59
+ERROR
+=======================
+run on type_checking/ty_infer_nat.smt2
+-----------------------
+- smbc
+(result SAT
+  :model ((val e_2
+            (lam
+              (lam
+                (lam
+                  (app (lam (app (var (s (s (s z)))) (var z) (const (s z)))) 
+                    (app (var (s z)) (var z) (const z)) (const (s z)))))))))
+0:00.09
+-----------------------
+- hbmc
+hbmc: trLet: (= (proj1 x) ty_3)
+Command exited with non-zero status 1
+0:00.02
+ERROR
+-----------------------
+- lazy smallcheck
+OK, required 1 tests at depth 0
+OK, required 3 tests at depth 1
+OK, required 10 tests at depth 2
+OK, required 30 tests at depth 3
+OK, required 97 tests at depth 4
+OK, required 400 tests at depth 5
+OK, required 3289 tests at depth 6
+./lsc.sh: line 16: 30079 Killed                  runghc $HS_FILE
+Command exited with non-zero status 137
+1:00.02
+ERROR
+-----------------------
+- cvc4
+<stdin>:1.12: No set-logic command was given before this point.
+<stdin>:1.12: CVC4 will make all theories available.
+<stdin>:1.12: Consider setting a stricter logic for (likely) better performance.
+<stdin>:1.12: To suppress this warning in the future use (set-logic ALL).
+(error "Parse Error: <stdin>:49.19: Symbol 'is-const' not declared as a variable
+
+            (is-const ty_3) false
+             ^
+")
+Command exited with non-zero status 1
+0:00.04
+ERROR
+-----------------------
+- inox (z3)
+/home/simon/workspace/papers/cade_2017_smbc/eval/programs//inox: line 5: 30102 CPU time limit exceeded (core dumped) java -Xmx2G -Xms512M -Xss64M -classpath "${SCALACLASSPATH}" -Dscala.usejavacp=true inox.Main $@ 2>&1
+Command exited with non-zero status 152
+0:59.51
+ERROR
+-----------------------
+- inox (cvc4)
+[[34m  Info  [0m]  => UNKNOWN
+Command exited with non-zero status 1
+1:00.60
+ERROR
+==== EXPR ====
+=======================
+run on expr/expr0.smt2
+-----------------------
+- smbc
+(result SAT
+  :model ((val a (Add (V Z) (V (S Z)))) 
+          (val st (Cons (S (S Z)) (Cons Z Nil)))))
+0:00.29
+-----------------------
+- hbmc
+Counterexample!
+st: Cons (S Z) (Cons Z Nil)
+a: Add (V Z) (V (S Z))
+
+0:00.25
+-----------------------
+- lazy smallcheck
+OK, required 1 tests at depth 0
+OK, required 8 tests at depth 1
+OK, required 116 tests at depth 2
+Counter example found:
+Cons Z (Cons (S Z) Nil)
+Add (Add (N Z) (V Z)) (V (S Z))
+0:00.37
+-----------------------
+- cvc4
+<stdin>:1.12: No set-logic command was given before this point.
+<stdin>:1.12: CVC4 will make all theories available.
+<stdin>:1.12: Consider setting a stricter logic for (likely) better performance.
+<stdin>:1.12: To suppress this warning in the future use (set-logic ALL).
+unknown
+1:00.01
+-----------------------
+- inox (z3)
+/home/simon/workspace/papers/cade_2017_smbc/eval/programs//inox: line 5: 30231 CPU time limit exceeded (core dumped) java -Xmx2G -Xms512M -Xss64M -classpath "${SCALACLASSPATH}" -Dscala.usejavacp=true inox.Main $@ 2>&1
+Command exited with non-zero status 152
+1:02.02
+ERROR
+-----------------------
+- inox (cvc4)
+[[34m  Info  [0m]  => SAT
+[[34m  Info  [0m]   (Empty model)
+0:31.20
+=======================
+run on expr/expr1.smt2
+-----------------------
+- smbc
+(result SAT :model ((val a (Div (N Z) (N Z))) 
+                    (val st (Cons (S Z) Nil))))
+0:00.13
+-----------------------
+- hbmc
+Counterexample!
+st: Cons (S Z) (Cons Z Nil)
+a: Div (N Z) (N Z)
+
+0:00.23
+-----------------------
+- lazy smallcheck
+OK, required 1 tests at depth 0
+OK, required 8 tests at depth 1
+Counter example found:
+Nil
+Div (N Z) (N Z)
+0:00.36
+-----------------------
+- cvc4
+<stdin>:1.12: No set-logic command was given before this point.
+<stdin>:1.12: CVC4 will make all theories available.
+<stdin>:1.12: Consider setting a stricter logic for (likely) better performance.
+<stdin>:1.12: To suppress this warning in the future use (set-logic ALL).
+unknown
+1:00.00
+-----------------------
+- inox (z3)
+/home/simon/workspace/papers/cade_2017_smbc/eval/programs//inox: line 5: 30336 CPU time limit exceeded (core dumped) java -Xmx2G -Xms512M -Xss64M -classpath "${SCALACLASSPATH}" -Dscala.usejavacp=true inox.Main $@ 2>&1
+Command exited with non-zero status 152
+1:02.04
+ERROR
+-----------------------
+- inox (cvc4)
+[[34m  Info  [0m]  => SAT
+[[34m  Info  [0m]   (Empty model)
+0:31.23
+=======================
+run on expr/expr2.smt2
+-----------------------
+- smbc
+Command terminated by signal 24
+1:00.08
+ERROR
+-----------------------
+- hbmc
+Counterexample!
+st: Cons Z (Cons (S Z) (Cons Z Nil))
+a: Div (Mul (V (S Z)) (V Z)) (V Z)
+
+0:00.53
+-----------------------
+- lazy smallcheck
+OK, required 1 tests at depth 0
+OK, required 8 tests at depth 1
+OK, required 122 tests at depth 2
+OK, required 11578 tests at depth 3
+./lsc.sh: line 16: 30437 Killed                  runghc $HS_FILE
+Command exited with non-zero status 137
+1:00.03
+ERROR
+-----------------------
+- cvc4
+<stdin>:1.12: No set-logic command was given before this point.
+<stdin>:1.12: CVC4 will make all theories available.
+<stdin>:1.12: Consider setting a stricter logic for (likely) better performance.
+<stdin>:1.12: To suppress this warning in the future use (set-logic ALL).
+unknown
+1:00.01
+-----------------------
+- inox (z3)
+/home/simon/workspace/papers/cade_2017_smbc/eval/programs//inox: line 5: 30487 CPU time limit exceeded (core dumped) java -Xmx2G -Xms512M -Xss64M -classpath "${SCALACLASSPATH}" -Dscala.usejavacp=true inox.Main $@ 2>&1
+Command exited with non-zero status 152
+1:02.29
+ERROR
+-----------------------
+- inox (cvc4)
+[[34m  Info  [0m]  => SAT
+[[34m  Info  [0m]   (Empty model)
+0:44.40
+=======================
+run on expr/expr3.smt2
+-----------------------
+- smbc
+(TIMEOUT)
+1:00.00
+-----------------------
+- hbmc
+hbmc: out of memory (requested 1048576 bytes)
+Command exited with non-zero status 1
+0:51.78
+ERROR
+-----------------------
+- lazy smallcheck
+OK, required 1 tests at depth 0
+OK, required 8 tests at depth 1
+OK, required 122 tests at depth 2
+OK, required 11571 tests at depth 3
+./lsc.sh: line 16: 30607 Killed                  runghc $HS_FILE
+Command exited with non-zero status 137
+1:00.03
+ERROR
+-----------------------
+- cvc4
+<stdin>:1.12: No set-logic command was given before this point.
+<stdin>:1.12: CVC4 will make all theories available.
+<stdin>:1.12: Consider setting a stricter logic for (likely) better performance.
+<stdin>:1.12: To suppress this warning in the future use (set-logic ALL).
+unknown
+1:00.01
+-----------------------
+- inox (z3)
+/home/simon/workspace/papers/cade_2017_smbc/eval/programs//inox: line 5: 30657 CPU time limit exceeded (core dumped) java -Xmx2G -Xms512M -Xss64M -classpath "${SCALACLASSPATH}" -Dscala.usejavacp=true inox.Main $@ 2>&1
+Command exited with non-zero status 152
+1:01.86
+ERROR
+-----------------------
+- inox (cvc4)
+/home/simon/workspace/papers/cade_2017_smbc/eval/programs//inox: line 5: 30691 CPU time limit exceeded (core dumped) java -Xmx2G -Xms512M -Xss64M -classpath "${SCALACLASSPATH}" -Dscala.usejavacp=true inox.Main $@ 2>&1
+Command exited with non-zero status 152
+1:23.91
+ERROR
+==== PIGEON ====
+=======================
+run on pigeon/pigeon4.smt2
+-----------------------
+- smbc
+(result UNSAT)
+0:00.02
+-----------------------
+- hbmc
+hbmc: widenLetScope: (forall ((p Nat))
+  (match (= p h1)
+    (case True True)
+    (case False
+      (match (= p h2)
+        (case True True)
+        (case False
+          (match (= p h3)
+            (case True True)
+            (case False (= p h4))))))))
+Command exited with non-zero status 1
+0:00.01
+ERROR
+-----------------------
+- lazy smallcheck
+
+/tmp/lsc/pigeon/pigeon4.hs:9:1: error:
+    Failed to load interface for ‘QuickSpec’
+    Use -v to see a list of the files searched for.
+Command exited with non-zero status 1
+0:00.17
+ERROR
+-----------------------
+- cvc4
+<stdin>:1.12: No set-logic command was given before this point.
+<stdin>:1.12: CVC4 will make all theories available.
+<stdin>:1.12: Consider setting a stricter logic for (likely) better performance.
+<stdin>:1.12: To suppress this warning in the future use (set-logic ALL).
+unsat
+0:00.01
+-----------------------
+- inox (z3)
+[[31m Error  [0m] Something went wrong. The model should have been valid, yet we got this:
+[[31m Error  [0m]   p4: hole -> hole(7)
+[[31m Error  [0m]   p3: hole -> hole(6)
+[[31m Error  [0m]   p1: hole -> hole(4)
+[[31m Error  [0m]   h2: hole -> hole(1)
+[[31m Error  [0m]   p2: hole -> hole(5)
+[[31m Error  [0m]   p5: hole -> hole(8)
+[[31m Error  [0m]   h1: hole -> hole(0)
+[[31m Error  [0m]   h4: hole -> hole(3)
+[[31m Error  [0m]   h3: hole -> hole(2)
+[[31m Error  [0m] for formula h1 ≠ h2 && h1 ≠ h3 && h1 ≠ h4 && h2 ≠ h3 && h2 ≠ h4 && h3 ≠ h4 && p1 ≠ p2 && p1 ≠ p3 && p1 ≠ p4 && p1 ≠ p5 && p2 ≠ p3 && p2 ≠ p4 && p2 ≠ p5 && p3 ≠ p4 && p3 ≠ p5 && p4 ≠ p5 && ∀p: hole. (p == h1 || p == h2 || p == h3 || p == h4)
+[[34m  Info  [0m]  => UNKNOWN
+Command exited with non-zero status 1
+0:00.67
+ERROR
+-----------------------
+- inox (cvc4)
+[[31m Error  [0m] Something went wrong. The model should have been valid, yet we got this:
+[[31m Error  [0m]   p4: hole -> hole(0)
+[[31m Error  [0m]   p3: hole -> hole(1)
+[[31m Error  [0m]   p1: hole -> hole(-1)
+[[31m Error  [0m]   h2: hole -> hole(2)
+[[31m Error  [0m]   p2: hole -> hole(-2)
+[[31m Error  [0m]   p5: hole -> hole(3)
+[[31m Error  [0m]   h1: hole -> hole(-3)
+[[31m Error  [0m]   h4: hole -> hole(4)
+[[31m Error  [0m]   h3: hole -> hole(-4)
+[[31m Error  [0m] for formula h1 ≠ h2 && h1 ≠ h3 && h1 ≠ h4 && h2 ≠ h3 && h2 ≠ h4 && h3 ≠ h4 && p1 ≠ p2 && p1 ≠ p3 && p1 ≠ p4 && p1 ≠ p5 && p2 ≠ p3 && p2 ≠ p4 && p2 ≠ p5 && p3 ≠ p4 && p3 ≠ p5 && p4 ≠ p5 && ∀p: hole. (p == h1 || p == h2 || p == h3 || p == h4)
+[[34m  Info  [0m]  => UNKNOWN
+Command exited with non-zero status 1
+0:00.62
+ERROR
+==== FOLD ====
+=======================
+run on fold/fold0.smt2
+-----------------------
+- smbc
+(result SAT
+  :model ((type acc ($acc_0 $acc_1)) 
+          (val a1 $acc_1) 
+          (val a0 $acc_0) 
+          (val f
+            (lambda  ((x0 acc))
+              (ite (= x0 $acc_0)
+                (lambda  ((x1 Bool)) $acc_1)
+                (lambda  ((x2 Bool)) (ite x2 $acc_1 $acc_0))))) 
+          (val acc_init $acc_1)))
+0:00.00
+-----------------------
+- hbmc
+hbmc: widenLetScope: (forall ((x Nat))
+  (match (= x a0)
+    (case True True)
+    (case False (= x a1))))
+Command exited with non-zero status 1
+0:00.01
+ERROR
+-----------------------
+- lazy smallcheck
+
+/tmp/lsc/fold/fold0.hs:10:1: error:
+    Failed to load interface for ‘QuickSpec’
+    Use -v to see a list of the files searched for.
+Command exited with non-zero status 1
+0:00.16
+ERROR
+-----------------------
+- cvc4
+<stdin>:1.12: No set-logic command was given before this point.
+<stdin>:1.12: CVC4 will make all theories available.
+<stdin>:1.12: Consider setting a stricter logic for (likely) better performance.
+<stdin>:1.12: To suppress this warning in the future use (set-logic ALL).
+Type list involving Boolean sort is not supported.
+0:00.01
+-----------------------
+- inox (z3)
+[[31m Error  [0m] Something went wrong. The model should have been valid, yet we got this:
+[[31m Error  [0m]   a1: acc       -> acc(1)
+[[31m Error  [0m]   acc_init: acc -> acc(2)
+[[31m Error  [0m]   a0: acc       -> acc(0)
+[[31m Error  [0m]   
+[[31m Error  [0m]   f(x$0: acc, x$1: Boolean) -> if (x$0 == acc(11) && x$1 == false) {
+[[31m Error  [0m]     acc(3)
+[[31m Error  [0m]   } else if (x$0 == acc(4) && x$1 == false) {
+[[31m Error  [0m]     acc(8)
+[[31m Error  [0m]   } else if (x$0 == acc(17) && x$1 == false) {
+[[31m Error  [0m]     acc(6)
+[[31m Error  [0m]   } else if (x$0 == acc(12) && x$1 == false) {
+[[31m Error  [0m]     acc(5)
+[[31m Error  [0m]   } else if (x$0 == acc(4) && x$1 == false) {
+[[31m Error  [0m]     acc(8)
+[[31m Error  [0m]   } else if (x$0 == acc(2) && x$1 == false) {
+[[31m Error  [0m]     acc(4)
+[[31m Error  [0m]   } else if (x$0 == acc(8) && x$1 == false) {
+[[31m Error  [0m]     acc(10)
+[[31m Error  [0m]   } else if (x$0 == acc(4) && x$1 == false) {
+[[31m Error  [0m]     acc(8)
+[[31m Error  [0m]   } else if (x$0 == acc(8) && x$1 == false) {
+[[31m Error  [0m]     acc(10)
+[[31m Error  [0m]   } else if (x$0 == acc(2) && x$1 == false) {
+[[31m Error  [0m]     acc(4)
+[[31m Error  [0m]   } else if (x$0 == acc(2) && x$1 == false) {
+[[31m Error  [0m]     acc(4)
+[[31m Error  [0m]   } else if (x$0 == acc(19) && x$1 == false) {
+[[31m Error  [0m]     acc(7)
+[[31m Error  [0m]   } else if (x$0 == acc(10) && x$1 == false) {
+[[31m Error  [0m]     acc(15)
+[[31m Error  [0m]   } else if (x$0 == acc(2) && x$1 == false) {
+[[31m Error  [0m]     acc(4)
+[[31m Error  [0m]   } else if (x$0 == acc(16) && x$1 == false) {
+[[31m Error  [0m]     acc(19)
+[[31m Error  [0m]   } else if (x$0 == acc(15) && x$1 == true) {
+[[31m Error  [0m]     acc(17)
+[[31m Error  [0m]   } else if (x$0 == acc(8) && x$1 == true) {
+[[31m Error  [0m]     acc(11)
+[[31m Error  [0m]   } else if (x$0 == acc(9) && x$1 == false) {
+[[31m Error  [0m]     acc(12)
+[[31m Error  [0m]   } else if (x$0 == acc(4) && x$1 == true) {
+[[31m Error  [0m]     acc(9)
+[[31m Error  [0m]   } else if (x$0 == acc(10) && x$1 == true) {
+[[31m Error  [0m]     acc(16)
+[[31m Error  [0m]   } else {
+[[31m Error  [0m]     choose((res: acc) => true)
+[[31m Error  [0m]   }
+[[31m Error  [0m] for formula a0 ≠ a1 && ∀x: acc. (x == a0 || x == a1) && ¬¬(fold(acc_init, l0) ≠ fold(acc_init, l1) && fold(acc_init, l2) ≠ fold(acc_init, l3))
+[[34m  Info  [0m]  => UNKNOWN
+Command exited with non-zero status 1
+0:00.76
+ERROR
+-----------------------
+- inox (cvc4)
+[[31m[1m Fatal  [0m] Unexpected error from cvc4 solver: Solver encountered exception: smtlib.parser.Parser$UnexpectedEOFException: Unexpected end of file. Expected: [OParen]
+Exception in thread "main" inox.package$FatalError: Unexpected error from cvc4 solver: Solver encountered exception: smtlib.parser.Parser$UnexpectedEOFException: Unexpected end of file. Expected: [OParen]
+	at inox.Reporter.onFatal(Reporter.scala:39)
+	at inox.Reporter.fatalError(Reporter.scala:50)
+	at inox.Reporter.fatalError(Reporter.scala:97)
+	at inox.solvers.smtlib.SMTLIBTarget$class.emit(SMTLIBTarget.scala:63)
+	at inox.solvers.SolverFactory$$anonfun$getFromName$4$$anon$4$underlying$.inox$solvers$smtlib$SMTLIBDebugger$$super$emit(SolverFactory.scala:206)
+	at inox.solvers.smtlib.SMTLIBDebugger$class.emit(SMTLIBDebugger.scala:49)
+	at inox.solvers.SolverFactory$$anonfun$getFromName$4$$anon$4$underlying$.emit(SolverFactory.scala:206)
+	at inox.solvers.smtlib.SMTLIBSolver$class.push(SMTLIBSolver.scala:147)
+	at inox.solvers.SolverFactory$$anonfun$getFromName$4$$anon$4$underlying$.push(SolverFactory.scala:206)
+	at inox.solvers.smtlib.CVC4Solver$class.checkAssumptions(CVC4Solver.scala:33)
+	at inox.solvers.SolverFactory$$anonfun$getFromName$4$$anon$4$underlying$.checkAssumptions(SolverFactory.scala:206)
+	at inox.solvers.unrolling.AbstractUnrollingSolver$class.checkAssumptions(UnrollingSolver.scala:559)
+	at inox.solvers.SolverFactory$$anonfun$getFromName$4$$anon$4.inox$solvers$combinators$TimeoutSolver$$super$checkAssumptions(SolverFactory.scala:193)
+	at inox.solvers.combinators.TimeoutSolver$$anonfun$checkAssumptions$1.apply(TimeoutSolver.scala:44)
+	at inox.solvers.combinators.TimeoutSolver$$anonfun$checkAssumptions$1.apply(TimeoutSolver.scala:44)
+	at inox.utils.TimeoutFor.interruptAfter(TimeoutFor.scala:36)
+	at inox.solvers.combinators.TimeoutSolver$class.checkAssumptions(TimeoutSolver.scala:43)
+	at inox.solvers.SolverFactory$$anonfun$getFromName$4$$anon$4.inox$tip$TipDebugger$$super$checkAssumptions(SolverFactory.scala:193)
+	at inox.tip.TipDebugger$class.checkAssumptions(TipDebugger.scala:62)
+	at inox.solvers.SolverFactory$$anonfun$getFromName$4$$anon$4.checkAssumptions(SolverFactory.scala:193)
+	at inox.solvers.unrolling.AbstractUnrollingSolver$class.check(UnrollingSolver.scala:87)
+	at inox.solvers.SolverFactory$$anonfun$getFromName$4$$anon$4.inox$solvers$combinators$TimeoutSolver$$super$check(SolverFactory.scala:193)
+	at inox.solvers.combinators.TimeoutSolver$$anonfun$check$1.apply(TimeoutSolver.scala:32)
+	at inox.solvers.combinators.TimeoutSolver$$anonfun$check$1.apply(TimeoutSolver.scala:32)
+	at inox.utils.TimeoutFor.interruptAfter(TimeoutFor.scala:36)
+	at inox.solvers.combinators.TimeoutSolver$class.check(TimeoutSolver.scala:31)
+	at inox.solvers.SolverFactory$$anonfun$getFromName$4$$anon$4.inox$tip$TipDebugger$$super$check(SolverFactory.scala:193)
+	at inox.tip.TipDebugger$class.check(TipDebugger.scala:57)
+	at inox.solvers.SolverFactory$$anonfun$getFromName$4$$anon$4.check(SolverFactory.scala:193)
+	at inox.solvers.SimpleSolverAPI$class.solveSAT(SimpleSolverAPI.scala:29)
+	at inox.solvers.SimpleSolverAPI$$anon$1.solveSAT(SimpleSolverAPI.scala:48)
+	at inox.Main$$anonfun$main$1$$anonfun$apply$8.apply(Main.scala:215)
+	at inox.Main$$anonfun$main$1$$anonfun$apply$8.apply(Main.scala:204)
+	at scala.collection.TraversableLike$WithFilter$$anonfun$foreach$1.apply(TraversableLike.scala:733)
+	at scala.collection.immutable.List.foreach(List.scala:381)
+	at scala.collection.TraversableLike$WithFilter.foreach(TraversableLike.scala:732)
+	at inox.Main$$anonfun$main$1.apply(Main.scala:204)
+	at inox.Main$$anonfun$main$1.apply(Main.scala:203)
+	at scala.collection.immutable.List.foreach(List.scala:381)
+	at inox.Main$.main(Main.scala:203)
+	at inox.Main.main(Main.scala)
+Command exited with non-zero status 1
+1:00.60
+ERROR
+=======================
+run on fold/fold1.smt2
+-----------------------
+- smbc
+(result SAT
+  :model ((type acc ($acc_0 $acc_1 $acc_2)) 
+          (val acc_to_nat
+            (lambda  ((x0 acc))
+              (ite (= x0 $acc_0) (s (s z)) (ite (= x0 $acc_1) (s z) z)))) 
+          (val a2 $acc_0) 
+          (val a1 $acc_2) 
+          (val a0 $acc_1) 
+          (val f
+            (lambda  ((x1 acc))
+              (ite (= x1 $acc_0)
+                (lambda  ((x2 nat))
+                  (match x2 (case z $acc_1) 
+                            (case (s x3) $acc_1)))
+                (ite (= x1 $acc_1)
+                  (lambda  ((x4 nat))
+                    (match x4
+                      (case z $acc_1) 
+                      (case (s x5)
+                         (match x5
+                           (case z $acc_2) 
+                           (case (s x6)
+                              (match x6 (case z $acc_1) 
+                                        (case (s x7) $acc_0)))))))
+                  (lambda  ((x8 nat))
+                    (match x8 (case z $acc_2) 
+                              (case (s x9) $acc_2))))))) 
+          (val acc_init $acc_0)))
+0:00.13
+-----------------------
+- hbmc
+hbmc: Symbol a2 (62:16) is already globally bound
+Command exited with non-zero status 1
+0:00.01
+ERROR
+-----------------------
+- lazy smallcheck
+tip: Parse failed: Symbol a2 (62:16) is already globally bound
+
+/tmp/lsc/fold/fold1.hs:0:53: error:
+    • Variable not in scope: main :: IO a0
+    • Perhaps you meant ‘min’ (imported from Prelude)
+Command exited with non-zero status 1
+0:00.14
+ERROR
+-----------------------
+- cvc4
+0:00.00
+-----------------------
+- inox (z3)
+[[31m Error  [0m] Something went wrong. The model should have been valid, yet we got this:
+[[31m Error  [0m]   a2: acc       -> acc(3)
+[[31m Error  [0m]   a1: acc       -> acc(2)
+[[31m Error  [0m]   acc_init: acc -> acc(0)
+[[31m Error  [0m]   a0: acc       -> acc(1)
+[[31m Error  [0m]   
+[[31m Error  [0m]   acc_to_nat(x$5: acc) -> if (x$5 == acc(3)) {
+[[31m Error  [0m]     s(s(s(s(s(s(s(s(s(s(s(s(s(s(s(s(s(s(s(s(s(s(s(s(s(s(s(s(s(s(s(s(s(s(s(s(s(s(s(s(s(s(s(z())))))))))))))))))))))))))))))))))))))))))))
+[[31m Error  [0m]   } else if (x$5 == acc(9)) {
+[[31m Error  [0m]     s(s(z()))
+[[31m Error  [0m]   } else if (x$5 == acc(7)) {
+[[31m Error  [0m]     s(z())
+[[31m Error  [0m]   } else if (x$5 == acc(2)) {
+[[31m Error  [0m]     s(s(s(s(s(s(s(s(s(s(s(s(s(s(s(s(s(s(s(s(s(s(s(s(s(s(s(s(s(s(s(s(s(s(s(s(s(s(s(s(s(z())))))))))))))))))))))))))))))))))))))))))
+[[31m Error  [0m]   } else if (x$5 == acc(4)) {
+[[31m Error  [0m]     z()
+[[31m Error  [0m]   } else if (x$5 == acc(5)) {
+[[31m Error  [0m]     z()
+[[31m Error  [0m]   } else if (x$5 == acc(1)) {
+[[31m Error  [0m]     s(s(s(s(s(s(s(s(s(s(s(s(s(s(s(s(s(s(s(s(s(s(s(s(s(s(s(s(s(s(s(s(s(s(s(s(s(s(s(z())))))))))))))))))))))))))))))))))))))))
+[[31m Error  [0m]   } else {
+[[31m Error  [0m]     choose((res: nat) => true)
+[[31m Error  [0m]   }
+[[31m Error  [0m]   f(x$2: acc, x$3: nat) -> if (x$2 == acc(10) && x$3 == s(s(z()))) {
+[[31m Error  [0m]     acc(11)
+[[31m Error  [0m]   } else if (x$2 == acc(6) && x$3 == s(z())) {
+[[31m Error  [0m]     acc(10)
+[[31m Error  [0m]   } else if (x$2 == acc(0) && x$3 == z()) {
+[[31m Error  [0m]     acc(6)
+[[31m Error  [0m]   } else if (x$2 == acc(5) && x$3 == s(s(s(s(z()))))) {
+[[31m Error  [0m]     acc(19)
+[[31m Error  [0m]   } else if (x$2 == acc(21) && x$3 == s(s(s(s(s(s(s(z())))))))) {
+[[31m Error  [0m]     acc(9)
+[[31m Error  [0m]   } else if (x$2 == acc(13) && x$3 == s(s(s(s(z()))))) {
+[[31m Error  [0m]     acc(14)
+[[31m Error  [0m]   } else if (x$2 == acc(0) && x$3 == z()) {
+[[31m Error  [0m]     acc(6)
+[[31m Error  [0m]   } else if (x$2 == acc(8) && x$3 == s(s(z()))) {
+[[31m Error  [0m]     acc(12)
+[[31m Error  [0m]   } else if (x$2 == acc(11) && x$3 == s(s(s(z())))) {
+[[31m Error  [0m]     acc(5)
+[[31m Error  [0m]   } else if (x$2 == acc(0) && x$3 == s(z())) {
+[[31m Error  [0m]     acc(8)
+[[31m Error  [0m]   } else if (x$2 == acc(0) && x$3 == s(z())) {
+[[31m Error  [0m]     acc(8)
+[[31m Error  [0m]   } else if (x$2 == acc(12) && x$3 == s(s(s(z())))) {
+[[31m Error  [0m]     acc(15)
+[[31m Error  [0m]   } else if (x$2 == acc(10) && x$3 == s(s(z()))) {
+[[31m Error  [0m]     acc(11)
+[[31m Error  [0m]   } else if (x$2 == acc(6) && x$3 == s(z())) {
+[[31m Error  [0m]     acc(10)
+[[31m Error  [0m]   } else if (x$2 == acc(16) && x$3 == s(s(s(s(s(s(z()))))))) {
+[[31m Error  [0m]     acc(21)
+[[31m Error  [0m]   } else if (x$2 == acc(8) && x$3 == s(s(s(z())))) {
+[[31m Error  [0m]     acc(13)
+[[31m Error  [0m]   } else if (x$2 == acc(11) && x$3 == s(s(s(z())))) {
+[[31m Error  [0m]     acc(5)
+[[31m Error  [0m]   } else if (x$2 == acc(14) && x$3 == s(s(s(s(s(z())))))) {
+[[31m Error  [0m]     acc(16)
+[[31m Error  [0m]   } else if (x$2 == acc(19) && x$3 == s(s(s(s(s(z())))))) {
+[[31m Error  [0m]     acc(4)
+[[31m Error  [0m]   } else if (x$2 == acc(15) && x$3 == s(s(s(s(z()))))) {
+[[31m Error  [0m]     acc(7)
+[[31m Error  [0m]   } else {
+[[31m Error  [0m]     choose((res: acc) => true)
+[[31m Error  [0m]   }
+[[31m Error  [0m] for formula a0 ≠ a1 && a0 ≠ a2 && a1 ≠ a2 && ∀x: acc. (x == a0 || x == a1 || x == a2) && acc_to_nat(a0) ≠ acc_to_nat(a1) && acc_to_nat(a0) ≠ acc_to_nat(a2) && acc_to_nat(a1) ≠ acc_to_nat(a2) && ¬¬(acc_to_nat(fold(acc_init, l0)) == modulo3(sum(l0)) && acc_to_nat(fold(acc_init, l1)) == modulo3(sum(l1)) && acc_to_nat(fold(acc_init, l2)) == modulo3(sum(l2)) && acc_to_nat(fold(acc_init, l3)) == modulo3(sum(l3)) && fold(acc_init, l0) ≠ fold(acc_init, l1) && fold(acc_init, l2) ≠ fold(acc_init, l3) && modulo3(sum(l0)) ≠ modulo3(sum(l1)) && modulo3(sum(l2)) ≠ modulo3(sum(l3)))
+[[34m  Info  [0m]  => UNKNOWN
+Command exited with non-zero status 1
+0:03.01
+ERROR
+-----------------------
+- inox (cvc4)
+[[31m Error  [0m] Something went wrong. The model should have been valid, yet we got this:
+[[31m Error  [0m]   a2: acc       -> acc(1)
+[[31m Error  [0m]   a1: acc       -> acc(0)
+[[31m Error  [0m]   acc_init: acc -> acc(-1)
+[[31m Error  [0m]   a0: acc       -> acc(2)
+[[31m Error  [0m]   
+[[31m Error  [0m]   acc_to_nat(x$5: acc) -> if (x$5 == acc(-3)) {
+[[31m Error  [0m]     z()
+[[31m Error  [0m]   } else if (x$5 == acc(1)) {
+[[31m Error  [0m]     s(s(s(s(s(s(s(s(s(s(s(s(s(s(s(s(s(s(s(s(s(s(s(s(s(s(s(s(z()))))))))))))))))))))))))))))
+[[31m Error  [0m]   } else if (x$5 == acc(4)) {
+[[31m Error  [0m]     s(s(z()))
+[[31m Error  [0m]   } else if (x$5 == acc(-2)) {
+[[31m Error  [0m]     z()
+[[31m Error  [0m]   } else if (x$5 == acc(0)) {
+[[31m Error  [0m]     s(s(s(s(s(s(s(s(s(s(s(s(s(s(s(s(s(s(s(s(s(s(s(s(s(s(s(z())))))))))))))))))))))))))))
+[[31m Error  [0m]   } else if (x$5 == acc(3)) {
+[[31m Error  [0m]     s(z())
+[[31m Error  [0m]   } else if (x$5 == acc(2)) {
+[[31m Error  [0m]     s(s(s(s(s(s(s(s(s(s(s(s(s(s(s(s(s(s(s(s(s(s(s(s(s(s(s(s(s(z())))))))))))))))))))))))))))))
+[[31m Error  [0m]   } else {
+[[31m Error  [0m]     choose((res: nat) => true)
+[[31m Error  [0m]   }
+[[31m Error  [0m]   f(x$2: acc, x$3: nat) -> if (x$2 == acc(-1) && x$3 == s(z())) {
+[[31m Error  [0m]     acc(-4)
+[[31m Error  [0m]   } else if (x$2 == acc(8) && x$3 == s(s(s(z())))) {
+[[31m Error  [0m]     acc(-2)
+[[31m Error  [0m]   } else if (x$2 == acc(-11) && x$3 == s(s(s(s(s(z())))))) {
+[[31m Error  [0m]     acc(-3)
+[[31m Error  [0m]   } else if (x$2 == acc(-5) && x$3 == s(z())) {
+[[31m Error  [0m]     acc(6)
+[[31m Error  [0m]   } else if (x$2 == acc(-8) && x$3 == s(s(s(s(s(s(z()))))))) {
+[[31m Error  [0m]     acc(11)
+[[31m Error  [0m]   } else if (x$2 == acc(-1) && x$3 == s(z())) {
+[[31m Error  [0m]     acc(-4)
+[[31m Error  [0m]   } else if (x$2 == acc(-5) && x$3 == s(z())) {
+[[31m Error  [0m]     acc(6)
+[[31m Error  [0m]   } else if (x$2 == acc(-7) && x$3 == s(s(s(s(s(z())))))) {
+[[31m Error  [0m]     acc(-8)
+[[31m Error  [0m]   } else if (x$2 == acc(-2) && x$3 == s(s(s(s(z()))))) {
+[[31m Error  [0m]     acc(-11)
+[[31m Error  [0m]   } else if (x$2 == acc(6) && x$3 == s(s(z()))) {
+[[31m Error  [0m]     acc(8)
+[[31m Error  [0m]   } else if (x$2 == acc(-4) && x$3 == s(s(z()))) {
+[[31m Error  [0m]     acc(-6)
+[[31m Error  [0m]   } else if (x$2 == acc(5) && x$3 == s(s(s(s(z()))))) {
+[[31m Error  [0m]     acc(-7)
+[[31m Error  [0m]   } else if (x$2 == acc(-1) && x$3 == z()) {
+[[31m Error  [0m]     acc(-5)
+[[31m Error  [0m]   } else if (x$2 == acc(-6) && x$3 == s(s(s(z())))) {
+[[31m Error  [0m]     acc(7)
+[[31m Error  [0m]   } else if (x$2 == acc(-4) && x$3 == s(s(s(z())))) {
+[[31m Error  [0m]     acc(5)
+[[31m Error  [0m]   } else if (x$2 == acc(11) && x$3 == s(s(s(s(s(s(s(z())))))))) {
+[[31m Error  [0m]     acc(4)
+[[31m Error  [0m]   } else if (x$2 == acc(8) && x$3 == s(s(s(z())))) {
+[[31m Error  [0m]     acc(-2)
+[[31m Error  [0m]   } else if (x$2 == acc(7) && x$3 == s(s(s(s(z()))))) {
+[[31m Error  [0m]     acc(3)
+[[31m Error  [0m]   } else if (x$2 == acc(6) && x$3 == s(s(z()))) {
+[[31m Error  [0m]     acc(8)
+[[31m Error  [0m]   } else if (x$2 == acc(-1) && x$3 == z()) {
+[[31m Error  [0m]     acc(-5)
+[[31m Error  [0m]   } else {
+[[31m Error  [0m]     choose((res: acc) => true)
+[[31m Error  [0m]   }
+[[31m Error  [0m] for formula a0 ≠ a1 && a0 ≠ a2 && a1 ≠ a2 && ∀x: acc. (x == a0 || x == a1 || x == a2) && acc_to_nat(a0) ≠ acc_to_nat(a1) && acc_to_nat(a0) ≠ acc_to_nat(a2) && acc_to_nat(a1) ≠ acc_to_nat(a2) && ¬¬(acc_to_nat(fold(acc_init, l0)) == modulo3(sum(l0)) && acc_to_nat(fold(acc_init, l1)) == modulo3(sum(l1)) && acc_to_nat(fold(acc_init, l2)) == modulo3(sum(l2)) && acc_to_nat(fold(acc_init, l3)) == modulo3(sum(l3)) && fold(acc_init, l0) ≠ fold(acc_init, l1) && fold(acc_init, l2) ≠ fold(acc_init, l3) && modulo3(sum(l0)) ≠ modulo3(sum(l1)) && modulo3(sum(l2)) ≠ modulo3(sum(l3)))
+[[34m  Info  [0m]  => UNKNOWN
+Command exited with non-zero status 1
+0:23.96
+ERROR

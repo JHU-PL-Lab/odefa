@@ -1,0 +1,261 @@
+parsed `results.txt` (29 entries)
+file regex/regex_0.smt2 (category `regex`)
+  solver smbc: sat in 0:00.08
+  solver hbmc: sat in 0:13.24
+  solver lazy smallcheck: sat in 0:02.61
+  solver cvc4: unknown in 0:00.02
+  solver inox (z3): unknown in 0:59.09
+  solver inox (cvc4): unknown in 1:00.61
+file regex/regex_10.smt2 (category `regex`)
+  solver smbc: unknown in 1:00.00
+  solver hbmc: unknown in 1:05.33
+  solver lazy smallcheck: sat in 0:03.14
+  solver cvc4: unknown in 0:00.02
+  solver inox (z3): unknown in 1:03.14
+  solver inox (cvc4): unknown in 1:01.99
+file regex/regex_11.smt2 (category `regex`)
+  solver smbc: unknown in 1:00.00
+  solver hbmc: unknown in 1:05.61
+  solver lazy smallcheck: unknown in 1:00.03
+  solver cvc4: unknown in 0:00.02
+  solver inox (z3): unknown in 1:03.84
+  solver inox (cvc4): unknown in 1:00.64
+file regex/regex_1.smt2 (category `regex`)
+  solver smbc: sat in 0:05.01
+  solver hbmc: unknown in 0:40.48
+  solver lazy smallcheck: sat in 0:05.64
+  solver cvc4: unknown in 0:00.02
+  solver inox (z3): unknown in 0:58.88
+  solver inox (cvc4): unknown in 1:00.61
+file regex/regex_2.smt2 (category `regex`)
+  solver smbc: sat in 0:00.25
+  solver hbmc: unknown in 0:42.81
+  solver lazy smallcheck: sat in 0:05.52
+  solver cvc4: unknown in 0:00.02
+  solver inox (z3): unknown in 0:58.97
+  solver inox (cvc4): unknown in 1:00.61
+file regex/regex_3.smt2 (category `regex`)
+  solver smbc: sat in 0:05.07
+  solver hbmc: unknown in 0:41.30
+  solver lazy smallcheck: sat in 0:05.86
+  solver cvc4: unknown in 0:00.02
+  solver inox (z3): unknown in 0:59.17
+  solver inox (cvc4): unknown in 1:47.98
+file regex/regex_4.smt2 (category `regex`)
+  solver smbc: sat in 0:03.71
+  solver hbmc: unknown in 0:40.34
+  solver lazy smallcheck: sat in 0:08.52
+  solver cvc4: unknown in 0:00.02
+  solver inox (z3): unknown in 0:59.07
+  solver inox (cvc4): unknown in 1:47.63
+file regex/regex_5.smt2 (category `regex`)
+  solver smbc: sat in 0:03.71
+  solver hbmc: unknown in 0:38.97
+  solver lazy smallcheck: sat in 0:08.55
+  solver cvc4: unknown in 0:00.02
+  solver inox (z3): unknown in 0:59.11
+  solver inox (cvc4): unknown in 1:00.62
+file regex/regex_6.smt2 (category `regex`)
+  solver smbc: unknown in 1:00.10
+  solver hbmc: unknown in 0:40.31
+  solver lazy smallcheck: sat in 0:10.28
+  solver cvc4: unknown in 0:00.02
+  solver inox (z3): unknown in 0:58.96
+  solver inox (cvc4): unknown in 1:45.19
+file regex/regex_7.smt2 (category `regex`)
+  solver smbc: sat in 0:00.00
+  solver hbmc: sat in 0:00.07
+  solver lazy smallcheck: sat in 0:00.33
+  solver cvc4: unknown in 0:00.02
+  solver inox (z3): unknown in 0:59.12
+  solver inox (cvc4): unknown in 14:56:26
+file regex/regex_8.smt2 (category `regex`)
+  solver smbc: unknown in 1:00.00
+  solver hbmc: unknown in 1:05.23
+  solver lazy smallcheck: sat in 0:02.99
+  solver cvc4: unknown in 0:00.02
+  solver inox (z3): unknown in 1:03.02
+  solver inox (cvc4): unknown in 1:00.82
+file regex/regex_9.smt2 (category `regex`)
+  solver smbc: unknown in 1:00.00
+  solver hbmc: unknown in 1:05.09
+  solver lazy smallcheck: sat in 0:03.45
+  solver cvc4: unknown in 0:00.02
+  solver inox (z3): unknown in 0:59.31
+  solver inox (cvc4): unknown in 1:01.80
+file palindromes/long_rev_sum1.smt2 (category `palindromes`)
+  solver smbc: unsat in 0:00.05
+  solver hbmc: unsat in 0:00.11
+  solver lazy smallcheck: unknown in 1:00.38
+  solver cvc4: unknown in 1:00.09
+  solver inox (z3): unsat in 0:01.69
+  solver inox (cvc4): unsat in 0:05.27
+file palindromes/long_rev_sum2.smt2 (category `palindromes`)
+  solver smbc: unsat in 0:13.28
+  solver hbmc: unknown in 1:04.85
+  solver lazy smallcheck: unknown in 0:59.65
+  solver cvc4: unknown in 1:00.02
+  solver inox (z3): unknown in 1:03.70
+  solver inox (cvc4): unknown in 1:03.39
+file palindromes/long_rev_sum3.smt2 (category `palindromes`)
+  solver smbc: sat in 0:00.45
+  solver hbmc: sat in 0:02.81
+  solver lazy smallcheck: unknown in 1:00.02
+  solver cvc4: unknown in 1:00.10
+  solver inox (z3): unknown in 0:59.50
+  solver inox (cvc4): unknown in 1:01.80
+file sorted/sorted.smt2 (category `sorted`)
+  solver smbc: sat in 0:00.00
+  solver hbmc: sat in 0:00.03
+  solver lazy smallcheck: sat in 0:00.26
+  solver cvc4: unknown in 1:00.05
+  solver inox (z3): sat in 0:16.46
+  solver inox (cvc4): sat in 0:04.15
+file sorted/sorted2.smt2 (category `sorted`)
+  solver smbc: unsat in 0:00.00
+  solver hbmc: unsat in 0:00.02
+  solver lazy smallcheck: unknown in 1:00.07
+  solver cvc4: unsat in 0:00.09
+  solver inox (z3): unsat in 0:00.68
+  solver inox (cvc4): unsat in 0:00.88
+file sorted/sorted3.smt2 (category `sorted`)
+  solver smbc: unsat in 0:01.63
+  solver hbmc: unsat in 0:02.43
+  solver lazy smallcheck: unknown in 1:00.02
+  solver cvc4: unknown in 1:00.06
+  solver inox (z3): unknown in 0:59.23
+  solver inox (cvc4): unknown in 0:46.15
+file sorted/sorted4.smt2 (category `sorted`)
+  solver smbc: sat in 0:00.00
+  solver hbmc: sat in 0:00.04
+  solver lazy smallcheck: sat in 0:00.48
+  solver cvc4: unknown in 1:00.06
+  solver inox (z3): sat in 0:15.00
+  solver inox (cvc4): sat in 0:07.72
+file sudoku/sudoku.smt2 (category `sudoku`)
+  solver smbc: sat in 0:12.95
+  solver hbmc: sat in 0:02.14
+  solver lazy smallcheck: unknown in 1:00.03
+  solver cvc4: unknown in 0:00.09
+  solver inox (z3): unknown in 1:02.57
+  solver inox (cvc4): unknown in 1:00.68
+file type_checking/ty_infer.smt2 (category `type_checking`)
+  solver smbc: sat in 0:00.23
+  solver hbmc: unknown in 0:00.02
+  solver lazy smallcheck: unknown in 1:00.02
+  solver cvc4: unknown in 1:00.03
+  solver inox (z3): unknown in 0:59.44
+  solver inox (cvc4): unknown in 1:00.59
+file type_checking/ty_infer_nat.smt2 (category `type_checking`)
+  solver smbc: sat in 0:00.09
+  solver hbmc: unknown in 0:00.02
+  solver lazy smallcheck: unknown in 1:00.02
+  solver cvc4: unknown in 0:00.04
+  solver inox (z3): unknown in 0:59.51
+  solver inox (cvc4): unknown in 1:00.60
+file expr/expr0.smt2 (category `expr`)
+  solver smbc: sat in 0:00.29
+  solver hbmc: sat in 0:00.25
+  solver lazy smallcheck: sat in 0:00.37
+  solver cvc4: unknown in 1:00.01
+  solver inox (z3): unknown in 1:02.02
+  solver inox (cvc4): sat in 0:31.20
+file expr/expr1.smt2 (category `expr`)
+  solver smbc: sat in 0:00.13
+  solver hbmc: sat in 0:00.23
+  solver lazy smallcheck: sat in 0:00.36
+  solver cvc4: unknown in 1:00.00
+  solver inox (z3): unknown in 1:02.04
+  solver inox (cvc4): sat in 0:31.23
+file expr/expr2.smt2 (category `expr`)
+  solver smbc: unknown in 1:00.08
+  solver hbmc: sat in 0:00.53
+  solver lazy smallcheck: unknown in 1:00.03
+  solver cvc4: unknown in 1:00.01
+  solver inox (z3): unknown in 1:02.29
+  solver inox (cvc4): sat in 0:44.40
+file expr/expr3.smt2 (category `expr`)
+  solver smbc: unknown in 1:00.00
+  solver hbmc: unknown in 0:51.78
+  solver lazy smallcheck: unknown in 1:00.03
+  solver cvc4: unknown in 1:00.01
+  solver inox (z3): unknown in 1:01.86
+  solver inox (cvc4): unknown in 1:23.91
+file pigeon/pigeon4.smt2 (category `pigeon`)
+  solver smbc: unsat in 0:00.02
+  solver hbmc: unknown in 0:00.01
+  solver lazy smallcheck: unknown in 0:00.17
+  solver cvc4: unsat in 0:00.01
+  solver inox (z3): unknown in 0:00.67
+  solver inox (cvc4): unknown in 0:00.62
+file fold/fold0.smt2 (category `fold`)
+  solver smbc: sat in 0:00.00
+  solver hbmc: unknown in 0:00.01
+  solver lazy smallcheck: unknown in 0:00.16
+  solver cvc4: unknown in 0:00.01
+  solver inox (z3): unknown in 0:00.76
+  solver inox (cvc4): unknown in 1:00.60
+file fold/fold1.smt2 (category `fold`)
+  solver smbc: sat in 0:00.13
+  solver hbmc: unknown in 0:00.01
+  solver lazy smallcheck: unknown in 0:00.14
+  solver cvc4: unknown in 0:00.00
+  solver inox (z3): unknown in 0:03.01
+  solver inox (cvc4): unknown in 0:23.96
+
+category regex (12 problem(s)):
+  smbc:                     sat:  7  unknown:  5
+  hbmc:                     sat:  2  unknown: 10
+  lazy smallcheck:          sat: 11  unknown:  1
+  cvc4:                 unknown: 12
+  inox (z3):            unknown: 12
+  inox (cvc4):          unknown: 12
+category palindromes (3 problem(s)):
+  smbc:                     sat:  1    unsat:  2
+  hbmc:                     sat:  1  unknown:  1    unsat:  1
+  lazy smallcheck:      unknown:  3
+  cvc4:                 unknown:  3
+  inox (z3):            unknown:  2    unsat:  1
+  inox (cvc4):          unknown:  2    unsat:  1
+category sorted (4 problem(s)):
+  smbc:                     sat:  2    unsat:  2
+  hbmc:                     sat:  2    unsat:  2
+  lazy smallcheck:          sat:  2  unknown:  2
+  cvc4:                 unknown:  3    unsat:  1
+  inox (z3):                sat:  2  unknown:  1    unsat:  1
+  inox (cvc4):              sat:  2  unknown:  1    unsat:  1
+category sudoku (1 problem(s)):
+  smbc:                     sat:  1
+  hbmc:                     sat:  1
+  lazy smallcheck:      unknown:  1
+  cvc4:                 unknown:  1
+  inox (z3):            unknown:  1
+  inox (cvc4):          unknown:  1
+category type_checking (2 problem(s)):
+  smbc:                     sat:  2
+  hbmc:                 unknown:  2
+  lazy smallcheck:      unknown:  2
+  cvc4:                 unknown:  2
+  inox (z3):            unknown:  2
+  inox (cvc4):          unknown:  2
+category expr (4 problem(s)):
+  smbc:                     sat:  2  unknown:  2
+  hbmc:                     sat:  3  unknown:  1
+  lazy smallcheck:          sat:  2  unknown:  2
+  cvc4:                 unknown:  4
+  inox (z3):            unknown:  4
+  inox (cvc4):              sat:  3  unknown:  1
+category pigeon (1 problem(s)):
+  smbc:                   unsat:  1
+  hbmc:                 unknown:  1
+  lazy smallcheck:      unknown:  1
+  cvc4:                   unsat:  1
+  inox (z3):            unknown:  1
+  inox (cvc4):          unknown:  1
+category fold (2 problem(s)):
+  smbc:                     sat:  2
+  hbmc:                 unknown:  2
+  lazy smallcheck:      unknown:  2
+  cvc4:                 unknown:  2
+  inox (z3):            unknown:  2
+  inox (cvc4):          unknown:  2
