@@ -262,7 +262,8 @@ let rec _add_constraints_and_close
           end
         | Constraint_match(x,x',p) ->
           begin
-            let nc = Constraint.Set.singleton @@ Constraint_type(x, BoolSymbol) in
+            let nc = Constraint.Set.singleton @@ Constraint_type(x, BoolSymbol)
+            in
             match p with
             | Any_pattern ->
               nc
@@ -272,24 +273,26 @@ let rec _add_constraints_and_close
               nc |> Constraint.Set.add @@ Constraint_value(x', Bool(b))
             | Fun_pattern ->
               nc |> Constraint.Set.add @@ Constraint_type(x', FunctionSymbol)
-            (* FIXME: Correctly match on record labels *)
-            | Rec_pattern _ ->
-              nc |> Constraint.Set.add @@ Constraint_type(x', RecordSymbol)
-            (*
             | Rec_pattern record_pattern ->
-              begin
-                match Symbol_map.Exceptionless.find x'
-                        solver.value_constraints_by_symbol with
-                | Some(Record record_body) ->
-                  let pattern_enum = Ident_set.enum record_pattern in
-                  let record_keys = Ident_set.of_enum @@ Ident_map.keys record_body in
-                  let res = Enum.for_all (fun ident -> Ident_set.mem ident record_keys) pattern_enum in
-                  if res then
-                    nc |> Constraint.Set.add @@ Constraint_type(x', RecordSymbol) else
-                    raise @@ Contradiction(MatchContradiction(x,x',p))
-                | _ -> Constraint.Set.empty
-              end
-              *)
+              let nc'
+                = nc |> Constraint.Set.add @@ Constraint_type(x', RecordSymbol)
+              in
+              let record_val = Symbol_map.Exceptionless.find x'
+                solver.value_constraints_by_symbol
+              in
+              match record_val with
+              | Some(Record record_body) ->
+                let pattern_enum = Ident_set.enum record_pattern in
+                let record_keys = Ident_set.of_enum
+                  (Ident_map.keys record_body) in
+                let res = Enum.for_all
+                  (fun ident -> Ident_set.mem ident record_keys) pattern_enum
+                in
+                if res then
+                  nc'
+                else
+                  raise @@ Contradiction(MatchContradiction(x,x',p))
+              | _ -> nc'
           end
         | Constraint_type(x,t) ->
           Symbol_to_symbol_multimap.find x solver.alias_constraints_by_symbol
