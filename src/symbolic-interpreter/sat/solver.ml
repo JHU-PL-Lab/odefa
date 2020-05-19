@@ -245,10 +245,14 @@ let rec _add_constraints_and_close
         | Constraint_projection(x,x',lbl) ->
           begin
             (* FIXME: Projection does not correctly constrain type of x *)
-            match Symbol_map.Exceptionless.find x'
-                    solver.value_constraints_by_symbol with
-            | None -> Constraint.Set.empty
-            | Some(Int _ | Bool _ | Function _) -> Constraint.Set.empty
+            let nc = Constraint.Set.singleton @@ Constraint_type(x', RecordSymbol)
+            in
+            let record_val = Symbol_map.Exceptionless.find x'
+                    solver.value_constraints_by_symbol
+            in
+            match record_val with
+            | None -> nc
+            | Some(Int _ | Bool _ | Function _) -> nc
             | Some(Record record_body) ->
               match Ident_map.Exceptionless.find lbl record_body with
               | None ->
@@ -258,7 +262,7 @@ let rec _add_constraints_and_close
                    that the record doesn't have.  Contradiction! *)
                 raise @@ Contradiction(ProjectionContradiction(x,x',lbl))
               | Some x'' ->
-                Constraint.Set.singleton @@ Constraint_alias(x,x'')
+                nc |> Constraint.Set.add @@ Constraint_alias(x,x'')
           end
         | Constraint_match(x,x',p) ->
           begin
