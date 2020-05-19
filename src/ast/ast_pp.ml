@@ -99,23 +99,18 @@ and pp_clause formatter c =
 and pp_expr formatter (Expr(cls)) =
   pp_concat_sep ";" pp_clause formatter @@ List.enum cls
 
-and pp_atomic_pattern formatter p_atom =
-  match p_atom with
-  | Fun_pattern -> Format.pp_print_string formatter "fun"
-  | Int_pattern -> Format.pp_print_string formatter "int"
-  | Rec_pattern -> Format.pp_print_string formatter "record"
-  | Bool_pattern(b) ->
-  Format.pp_print_string formatter @@ if b then "true" else "false"
-  | Any_pattern -> Format.pp_print_string formatter "any"
-
 and pp_pattern formatter p =
   match p with
-  | Record_pattern(els) ->
-    let pp_element formatter (key, value) =
-      Format.fprintf formatter "%a=%a" pp_ident key pp_atomic_pattern value
+  | Fun_pattern -> Format.pp_print_string formatter "fun"
+  | Int_pattern -> Format.pp_print_string formatter "int"
+  | Bool_pattern(b) ->
+  Format.pp_print_string formatter @@ if b then "true" else "false"
+  | Rec_pattern els ->
+    let pp_element formatter idnt =
+      Format.fprintf formatter "%a" pp_ident idnt
     in
-    pp_concat_sep_delim "{" "}" ", " pp_element formatter @@ Ident_map.enum els
-  | Atomic_pattern p_atom -> pp_atomic_pattern formatter p_atom
+    pp_concat_sep_delim "{" "}" ", " pp_element formatter @@ Ident_set.enum els
+  | Any_pattern -> Format.pp_print_string formatter "any"
 ;;
 
 let show_value = pp_to_string pp_value;;

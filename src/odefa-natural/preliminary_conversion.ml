@@ -20,7 +20,7 @@ let lbl_value_m : Ident.t m = _lbl_m "value";;
 (* This function encodes all list-related patterns with record patterns *)
 let rec encode_list_pattern (pat : pattern) : pattern m =
   match pat with
-  | AnyPat | IntPat | TruePat | FalsePat | FunPat | RecTypePat | VarPat _ ->
+  | AnyPat | IntPat | TruePat | FalsePat | FunPat | VarPat _ ->
     return pat
   | RecPat (rec_map) ->
     let%bind rec_map' =
@@ -36,12 +36,8 @@ let rec encode_list_pattern (pat : pattern) : pattern m =
     (* The empty list is encoded as {~empty = {}}
        The corresponding pattern is {~empty = record} *)
     let%bind lbl_empty = lbl_empty_m in
-    (*
     let empty_rec =
       Ident_map.add lbl_empty (RecPat (Ident_map.empty)) Ident_map.empty
-    *)
-    let empty_rec =
-      Ident_map.add lbl_empty RecTypePat Ident_map.empty
     in
     return @@ RecPat(empty_rec)
   | LstDestructPat (hd_pat, tl_pat) ->
@@ -140,14 +136,9 @@ let rec variant_pattern_to_record ((Variant(v_label, pat)) : variant_content)
   : pattern m =
   let Variant_label (v_name) = v_label in
   let%bind variant_ident = lbl_variant_m v_name in
-  (*
   let empty_rec = RecPat (Ident_map.empty) in
   let map_with_label =
     Ident_map.add variant_ident empty_rec Ident_map.empty
-  in
-  *)
-  let map_with_label =
-    Ident_map.add variant_ident RecTypePat Ident_map.empty
   in
   let%bind encoded_v_expr = encode_variant_pattern pat in
   let%bind lbl_value = lbl_value_m in
@@ -161,7 +152,7 @@ let rec variant_pattern_to_record ((Variant(v_label, pat)) : variant_content)
    within it to Record patterns. *)
 and encode_variant_pattern (p : pattern) : pattern m =
   match p with
-  | AnyPat | IntPat | TruePat | FalsePat | FunPat | RecTypePat | VarPat _ ->
+  | AnyPat | IntPat | TruePat | FalsePat | FunPat | VarPat _ ->
     return p
   | RecPat (rec_map) ->
     let%bind rec_map' = ident_map_map_m encode_variant_pattern rec_map in
@@ -223,7 +214,7 @@ let rec encode_var_pat
   : (pattern * ((ident * expr) list))
   =
   match pat with
-  | AnyPat | IntPat | TruePat | FalsePat | RecTypePat | FunPat ->
+  | AnyPat | IntPat | TruePat | FalsePat | FunPat ->
     (pat, [])
   | RecPat (pat_map) ->
     (* This routine accumulates the new map (that does not have any variable

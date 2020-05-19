@@ -70,7 +70,6 @@ let rec pat_vars (pat : On_ast.pattern) : On_ast.Ident_set.t =
   | On_ast.IntPat -> On_ast.Ident_set.empty
   | On_ast.TruePat -> On_ast.Ident_set.empty
   | On_ast.FalsePat -> On_ast.Ident_set.empty
-  | On_ast.RecTypePat -> On_ast.Ident_set.empty
   | On_ast.RecPat m ->
     m
     |> On_ast.Ident_map.enum
@@ -97,7 +96,6 @@ let rec pat_rename_vars
   | On_ast.IntPat -> pat
   | On_ast.TruePat -> pat
   | On_ast.FalsePat -> pat
-  | On_ast.RecTypePat -> pat
   | On_ast.RecPat m ->
     On_ast.RecPat(On_ast.Ident_map.map (pat_rename_vars renaming) m)
   | On_ast.VariantPat(Variant(lbl,pat')) ->
@@ -584,9 +582,94 @@ let rec flatten_binop
   in
   return (e1_clist @ e2_clist @ [new_clause], new_var)
 
-and
+and convert_patterns (pattern: On_ast.pattern) : Ast.pattern =
+  match pattern with
+  | On_ast.AnyPat -> Ast.Any_pattern
+  | On_ast.IntPat -> Ast.Int_pattern
+  | On_ast.TruePat -> Ast.Bool_pattern(true)
+  | On_ast.FalsePat -> Ast.Bool_pattern(false)
+  | On_ast.FunPat -> Ast.Fun_pattern
+  | On_ast.RecPat rec_pattern -> Ast.Rec_pattern (
+      rec_pattern
+      |> On_ast.Ident_map.enum
+      |> Enum.map (fun (on_ident, _) ->
+        let On_ast.Ident(ident) = on_ident in Ast.Ident(ident))
+      |> Ast.Ident_set.of_enum
+    )
+  | On_ast.VariantPat (_) ->
+    raise @@ Utils.Invariant_failure
+    "match_converter: Variants patterns should have been encoded!"
+  | On_ast.VarPat (_) ->
+    raise @@ Utils.Invariant_failure
+    "match_converter: Var patterns should have been encoded!"
+  | On_ast.EmptyLstPat | On_ast.LstDestructPat _ ->
+    raise @@ Utils.Invariant_failure
+    "match_converter: List patterns should have been encoded!"
 
-  flatten_expr
+and flatten_record_pat
+  (rec_pattern: On_ast.pattern On_ast.Ident_map.t)
+  (var: Ast.var)
+  : ((On_ast.ident * On_ast.pattern * Ast.var * Ast.var) list) m =
+  rec_pattern
+  |> On_ast.Ident_map.enum
+  |> List.of_enum
+  |> list_fold_left_m (fun accum (ident, pat) ->
+    let%bind proj_var = fresh_var "proj" in
+    match pat with
+    | On_ast.RecPat inner_rec_pat ->
+      let%bind inner_list = flatten_record_pat inner_rec_pat proj_var in
+      return @@ accum @ [(ident, pat, var, proj_var)] @ inner_list
+    | _ -> return @@ accum @ [(ident, pat, var, proj_var)]
+  ) []
+
+and flatten_record_match
+    (rec_pattern_list: (On_ast.ident * On_ast.pattern * Ast.var * Ast.var) list)
+    (pattern_expr: On_ast.expr)
+  : (Ast.clause list) m =
+  begin
+  let (On_ast.Ident(ident), pat, subj_var, proj_var) = List.hd rec_pattern_list
+  in
+  let rec_pattern_list' = List.tl rec_pattern_list in
+  let%bind match_var = fresh_var "match" in
+  let%bind cond_var = fresh_var "match_cond" in
+  let%bind inner_expr =
+    begin
+    if
+      List.is_empty rec_pattern_list'
+    then
+      let%bind (clist, _) = flatten_expr pattern_expr in
+      return @@ Ast.Expr(clist)
+    else
+      let%bind clist = flatten_record_match rec_pattern_list' pattern_expr in
+      return @@ Ast.Expr(clist)
+    end
+  in
+  (* TODO: Replace explode_expr with abort *)
+  let%bind explode_expr =
+    begin
+      let%bind zero_var = fresh_var "zero" in
+      let zero_clause
+        = Ast.Clause(zero_var, Ast.Value_body(Ast.Value_int(0))) in
+      let%bind zero_appl_var = fresh_var "explode" in
+      let zero_appl_clause =
+        (* TODO: consider: perhaps annotate this exploding clause to indicate
+           that it's artificial and not user-written? *)
+        Ast.Clause(zero_appl_var, Ast.Appl_body(zero_var, zero_var))
+      in
+      return @@ Ast.Expr([zero_clause; zero_appl_clause])
+    end
+  in
+  let proj_clause =
+    Ast.Clause(proj_var, Ast.Projection_body(subj_var, Ast.Ident(ident))) in
+  let match_clause =
+    Ast.Clause(match_var, Ast.Match_body(proj_var, convert_patterns pat)) in
+  let if_clause =
+    Ast.Clause(cond_var,
+               Ast.Conditional_body(match_var, inner_expr, explode_expr)) in
+  return @@ [proj_clause; match_clause; if_clause]
+  end
+
+and flatten_expr
     (e : On_ast.expr)
   : (Ast.clause list * Ast.var) m =
   match e with
@@ -615,13 +698,16 @@ and
     in
     return (e1_clist @ e2_clist @ [new_clause], new_var)
   | Let (var_ident, e1, e2) ->
+    begin
     let%bind (e1_clist, e1_var) = flatten_expr e1 in
     let%bind (e2_clist, e2_var) = flatten_expr e2 in
     let Ident(var_name) = var_ident in
     let letvar = Ast.Var(Ast.Ident(var_name), None) in
     let assignment_clause = Ast.Clause(letvar, Ast.Var_body(e1_var)) in
     return (e1_clist @ [assignment_clause] @ e2_clist, e2_var)
+    end
   | LetFun (sign, e) ->
+    begin
     (* TODO: check for bugs!!! *)
     (* Translating the function signature... *)
     let Funsig(fun_name, id_list, fun_e) = sign in
@@ -636,6 +722,7 @@ and
     let letvar = Ast.Var(Ast.Ident(var_name), None) in
     let assignment_clause = Ast.Clause(letvar, Ast.Var_body(return_var)) in
     return (fun_clauses @ [assignment_clause] @ e_clist, e_var)
+    end
   | LetRecFun (_, _) ->
     (* | LetRecFun (sig_list, e) ->  *)
     raise @@ Utils.Invariant_failure "LetRecFun passed to flatten_expr"
@@ -660,6 +747,7 @@ and
   | Or (e1, e2) ->
     flatten_binop e1 e2 Ast.Binary_operator_or
   | Not (e) ->
+    begin
     let%bind (e_clist, e_var) = flatten_expr e in
     let%bind true_var = fresh_var "true" in
     let true_clause = Ast.Clause(true_var, Ast.Value_body(Value_bool true)) in
@@ -670,6 +758,7 @@ and
                    e_var, Ast.Binary_operator_xor, true_var))
     in
     return (e_clist @ [true_clause; new_clause], new_var)
+    end
   | If (e1, e2, e3) ->
     (* TODO: there will be another version of a conditional where we can
        do pattern matching. *)
@@ -724,88 +813,53 @@ and
     let%bind (e_clist, e_var) = flatten_expr e in
     let On_ast.Label(l_string) = lab in
     let l_ident = Ast.Ident(l_string) in
-    let%bind new_var = fresh_var "record_proj" in
+    let%bind new_var = fresh_var "record_proj" in (* TODO: Rename "record_proj" to just "proj" *)
     let new_clause = Ast.Clause(new_var,
                                 Ast.Projection_body(e_var, l_ident)
                                ) in
     return (e_clist @ [new_clause], new_var)
   | Match (subject, pat_expr_list) ->
+    begin
     (* We need to convert the subject first *)
     let%bind (subject_clause_list, subject_var) = flatten_expr subject in
     (* List.fold_right routine that deeply nests the contents of the match
        into a series of odefa conditionals *)
     (* the type of the accumulator would be the entire expression that goes into
        the "else" case of the next conditional *)
-    let match_converter curr acc =
-      (
+    let convert_single_match curr acc =
+      begin
         let (curr_pat, curr_pat_expr) = curr in
-        let%bind cond_var = fresh_var "match_cond" in
-        (* TODO: Make this somewhat less cumbersome *)
-        let rec pat_conversion = fun pat ->
-          (match pat with
-           | On_ast.AnyPat -> Ast.Atomic_pattern(Any_pattern)
-           | On_ast.IntPat -> Ast.Atomic_pattern(Int_pattern)
-           | On_ast.TruePat -> Ast.Atomic_pattern(Bool_pattern(true))
-           | On_ast.FalsePat -> Ast.Atomic_pattern(Bool_pattern(false))
-           | On_ast.FunPat -> Ast.Atomic_pattern(Fun_pattern)
-           | On_ast.RecTypePat -> Ast.Atomic_pattern(Rec_pattern)
-           | On_ast.RecPat (patmap) ->
-             let pat_atom_conversion entry =
-             begin
-             match entry with
-             | On_ast.AnyPat -> Ast.Any_pattern
-             | On_ast.IntPat -> Ast.Int_pattern
-             | On_ast.TruePat -> Ast.Bool_pattern(true)
-             | On_ast.FalsePat -> Ast.Bool_pattern(false)
-             | On_ast.FunPat -> Ast.Fun_pattern
-             | On_ast.RecTypePat -> Ast.Rec_pattern
-             (* | On_ast.RecPat (_) -> Ast.Rec_pattern *)
-             | On_ast.RecPat _ -> raise @@ Utils.Not_yet_implemented
-                "match_converter: Deep pattern matching not implemented!"
-             | On_ast.VariantPat (_) ->
-               raise @@ Utils.Invariant_failure
-               "match_converter: Variants patterns should have been encoded!"
-             | On_ast.VarPat (_) ->
-               raise @@ Utils.Invariant_failure
-               "match_converter: Var patterns should have been encoded!"
-             | On_ast.EmptyLstPat | On_ast.LstDestructPat _ ->
-               raise @@ Utils.Invariant_failure
-               "match_converter: List patterns should have been encoded!"
-             end in
-             let rec_conversion =
-               fun key -> fun entry -> fun acc ->
-                 let (On_ast.Ident key_str) = key in
-                 let new_key = Ast.Ident key_str in
-                 let new_entry = pat_atom_conversion entry in
-                 Ast.Ident_map.add new_key new_entry acc
-             in
-             let new_pat_map =
-               On_ast.Ident_map.fold rec_conversion patmap Ast.Ident_map.empty
-             in (Record_pattern new_pat_map)
-           | On_ast.VariantPat (_) ->
-             raise @@ Utils.Invariant_failure
-               "match_converter: Variants patterns should have been encoded!"
-           | On_ast.VarPat (_) ->
-             raise @@ Utils.Invariant_failure
-               "match_converter: Var patterns should have been encoded!"
-           | On_ast.EmptyLstPat | On_ast.LstDestructPat _ ->
-             raise @@ Utils.Invariant_failure
-               "match_converter: List patterns should have been encoded!"
-          )
-        in
-        let ast_pat = pat_conversion curr_pat in
-        let%bind (flat_pat_expr, _) = flatten_expr curr_pat_expr in
-        let%bind match_var = fresh_var "match" in
-        let match_clause =
-          Ast.Clause(match_var, Ast.Match_body(subject_var, ast_pat))
-        in
-        let if_clause =
-          Ast.Clause(cond_var,
-                     Ast.Conditional_body(match_var, Expr flat_pat_expr, acc)
-                    )
-        in
-        return @@ Ast.Expr([match_clause; if_clause])
-      )
+          begin
+          let%bind flat_pat_expr =
+            begin
+            match curr_pat with
+            | On_ast.RecPat rec_pattern -> 
+              let%bind flat_rec_pattern
+                = flatten_record_pat rec_pattern subject_var in
+              if List.is_empty flat_rec_pattern
+              then
+                let%bind (clause_list, _) = flatten_expr curr_pat_expr in
+                return clause_list
+              else
+                flatten_record_match flat_rec_pattern curr_pat_expr
+            | _ ->
+              let%bind (clause_list, _) = flatten_expr curr_pat_expr in
+              return clause_list
+            end
+          in
+          let%bind match_var = fresh_var "match" in
+          let%bind cond_var = fresh_var "match_cond" in
+          let ast_pat = convert_patterns curr_pat in
+          let match_clause =
+            Ast.Clause(match_var, Ast.Match_body(subject_var, ast_pat))
+          in
+          let if_clause =
+            Ast.Clause(cond_var,
+                    Ast.Conditional_body(match_var, Expr flat_pat_expr, acc))
+          in
+          return @@ Ast.Expr([match_clause; if_clause])
+          end
+      end
     in
     (* The base case is our EXPLODING clause
        TODO: Replace this with "abort" encoding *)
@@ -816,20 +870,19 @@ and
       let zero_appl_clause =
         (* TODO: consider: perhaps annotate this exploding clause to indicate
            that it's artificial and not user-written? *)
-        Ast.Clause(
-          zero_appl_var,
-          Ast.Appl_body(zero_var, zero_var))
+        Ast.Clause(zero_appl_var, Ast.Appl_body(zero_var, zero_var))
       in
       return @@ Ast.Expr([zero_clause; zero_appl_clause])
     in
     let%bind match_expr =
-      list_fold_right_m match_converter pat_expr_list explode_expr
+      list_fold_right_m convert_single_match pat_expr_list explode_expr
     in
     let Ast.Expr(match_clauses) = match_expr in
     let match_last_clause = List.last match_clauses in
     let Ast.Clause(match_last_clause_var, _) = match_last_clause in
     let all_clauses = subject_clause_list @ match_clauses in
     return (all_clauses, match_last_clause_var)
+    end
   | VariantExpr (_, _) ->
     raise @@ Utils.Invariant_failure
       "flatten_expr: VariantExpr expressions should have been desugared."

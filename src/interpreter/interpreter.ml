@@ -118,62 +118,21 @@ let cond_wire (conditional_site_x : var) (Expr(body)) =
 
 let stdin_input_source (_:var) = Value_int(read_int());;
 
-let matches env x p =
+let matches env x p : bool =
   let v = lookup env x in
-  let matches_atomic v' p_atom =
+  match v, p with
+  | _, Any_pattern -> true
+  | (Value_function(Function_value(_)), Fun_pattern) -> true
+  | (Value_int _, Int_pattern) -> true
+  | (Value_bool b, Bool_pattern b') -> b = b'
+  | (Value_record(Record_value(record)), Rec_pattern p_record) ->
     begin
-    match v', p_atom with
-    | _, Any_pattern -> true
-    | (Value_function(Function_value(_)), Fun_pattern) -> true
-    | (Value_int(_), Int_pattern) -> true
-    | (Value_bool actual_bool, Bool_pattern pat_bool) -> actual_bool = pat_bool
-    | (Value_record(_), Rec_pattern) -> true
-    | _ -> false
+    let pattern_enum = Ident_set.enum p_record in
+    let record_keys = Ident_set.of_enum @@ Ident_map.keys record in
+    Enum.for_all (fun ident -> Ident_set.mem ident record_keys) pattern_enum
     end
-  in
-  match p with
-  | Atomic_pattern p_atom -> matches_atomic v p_atom
-  | Record_pattern p_record ->
-    begin
-    match v with
-    | Value_record(Record_value(els)) ->
-      p_record
-      |> Ident_map.enum
-      |> Enum.for_all
-        (fun (idnt, p_atom) -> 
-          try
-            let rec_val = lookup env @@ Ident_map.find idnt els in
-            matches_atomic rec_val p_atom
-           with
-            Not_found -> false
-        )
-    | _ -> false
-    end
-;;
-
-(*
-let rec matches env x p =
-  let v = lookup env x in
-  match v,p with
-  | _,Any_pattern -> true
-  | Value_record(Record_value(els)),Record_pattern(els') ->
-    els'
-    |> Ident_map.enum
-    |> Enum.for_all
-      (fun (i,p') ->
-         try
-           matches env (Ident_map.find i els) p'
-         with
-         | Not_found -> false
-      )
-  | Value_function(Function_value(_)),Fun_pattern
-  | Value_int _,Int_pattern ->
-    true
-  | Value_bool actual_boolean,Bool_pattern pattern_boolean ->
-    actual_boolean = pattern_boolean
   | _ -> false
 ;;
-*)
 
 let rec evaluate
     ?input_source:(input_source=stdin_input_source)

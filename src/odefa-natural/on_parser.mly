@@ -223,11 +223,11 @@ pattern:
   | INT { IntPat }
   | BOOL { if $1 then TruePat else FalsePat }
   | FUNCTION { FunPat }
-  | RECORD { RecTypePat }
   | IDENTIFIER { VarPat(Ident($1)) }
   | BACKTICK variant_label pattern { VariantPat(Variant($2, $3)) } %prec prec_variant
   | OPEN_BRACE rec_pattern_body CLOSE_BRACE { RecPat $2 }
   | OPEN_BRACE CLOSE_BRACE { RecPat (Ident_map.empty) }
+  | RECORD { RecPat (Ident_map.empty) }
   | OPEN_BRACKET CLOSE_BRACKET { EmptyLstPat }
   | pattern DOUBLE_COLON pattern { LstDestructPat($1, $3) }
   | OPEN_PAREN pattern CLOSE_PAREN { $2 }
