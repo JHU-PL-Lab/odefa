@@ -225,9 +225,18 @@ struct
         (lazy_logger `trace @@ fun () ->
          Printf.sprintf
            "Immediate contradiction at symbol %s by projection of label %s from symbol %s while merging two formula sets.\nSet 1:\n%s\nSet 2:\n%s\n"
-           (show_symbol s1) (show_symbol s2) (show_ident lbl)
+           (show_symbol s1) (show_ident lbl) (show_symbol s2)
            (Solver.show log1.log_solver)
            (Solver.show log2.log_solver)
+        );
+        None
+      | Solver.Contradiction(Solver.MatchContradiction(s1,s2,p)) ->
+        (lazy_logger `trace @@ fun () ->
+         Printf.sprintf
+            "Immediate contradiction at symbol %s by matching %s on %s while merging two formula sets.\nSet1:\n%s\nSet 2:\n%s\n"
+            (show_symbol s1) (show_symbol s2) (Pp_utils.pp_to_string pp_pattern p)
+            (Solver.show log1.log_solver)
+            (Solver.show log2.log_solver)
         );
         None
       | Solver.Contradiction(Solver.StackContradiction(s1,s2)) ->

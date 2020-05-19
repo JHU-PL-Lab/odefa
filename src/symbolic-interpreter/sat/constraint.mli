@@ -14,7 +14,7 @@ type symbol_type =
   | IntSymbol
   | BoolSymbol
   | RecordSymbol
-  | FunctionSymbol of function_value
+  | FunctionSymbol
 [@@deriving eq, ord, show, to_yojson]
 ;;
 
@@ -32,8 +32,9 @@ type value =
 type t =
   | Constraint_value of symbol * value (* x = v *)
   | Constraint_alias of symbol * symbol (* x = x *)
-  | Constraint_binop of symbol * symbol * binary_operator * symbol (* x = x+x *)
+  | Constraint_binop of symbol * symbol * binary_operator * symbol (* x = x + x *)
   | Constraint_projection of symbol * symbol * ident (* x = x.l *)
+  | Constraint_match of symbol * symbol * pattern (* x = x ~ p *)
   | Constraint_type of symbol * symbol_type (* x : t *)
   | Constraint_stack of Relative_stack.concrete_stack (* stack = C *)
 [@@deriving eq, ord, show, to_yojson]

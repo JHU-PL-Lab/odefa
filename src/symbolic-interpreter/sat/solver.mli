@@ -29,6 +29,7 @@ type contradiction =
       symbol * Constraint.symbol_type * Constraint.symbol_type
   | ValueContradiction of symbol * Constraint.value * Constraint.value
   | ProjectionContradiction of symbol * symbol * Ast.ident
+  | MatchContradiction of symbol * symbol * Ast.pattern
 ;;
 
 (** An exception which is raised if a contradiction appears in a constraint set

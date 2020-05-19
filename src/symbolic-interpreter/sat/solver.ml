@@ -14,7 +14,9 @@ type contradiction =
       symbol * Constraint.symbol_type * Constraint.symbol_type
   | ValueContradiction of symbol * value * value
   | ProjectionContradiction of symbol * symbol * ident
+  | MatchContradiction of symbol * symbol * pattern
 ;;
+
 exception Contradiction of contradiction;;
 
 module Symbol_to_symbol_multimap = Jhupllib.Multimap.Make(Symbol)(Symbol);;
@@ -136,6 +138,11 @@ let rec _add_constraints_and_close
               Symbol_to_symbol_and_ident_multimap.add x2 (x1,lbl)
                 solver.projection_constraints_by_record_symbol
           }
+        (* TODO: Flesh out Constraint_match *)
+        | Constraint_match(_,_,_) ->
+          { solver with
+            constraints = Constraint.Set.add c solver.constraints;
+          }
         | Constraint_type(x,t) ->
           { solver with
             constraints = Constraint.Set.add c solver.constraints;
@@ -202,7 +209,7 @@ let rec _add_constraints_and_close
               | Int _ -> IntSymbol
               | Bool _ -> BoolSymbol
               | Record _ -> RecordSymbol
-              | Function f -> FunctionSymbol f
+              | Function _ -> FunctionSymbol
             in
             Enum.singleton (Constraint_type(x,t))
           in
@@ -237,6 +244,7 @@ let rec _add_constraints_and_close
           ]
         | Constraint_projection(x,x',lbl) ->
           begin
+            (* FIXME: Projection does not correctly constrain type of x *)
             match Symbol_map.Exceptionless.find x'
                     solver.value_constraints_by_symbol with
             | None -> Constraint.Set.empty
@@ -251,6 +259,37 @@ let rec _add_constraints_and_close
                 raise @@ Contradiction(ProjectionContradiction(x,x',lbl))
               | Some x'' ->
                 Constraint.Set.singleton @@ Constraint_alias(x,x'')
+          end
+        | Constraint_match(x,x',p) ->
+          begin
+            let nc = Constraint.Set.singleton @@ Constraint_type(x, BoolSymbol) in
+            match p with
+            | Any_pattern ->
+              nc
+            | Int_pattern ->
+              nc |> Constraint.Set.add @@ Constraint_type(x', IntSymbol)
+            | Bool_pattern b ->
+              nc |> Constraint.Set.add @@ Constraint_value(x', Bool(b))
+            | Fun_pattern ->
+              nc |> Constraint.Set.add @@ Constraint_type(x', FunctionSymbol)
+            (* FIXME: Correctly match on record labels *)
+            | Rec_pattern _ ->
+              nc |> Constraint.Set.add @@ Constraint_type(x', RecordSymbol)
+            (*
+            | Rec_pattern record_pattern ->
+              begin
+                match Symbol_map.Exceptionless.find x'
+                        solver.value_constraints_by_symbol with
+                | Some(Record record_body) ->
+                  let pattern_enum = Ident_set.enum record_pattern in
+                  let record_keys = Ident_set.of_enum @@ Ident_map.keys record_body in
+                  let res = Enum.for_all (fun ident -> Ident_set.mem ident record_keys) pattern_enum in
+                  if res then
+                    nc |> Constraint.Set.add @@ Constraint_type(x', RecordSymbol) else
+                    raise @@ Contradiction(MatchContradiction(x,x',p))
+                | _ -> Constraint.Set.empty
+              end
+              *)
           end
         | Constraint_type(x,t) ->
           Symbol_to_symbol_multimap.find x solver.alias_constraints_by_symbol
@@ -291,7 +330,7 @@ let z3_expr_of_symbol
   match _get_type_of_symbol symbol solver with
   | Some IntSymbol -> Some(Z3.Arithmetic.Integer.mk_const ctx z3symbol)
   | Some BoolSymbol -> Some(Z3.Boolean.mk_const ctx z3symbol)
-  | Some (FunctionSymbol _) -> None
+  | Some FunctionSymbol -> None
   | Some RecordSymbol -> None
   | None -> None
 ;;
@@ -364,6 +403,8 @@ let z3_constraint_of_constraint
           let not_zero = Z3.Boolean.mk_not ctx is_zero in
           Some([binary_c; not_zero]))
       | _ -> Some ([binary_c]) )
+  | Constraint_match _ ->
+    None
   | Constraint_projection _ ->
     None
   | Constraint_type _ ->
@@ -421,7 +462,7 @@ let solve (solver : t) : solution option =
                         raise @@ Jhupllib.Utils.Not_yet_implemented "L_UNDEF"
                     end
                 end
-              | Some (FunctionSymbol _) -> None
+              | Some FunctionSymbol -> None
               | Some RecordSymbol ->
                 (* TODO: look up the corresponding record *)
                 raise @@ Jhupllib_utils.Not_yet_implemented "solution for record"

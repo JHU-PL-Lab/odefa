@@ -683,6 +683,20 @@ struct
           (* And we're finished. *)
           return lookup_symbol
         end;
+        (* Pattern matching (not a written rule) *)
+        begin
+          let%orzero lookup_var :: lookup_stack' = lookup_stack in
+          let%orzero Unannotated_clause(
+              Abs_clause(Abs_var x, Abs_match_body(Abs_var x', pattern))) = acl1
+          in
+          [%guard equal_ident x lookup_var];
+          let%bind pattern_symbol = recurse (x' :: lookup_stack') acl1 relstack in
+          let lookup_symbol = Symbol(lookup_var, relstack) in
+          let%bind () = record_constraint @@
+            Constraint_match(lookup_symbol, pattern_symbol, pattern)
+          in
+          return lookup_symbol
+        end;
         (* Start-of-block and end-of-block handling (not actually a rule) *)
         begin
           let%orzero (Start_clause _ | End_clause _) = acl1 in

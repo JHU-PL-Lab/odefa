@@ -127,9 +127,9 @@ let matches env x p : bool =
   | (Value_bool b, Bool_pattern b') -> b = b'
   | (Value_record(Record_value(record)), Rec_pattern p_record) ->
     begin
-    let pattern_enum = Ident_set.enum p_record in
-    let record_keys = Ident_set.of_enum @@ Ident_map.keys record in
-    Enum.for_all (fun ident -> Ident_set.mem ident record_keys) pattern_enum
+      let pattern_enum = Ident_set.enum p_record in
+      let record_keys = Ident_set.of_enum @@ Ident_map.keys record in
+      Enum.for_all (fun ident -> Ident_set.mem ident record_keys) pattern_enum
     end
   | _ -> false
 ;;

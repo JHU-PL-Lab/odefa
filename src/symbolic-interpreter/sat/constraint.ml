@@ -11,7 +11,7 @@ type symbol_type =
   | IntSymbol
   | BoolSymbol
   | RecordSymbol
-  | FunctionSymbol of function_value
+  | FunctionSymbol
 [@@deriving eq, ord, to_yojson]
 ;;
 
@@ -20,10 +20,7 @@ let pp_symbol_type formatter t =
   | IntSymbol -> Format.pp_print_string formatter "int"
   | BoolSymbol -> Format.pp_print_string formatter "bool"
   | RecordSymbol -> Format.pp_print_string formatter "record"
-  | FunctionSymbol(Function_value(p,_)) ->
-    Format.pp_print_string formatter "fun ";
-    pp_var formatter p;
-    Format.pp_print_string formatter " -> ...";
+  | FunctionSymbol -> Format.pp_print_string formatter "function"
 ;;
 
 let show_symbol_type = Pp_utils.pp_to_string pp_symbol_type;;
@@ -54,6 +51,7 @@ type t =
   | Constraint_alias of symbol * symbol (* x = x *)
   | Constraint_binop of symbol * symbol * binary_operator * symbol (* x = x+x *)
   | Constraint_projection of symbol * symbol * ident (* x = x.l *)
+  | Constraint_match of symbol * symbol * pattern (* x = x ~ p *)
   | Constraint_type of symbol * symbol_type (* x : t *)
   | Constraint_stack of Relative_stack.concrete_stack (* stack = C *)
 [@@deriving eq, ord, to_yojson]
@@ -71,6 +69,9 @@ let pp formatter sc =
   | Constraint_projection(x,x',lbl) ->
     Format.fprintf formatter "%a = %a.%a"
       pp_symbol x pp_symbol x' pp_ident lbl
+  | Constraint_match(x,x',p) ->
+    Format.fprintf formatter "%a = %a ~ %a"
+      pp_symbol x pp_symbol x' pp_pattern p
   | Constraint_type(x,t) ->
     Format.fprintf formatter "%a = %a" pp_symbol x pp_symbol_type t
   | Constraint_stack(s) ->
