@@ -171,7 +171,7 @@ let make_parsers () : parsers =
         (fun x -> try Some(int_of_string x) with | Failure _ -> None);
     parse_exploration_policy =
       BatOptParse.Opt.value_option
-        "POLICY" (Some(Explore_breadth_first))
+        "POLICY" (Some(Explore_least_relative_stack_repetition))
         (fun s ->
            try
              List.assoc_inv s named_exploration_policies
