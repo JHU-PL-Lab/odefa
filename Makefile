@@ -32,3 +32,17 @@ clean:
 
 benchmark:
 	dune exec benchmark-test-generation/benchmark.exe
+
+tar:
+	make clean
+	rm -f artifact09-source.tgz
+	tar -czvf artifact09-source.tgz --exclude-vcs --exclude-vcs-ignores --exclude=*.tgz .
+
+tar-md5:
+	md5sum artifact09-source.tgz | awk '{ print $$1 }' | xargs -I % cp artifact09-source.tgz "artifact09-source-%.tgz"
+
+test-tar: 
+	rm -rf ../test-tar
+	mkdir -p ../test-tar
+	cp artifact09-source.tgz ../test-tar
+	cd ../test-tar && tar -zxvf artifact09-source.tgz
