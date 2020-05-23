@@ -30,3 +30,6 @@
 /test_generator
 /translator
 /sandbox
+
+# artifact
+*.tgz

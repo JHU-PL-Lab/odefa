@@ -18,7 +18,7 @@ make
 make benchmark
 ```
 
-The evaluation result will be in `result/evaluation-<current date>`
+The evaluation result will be in `result/evaluation-<current date>`. Besides the files for execution result and time for each testcase, the overall stat is in `0table.txt`. It will be used to fill the table in the paper.
 
 For other usages, see Step 6 in the next section.
 
