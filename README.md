@@ -40,13 +40,24 @@ git checkout icfp2020-artifact
 
 Step 2 - Install system dependencies
 
-The only required system package is `opam`. (See `Debugging.md` on how to install `opam` in the QEmu image). Noting `eval $(opam env)` is automatic evaluated when you login the shell session for the next time. You need manually execute it once to run the following instruction in this shell session,
+The required system packages include `time` and `opam`. (See `Debugging.md` or below on how to install `opam` in the QEmu image). Noting `eval $(opam env)` is automatic evaluated when you login the shell session for the next time. You need manually execute it once to run the following instruction in this shell session,
 
 ```
+sudo apt update
+sudo apt install time libgmp-dev
+
 # install opam
-sudo apt install opam
+sudo apt install opam -y
 
 # after installing
+eval $(opam env)
+```
+
+`Debugging.md`'s solution for QEmu users
+```
+sudo apt install mccs -y
+sudo apt install opam -y
+opam init --solver=mccs
 eval $(opam env)
 ```
 
@@ -60,7 +71,8 @@ eval $(opam env)
 Step 4 - Install opam packages
 
 ```
-opam install batteries core gmap jhupllib monadlib ocaml-monadic pds-reachability.0.2.2 ppx_deriving ppx_deriving_yojson shexp
+# you might need to run this twice
+opam install menhir batteries core gmap jhupllib monadlib ocaml-monadic pds-reachability.0.2.2 ppx_deriving ppx_deriving_yojson shexp
 opam pin z3 4.8.1
 opam install z3.4.8.1
 ```
@@ -77,8 +89,8 @@ Step 6 - Run the toplevel
 When step 5 builds the binary `test_generator` in the project root, you can run pre-defined tasks e.g.
 
 ```
-make clean
-make
+# make clean
+# make
 make test
 make benchmark
 ```
