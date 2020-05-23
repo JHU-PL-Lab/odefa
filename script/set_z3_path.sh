@@ -5,8 +5,4 @@
 # use the LD_LIBRARY_PATH variable.
 #
 # Run this as: source script/set_ld_library_path
-
-#if [ ":$LD_LIBRARY_PATH:" != *":$(ocamlfind printconf destdir)/z3:"* ]; then
-#    export LD_LIBRARY_PATH="$(ocamlfind printconf destdir)/z3:$LD_LIBRARY_PATH";
-#fi
 export LD_LIBRARY_PATH=`opam config var z3:lib`

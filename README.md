@@ -1,42 +1,93 @@
-Odefa
-=====
+# ICFP 2020 Artifact
 
-This is the artifact for the paper **Higher-Order Demand-Driven Symbolic Evaluation**.
+Name:    **[Higher-Order Demand-Driven Symbolic Evaluation]**
+
+Authors: **[Zachary Palmer, Theodore Park, Scott Smith, Shiwei Weng]**
 
 
-Install
--------
+## Artifact Instructions
 
-For Ubuntu install as follows.
+### 1. Evaluation on QEMu Instructions
+
+The dependencies are already installed for ICFP AOE QEmu image. To run the benchmark, do
 
 ```
-sudo apt upgrade opam
-opam update
+cd odefa
+source script/set_z3_path.sh
+make
+make benchmark
+```
+
+The evaluation result will be in `result/evaluation-<current date>`
+
+For other usages, see Step 6 in the next section.
+
+### 2. Build from the source
+
+The project is tested in Ubuntu and Debian.
+
+Step 1 - Getting the source
+
+The source is in this submission. 
+
+You can also grab the latest version on Github
+
+```
+git clone --recursive https://github.com/JHU-PL-Lab/odefa.git
+cd odefa
+git checkout icfp2020-artifact 
+```
+
+Step 2 - Install system dependencies
+
+The only required system package is `opam`. (See `Debugging.md` on how to install `opam` in the QEmu image). Noting `eval $(opam env)` is automatic evaluated when you login the shell session for the next time. You need manually execute it once to run the following instruction in this shell session,
+
+```
+# install opam
+sudo apt install opam
+
+# after installing
+eval $(opam env)
+```
+
+Step 3 - Install OCaml
+
+```
 opam switch create 4.09.0+flambda
+eval $(opam env)
 ```
 
-
-Run this to produce libraries needed
-```
-# dune external-lib-deps --missing @@default
-```
-
-Here are the libraries needed:
-```
-opam install shexp core batteries gmap jhupllib monadlib ocaml-monadic pds-reachability ppx_deriving ppx_deriving_yojson -y
-opam pin z3 4.8.1 -y
-```
-
-For Z3:
-```
-export LD_LIBRARY_PATH=`opam config var z3:lib`
-```
-
-Run
----
+Step 4 - Install opam packages
 
 ```
+opam install batteries core gmap jhupllib monadlib ocaml-monadic pds-reachability.0.2.2 ppx_deriving ppx_deriving_yojson shexp
+opam pin z3 4.8.1
+opam install z3.4.8.1
+```
+
+Step 5 - Build the project
+
+```
+source script/set_z3_path.sh
+make
+```
+
+Step 6 - Run the toplevel
+
+When step 5 builds the binary `test_generator` in the project root, you can run pre-defined tasks e.g.
+
+```
+make clean
 make
 make test
 make benchmark
+```
+
+You can also execute `test_generator` on specified test file. See `./test_generator -h` for details.
+
+```
+./test_generator -ttarget test-sources/input_eta.natodefa
+
+# In benchmark, we use this argument to get the first(1) testcase which can reach the program point `target`
+./test_generator -ttarget -r1 -btrue benchmark-test-generation/cases/input_facehugger.natodefa
 ```
