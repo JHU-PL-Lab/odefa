@@ -20,6 +20,7 @@
     ppx_deriving_yojson
     yojson
   )
+  (link_flags -cc g++)
   (preprocess
     (pps
       ppx_deriving.std
