@@ -8,5 +8,4 @@
     odefa.parser
     odefa.test-generation
   )
-  (link_flags -cc g++)
 )
