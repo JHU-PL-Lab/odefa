@@ -96,11 +96,49 @@ make test
 make benchmark
 ```
 
-You can also execute `test_generator` on specified test file. See `./test_generator -h` for details.
+You can also execute `test_generator` on specified test file. See `./test_generator -h` for option details.
 
 ```
-./test_generator -ttarget test-sources/input_eta.natodefa
+./test_generator -h
+usage: test_generator [options]
+
+options:
+
+  --version             show program's version and exit
+  -h, --help            show this help message and exit
+  -cCONTEXT_STACK, --context-stack=CONTEXT_STACK
+                        Specifies the context stack used in CFG construction.
+  -tVARIABLE, --target-point=VARIABLE
+                        Specifies the variable to reach with generated input.
+  -mMAX_STEPS, --maximum-steps=MAX_STEPS
+                        Specifies the maximum number of steps to take during
+                        computation.
+  -rMAX_RESULTS, --maximum-results=MAX_RESULTS
+                        Specifies the maximum number of results to find during
+                        computation.
+  -lLOG_INSTR, --log=LOG_INSTR
+                        Sets the logging level.
+  -ePOLICY, --exploration-policy=POLICY
+  -bCOMPACT_OUTPUT, --compact-output=COMPACT_OUTPUT
+                        Specifies whether the output is compact of descriptive
 ```
+
+A sample toplevel execution is like
+
+```
+./test_generator -ttarget -ebfs -bfalse -r2 test-sources/input_ack_3.natodefa
+Input sequence: [0, 2]
+Generated in 948 steps.
+Input sequence: [1, 1]
+Generated in 5291 steps.
+Requested input sequences found; terminating.
+```
+
+`-e` option specifies the heuristic exploration policy used in the non-deterministic lookup. Currently, it supports three policies
+
+- bfs : breadth first
+- relstack-len : smallest relative stack length first
+- relstack-rep : least relative stack repetition first
 
 In benchmark, we use the `-r1` to generate the first testcase which can reach the program point `target` with a compact output (`-btrue`) by not output the descriptive words.
 
