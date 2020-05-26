@@ -102,7 +102,7 @@ You can also execute `test_generator` on specified test file. See `./test_genera
 ./test_generator -ttarget test-sources/input_eta.natodefa
 ```
 
-In benchmark, we use the `-r1` to generate the first testcase which can reach the program point `target` with a concise output (-btrue).
+In benchmark, we use the `-r1` to generate the first testcase which can reach the program point `target` with a compact output (`-btrue`) by not output the descriptive words.
 
 ```
 ./test_generator -ttarget -r1 -btrue benchmark-test-generation/cases/input_facehugger.natodefa
