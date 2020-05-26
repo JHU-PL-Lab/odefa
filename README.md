@@ -75,7 +75,6 @@ Step 4 - Install opam packages
 # you might need to run this twice
 opam install menhir batteries core gmap jhupllib monadlib ocaml-monadic pds-reachability.0.2.2 ppx_deriving ppx_deriving_yojson shexp
 opam pin z3 4.8.1
-opam install z3.4.8.1
 ```
 
 Step 5 - Build the project
