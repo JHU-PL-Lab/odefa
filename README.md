@@ -134,14 +134,17 @@ Generated in 5291 steps.
 Requested input sequences found; terminating.
 ```
 
-`-e` option specifies the heuristic exploration policy used in the non-deterministic lookup. Currently, it supports three policies
+`-e` option specifies the exploration policy used in the non-deterministic lookup. Currently, it supports three policies
 
 - bfs : breadth first
 - relstack-len : smallest relative stack length first
-- relstack-rep : least relative stack repetition first
+- relstack-rep : least relative stack repetition first (default choice)
 
-In benchmark, we use the `-r1` to generate the first testcase which can reach the program point `target` with a compact output (`-btrue`) by not output the descriptive words.
+In benchmark, we use the `-r1` to generate the first testcase which can reach the program point `target` with a compact output (`-btrue`) by not output the descriptive words for numbers.
 
 ```
 ./test_generator -ttarget -r1 -btrue benchmark-test-generation/cases/input_facehugger.natodefa
+[4]
+7412
+Requested input sequences found; terminating.
 ```
