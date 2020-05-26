@@ -50,6 +50,7 @@ sudo apt install time libgmp-dev
 sudo apt install opam -y
 
 # after installing
+opam init
 eval $(opam env)
 ```
 
@@ -99,7 +100,10 @@ You can also execute `test_generator` on specified test file. See `./test_genera
 
 ```
 ./test_generator -ttarget test-sources/input_eta.natodefa
+```
 
-# In benchmark, we use this argument to get the first(1) testcase which can reach the program point `target`
+In benchmark, we use this argument to generate the first(`1`) testcase which can reach the program point `target`
+
+```
 ./test_generator -ttarget -r1 -btrue benchmark-test-generation/cases/input_facehugger.natodefa
 ```
