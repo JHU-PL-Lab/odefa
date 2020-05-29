@@ -698,10 +698,10 @@ struct
           return lookup_symbol
         end;
         (* Start-of-block and end-of-block handling (not actually a rule) *)
-        begin
+        (
           let%orzero (Start_clause _ | End_clause _) = acl1 in
           recurse lookup_stack acl1 relstack
-        end;
+        )
       ]
     in
     let%bind m = pick @@ List.enum rule_computations in m

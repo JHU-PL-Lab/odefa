@@ -26,8 +26,17 @@ struct;;
   type t = symbol * ident [@@deriving ord];;
 end;;
 
+module Symbol_and_pattern =
+struct
+  type t = symbol * pattern [@@deriving ord];;
+end;;
+
 module Symbol_to_symbol_and_ident_multimap =
   Jhupllib.Multimap.Make(Symbol)(Symbol_and_ident)
+;;
+
+module Symbol_to_symbol_and_pattern_multimap =
+  Jhupllib.Multimap.Make(Symbol)(Symbol_and_pattern)
 ;;
 
 type t =
@@ -43,10 +52,15 @@ type t =
         a normal dictionary. *)
     value_constraints_by_symbol : value Symbol_map.t;
 
-    (** An index of all record projection constraints by the record symbol.
+    (** An index of all record projection constraints over the record symbol.
         As a given record symbol may be projected many times (and the results
         assigned to many symbols), this is a multimap. *)
     projection_constraints_by_record_symbol : Symbol_to_symbol_and_ident_multimap.t;
+
+    (**  An index of all pattern matching constraints over the symbol being
+         matched. As the symbol can be matched many times (and the results
+         assigned in many clauses), this is a multimap. *)
+    (* match_constraints_by_match_symbol : Symbol_to_symbol_and_pattern_multimap.t; *)
 
     (** An index of all symbol type constraints.  Because each symbol must have
         exactly one type, this is a normal dictionary. *)
@@ -69,6 +83,8 @@ let empty =
     value_constraints_by_symbol = Symbol_map.empty;
     projection_constraints_by_record_symbol =
       Symbol_to_symbol_and_ident_multimap.empty;
+    (* match_constraints_by_match_symbol =
+      Symbol_to_symbol_and_pattern_multimap.empty; *)
     type_constraints_by_symbol = Symbol_map.empty;
     stack_constraint = None;
   }
@@ -142,6 +158,9 @@ let rec _add_constraints_and_close
         | Constraint_match(_,_,_) ->
           { solver with
             constraints = Constraint.Set.add c solver.constraints;
+            (* match_constraints_by_match_symbol =
+              Symbol_to_symbol_and_pattern_multimap.add x (x', pattern)
+                solver.match_constraints_by_match_symbol *)
           }
         | Constraint_type(x,t) ->
           { solver with
@@ -179,73 +198,80 @@ let rec _add_constraints_and_close
       let new_constraints : Constraint.Set.t =
         match c with
         | Constraint_value(x,v) ->
-          let transitivity_constraints =
-            Symbol_to_symbol_multimap.find x solver.alias_constraints_by_symbol
-            |> Enum.map (fun x' -> Constraint_value(x',v))
-          in
-          let projection_constraints =
-            match v with
-            | Record m ->
-              solver.projection_constraints_by_record_symbol
-              |> Symbol_to_symbol_and_ident_multimap.find x
-              |> Enum.map
-                (fun (x',lbl) ->
-                   match Ident_map.Exceptionless.find lbl m with
-                   | None ->
-                     (* This means that we have two constraints.  One is a
-                        record value assignment and the other is a projection
-                        from that record.  But the projection is for a label
-                        that the record doesn't have.  Contradiction! *)
-                     raise @@ Contradiction(ProjectionContradiction(x',x,lbl))
-                   | Some x'' ->
-                     Constraint_alias(x',x'')
-                )
-            | Int _ | Bool _ | Function _ ->
-              Enum.empty ()
-          in
-          let type_constraints =
-            let t =
-              match v with
-              | Int _ -> IntSymbol
-              | Bool _ -> BoolSymbol
-              | Record _ -> RecordSymbol
-              | Function _ -> FunctionSymbol
+          begin
+            let transitivity_constraints =
+              Symbol_to_symbol_multimap.find x solver.alias_constraints_by_symbol
+              |> Enum.map (fun x' -> Constraint_value(x',v))
             in
-            Enum.singleton (Constraint_type(x,t))
-          in
-          Constraint.Set.of_enum @@
-          Enum.append transitivity_constraints @@
-          Enum.append projection_constraints type_constraints
+            let projection_constraints =
+              match v with
+              | Record m ->
+                solver.projection_constraints_by_record_symbol
+                |> Symbol_to_symbol_and_ident_multimap.find x
+                |> Enum.map
+                  (fun (x',lbl) ->
+                    match Ident_map.Exceptionless.find lbl m with
+                    | None ->
+                      (* This means that we have two constraints.  One is a
+                          record value assignment and the other is a projection
+                          from that record.  But the projection is for a label
+                          that the record doesn't have.  Contradiction! *)
+                      raise @@ Contradiction(ProjectionContradiction(x',x,lbl))
+                    | Some x'' ->
+                      Constraint_alias(x',x'')
+                  )
+              | Int _ | Bool _ | Function _ ->
+                Enum.empty ()
+            in
+            let type_constraints =
+              let t =
+                match v with
+                | Int _ -> IntSymbol
+                | Bool _ -> BoolSymbol
+                | Record _ -> RecordSymbol
+                | Function _ -> FunctionSymbol
+              in
+              Enum.singleton (Constraint_type(x,t))
+            in
+            Constraint.Set.of_enum @@
+            Enum.append transitivity_constraints @@
+            Enum.append projection_constraints type_constraints
+          end
         | Constraint_alias(x,x') ->
-          let symmetry_constraint =
-            Enum.singleton(Constraint_alias(x',x))
-          in
-          let value_constraints =
-            match Symbol_map.Exceptionless.find x
-                    solver.value_constraints_by_symbol with
-            | None -> Enum.empty ()
-            | Some v -> Enum.singleton(Constraint_value(x',v))
-          in
-          let type_constraints =
-            match Symbol_map.Exceptionless.find x
-                    solver.type_constraints_by_symbol with
-            | None -> Enum.empty ()
-            | Some t -> Enum.singleton(Constraint_type(x',t))
-          in
-          Constraint.Set.of_enum @@
-          Enum.append symmetry_constraint @@
-          Enum.append value_constraints type_constraints
+          begin
+            let symmetry_constraint =
+              Enum.singleton(Constraint_alias(x',x))
+            in
+            let value_constraints =
+              match Symbol_map.Exceptionless.find x
+                      solver.value_constraints_by_symbol with
+              | None -> Enum.empty ()
+              | Some v -> Enum.singleton(Constraint_value(x',v))
+            in
+            let type_constraints =
+              match Symbol_map.Exceptionless.find x
+                      solver.type_constraints_by_symbol with
+              | None -> Enum.empty ()
+              | Some t -> Enum.singleton(Constraint_type(x',t))
+            in
+            Constraint.Set.of_enum @@
+            Enum.append symmetry_constraint @@
+            Enum.append value_constraints type_constraints
+          end
         | Constraint_binop(x,x',op,x'') ->
-          let (tLeft,tRight,tOut) = _binop_types op in
-          Constraint.Set.of_enum @@ List.enum @@
-          [Constraint_type(x,tOut);
-           Constraint_type(x',tLeft);
-           Constraint_type(x'',tRight);
-          ]
+          begin
+            let (tLeft,tRight,tOut) = _binop_types op in
+            Constraint.Set.of_enum @@ List.enum @@
+            [
+              Constraint_type(x,tOut);
+              Constraint_type(x',tLeft);
+              Constraint_type(x'',tRight);
+            ]
+          end
         | Constraint_projection(x,x',lbl) ->
           begin
-            (* FIXME: Projection does not correctly constrain type of x *)
-            let nc = Constraint.Set.singleton @@ Constraint_type(x', RecordSymbol)
+            let nc = Constraint.Set.singleton @@
+                     Constraint_type(x', RecordSymbol)
             in
             let record_val = Symbol_map.Exceptionless.find x'
                     solver.value_constraints_by_symbol
@@ -266,37 +292,75 @@ let rec _add_constraints_and_close
           end
         | Constraint_match(x,x',p) ->
           begin
-            let nc = Constraint.Set.singleton @@ Constraint_type(x, BoolSymbol)
-            in
+            let nc = Constraint.Set.empty in
             match p with
             | Any_pattern ->
-              nc
+              begin
+                (* Should we also look up x' here as well? *)
+                nc |> Constraint.Set.add @@ Constraint_value(x, Bool(true))
+              end
             | Int_pattern ->
-              nc |> Constraint.Set.add @@ Constraint_type(x', IntSymbol)
+              begin
+                let typ = Symbol_map.Exceptionless.find x'
+                  solver.type_constraints_by_symbol in
+                match typ with
+                | Some(IntSymbol) ->
+                  nc |> Constraint.Set.add @@ Constraint_value(x, Bool(true))
+                | Some(_) ->
+                  nc |> Constraint.Set.add @@ Constraint_value(x, Bool(false))
+                | None ->
+                  nc
+              end
             | Bool_pattern b ->
-              nc |> Constraint.Set.add @@ Constraint_value(x', Bool(b))
-            | Fun_pattern ->
-              nc |> Constraint.Set.add @@ Constraint_type(x', FunctionSymbol)
-            | Rec_pattern record_pattern ->
-              let nc'
-                = nc |> Constraint.Set.add @@ Constraint_type(x', RecordSymbol)
-              in
-              let record_val = Symbol_map.Exceptionless.find x'
-                solver.value_constraints_by_symbol
-              in
-              match record_val with
-              | Some(Record record_body) ->
-                let pattern_enum = Ident_set.enum record_pattern in
-                let record_keys = Ident_set.of_enum
-                  (Ident_map.keys record_body) in
-                let res = Enum.for_all
-                  (fun ident -> Ident_set.mem ident record_keys) pattern_enum
+              begin
+                let bool_val = Symbol_map.Exceptionless.find x'
+                  solver.value_constraints_by_symbol
                 in
-                if res then
-                  nc'
-                else
-                  raise @@ Contradiction(MatchContradiction(x,x',p))
-              | _ -> nc'
+                match bool_val with
+                | Some(Bool b') ->
+                  if b = b' then
+                    nc |> Constraint.Set.add @@ Constraint_value(x, Bool(true))
+                  else
+                    nc |> Constraint.Set.add @@ Constraint_value(x, Bool(false))
+                | Some(_) ->
+                  nc |> Constraint.Set.add @@ Constraint_value(x, Bool(false))
+                | None ->
+                  nc
+              end
+            | Fun_pattern ->
+              begin
+                let typ = Symbol_map.Exceptionless.find x'
+                  solver.type_constraints_by_symbol in
+                match typ with
+                | Some(FunctionSymbol) ->
+                  nc |> Constraint.Set.add @@ Constraint_value(x, Bool(true))
+                | Some(_) ->
+                  nc |> Constraint.Set.add @@ Constraint_value(x, Bool(false))
+                | None ->
+                  nc
+              end
+            | Rec_pattern record_pattern ->
+              begin
+                let record_val = Symbol_map.Exceptionless.find x'
+                  solver.value_constraints_by_symbol
+                in
+                match record_val with
+                | Some(Record record_body) ->
+                  let pattern_enum = Ident_set.enum record_pattern in
+                  let record_keys = Ident_set.of_enum
+                    (Ident_map.keys record_body) in
+                  let res = Enum.for_all
+                    (fun ident -> Ident_set.mem ident record_keys) pattern_enum
+                  in
+                  if res then
+                    nc |> Constraint.Set.add @@ Constraint_value(x, Bool(true))
+                  else
+                    nc |> Constraint.Set.add @@ Constraint_value(x, Bool(false))
+                | Some(_) ->
+                  nc |> Constraint.Set.add @@ Constraint_value(x, Bool(false))
+                | None ->
+                  nc
+              end
           end
         | Constraint_type(x,t) ->
           Symbol_to_symbol_multimap.find x solver.alias_constraints_by_symbol
@@ -306,8 +370,7 @@ let rec _add_constraints_and_close
           Constraint.Set.empty
       in
       _add_constraints_and_close
-        (Constraint.Set.union new_constraints constraints)
-        new_solver
+        (Constraint.Set.union new_constraints constraints) new_solver
 ;;
 
 let add c solver =

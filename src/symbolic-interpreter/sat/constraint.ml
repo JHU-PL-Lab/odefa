@@ -52,6 +52,7 @@ type t =
   | Constraint_binop of symbol * symbol * binary_operator * symbol (* x = x+x *)
   | Constraint_projection of symbol * symbol * ident (* x = x.l *)
   | Constraint_match of symbol * symbol * pattern (* x = x ~ p *)
+  (* | Constraint_antimatch of symbol * symbol * pattern (* x = x !~ p *) *)
   | Constraint_type of symbol * symbol_type (* x : t *)
   | Constraint_stack of Relative_stack.concrete_stack (* stack = C *)
 [@@deriving eq, ord, to_yojson]
@@ -72,6 +73,9 @@ let pp formatter sc =
   | Constraint_match(x,x',p) ->
     Format.fprintf formatter "%a = %a ~ %a"
       pp_symbol x pp_symbol x' pp_pattern p
+  (* | Constraint_antimatch(x,x',p) ->
+    Format.fprintf formatter "%a = %a !~ %a"
+      pp_symbol x pp_symbol x' pp_pattern p *)
   | Constraint_type(x,t) ->
     Format.fprintf formatter "%a = %a" pp_symbol x pp_symbol_type t
   | Constraint_stack(s) ->
