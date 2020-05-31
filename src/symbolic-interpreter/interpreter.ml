@@ -271,6 +271,87 @@ struct
       module Work_collection = C;;
     end);;
 
+  (* **** Console logging operations **** *)
+
+  let _trace_log_zeromsg
+      (msg : string)
+      (lookup_stack : Ident.t list)
+      (relstack : Relative_stack.t)
+      (acl0 : annotated_clause)
+      (acl1 : annotated_clause)
+    : unit =
+    lazy_logger `trace (fun () ->
+      Printf.sprintf "ZERO (%s) for lookup of\n  %s\n  with stack %s\n  at %s\n  after %s\n"
+        msg
+        (Jhupllib.Pp_utils.pp_to_string
+          (Jhupllib.Pp_utils.pp_list pp_ident) lookup_stack)
+        (Jhupllib.Pp_utils.pp_to_string Relative_stack.pp relstack)
+        (Jhupllib.Pp_utils.pp_to_string pp_brief_annotated_clause acl0)
+        (Jhupllib.Pp_utils.pp_to_string pp_brief_annotated_clause acl1)
+    )
+  ;;
+
+  (*
+  let _trace_log_recurse
+      (lookup_stack : Ident.t list)
+      (lookup_stack' : Ident.t list)
+      (relstack : Relative_stack.t)
+      (relstack' : Relative_stack.t)
+      (acl0 : annotated_clause)
+      (acl0' : annotated_clause)
+      (acl1 : annotated_clause)
+    : unit =
+    lazy_logger `trace (fun () ->
+      Printf.sprintf
+        "From lookup of\n  %s\n  with stack %s\n  at %s\n  after %s\nRecursively looking up\n  %s\n  with stack %s\n  at %s\n"
+        (Jhupllib.Pp_utils.pp_to_string
+          (Jhupllib.Pp_utils.pp_list pp_ident) lookup_stack)
+        (Jhupllib.Pp_utils.pp_to_string Relative_stack.pp relstack)
+        (Jhupllib.Pp_utils.pp_to_string
+          pp_brief_annotated_clause acl0)
+        (Jhupllib.Pp_utils.pp_to_string
+          pp_brief_annotated_clause acl1)
+        (Jhupllib.Pp_utils.pp_to_string
+          (Jhupllib.Pp_utils.pp_list pp_ident) lookup_stack')
+        (Jhupllib.Pp_utils.pp_to_string Relative_stack.pp relstack')
+        (Jhupllib.Pp_utils.pp_to_string
+          pp_brief_annotated_clause acl0')
+      )
+  ;;
+  *)
+
+  let _trace_log_lookup
+      (lookup_stack : Ident.t list)
+      (relstack : Relative_stack.t)
+      (acl0 : annotated_clause)
+      (acl1 : annotated_clause)
+    : unit =
+    lazy_logger `trace (fun () ->
+      Printf.sprintf
+        "Looking up\n  %s\n  with stack %s\n  at %s\n  after %s\n"
+        (Jhupllib.Pp_utils.pp_to_string
+          (Jhupllib.Pp_utils.pp_list pp_ident) lookup_stack)
+        (Jhupllib.Pp_utils.pp_to_string Relative_stack.pp relstack)
+        (Jhupllib.Pp_utils.pp_to_string pp_brief_annotated_clause acl0)
+        (Jhupllib.Pp_utils.pp_to_string pp_brief_annotated_clause acl1)
+      )
+  ;;
+
+  let _trace_log_recurse
+      (lookup_stack' : Ident.t list)
+      (relstack' : Relative_stack.t)
+      (acl0' : annotated_clause)
+    : unit =
+    lazy_logger `trace (fun () ->
+      Printf.sprintf
+        "Recursively looking up\n  %s\n  with stack %s\n  at %s\n"
+        (Jhupllib.Pp_utils.pp_to_string
+          (Jhupllib.Pp_utils.pp_list pp_ident) lookup_stack')
+        (Jhupllib.Pp_utils.pp_to_string Relative_stack.pp relstack')
+        (Jhupllib.Pp_utils.pp_to_string pp_brief_annotated_clause acl0')
+      )
+  ;;
+
   (* NOTE 1: rather than introducing a "stack=" SAT formula, we instead have
      lookup return a pair.  The "stack=" formula in the spec is a hack to avoid
      dealing with pairs in the lookup definition since the mathematical notation
@@ -285,7 +366,392 @@ struct
      needn't verify, which is good because it'd make the code quite a lot
      sloppier.
   *)
-  let rec lookup
+
+  let rec loop mappings map =
+   (* If only we could generalize monadic sequencing... *)
+    let open M in
+    match mappings with
+    | [] -> return map
+    | hd :: tl ->
+      let%bind (k, v) = hd in
+      loop tl (Ident_map.add k v map)
+  ;;
+
+  (* Add a stack constraint if the lookup has reached the top fo the program *)
+  let record_stack_constraint
+      (env : lookup_environment)
+      (lookup_var : Ident.t)
+      (relstack : Relative_stack.t)
+    : unit M.m =
+    let open M in
+    if equal_ident lookup_var env.le_first_var then begin
+      (* Then we've found the start of the program!  Build an
+          appropriate concrete stack. *)
+      lazy_logger `trace
+        (fun () -> "Top of program reached: recording stack.");
+      let concrete_stack = Relative_stack.stackize relstack in
+      record_constraint @@ Constraint.Constraint_stack(concrete_stack)
+    end else
+      return ()
+  ;;
+
+  let rec rule_computations
+      (env : lookup_environment)
+      (lookup_stack : Ident.t list)
+      (acl0 : annotated_clause)
+      (acl1 : annotated_clause)
+      (relstack : Relative_stack.t)
+    : symbol M.m list =
+    let open M in
+    let recurse = recurse env in
+    let rule_list = [
+      (* ### Value Discovery rule ### *)
+      begin
+        (* Lookup stack must be a singleton *)
+        let%orzero [lookup_var] = lookup_stack in
+        (* This must be a value assignment clause defining that variable. *)
+        let%orzero Unannotated_clause(
+            Abs_clause(Abs_var x,Abs_value_body _)) = acl1
+        in
+        [%guard equal_ident x lookup_var];
+        (* Get the value v assigned here. *)
+        let%orzero (Clause(_,Value_body(v))) =
+          Ident_map.find x env.le_clause_mapping
+        in
+        (* Induce the resulting formula *)
+        let lookup_symbol = Symbol(lookup_var, relstack) in
+        let%bind constraint_value =
+          match v with
+          | Value_record(Record_value m) ->
+            (* The variables in m are unfreshened and local to this context.
+                We can look up each of their corresponding symbols and then
+                put them in a new dictionary for the constraint. *)
+            let mappings =
+              m
+              |> Ident_map.enum
+              |> Enum.map (fun (lbl, Var(x,_)) ->
+                            let%bind symbol = recurse [x] acl1 relstack in
+                            return (lbl, symbol))
+              |> List.of_enum
+            in
+            let%bind record_map = loop mappings Ident_map.empty in
+            return @@ Constraint.Record(record_map)
+          | Value_function f -> return @@ Constraint.Function f
+          | Value_int n -> return @@ Constraint.Int n
+          | Value_bool b -> return @@ Constraint.Bool b
+        in
+        let%bind () = record_constraint @@
+          Constraint.Constraint_value(lookup_symbol, constraint_value)
+        in
+        (* If we're at the top of the program, we should record a stack
+            constraint. *)
+        let%bind () = record_stack_constraint env lookup_var relstack
+        in
+        return lookup_symbol
+      end;
+      (* ### Input rule ### *)
+      begin
+        (* Lookup stack must be a singleton *)
+        let%orzero [lookup_var] = lookup_stack in
+        (* This must be an input clause defining that variable. *)
+        let%orzero Unannotated_clause(
+            Abs_clause(Abs_var x,Abs_input_body)) = acl1
+        in
+        [%guard equal_ident x lookup_var];
+        (* Induce the resulting formula *)
+        let lookup_symbol = Symbol(lookup_var, relstack) in
+        let%bind () = record_constraint @@
+          Constraint.Constraint_binop(
+            SpecialSymbol SSymTrue,
+            lookup_symbol,
+            Binary_operator_equal_to,
+            lookup_symbol)
+        in
+        (* If we're at the top of the program, we should record a stack
+            constraint. *)
+        let%bind () = record_stack_constraint env lookup_var relstack
+        in
+        return lookup_symbol
+      end;
+      (* ### Value Discard rule ### *)
+      begin
+        (* Lookup stack must NOT be a singleton *)
+        (* TODO: verify that this still has the desired intent.  What if
+            query_element isn't a variable? *)
+        let%orzero lookup_var :: query_element :: lookup_stack' =
+          lookup_stack
+        in
+        (* This must be a value assignment clause defining that variable. *)
+        let%orzero Unannotated_clause(
+            Abs_clause(Abs_var x,Abs_value_body _)) = acl1
+        in
+        [%guard equal_ident x lookup_var];
+        (* We found the variable, so toss it and keep going. *)
+        recurse (query_element :: lookup_stack') acl1 relstack
+      end;
+      (* ### Alias rule ### *)
+      begin
+        (* Grab variable from lookup stack *)
+        let%orzero lookup_var :: lookup_stack' = lookup_stack in
+        (* This must be an alias clause defining that variable. *)
+        let%orzero Unannotated_clause(
+            Abs_clause(Abs_var x,Abs_var_body(Abs_var x'))) =
+          acl1
+        in
+        [%guard equal_ident x lookup_var];
+        (* Look for the alias now. *)
+        recurse (x' :: lookup_stack') acl1 relstack
+      end;
+      (* ### Binop rule ### *)
+      begin
+        (* Grab variable from lookup stack *)
+        let%orzero lookup_var :: lookup_stack' = lookup_stack in
+        (* This must be a binary operator clause assigning to that variable. *)
+        let%orzero Unannotated_clause(
+            Abs_clause(Abs_var x, Abs_binary_operation_body(
+                Abs_var x', op, Abs_var x''))) =
+          acl1
+        in
+        [%guard equal_ident x lookup_var];
+        let%bind symbol1 = recurse [x'] acl1 relstack in
+        let%bind symbol2 = recurse [x''] acl1 relstack in
+        let lookup_symbol = Symbol(lookup_var, relstack) in
+        let%bind () = record_constraint @@
+          Constraint.Constraint_binop(lookup_symbol, symbol1, op, symbol2)
+        in
+        (* The "further" clause in the Binop rule says that, if the lookup
+            stack is non-empty, we have to look that stuff up too.  That
+            should never happen because none of our operators operate on
+            functions and functions are the only non-bottom elements in the
+            lookup stack.  So instead, we'll just skip the check here and
+            play defensively; it saves us a bind. *)
+        if not @@ List.is_empty lookup_stack' then begin
+          raise @@ Jhupllib.Utils.Not_yet_implemented
+            "Non-singleton lookup stack in Binop rule!"
+        end;
+        return lookup_symbol
+      end;
+      (* ### Function Enter Parameter rule ### *)
+      begin
+        (* Grab variable from lookup stack *)
+        let%orzero lookup_var :: lookup_stack' = lookup_stack in
+        (* This must be a binding enter clause which defines our lookup
+            variable. *)
+        let%orzero Binding_enter_clause(Abs_var x,Abs_var x',c) = acl1 in
+        [%guard equal_ident lookup_var x];
+        (* Build the popped relative stack. *)
+        let%orzero Abs_clause(Abs_var xr,Abs_appl_body(Abs_var xf,_)) = c in
+        let%orzero Some relstack' = Relative_stack.pop relstack xr in
+        (* Record this wiring decision. *)
+        let cc = Ident_map.find xr env.le_clause_mapping in
+        let%bind () = record_decision relstack x cc x' in
+        (* Look up the definition of the function. *)
+        let%bind function_symbol = recurse [xf] acl1 relstack' in
+        (* Require this function be assigned to that variable. *)
+        let fv = Ident_map.find x env.le_function_parameter_mapping in
+        let%bind () = record_constraint @@
+          Constraint.Constraint_value(function_symbol, Constraint.Function fv)
+        in
+        (* Proceed to look up the argument in the calling context. *)
+        recurse (x' :: lookup_stack') acl1 relstack'
+      end;
+      (* ### Function Enter Non-Local rule ### *)
+      begin
+        (* Grab variable from lookup stack *)
+        let%orzero x :: lookup_stack' = lookup_stack in
+        (* This must be a binding enter clause which DOES NOT define our
+            lookup variable. *)
+        let%orzero Binding_enter_clause(Abs_var x'',Abs_var x',c) = acl1 in
+        [%guard not @@ equal_ident x x''];
+        (* Build the popped relative stack. *)
+        let%orzero Abs_clause(Abs_var xr,Abs_appl_body(Abs_var xf,_)) = c in
+        let%orzero Some relstack' = Relative_stack.pop relstack xr in
+        (* Record this wiring decision. *)
+        let cc = Ident_map.find xr env.le_clause_mapping in
+        let%bind () = record_decision relstack x'' cc x' in
+        (* Look up the definition of the function. *)
+        let%bind function_symbol = recurse [xf] acl1 relstack' in
+        (* Require this function be assigned to that variable. *)
+        let fv = Ident_map.find x'' env.le_function_parameter_mapping in
+        let%bind () = record_constraint @@
+          Constraint.Constraint_value(function_symbol, Constraint.Function fv)
+        in
+        (* Proceed to look up the variable in the context of the function's
+            definition. *)
+        recurse (xf :: x :: lookup_stack') acl1 relstack'
+      end;
+      (* ### Function Exit rule ### *)
+      begin
+        (* Grab variable from lookup stack *)
+        let%orzero lookup_var :: lookup_stack' = lookup_stack in
+        (* This must be a binding exit clause which defines our lookup
+            variable. *)
+        let%orzero Binding_exit_clause(Abs_var x, Abs_var x', c) = acl1 in
+        [%guard equal_ident x lookup_var];
+        (* Look up the definition point of the function. *)
+        let%orzero Abs_clause(Abs_var xr, Abs_appl_body(Abs_var xf, _)) = c in
+        let%bind function_symbol =
+          recurse [xf] (Unannotated_clause(c)) relstack
+        in
+        (* Require this function be assigned to that variable. *)
+        let fv = Ident_map.find x' env.le_function_return_mapping in
+        let%bind () = record_constraint @@
+          Constraint.Constraint_value(function_symbol, Constraint.Function fv)
+        in
+        (* Proceed to look up the value returned by the function. *)
+        let%orzero Some relstack' = Relative_stack.push relstack xr in
+        recurse (x' :: lookup_stack') acl1 relstack'
+      end;
+      (* ### Skip rule ### *)
+      begin
+        (* Grab variable from lookup stack *)
+        let%orzero lookup_var :: _ = lookup_stack in
+        (* This must be a variable we AREN'T looking for. *)
+        let%orzero Unannotated_clause(Abs_clause(Abs_var x'', _)) = acl1 in
+        [%guard not @@ equal_ident x'' lookup_var ];
+        (* Even if we're not looking for it, it has to be defined! *)
+        let%bind _ = recurse [x''] acl0 relstack in
+        recurse lookup_stack acl1 relstack
+      end;
+      (* ### Conditional Top rule ### *)
+      begin
+        (* This must be a non-binding enter wiring node for a conditional. *)
+        let%orzero Nonbinding_enter_clause(av,c) = acl1 in
+        let%orzero Abs_clause(_, Abs_conditional_body(Abs_var x1, _, _)) = c in
+        (* Look up the subject symbol. *)
+        let%bind subject_symbol =
+          recurse [x1] (Unannotated_clause c) relstack
+        in
+        (* Require that it has the same value as the wiring node. *)
+        let%orzero Abs_value_bool b = av in
+        let%bind () = record_constraint @@
+          Constraint.Constraint_value(subject_symbol, Constraint.Bool b)
+        in
+        (* Proceed by moving through the wiring node. *)
+        recurse lookup_stack acl1 relstack
+      end;
+      (* ### Conditional Bottom - True rule ### *)
+      begin
+        (* Grab variable from lookup stack *)
+        let%orzero lookup_var :: lookup_stack' = lookup_stack in
+        (* This must be a binding exit clause which defines our lookup
+            variable. *)
+        let%orzero Binding_exit_clause(Abs_var x, Abs_var x', c) = acl1 in
+        [%guard equal_ident x lookup_var];
+        (* Ensure that we're considering the true branch *)
+        let%orzero Abs_clause(_, Abs_conditional_body(Abs_var x1, e1, _)) = c in
+        let Abs_var e1ret = retv e1 in
+        [%guard equal_ident x' e1ret];
+        (* Look up the subject symbol. *)
+        let%bind subject_symbol =
+          recurse [x1] (Unannotated_clause c) relstack
+        in
+        (* Require that its value matches this conditional branch. *)
+        let%bind () = record_constraint @@
+          Constraint.Constraint_value(subject_symbol, Constraint.Bool true)
+        in
+        (* Proceed to look up the value returned by this branch. *)
+        recurse (x' :: lookup_stack') acl1 relstack
+      end;
+      (* ### Conditional Bottom - False rule ### *)
+      begin
+        (* Grab variable from lookup stack *)
+        let%orzero lookup_var :: lookup_stack' = lookup_stack in
+        (* This must be a binding exit clause which defines our lookup
+            variable. *)
+        let%orzero Binding_exit_clause(Abs_var x, Abs_var x', c) = acl1 in
+        [%guard equal_ident x lookup_var];
+        (* Ensure that we're considering the false branch *)
+        let%orzero Abs_clause(_, Abs_conditional_body(Abs_var x1, _, e2)) = c in
+        let Abs_var e2ret = retv e2 in
+        [%guard equal_ident x' e2ret];
+        (* Look up the subject symbol. *)
+        let%bind subject_symbol =
+          recurse [x1] (Unannotated_clause c) relstack
+        in
+        (* Require that its value matches this conditional branch. *)
+        let%bind () = record_constraint @@
+          Constraint.Constraint_value(subject_symbol, Constraint.Bool false)
+        in
+        (* Proceed to look up the value returned by this branch. *)
+        recurse (x' :: lookup_stack') acl1 relstack
+      end;
+      (* Record projection handling (not a written rule) *)
+      begin
+        (* Don't process the record projection unless we're ready to move
+            on: we need a variable on top of the stack. *)
+        let%orzero lookup_var :: lookup_stack' = lookup_stack in
+        (* This must be a record projection clause which defines our
+            variable. *)
+        let%orzero Unannotated_clause(
+            Abs_clause(Abs_var x, Abs_projection_body(Abs_var x', lbl))) =
+          acl1
+        in
+        [%guard equal_ident x lookup_var];
+        (* Look up the record itself and identify the symbol it uses. *)
+        (* We ignore the stacks here intentionally; see note 1 above. *)
+        let%bind record_symbol = recurse [x'] acl1 relstack in
+        (* Now record the constraint that the lookup variable must be the
+            projection of the label from that record. *)
+        let lookup_symbol = Symbol(lookup_var, relstack) in
+        let%bind () = record_constraint @@
+          Constraint_projection(lookup_symbol, record_symbol, lbl)
+        in
+        (* We should have a "further" clause similar to the Binop rule: if the
+            lookup stack is non-empty, we have to look up all that stuff to
+            make sure this control flow is valid.  That should never happen
+            because our projection only works on non-functions and functions
+            are the only non-bottom elements of the lookup stack.  So instead,
+            we'll just skip the check here and play defensively; it saves us
+            a bind. *)
+        if not @@ List.is_empty lookup_stack' then begin
+          raise @@ Jhupllib.Utils.Not_yet_implemented
+            "Non-singleton lookup stack in Binop rule!"
+        end;
+        (* And we're finished. *)
+        return lookup_symbol
+      end;
+      (* Pattern matching (not a written rule) *)
+      begin
+        (* Grab variable from lookup stack *)
+        let%orzero lookup_var :: lookup_stack' = lookup_stack in
+        (* This must be a pattern match clause *)
+        let%orzero Unannotated_clause(
+            Abs_clause(Abs_var x, Abs_match_body(Abs_var x', pattern))) = acl1
+        in
+        [%guard equal_ident x lookup_var];
+        (* Look up the symbol that is being matched upon *)
+        let%bind pattern_symbol = recurse (x' :: lookup_stack') acl1 relstack in
+        (* Record the constraint associated with the pattern match *)
+        let lookup_symbol = Symbol(lookup_var, relstack) in
+        let%bind () = record_constraint @@
+          Constraint_match(lookup_symbol, pattern_symbol, pattern)
+        in
+        (* And we are done *)
+        return lookup_symbol
+      end;
+      (* Start-of-block and end-of-block handling (not actually a rule) *)
+      (
+        let%orzero (Start_clause _ | End_clause _) = acl1 in
+        recurse lookup_stack acl1 relstack
+      )
+    ]
+    in
+    rule_list
+
+  and recurse
+      (env : lookup_environment)
+      (lookup_stack' : Ident.t list)
+      (acl0' : annotated_clause)
+      (relstack' : Relative_stack.t)
+    : symbol M.m =
+    let open M in
+    _trace_log_recurse lookup_stack' relstack' acl0';
+    (* check_formulae @@ *)
+    cache (Cache_lookup(lookup_stack', acl0', relstack')) @@
+      lookup env lookup_stack' acl0' relstack'
+
+  and lookup
       (env : lookup_environment)
       (lookup_stack : Ident.t list)
       (acl0 : annotated_clause)
@@ -293,418 +759,11 @@ struct
     : symbol M.m =
     let open M in
     let%bind acl1 = pick @@ preds acl0 env.le_cfg in
-    let zeromsg msg () =
-      lazy_logger `trace
-        (fun () ->
-           Printf.sprintf "ZERO (%s) for lookup of\n  %s\n  with stack %s\n  at %s\n  after %s\n"
-             msg
-             (Jhupllib.Pp_utils.pp_to_string
-                (Jhupllib.Pp_utils.pp_list pp_ident) lookup_stack)
-             (Jhupllib.Pp_utils.pp_to_string Relative_stack.pp relstack)
-             (Jhupllib.Pp_utils.pp_to_string
-                pp_brief_annotated_clause acl0)
-             (Jhupllib.Pp_utils.pp_to_string
-                pp_brief_annotated_clause acl1)
-        );
-      zero ()
-    in
-    let _ = zeromsg in
     let%bind () = pause () in
-    let recurse
-        (lookup_stack' : Ident.t list)
-        (acl0' : annotated_clause)
-        (relstack' : Relative_stack.t)
-      : symbol M.m =
-      lazy_logger `trace
-        (fun () ->
-           Printf.sprintf
-             "From lookup of\n  %s\n  with stack %s\n  at %s\n  after %s\nRecursively looking up\n  %s\n  with stack %s\n  at %s\n"
-             (Jhupllib.Pp_utils.pp_to_string
-                (Jhupllib.Pp_utils.pp_list pp_ident) lookup_stack)
-             (Jhupllib.Pp_utils.pp_to_string Relative_stack.pp relstack)
-             (Jhupllib.Pp_utils.pp_to_string
-                pp_brief_annotated_clause acl0)
-             (Jhupllib.Pp_utils.pp_to_string
-                pp_brief_annotated_clause acl1)
-             (Jhupllib.Pp_utils.pp_to_string
-                (Jhupllib.Pp_utils.pp_list pp_ident) lookup_stack')
-             (Jhupllib.Pp_utils.pp_to_string Relative_stack.pp relstack')
-             (Jhupllib.Pp_utils.pp_to_string
-                pp_brief_annotated_clause acl0')
-        );
-      cache (Cache_lookup(lookup_stack', acl0', relstack')) @@
-      (* check_formulae @@ *)
-      lookup env lookup_stack' acl0' relstack'
-    in
-    lazy_logger `trace
-      (fun () ->
-         Printf.sprintf
-           "Looking up\n  %s\n  with stack %s\n  at %s\n  after %s\n"
-           (Jhupllib.Pp_utils.pp_to_string
-              (Jhupllib.Pp_utils.pp_list pp_ident) lookup_stack)
-           (Jhupllib.Pp_utils.pp_to_string Relative_stack.pp relstack)
-           (Jhupllib.Pp_utils.pp_to_string pp_brief_annotated_clause acl0)
-           (Jhupllib.Pp_utils.pp_to_string pp_brief_annotated_clause acl1)
-      );
-    let rule_computations =
-      [
-        (* ### Value Discovery rule ### *)
-        begin
-          (* Lookup stack must be a singleton *)
-          let%orzero [lookup_var] = lookup_stack in
-          (* This must be a value assignment clause defining that variable. *)
-          let%orzero Unannotated_clause(
-              Abs_clause(Abs_var x,Abs_value_body _)) = acl1
-          in
-          [%guard equal_ident x lookup_var];
-          (* Get the value v assigned here. *)
-          let%orzero (Clause(_,Value_body(v))) =
-            Ident_map.find x env.le_clause_mapping
-          in
-          (* Induce the resulting formula *)
-          let lookup_symbol = Symbol(lookup_var, relstack) in
-          let%bind constraint_value =
-            match v with
-            | Value_record(Record_value m) ->
-              (* The variables in m are unfreshened and local to this context.
-                 We can look up each of their corresponding symbols and then
-                 put them in a new dictionary for the constraint. *)
-              let mappings =
-                m
-                |> Ident_map.enum
-                |> Enum.map
-                  (fun (lbl, Var(x,_)) ->
-                     let%bind symbol = recurse [x] acl1 relstack in
-                     return (lbl, symbol)
-                  )
-                |> List.of_enum
-              in
-              (* If only we could generalize monadic sequencing... *)
-              let rec loop mappings map =
-                match mappings with
-                | [] -> return map
-                | h::t ->
-                  let%bind (k,v) = h in
-                  loop t (Ident_map.add k v map)
-              in
-              let%bind record_map = loop mappings Ident_map.empty in
-              return @@ Constraint.Record(record_map)
-            | Value_function f -> return @@ Constraint.Function f
-            | Value_int n -> return @@ Constraint.Int n
-            | Value_bool b -> return @@ Constraint.Bool b
-          in
-          let%bind () = record_constraint @@
-            Constraint.Constraint_value(lookup_symbol, constraint_value)
-          in
-          (* If we're at the top of the program, we should record a stack
-             constraint. *)
-          let%bind () =
-            if equal_ident lookup_var env.le_first_var then begin
-              (* Then we've found the start of the program!  Build an
-                 appropriate concrete stack. *)
-              lazy_logger `trace
-                (fun () -> "Top of program reached: recording stack.");
-              record_constraint @@ Constraint.Constraint_stack(
-                Relative_stack.stackize relstack)
-            end else return ()
-          in
-          return lookup_symbol
-        end;
-        (* ### Input rule ### *)
-        begin
-          (* Lookup stack must be a singleton *)
-          let%orzero [lookup_var] = lookup_stack in
-          (* This must be an input clause defining that variable. *)
-          let%orzero Unannotated_clause(
-              Abs_clause(Abs_var x,Abs_input_body)) = acl1
-          in
-          [%guard equal_ident x lookup_var];
-          (* Induce the resulting formula *)
-          let lookup_symbol = Symbol(lookup_var, relstack) in
-          let%bind () = record_constraint @@
-            Constraint.Constraint_binop(
-              SpecialSymbol SSymTrue,
-              lookup_symbol,
-              Binary_operator_equal_to,
-              lookup_symbol)
-          in
-          (* If we're at the top of the program, we should record a stack
-             constraint. *)
-          let%bind () =
-            if equal_ident lookup_var env.le_first_var then begin
-              (* Then we've found the start of the program!  Build an
-                 appropriate concrete stack. *)
-              lazy_logger `trace
-                (fun () -> "Top of program reached: recording stack.");
-              record_constraint @@ Constraint.Constraint_stack(
-                Relative_stack.stackize relstack)
-            end else return ()
-          in
-          return lookup_symbol
-        end;
-        (* ### Value Discard rule ### *)
-        begin
-          (* Lookup stack must NOT be a singleton *)
-          (* TODO: verify that this still has the desired intent.  What if
-             query_element isn't a variable? *)
-          let%orzero lookup_var :: query_element :: lookup_stack' =
-            lookup_stack
-          in
-          (* This must be a value assignment clause defining that variable. *)
-          let%orzero Unannotated_clause(
-              Abs_clause(Abs_var x,Abs_value_body _)) = acl1
-          in
-          [%guard equal_ident x lookup_var];
-          (* We found the variable, so toss it and keep going. *)
-          recurse (query_element :: lookup_stack') acl1 relstack
-        end;
-        (* ### Alias rule ### *)
-        begin
-          (* Grab variable from lookup stack *)
-          let%orzero lookup_var :: lookup_stack' = lookup_stack in
-          (* This must be an alias clause defining that variable. *)
-          let%orzero Unannotated_clause(
-              Abs_clause(Abs_var x,Abs_var_body(Abs_var x'))) =
-            acl1
-          in
-          [%guard equal_ident x lookup_var];
-          (* Look for the alias now. *)
-          recurse (x' :: lookup_stack') acl1 relstack
-        end;
-        (* ### Binop rule ### *)
-        begin
-          (* Grab variable from lookup stack *)
-          let%orzero lookup_var :: lookup_stack' = lookup_stack in
-          (* This must be a binary operator clause assigning to that variable. *)
-          let%orzero Unannotated_clause(
-              Abs_clause(Abs_var x, Abs_binary_operation_body(
-                  Abs_var x', op, Abs_var x''))) =
-            acl1
-          in
-          [%guard equal_ident x lookup_var];
-          let%bind symbol1 = recurse [x'] acl1 relstack in
-          let%bind symbol2 = recurse [x''] acl1 relstack in
-          let lookup_symbol = Symbol(lookup_var, relstack) in
-          let%bind () = record_constraint @@
-            Constraint.Constraint_binop(lookup_symbol, symbol1, op, symbol2)
-          in
-          (* The "further" clause in the Binop rule says that, if the lookup
-             stack is non-empty, we have to look that stuff up too.  That
-             should never happen because none of our operators operate on
-             functions and functions are the only non-bottom elements in the
-             lookup stack.  So instead, we'll just skip the check here and
-             play defensively; it saves us a bind. *)
-          if not @@ List.is_empty lookup_stack' then begin
-            raise @@ Jhupllib.Utils.Not_yet_implemented
-              "Non-singleton lookup stack in Binop rule!"
-          end;
-          return lookup_symbol
-        end;
-        (* ### Function Enter Parameter rule ### *)
-        begin
-          (* Grab variable from lookup stack *)
-          let%orzero lookup_var :: lookup_stack' = lookup_stack in
-          (* This must be a binding enter clause which defines our lookup
-             variable. *)
-          let%orzero Binding_enter_clause(Abs_var x,Abs_var x',c) = acl1 in
-          [%guard equal_ident lookup_var x];
-          (* Build the popped relative stack. *)
-          let%orzero Abs_clause(Abs_var xr,Abs_appl_body(Abs_var xf,_)) = c in
-          let%orzero Some relstack' = Relative_stack.pop relstack xr in
-          (* Record this wiring decision. *)
-          let cc = Ident_map.find xr env.le_clause_mapping in
-          let%bind () = record_decision relstack x cc x' in
-          (* Look up the definition of the function. *)
-          let%bind function_symbol = recurse [xf] acl1 relstack' in
-          (* Require this function be assigned to that variable. *)
-          let fv = Ident_map.find x env.le_function_parameter_mapping in
-          let%bind () = record_constraint @@
-            Constraint.Constraint_value(function_symbol, Constraint.Function fv)
-          in
-          (* Proceed to look up the argument in the calling context. *)
-          recurse (x' :: lookup_stack') acl1 relstack'
-        end;
-        (* ### Function Enter Non-Local rule ### *)
-        begin
-          (* Grab variable from lookup stack *)
-          let%orzero x :: lookup_stack' = lookup_stack in
-          (* This must be a binding enter clause which DOES NOT define our
-             lookup variable. *)
-          let%orzero Binding_enter_clause(Abs_var x'',Abs_var x',c) = acl1 in
-          [%guard not @@ equal_ident x x''];
-          (* Build the popped relative stack. *)
-          let%orzero Abs_clause(Abs_var xr,Abs_appl_body(Abs_var xf,_)) = c in
-          let%orzero Some relstack' = Relative_stack.pop relstack xr in
-          (* Record this wiring decision. *)
-          let cc = Ident_map.find xr env.le_clause_mapping in
-          let%bind () = record_decision relstack x'' cc x' in
-          (* Look up the definition of the function. *)
-          let%bind function_symbol = recurse [xf] acl1 relstack' in
-          (* Require this function be assigned to that variable. *)
-          let fv = Ident_map.find x'' env.le_function_parameter_mapping in
-          let%bind () = record_constraint @@
-            Constraint.Constraint_value(function_symbol, Constraint.Function fv)
-          in
-          (* Proceed to look up the variable in the context of the function's
-             definition. *)
-          recurse
-            (xf :: x :: lookup_stack')
-            acl1
-            relstack'
-        end;
-        (* ### Function Exit rule ### *)
-        begin
-          (* Grab variable from lookup stack *)
-          let%orzero lookup_var :: lookup_stack' = lookup_stack in
-          (* This must be a binding exit clause which defines our lookup
-             variable. *)
-          let%orzero Binding_exit_clause(Abs_var x, Abs_var x', c) = acl1 in
-          [%guard equal_ident x lookup_var];
-          (* Look up the definition point of the function. *)
-          let%orzero Abs_clause(Abs_var xr, Abs_appl_body(Abs_var xf, _)) = c in
-          let%bind function_symbol =
-            recurse [xf] (Unannotated_clause(c)) relstack
-          in
-          (* Require this function be assigned to that variable. *)
-          let fv = Ident_map.find x' env.le_function_return_mapping in
-          let%bind () = record_constraint @@
-            Constraint.Constraint_value(function_symbol, Constraint.Function fv)
-          in
-          (* Proceed to look up the value returned by the function. *)
-          let%orzero Some relstack' = Relative_stack.push relstack xr in
-          recurse (x' :: lookup_stack') acl1 relstack'
-        end;
-        (* ### Skip rule ### *)
-        begin
-          (* Grab variable from lookup stack *)
-          let%orzero lookup_var :: _ = lookup_stack in
-          (* This must be a variable we AREN'T looking for. *)
-          let%orzero Unannotated_clause(Abs_clause(Abs_var x'', _)) = acl1 in
-          [%guard not @@ equal_ident x'' lookup_var ];
-          (* Even if we're not looking for it, it has to be defined! *)
-          let%bind _ = recurse [x''] acl0 relstack in
-          recurse lookup_stack acl1 relstack
-        end;
-        (* ### Conditional Top rule ### *)
-        begin
-          (* This must be a non-binding enter wiring node for a conditional. *)
-          let%orzero Nonbinding_enter_clause(av,c) = acl1 in
-          let%orzero Abs_clause(_, Abs_conditional_body(Abs_var x1, _, _)) = c in
-          (* Look up the subject symbol. *)
-          let%bind subject_symbol =
-            recurse [x1] (Unannotated_clause c) relstack
-          in
-          (* Require that it has the same value as the wiring node. *)
-          let%orzero Abs_value_bool b = av in
-          let%bind () = record_constraint @@
-            Constraint.Constraint_value(subject_symbol, Constraint.Bool b)
-          in
-          (* Proceed by moving through the wiring node. *)
-          recurse lookup_stack acl1 relstack
-        end;
-        (* ### Conditional Bottom - True rule ### *)
-        begin
-          (* Grab variable from lookup stack *)
-          let%orzero lookup_var :: lookup_stack' = lookup_stack in
-          (* This must be a binding exit clause which defines our lookup
-             variable. *)
-          let%orzero Binding_exit_clause(Abs_var x, Abs_var x', c) = acl1 in
-          [%guard equal_ident x lookup_var];
-          (* Ensure that we're considering the true branch *)
-          let%orzero Abs_clause(_, Abs_conditional_body(Abs_var x1, e1, _)) = c in
-          let Abs_var e1ret = retv e1 in
-          [%guard equal_ident x' e1ret];
-          (* Look up the subject symbol. *)
-          let%bind subject_symbol =
-            recurse [x1] (Unannotated_clause c) relstack
-          in
-          (* Require that its value matches this conditional branch. *)
-          let%bind () = record_constraint @@
-            Constraint.Constraint_value(subject_symbol, Constraint.Bool true)
-          in
-          (* Proceed to look up the value returned by this branch. *)
-          recurse (x' :: lookup_stack') acl1 relstack
-        end;
-        (* ### Conditional Bottom - False rule ### *)
-        begin
-          (* Grab variable from lookup stack *)
-          let%orzero lookup_var :: lookup_stack' = lookup_stack in
-          (* This must be a binding exit clause which defines our lookup
-             variable. *)
-          let%orzero Binding_exit_clause(Abs_var x, Abs_var x', c) = acl1 in
-          [%guard equal_ident x lookup_var];
-          (* Ensure that we're considering the false branch *)
-          let%orzero Abs_clause(_, Abs_conditional_body(Abs_var x1, _, e2)) = c in
-          let Abs_var e2ret = retv e2 in
-          [%guard equal_ident x' e2ret];
-          (* Look up the subject symbol. *)
-          let%bind subject_symbol =
-            recurse [x1] (Unannotated_clause c) relstack
-          in
-          (* Require that its value matches this conditional branch. *)
-          let%bind () = record_constraint @@
-            Constraint.Constraint_value(subject_symbol, Constraint.Bool false)
-          in
-          (* Proceed to look up the value returned by this branch. *)
-          recurse (x' :: lookup_stack') acl1 relstack
-        end;
-        (* Record projection handling (not a written rule) *)
-        begin
-          (* Don't process the record projection unless we're ready to move
-             on: we need a variable on top of the stack. *)
-          let%orzero lookup_var :: lookup_stack' = lookup_stack in
-          (* This must be a record projection clause which defines our
-             variable. *)
-          let%orzero Unannotated_clause(
-              Abs_clause(Abs_var x, Abs_projection_body(Abs_var x', lbl))) =
-            acl1
-          in
-          [%guard equal_ident x lookup_var];
-          (* Look up the record itself and identify the symbol it uses. *)
-          (* We ignore the stacks here intentionally; see note 1 above. *)
-          let%bind record_symbol = recurse [x'] acl1 relstack in
-          (* Now record the constraint that the lookup variable must be the
-             projection of the label from that record. *)
-          let lookup_symbol = Symbol(lookup_var, relstack) in
-          let%bind () = record_constraint @@
-            Constraint_projection(lookup_symbol, record_symbol, lbl)
-          in
-          (* We should have a "further" clause similar to the Binop rule: if the
-             lookup stack is non-empty, we have to look up all that stuff to
-             make sure this control flow is valid.  That should never happen
-             because our projection only works on non-functions and functions
-             are the only non-bottom elements of the lookup stack.  So instead,
-             we'll just skip the check here and play defensively; it saves us
-             a bind. *)
-          if not @@ List.is_empty lookup_stack' then begin
-            raise @@ Jhupllib.Utils.Not_yet_implemented
-              "Non-singleton lookup stack in Binop rule!"
-          end;
-          (* And we're finished. *)
-          return lookup_symbol
-        end;
-        (* Pattern matching (not a written rule) *)
-        begin
-          let%orzero lookup_var :: lookup_stack' = lookup_stack in
-          let%orzero Unannotated_clause(
-              Abs_clause(Abs_var x, Abs_match_body(Abs_var x', pattern))) = acl1
-          in
-          [%guard equal_ident x lookup_var];
-          let%bind pattern_symbol = recurse (x' :: lookup_stack') acl1 relstack in
-          let lookup_symbol = Symbol(lookup_var, relstack) in
-          let%bind () = record_constraint @@
-            Constraint_match(lookup_symbol, pattern_symbol, pattern)
-          in
-          return lookup_symbol
-        end;
-        (* Start-of-block and end-of-block handling (not actually a rule) *)
-        (
-          let%orzero (Start_clause _ | End_clause _) = acl1 in
-          recurse lookup_stack acl1 relstack
-        )
-      ]
-    in
-    let%bind m = pick @@ List.enum rule_computations in m
+    _trace_log_lookup lookup_stack relstack acl0 acl1;
+    let rule_list = rule_computations env lookup_stack acl0 acl1 relstack in
+    let%bind mon = pick @@ List.enum rule_list in
+    mon
   ;;
 
   type evaluation = Evaluation of unit M.evaluation;;
