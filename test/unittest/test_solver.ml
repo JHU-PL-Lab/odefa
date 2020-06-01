@@ -99,4 +99,42 @@ F.assert_solutions
   ]
 ;;
 
+_add_test "pattern matching" @@ fun _ ->
+F.assert_solutions
+  [ F.set_int F.x 5;
+    F.set_bool F.y true;
+    F.set_match F.z F.x Int_pattern;
+    F.set_match F.w F.y (Bool_pattern false);
+  ]
+  [ (F.z, Some(Value_bool true));
+    (F.w, Some(Value_bool false)); 
+  ]
+;;
+
+_add_test "pattern matching record" @@ fun _ ->
+F.assert_solutions
+  [ F.set_int F.x 5;
+    F.set_rec F.r [(F.a, F.x)];
+    F.set_match F.y F.r
+      (Rec_pattern (Ident_set.of_enum @@ List.enum []));
+    F.set_match F.z F.r
+      (Rec_pattern (Ident_set.of_enum @@ List.enum [F.a]));
+    F.set_match F.w F.r
+      (Rec_pattern (Ident_set.of_enum @@ List.enum [F.a; F.c]));
+  ]
+  [ (F.y, Some(Value_bool true));
+    (F.z, Some(Value_bool true));
+    (F.w, Some(Value_bool false));
+  ]
+;;
+
+_add_test "unsolvable pattern match" @@ fun _ ->
+F.assert_unsolvable
+  [ F.alias F.y F.z;
+    F.set_bool F.x true;
+    F.set_match F.y F.x (Bool_pattern true);
+    F.set_match F.z F.x (Bool_pattern false);
+  ]
+;;
+
 let tests = "solver tests" >::: List.rev !_tests_acc;;

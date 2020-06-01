@@ -41,6 +41,7 @@ let set_bool s n = Constraint.Constraint_value(s, Constraint.Bool n);;
 let set_rec s m = Constraint.Constraint_value(
     s, Constraint.Record(Ident_map.of_enum @@ List.enum m));;
 let set_proj s s' l = Constraint.Constraint_projection(s, s', l);;
+let set_match s s' p = Constraint.Constraint_match(s, s', p);;
 
 let string_of_constraint_list constraint_list =
   String.join "\n" @@ List.map Constraint.show constraint_list
