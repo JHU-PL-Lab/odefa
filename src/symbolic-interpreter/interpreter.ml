@@ -70,7 +70,8 @@ let prepare_environment (e : expr) (cfg : ddpa_graph)
       Enum.append
         (enum_all_functions_in_expr e1) (enum_all_functions_in_expr e2)
     | Match_body (_, _)
-    | Projection_body (_, _) ->
+    | Projection_body (_, _)
+    | Abort_body ->
       Enum.empty ()
   and enum_all_functions_in_value value : function_value Enum.t =
     match value with
@@ -118,7 +119,8 @@ let prepare_environment (e : expr) (cfg : ddpa_graph)
           | Appl_body (_, _)
           | Match_body (_, _)
           | Projection_body (_, _)
-          | Binary_operation_body (_, _, _) -> []
+          | Binary_operation_body (_, _, _)
+          | Abort_body -> []
           | Conditional_body (_, e1, e2) ->
             e1 :: e2 :: expr_flatten e1 @ expr_flatten e2
        )
@@ -291,35 +293,6 @@ struct
     )
   ;;
 
-  (*
-  let _trace_log_recurse
-      (lookup_stack : Ident.t list)
-      (lookup_stack' : Ident.t list)
-      (relstack : Relative_stack.t)
-      (relstack' : Relative_stack.t)
-      (acl0 : annotated_clause)
-      (acl0' : annotated_clause)
-      (acl1 : annotated_clause)
-    : unit =
-    lazy_logger `trace (fun () ->
-      Printf.sprintf
-        "From lookup of\n  %s\n  with stack %s\n  at %s\n  after %s\nRecursively looking up\n  %s\n  with stack %s\n  at %s\n"
-        (Jhupllib.Pp_utils.pp_to_string
-          (Jhupllib.Pp_utils.pp_list pp_ident) lookup_stack)
-        (Jhupllib.Pp_utils.pp_to_string Relative_stack.pp relstack)
-        (Jhupllib.Pp_utils.pp_to_string
-          pp_brief_annotated_clause acl0)
-        (Jhupllib.Pp_utils.pp_to_string
-          pp_brief_annotated_clause acl1)
-        (Jhupllib.Pp_utils.pp_to_string
-          (Jhupllib.Pp_utils.pp_list pp_ident) lookup_stack')
-        (Jhupllib.Pp_utils.pp_to_string Relative_stack.pp relstack')
-        (Jhupllib.Pp_utils.pp_to_string
-          pp_brief_annotated_clause acl0')
-      )
-  ;;
-  *)
-
   let _trace_log_lookup
       (lookup_stack : Ident.t list)
       (relstack : Relative_stack.t)
@@ -435,7 +408,7 @@ struct
               |> List.of_enum
             in
             let%bind record_map = loop mappings Ident_map.empty in
-            return @@ Constraint.Record(record_map)
+            return @@ Constraint.Record record_map
           | Value_function f -> return @@ Constraint.Function f
           | Value_int n -> return @@ Constraint.Int n
           | Value_bool b -> return @@ Constraint.Bool b
@@ -449,6 +422,7 @@ struct
         in
         return lookup_symbol
       end;
+
       (* ### Input rule ### *)
       begin
         (* Lookup stack must be a singleton *)
@@ -473,6 +447,7 @@ struct
         in
         return lookup_symbol
       end;
+
       (* ### Value Discard rule ### *)
       begin
         (* Lookup stack must NOT be a singleton *)
@@ -489,6 +464,7 @@ struct
         (* We found the variable, so toss it and keep going. *)
         recurse (query_element :: lookup_stack') acl1 relstack
       end;
+
       (* ### Alias rule ### *)
       begin
         (* Grab variable from lookup stack *)
@@ -502,6 +478,7 @@ struct
         (* Look for the alias now. *)
         recurse (x' :: lookup_stack') acl1 relstack
       end;
+
       (* ### Binop rule ### *)
       begin
         (* Grab variable from lookup stack *)
@@ -531,6 +508,7 @@ struct
         end;
         return lookup_symbol
       end;
+
       (* ### Function Enter Parameter rule ### *)
       begin
         (* Grab variable from lookup stack *)
@@ -555,6 +533,7 @@ struct
         (* Proceed to look up the argument in the calling context. *)
         recurse (x' :: lookup_stack') acl1 relstack'
       end;
+
       (* ### Function Enter Non-Local rule ### *)
       begin
         (* Grab variable from lookup stack *)
@@ -580,6 +559,7 @@ struct
             definition. *)
         recurse (xf :: x :: lookup_stack') acl1 relstack'
       end;
+
       (* ### Function Exit rule ### *)
       begin
         (* Grab variable from lookup stack *)
@@ -602,6 +582,7 @@ struct
         let%orzero Some relstack' = Relative_stack.push relstack xr in
         recurse (x' :: lookup_stack') acl1 relstack'
       end;
+
       (* ### Skip rule ### *)
       begin
         (* Grab variable from lookup stack *)
@@ -613,6 +594,7 @@ struct
         let%bind _ = recurse [x''] acl0 relstack in
         recurse lookup_stack acl1 relstack
       end;
+
       (* ### Conditional Top rule ### *)
       begin
         (* This must be a non-binding enter wiring node for a conditional. *)
@@ -630,6 +612,7 @@ struct
         (* Proceed by moving through the wiring node. *)
         recurse lookup_stack acl1 relstack
       end;
+
       (* ### Conditional Bottom - True rule ### *)
       begin
         (* Grab variable from lookup stack *)
@@ -653,6 +636,7 @@ struct
         (* Proceed to look up the value returned by this branch. *)
         recurse (x' :: lookup_stack') acl1 relstack
       end;
+
       (* ### Conditional Bottom - False rule ### *)
       begin
         (* Grab variable from lookup stack *)
@@ -676,6 +660,7 @@ struct
         (* Proceed to look up the value returned by this branch. *)
         recurse (x' :: lookup_stack') acl1 relstack
       end;
+
       (* Record projection handling (not a written rule) *)
       begin
         (* Don't process the record projection unless we're ready to move
@@ -711,6 +696,7 @@ struct
         (* And we're finished. *)
         return lookup_symbol
       end;
+
       (* Pattern matching (not a written rule) *)
       begin
         (* Grab variable from lookup stack *)
@@ -730,6 +716,7 @@ struct
         (* And we are done *)
         return lookup_symbol
       end;
+
       (* Start-of-block and end-of-block handling (not actually a rule) *)
       (
         let%orzero (Start_clause _ | End_clause _) = acl1 in
@@ -768,7 +755,8 @@ struct
 
   type evaluation = Evaluation of unit M.evaluation;;
 
-  let start (cfg : ddpa_graph) (e : expr) (program_point : ident) : evaluation =
+  let start (cfg : ddpa_graph) (e : expr) (program_point : ident)
+    : evaluation =
     let open M in
     let env = prepare_environment e cfg in
     let initial_lookup_var = env.le_first_var in
@@ -779,7 +767,9 @@ struct
       with
       | Not_found ->
         raise @@ Invalid_query(
-          Printf.sprintf "Variable %s is not defined" (show_ident program_point))
+          Printf.sprintf "Variable %s is not defined"
+            (show_ident program_point)
+        )
     in
     let m : unit m =
       (* At top level, we don't actually need the returned symbol; we just want

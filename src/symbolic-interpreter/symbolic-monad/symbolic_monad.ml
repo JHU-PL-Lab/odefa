@@ -281,7 +281,8 @@ struct
       try
         Some(Solver.union log1.log_solver log2.log_solver)
       with
-        Solver.Contradiction contra -> _trace_log_solver_contradiction log1 log2 contra;
+        Solver.Contradiction contradiction ->
+          _trace_log_solver_contradiction log1 log2 contradiction;
         None
     in
     let%bind merged_decisions =
@@ -290,7 +291,8 @@ struct
         let d2 = log2.log_decisions in
         Some(Relative_stack.Map.merge _merge_fn d1 d2)
       with
-        MergeFailure(key, v1, v2) -> _trace_log_decision_contradiction key v1 v2;
+        MergeFailure(key, v1, v2) ->
+          _trace_log_decision_contradiction key v1 v2;
         None
     in
     let new_log =
@@ -306,7 +308,7 @@ struct
 
   (* ret function *)
   let return (v : 'a) : 'a m =
-    M(fun cache -> ([Unblocked(Completed (v, empty_log))], cache))
+    M(fun state -> ([Unblocked(Completed (v, empty_log))], state))
   ;;
 
   let zero () : 'a m = M(fun state -> ([], state));;
@@ -326,13 +328,13 @@ struct
     | Unblocked(Suspended(m, log')) ->
       (* Run the suspended computation once before merging logs - KQ *)
       begin
-        let M(fn) = m in
-        let fn' state =
-          let results, state' = fn state in
+        let M(consumer_fn) = m in
+        let consumer_fn' state =
+          let results, state' = consumer_fn state in
           let results' = List.filter_map (_append_log log) results in
           results', state'
         in
-        let m' = M(fn') in
+        let m' = M(consumer_fn') in
         match merge_logs log' log with
         | None -> None
         | Some log'' -> Some(Unblocked(Suspended(m', log'')))
@@ -340,41 +342,41 @@ struct
     | Blocked(blocked) ->
       (* Merge the logs, then run it through the blocked consumer - KQ *)
       begin
-        let fn' (result, log') =
+        let consumer_fn' (result, log') =
           match merge_logs log' log with
           | None -> zero ()
           | Some log'' -> blocked.blocked_consumer (result, log'')
         in
-        Some(Blocked({blocked with blocked_consumer = fn'}))
+        Some(Blocked({blocked with blocked_consumer = consumer_fn'}))
       end
 
   and _bind_single_world
-    (f : 'a -> 'b m)
-    (accumulator : 'b blockable list list * state)
-    (world : 'a blockable)
+      (f : 'a -> 'b m)
+      (accumulator : 'b blockable list list * state)
+      (world : 'a blockable)
     : 'b blockable list list * state =
     let (result_worlds, fold_state) = accumulator in
     match world with
     | Unblocked(Completed(value, log)) ->
-      let M(fn) = f value in
-      let results, fold_state' = fn fold_state in
+      let M(consumer_fn) = f value in
+      let results, fold_state' = consumer_fn fold_state in
       let results' = List.filter_map (_append_log log) results in
       (results' :: result_worlds, fold_state')
     | Unblocked(Suspended(m, log)) ->
-      let M(fn) = m in
-      let m' = M(_bind_worlds_fn f fn) in
+      let M(consumer_fn) = m in
+      let m' = M(_bind_worlds_fn f consumer_fn) in
       ([Unblocked(Suspended(m', log))] :: result_worlds, fold_state)
     | Blocked(blocked) ->
-      let fn' (result, log') =
+      let consumer_fn' (result, log') =
         let M(inner_world_fn) = blocked.blocked_consumer (result, log') in
         M(_bind_worlds_fn f inner_world_fn)
       in
-      let blocked' = {blocked with blocked_consumer = fn'} in
+      let blocked' = {blocked with blocked_consumer = consumer_fn'} in
       ([Blocked(blocked')] :: result_worlds, fold_state)
-  
+
   and _bind_worlds_fn
-    (f : 'a -> 'b m)
-    (worlds_fn : state -> 'a blockable list * state)
+      (f : 'a -> 'b m)
+      (worlds_fn : state -> 'a blockable list * state)
     : state -> 'b blockable list * state =
     fun state -> (
       let (worlds, state') = worlds_fn state in
@@ -398,6 +400,13 @@ struct
   ;;
 
   let pause () : unit m =
+    let single_step_log = { empty_log with log_steps = 1 } in
+    let completed_val = Unblocked(Completed((), single_step_log)) in
+    let completed_mon = M(fun state -> ([completed_val], state)) in
+    let suspended_val = Unblocked(Suspended(completed_mon, empty_log)) in
+    let suspended_mon = M(fun state -> ([suspended_val], state)) in
+    suspended_mon
+    (*
     M(fun state ->
        let single_step_log = {empty_log with log_steps = 1} in
        let completed_value = Unblocked(Completed((), single_step_log)) in
@@ -406,6 +415,7 @@ struct
        in
        ([Unblocked(suspended_value)], state)
      )
+     *)
   ;;
 
   (* Wrap a log in a monadic value with an empty computation *)
@@ -419,15 +429,13 @@ struct
         let%bind () = _record_log log in
         return item)
     in
-    M(fun state ->
-       let blocked =
+    let blocked =
          { blocked_key = key;
            blocked_consumer = new_consumer;
            blocked_computation = value;
          }
-       in
-       ([Blocked(blocked)], state)
-     )
+    in
+    M(fun state -> ([Blocked(blocked)], state))
   ;;
 
   let record_decision
@@ -485,12 +493,12 @@ struct
   and check_constraints : 'a. 'a m -> 'a m =
     fun x ->
       let M(worlds_fn) = x in
-      let fn state =
+      let consumer_fn state =
         let (blockables, state') = worlds_fn state in
         let blockables' = List.filter_map check_one_world blockables in
         (blockables', state')
       in
-      M(fn)
+      M(consumer_fn)
   ;;
 
   (** ****************** BEGIN EVALUATION SUBMODULE ******************** *)
@@ -547,7 +555,8 @@ struct
     type 'a destination =
       { dest_consumers : 'a consumer list;
         dest_values : ('a * log) list;
-      };;
+      }
+    ;;
 
     module Key = struct
       type 'a t = K : 'a Cache_key.t -> 'a destination t;;
@@ -636,10 +645,10 @@ struct
     ;;
 
     let _debug_log_step_output
-      ?show_value:(show_value=fun _ -> "<no printer>")
-      (final_ev : evaluation)
-      (value : out)
-      (log : log)
+        ?show_value:(show_value=fun _ -> "<no printer>")
+        (final_ev : evaluation)
+        (value : out)
+        (log : log)
       : state =
       lazy_logger `debug (fun () ->
         Printf.sprintf
@@ -729,9 +738,8 @@ struct
       (List.enum complete, suspended, blocked, state')
     ;;
 
-    (** Add a new key-value pair to the cache, where the value is a destination
-        corresponding to the key.  We also add a new cache task corresponding
-        to the key. - KQ *)
+    (** Add a new cache task to the cache, and add a new destination to the
+        key. - KQ *)
     let _create_cache_entry (ev : evaluation) (blocked : ('a, 'b) blocked)
       : evaluation =
       let key = blocked.blocked_key in
@@ -750,9 +758,8 @@ struct
         the destination and processes the "catch-up" of the consumer on all
         previously produced values. *)
     let _register_consumer
-        (type a)
-        (key : a Cache_key.t)
-        (consumer : a consumer)
+        (key : 'a Cache_key.t)
+        (consumer : 'a consumer)
         (ev : evaluation)
       : evaluation =
       match Destination_map.find (K(key)) ev.ev_destinations with
@@ -777,11 +784,11 @@ struct
         in
         let ev' = { ev with ev_destinations = destination_map' } in
         (* Now catch the consumer up on all of the previous values. *)
-        let Consumer fn = consumer in
+        let Consumer consumer_fn = consumer in
         let new_tasks =
           destination.dest_values
           |> List.enum
-          |> Enum.map fn
+          |> Enum.map consumer_fn
         in
         (* Add the new tasks to the evaluation environment *)
         _add_tasks new_tasks ev'
@@ -791,9 +798,9 @@ struct
         consumer. If that computation is currently not in the cache,
         we first need to add it. - KQ *)
     let _add_blocked_to_evaluation
-      (mk_task : 't m -> some_task)
-      (ev : evaluation)
-      (some_blocked : 't some_blocked)
+        (mk_task : 't m -> some_task)
+        (ev : evaluation)
+        (some_blocked : 't some_blocked)
       : evaluation =
       let Some_blocked(blocked) = some_blocked in
       let key = blocked.blocked_key in
@@ -829,8 +836,12 @@ struct
 
     (** Processes the production of a value at a cache destination.  This adds
         the value to the destination and calls any consumers listening to it *)
-    let _produce_value_at_dest (key : 'a Cache_key.t) (value : 'a) (log : log)
-      (ev : evaluation) : evaluation =
+    let _produce_value_at_dest
+        (key : 'a Cache_key.t)
+        (value : 'a)
+        (log : log)
+        (ev : evaluation)
+      : evaluation =
       match Destination_map.find (K(key)) ev.ev_destinations with
       | None ->
         (* This should never happen:
@@ -859,17 +870,17 @@ struct
           |> List.enum
           |> Enum.map
             (fun consumer ->
-               let Consumer fn = consumer in
-               fn (value, log)
+               let Consumer consumer_fn = consumer in
+               consumer_fn (value, log)
             )
         in
         (* Add the tasks to the evaluation environment. *)
         _add_tasks new_tasks ev'
     ;;
 
-    (* Process the output to make it presentable to the caller. *)
+    (** Process the output to make it presentable to the caller. *)
     
-    (** The +1 for er_result_steps is to ensure that the number of steps
+    (* The +1 for er_result_steps is to ensure that the number of steps
         reported is equal to the number of times the "step" function has been
         called.  For a given result, the "step" function must be called once
         for each "pause" (which is handled inductively when the "pause" monadic
@@ -877,9 +888,9 @@ struct
         implicitly pauses computation. This +1 addresses what the "start"
         routine does. *)
     let _process_output
-      ?show_value:(show_value=fun _ -> "<no printer>")
-      (final_ev : evaluation)
-      (completed : (out * log) Enum.t)
+        ?show_value:(show_value=fun _ -> "<no printer>")
+        (final_ev : evaluation)
+        (completed : (out * log) Enum.t)
       : out evaluation_result Enum.t =
       completed
       |> Enum.map
@@ -893,26 +904,30 @@ struct
         )
     ;;
 
-    (* If a particular destination key-value pair has no customers after a step, 
-       then something has gone horribly wrong. *)
+    (* A destination in the destination map should have at least one consumer,
+       starting from the consumer in _add_blocked_to_evaluation. If a
+       destination has no consumers after a step, then something has gone
+       horribly wrong. - KQ *)
     let _step_sanity_check ev =
       ev.ev_destinations
       |> Destination_map.bindings
       |> List.iter
         (fun (Destination_map.B(K(key), value)) ->
             if List.is_empty value.dest_consumers then
-              failwith @@ Printf.sprintf "WTFROFLCOPTER: %s" (Cache_key.show key)
+              failwith @@
+                Printf.sprintf "ERROR! Cache key missing destinations: %s"
+                (Cache_key.show key)
         )
     ;;
 
     (** Do the work on a task and get the completed results; the suspended
         computations will be added as future tasks and the blocked computations
         will be added as consumers. - KQ *)
-    let _handle_computation
-      (mk_task : 't m -> some_task)
-      (computation : 't m)
-      (ev : evaluation)
-      (remaining_tasks : some_task Work_collection.t)
+    let handle_computation
+        (mk_task : 't m -> some_task)
+        (computation : 't m)
+        (ev : evaluation)
+        (remaining_tasks : some_task Work_collection.t)
       : (('t * log) Enum.t * evaluation) =
       (* Evaluation with the taken task removed *)
       let ev' = {ev with ev_tasks = remaining_tasks} in
@@ -951,21 +966,21 @@ struct
 
     (** Performs one step of evaluation, until all outcomes are paused. *)
 
-    (** The overall strategy of the algorithm below is:
-          1. Get a task and do the work.
-          2. If the task is for a cached result, dispatch any new values to
-              the registered consumers.
-          3. If the task is for a final result, communicate any new values to
+    (* TODO: Shouldn't the order be 1, 4, 5, 2, 3? *)
+    (* The overall strategy of the algorithm below is:
+         1. Get a task and do the work.
+         2. If the task is for a cached result, dispatch any new values to
+            the registered consumers.
+         3. If the task is for a final result, communicate any new values to
               the caller.
-          4. Add all suspended computations as future tasks.
-          5. Add all blocked computations as consumers.
-        Because of how type variables are scoped, however, steps 1, 2, and 3
-        must be within the respective match branches which destructed the task
-        values.  We'll push what we can into local functions to limit code
-        duplication.  In particular, steps 1, 4, and 5 are performed in the
-        _handle_computation function, while steps 2 and 3 are done in this
-        function.
-    *)
+         4. Add all suspended computations as future tasks.
+         5. Add all blocked computations as consumers.
+       Because of how type variables are scoped, however, steps 1, 2, and 3
+       must be within the respective match branches which destructed the task
+       values.  We'll push what we can into local functions to limit code
+       duplication.  In particular, steps 1, 4, and 5 are performed in the
+       handle_computation function, since they are performed for both cache
+       and result tasks, while steps 2 and 3 are done in this function. *)
     let step ?show_value:(show_value=fun _ -> "<no printer>") (ev : evaluation)
       : (out evaluation_result Enum.t * evaluation) =
       (* Start stepping *)
@@ -985,7 +1000,7 @@ struct
               (fun computation -> Some_task(Cache_task(key, computation)))
             in
             let (complete, ev_after_computation) =
-              _handle_computation mk_task computation ev tasks'
+              handle_computation mk_task computation ev tasks'
             in
             (* Every value in the completed sequence should be reported to the
                 destination specified by this key. (Step 2) *)
@@ -1002,7 +1017,7 @@ struct
               (fun computation -> Some_task(Result_task(computation)))
             in
             let (complete, ev_after_computation) =
-              _handle_computation mk_task computation ev tasks'
+              handle_computation mk_task computation ev tasks'
             in
             (* Every value in the completed sequence should be returned to the
                 caller. (Step 3) *)

@@ -38,7 +38,8 @@ struct
     | Abs_var_body _
     | Abs_input_body
     | Abs_conditional_body _
-    | Abs_match_body _ ->
+    | Abs_match_body _
+    | Abs_abort_body ->
       (* There's nothing this body that can be inconsistent. *)
       zero ()
     | Abs_projection_body(x,i) ->

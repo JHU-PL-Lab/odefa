@@ -137,6 +137,7 @@ and clause_body =
   | Match_body of var * pattern
   | Projection_body of var * ident
   | Binary_operation_body of var * binary_operator * var
+  | Abort_body
 [@@deriving eq, ord, to_yojson]
 
 (** A type to represent clauses. *)

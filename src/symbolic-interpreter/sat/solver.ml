@@ -198,6 +198,8 @@ let rec _add_constraints_and_close
       let new_constraints : Constraint.Set.t =
         match c with
         | Constraint_value(x,v) ->
+          (* TODO: Maybe add a second check for pattern match contradictions, 
+             just like with record projection. *)
           begin
             let transitivity_constraints =
               Symbol_to_symbol_multimap.find x solver.alias_constraints_by_symbol
@@ -296,7 +298,7 @@ let rec _add_constraints_and_close
             match p with
             | Any_pattern ->
               begin
-                (* Should we also look up x' here as well? *)
+                (* TODO: Should we also look up x' here as well? *)
                 nc |> Constraint.Set.add @@ Constraint_value(x, Bool(true))
               end
             | Int_pattern ->

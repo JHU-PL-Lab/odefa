@@ -64,6 +64,7 @@ and var_replace_clause_body fn r =
   | Projection_body(x,l) ->
     Projection_body(fn x,l)
   | Binary_operation_body(x1,op,x2) -> Binary_operation_body(fn x1, op, fn x2)
+  | Abort_body -> Abort_body
 
 and var_replace_value fn v =
   match v with
@@ -270,6 +271,10 @@ let rec evaluate
         in
         Environment.add env x result;
         recurse t
+      | Abort_body ->
+        raise @@ Evaluation_failure(
+          Printf.sprintf "Cannot complete evaluation at an abort clause"
+        )
     end
 ;;
 

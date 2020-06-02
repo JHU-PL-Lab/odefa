@@ -77,8 +77,10 @@ and pp_clause_body formatter b =
   match b with
   | Var_body(x) -> pp_var formatter x
   | Value_body(v) -> pp_value formatter v
-  | Input_body -> Format.pp_print_string formatter "input"
-  | Appl_body(x1,x2) -> Format.fprintf formatter "%a %a" pp_var x1 pp_var x2
+  | Input_body ->
+    Format.pp_print_string formatter "input"
+  | Appl_body(x1,x2) ->
+    Format.fprintf formatter "%a %a" pp_var x1 pp_var x2
   | Conditional_body(x,e1,e2) ->
     Format.fprintf formatter
       "%a @[<4>? @[<2>(%a)@] : @[<2>(%a)@]@]"
@@ -91,6 +93,8 @@ and pp_clause_body formatter b =
   | Binary_operation_body(x1,op,x2) ->
     Format.fprintf formatter "%a %a %a"
       pp_var x1 pp_binary_operator op pp_var x2
+  | Abort_body ->
+    Format.pp_print_string formatter "abort"
 
 and pp_clause formatter c =
   match c with
