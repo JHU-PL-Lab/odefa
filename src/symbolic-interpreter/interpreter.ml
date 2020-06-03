@@ -420,17 +420,36 @@ struct
           in
           (* If we're at the top of the program, we should record a stack
              constraint. *)
-          let%bind () =
-            if equal_ident lookup_var env.le_first_var then begin
+          (* let%bind () =
+             if equal_ident lookup_var env.le_first_var then begin
               (* Then we've found the start of the program!  Build an
                  appropriate concrete stack. *)
               lazy_logger `trace
                 (fun () -> "Top of program reached: recording stack.");
               record_constraint @@ Constraint.Constraint_stack(
                 Relative_stack.stackize relstack)
-            end else return ()
-          in
-          return lookup_symbol
+             end else return ()
+             in
+             return lookup_symbol *)
+          (* If we're at the top of the program, we're finished.  Otherwise, start
+             a search for the first variable. *)
+          if equal_ident lookup_var env.le_first_var then begin
+            (* Then we've found the start of the program!  Build an
+               appropriate concrete stack. *)
+            lazy_logger `trace
+              (fun () -> "This lookup complete; top of program reached.");
+            let%bind _ = record_constraint @@ Constraint.Constraint_stack(
+                Relative_stack.stackize relstack) in
+            return lookup_symbol
+          end else begin
+            lazy_logger `trace
+              (fun () ->
+                 "This lookup complete; resuming to top of program.");
+            let%bind _ =
+              recurse [env.le_first_var] acl1 relstack
+            in
+            return lookup_symbol
+          end
         end;
         `Discard,
         (* ### Value Discard rule ### *)
@@ -489,17 +508,36 @@ struct
           in
           (* If we're at the top of the program, we should record a stack
              constraint. *)
-          let%bind () =
-            if equal_ident lookup_var env.le_first_var then begin
+          (* let%bind () =
+             if equal_ident lookup_var env.le_first_var then begin
               (* Then we've found the start of the program!  Build an
                  appropriate concrete stack. *)
               lazy_logger `trace
                 (fun () -> "Top of program reached: recording stack.");
               record_constraint @@ Constraint.Constraint_stack(
                 Relative_stack.stackize relstack)
-            end else return ()
-          in
-          return lookup_symbol
+             end else return ()
+             in
+             return lookup_symbol *)
+          (* If we're at the top of the program, we're finished.  Otherwise, start
+             a search for the first variable. *)
+          if equal_ident lookup_var env.le_first_var then begin
+            (* Then we've found the start of the program!  Build an
+               appropriate concrete stack. *)
+            lazy_logger `trace
+              (fun () -> "This lookup complete; top of program reached.");
+            let%bind _ = record_constraint @@ Constraint.Constraint_stack(
+                Relative_stack.stackize relstack) in
+            return lookup_symbol
+          end else begin
+            lazy_logger `trace
+              (fun () ->
+                 "This lookup complete; resuming to top of program.");
+            let%bind _ =
+              recurse [env.le_first_var] acl1 relstack
+            in
+            return lookup_symbol
+          end
         end;
         `Alias,
         (* ### Alias rule ### *)
@@ -757,19 +795,19 @@ struct
         false in
     let rule_names = 
       (if is_singleton_stack then
-        [`Discovery; `Input; `Binop; `Projection]
-      else
-        [`Discard]
+         [`Discovery; `Input; `Binop; `Projection]
+       else
+         [`Discard]
       )@
       (if is_target_var then
-        [`Alias]
-      else
-        [`Skip; `Block;
-         `FunEnter; `FunEnterNonLocal; `FunExit;
-         `CondTop; `CondBtmTrue; `CondBtmFalse]) 
-      in
+         [`Alias]
+       else
+         [`Skip; `Block;
+          `FunEnter; `FunEnterNonLocal; `FunExit;
+          `CondTop; `CondBtmTrue; `CondBtmFalse]) 
+    in
     let rules = List.map (fun name -> List.assoc name rule_computations) rule_names in
-  
+
     let%bind m = pick @@ List.enum rules in m
 
 
