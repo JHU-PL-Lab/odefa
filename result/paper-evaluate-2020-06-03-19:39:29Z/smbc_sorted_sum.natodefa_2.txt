@@ -1,3 +1,0 @@
-[-2,-1,18,0]
-11118
-Requested input sequences found; terminating.
