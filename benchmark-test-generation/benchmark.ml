@@ -13,7 +13,7 @@ let testcases = [
   "input_map.natodefa";
   "input_mj09.natodefa";
   "input_sat_1.natodefa";
-  "smbc_fold0.natodefa";
+  "smbc_fold0s.natodefa";
   "smbc_gen_list_len.natodefa";
   "smbc_long_rev_sum3.natodefa";
   "smbc_pigeon.natodefa";
