@@ -1,0 +1,6 @@
+0.74
+0.72user 0.01system 0:00.74elapsed 99%CPU (0text+0data 54476max)k 8inputs+8outputs (0major+7574minor)pagefaults 0swaps
+0.75
+0.74user 0.00system 0:00.75elapsed 99%CPU (0text+0data 54476max)k 0inputs+8outputs (0major+7573minor)pagefaults 0swaps
+0.74
+0.72user 0.01system 0:00.74elapsed 99%CPU (0text+0data 54556max)k 0inputs+8outputs (0major+7576minor)pagefaults 0swaps
