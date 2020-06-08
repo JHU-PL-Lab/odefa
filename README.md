@@ -5,6 +5,23 @@ Name:    **[Higher-Order Demand-Driven Symbolic Evaluation]**
 Authors: **[Zachary Palmer, Theodore Park, Scott Smith, Shiwei Weng]**
 
 
+## Project Structure
+
+This is brief description of the directory structure related to this artifact.
+
+```
+.
+├── benchmark-test-generation       
+│   ├── benchmark.ml                the benchmark script 
+│   └── cases                       the benchmarks from SMBC and Scheme benchmarks mentioned by the paper
+├── result                          benchmark running result
+├── src                             the source code of the tool
+├── test                            the source code for testing
+├── test-sources                    unit test and other tests
+├── utils                           script for program analysis (not used in this artifact)
+└── vendor                          the original repositories of benchmark suite for referencing
+```
+
 ## Artifact Instructions
 
 ### 1. Evaluation on QEMu Instructions
@@ -13,7 +30,6 @@ The dependencies are already installed for ICFP AOE QEmu image. To run the bench
 
 ```
 cd odefa
-source script/set_z3_path.sh
 make
 make benchmark
 ```
@@ -145,3 +161,153 @@ In benchmark, we use the `-r1` to generate the first testcase which can reach th
 7412
 Requested input sequences found; terminating.
 ```
+
+## Toplevel Usage
+
+### Natodefa syntax
+
+The toplevel `test_generator` supports two kind of syntax, determined by the filename extension - `.natodefa` and `.odefa`. (`.oedfa` uses the ANF grammar mentioned in Figure 5 of the paper, which may be cumbersome to write directly.) The `natodefa` uses the common functional language syntax with support of integers, booleans, records and functions.
+
+This is the concrete syntax of the `natodefa`.
+
+```
+x ::= (identifier)                    (* alphanumeric starting with letter *)
+l ::= (label)                         (* alphanumeric starting with letter *)
+
+comment 
+  ::= # (any char)* '\n'              (* in line comment *)
+
+e ::= 0 | 1 | (-1) | ...              (* integer literal *)
+    | e + e | e - e | e * e | e / e   (* integer arithmetics *)
+    | e < e | e <= e | e == e         (* integer compare operations *)
+
+    | true | false                    (* boolean literal *)
+    | e and e | e or e | not e        (* boolean operations *)
+    | if e then e else e              (* condition *)
+
+    | {l_1 = e_1, ... ,l_n = e2}      (* record *)
+    | e.l                             (* record projection *)
+
+    | input                           (* integer input from the world *)
+
+    | fun x_1 ... x_n -> e            (* anonymous function *)
+    | let x = e in e                  (* let binding of one id *)
+    | let f x_1 ... x_n = e in e      (* let binding of a non-recursive function *)
+    | let rec f x_1 ... x_n = e in e  (* let binding of a recursive function *)
+
+    | (e)                             (* parenthesis *)
+```
+
+### Example - Hello
+
+The example file `hello.natodefa` is
+
+```
+let x = input in
+let f t = t in
+let rec sum x =
+  if x == 0 then
+    0
+  else
+    x + sum (x-1)
+in
+if (f x) + 1 == sum 3 and true then
+  let target = 1 in 1
+else
+  0
+```
+
+The program takes an `input` as x and check whether some operations on `x` can make it equal to `sum 3`.
+
+A program usually starts with several `input`s, denoting taking input from the world. Though as a test generator you don't need to input the number yourself, the expected input will be generated depending on your target program point. When running with this command
+
+```
+$ ./test_generator hello.natodefa -t target -r 1
+
+Input sequence: [5]
+Generated in 10520 steps.
+Requested input sequences found; terminating.
+```
+
+The output reads: With the input sequence `5` for `hello.natodefa` (consumed at line 1), it can reach `target` at line 10.
+
+### Example - Sum
+
+The example file `sum.natodefa` is
+
+```
+let x = input in
+if 0 < x then
+  let rec sum prev acc = 
+    let t = input in
+    if t == 0 then
+      acc
+    else if prev < t then
+      sum t (acc + t)
+    else 
+      let hidden = 1 in 0
+  in
+  if 10 * 3 / 2 == sum x 0 then
+    let target = 1 in 1
+  else
+    0
+else
+  0
+```
+
+This program takes a initial input as `x`. When `x` is positive, it takes `input` whenever it's greater than the previous one and accumulate it. Finally it checks the sum of them.
+
+When running with this command
+
+```
+$ ./test_generator sum.natodefa -t target -r 3
+
+Input sequence: [1, 15, 0]
+Generated in 1753 steps.
+Input sequence: [6, 7, 8, 0]
+Generated in 2753 steps.
+Input sequence: [1, 3, 4, 8, 0]
+Generated in 3783 steps.
+Requested input sequences found; terminating.
+```
+
+The output reads: The test generator find three(`3`) possible input sequences (with three difference executions). If the program runs with any of the input sequence, it can reach the program point `target`
+
+### Example - Sum (hidden)
+
+When running with this command
+
+```
+$ ./test_generator sum.natodefa -t hidden -r 2
+
+Input sequence: [13, 1]
+Generated in 1431 steps.
+Input sequence: [6, 7, 1]
+Generated in 2207 steps.
+Requested input sequences found; terminating.
+```
+
+For this command, we are interested any input sequence which let the program reach the `hidden` point inside the function `sum` wherever it's called. 
+
+## Unit Testing
+
+The unit testing is not intended to open to users and is mainly used in developing. We give a brief description for comprehension.
+
+`make test` run all unit testings. The directory `test` includes unit testing for different modules. `test/files.ml` tests all immediate files in `test-sources`. Test files follows the same syntax describe before, with an extra prologue section for testing expectation in each file.
+
+```
+e ::= (defined before)
+
+number
+  ::= 0 | 1 | -1 | ...
+
+expectation 
+  ::= # EXPECT-WELL-FORMED                                      (* expect syntactic correctness *)
+    | # EXPECT-INPUT-SEQUENCES-REACH x [ number* ]              (* expect to reach program point `x` with input sequence `number`s *)
+    | # EXPECT-REQUIRED-INPUT-SEQUENCE-GENERATION-STEPS number  (* expect running steps, throw exception if it exceeds. Default to 10000  *)
+    | ...                                                       (* other expectations for the program analysis step *)    
+
+p ::= {expectation '\n'}* e
+```
+
+Noting `#` is also the syntax for in line comment. Therefore, these expectation will be ignored when directly running the toplevel with test files in the `test-sources` directory.

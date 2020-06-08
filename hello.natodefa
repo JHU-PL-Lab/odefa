@@ -1,0 +1,12 @@
+let x = input in
+let f t = t in
+let rec sum x =
+  if x == 0 then
+    0
+  else
+    x + sum (x-1)
+in
+if (f x) + 1 == sum 3 and true then
+  let target = 1 in 1
+else
+  0
