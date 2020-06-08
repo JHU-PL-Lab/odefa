@@ -18,7 +18,6 @@ This is brief description of the directory structure related to this artifact.
 ├── src                             the source code of the tool
 ├── test                            the source code for testing
 ├── test-sources                    unit test and other tests
-├── utils                           script for program analysis (not used in this artifact)
 └── vendor                          the original repositories of benchmark suite for referencing
 ```
 
@@ -34,9 +33,9 @@ make
 make benchmark
 ```
 
-The evaluation result will be in `result/evaluation-<current date>`. Besides the files for execution result and time for each testcase, the overall stat is in `0table.txt`. It will be used to fill the table in the paper.
+The evaluation result will be in `result/evaluation-<current date>`. For each benchmark `<test-name>`, the output is in `<test-name>_<n>.txt` for n-th execution and the recorded execution time is in `<test-name>.time.txt`. The overall statistics is in `0table.txt`. It will be used to fill the table in the paper. The evaluation data for this paper is in `result/paper-evaluate-<date>` while the previous used data is in `result/archive`.
 
-For other usages, see Step 6 in the next section.
+For other usages, see Step 6 below and toplevel usage section.
 
 ### 2. Build from the source
 
@@ -56,7 +55,7 @@ git checkout icfp2020-artifact
 
 Step 2 - Install system dependencies
 
-The required system packages include `time` and `opam`. (See `Debugging.md` or below on how to install `opam` in the QEmu image). Noting `eval $(opam env)` is automatic evaluated when you login the shell session for the next time. You need manually execute it once to run the following instruction in this shell session,
+The required system packages include `time` and `opam`. (See `Debugging.md` or below on how to install `opam` in the QEmu image). Noting `eval $(opam env)` is automatic evaluated when you login the shell session for the next time. You need manually execute it once to run the following instruction in this shell session.
 
 ```
 sudo apt update
@@ -88,8 +87,12 @@ eval $(opam env)
 Step 4 - Install opam packages
 
 ```
-# you might need to run this twice
-opam install menhir batteries core gmap jhupllib monadlib ocaml-monadic pds-reachability.0.2.2 ppx_deriving ppx_deriving_yojson shexp z3
+# you might need to run this twice if not installed successfully.
+opam install menhir batteries core gmap ppx_deriving ppx_deriving_yojson shexp
+opam install jhupllib monadlib ocaml-monadic pds-reachability.0.2.2 z3
+
+# For QEmu image, you might need to free up some space when you see error messages on disk space. 
+opam clean
 ```
 
 Step 5 - Build the project
@@ -100,7 +103,7 @@ make
 
 Step 6 - Run the toplevel
 
-When step 5 builds the binary `test_generator` in the project root, you can run pre-defined tasks e.g.
+When step 5 builds the binary `test_generator` in the project root, you can run pre-defined targets in `Makefile` e.g.
 
 ```
 # make clean
@@ -136,7 +139,7 @@ options:
                         Specifies whether the output is compact of descriptive
 ```
 
-A sample toplevel execution is like
+A sample toplevel execution is
 
 ```
 ./test_generator -ttarget -ebfs -bfalse -r2 test-sources/input_ack_3.natodefa
@@ -166,9 +169,9 @@ Requested input sequences found; terminating.
 
 ### Natodefa syntax
 
-The toplevel `test_generator` supports two kind of syntax, determined by the filename extension - `.natodefa` and `.odefa`. (`.oedfa` uses the ANF grammar mentioned in Figure 5 of the paper, which may be cumbersome to write directly.) The `natodefa` uses the common functional language syntax with support of integers, booleans, records and functions.
+The toplevel `test_generator` supports test files in two kind of syntax, determined by the filename extension - `.natodefa` and `.odefa`. (`.oedfa` uses the ANF grammar mentioned in Figure 5 of the paper, which may be cumbersome to write directly.) The `natodefa` uses the common functional language syntax with support of integers, booleans, records and functions, which is more natural to write.
 
-This is the concrete syntax of the `natodefa`.
+This is the concrete syntax of the `natodefa`. See `benchmark-test-generation/cases/<test-case>.natodefa` and `test-sources/<test-case>.natodefa` for more examples.
 
 ```
 x ::= (identifier)                    (* alphanumeric starting with letter *)
@@ -217,9 +220,9 @@ else
   0
 ```
 
-The program takes an `input` as x and check whether some operations on `x` can make it equal to `sum 3`.
+The program takes an `input` as x and checks whether some operations on `x` can make it equal to `sum 3`.
 
-A program usually starts with several `input`s, denoting taking input from the world. Though as a test generator you don't need to input the number yourself, the expected input will be generated depending on your target program point. When running with this command
+A program usually starts with several `input`s, denoting taking input from the world. Though as a test generator you don't need to input the numbers yourself, the expected input will be generated depending on your target program point. When running with this command
 
 ```
 $ ./test_generator hello.natodefa -t target -r 1
@@ -229,7 +232,7 @@ Generated in 10520 steps.
 Requested input sequences found; terminating.
 ```
 
-The output reads: With the input sequence `5` for `hello.natodefa` (consumed at line 1), it can reach `target` at line 10.
+The output reads: with the input sequence `5` for `hello.natodefa` (consumed at line 1), it can reach `target` at line 10.
 
 ### Example - Sum
 
@@ -255,7 +258,7 @@ else
   0
 ```
 
-This program takes a initial input as `x`. When `x` is positive, it takes `input` whenever it's greater than the previous one and accumulate it. Finally it checks the sum of them.
+This program takes an initial input as `x`. When `x` is positive, it takes `input` whenever it's greater than the previous one and accumulates it. Finally, it checks the sum of them.
 
 When running with this command
 
@@ -271,7 +274,7 @@ Generated in 3783 steps.
 Requested input sequences found; terminating.
 ```
 
-The output reads: The test generator find three(`3`) possible input sequences (with three difference executions). If the program runs with any of the input sequence, it can reach the program point `target`
+The output reads: the test generator finds three(`3`) possible input sequences (with three difference executions). If the program runs with any of the input sequence, it can reach the program point `target`.
 
 ### Example - Sum (hidden)
 
@@ -287,13 +290,13 @@ Generated in 2207 steps.
 Requested input sequences found; terminating.
 ```
 
-For this command, we are interested any input sequence which let the program reach the `hidden` point inside the function `sum` wherever it's called. 
+For this command, we are interested any input sequence which let the program reach the program point `hidden` inside the function `sum` no matter where it's called. Running the program with any input sequence in the output results in a concrete execute in which we can reach `hidden`.
 
 ## Unit Testing
 
-The unit testing is not intended to open to users and is mainly used in developing. We give a brief description for comprehension.
+The unit testing is not intended to used by users and is mainly used in developing. We give a brief description for completeness.
 
-`make test` run all unit testings. The directory `test` includes unit testing for different modules. `test/files.ml` tests all immediate files in `test-sources`. Test files follows the same syntax describe before, with an extra prologue section for testing expectation in each file.
+`make test` runs all unit testings. The directory `test` includes unit testing for different modules. `test/files.ml` tests all immediate files in `test-sources`. Test files follow the same syntax describe above, with an extra prologue section for testing expectation in each file. The concrete syntax is:
 
 ```
 e ::= (defined before)
