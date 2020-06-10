@@ -717,6 +717,17 @@ struct
         return lookup_symbol
       end;
 
+      (* Abort (not a written rule) *)
+      begin
+        let%orzero _ :: lookup_stack' = lookup_stack in
+        let%orzero Unannotated_clause(Abs_clause(Abs_var _, Abs_abort_body)) = acl1 in
+        let lookup_var = env.le_first_var in
+        let new_lookup_stack = lookup_var :: lookup_stack' in
+        _trace_log_recurse new_lookup_stack relstack acl1;
+        cache_abort (Cache_lookup(new_lookup_stack, acl1, relstack)) @@
+          lookup env new_lookup_stack acl1 relstack
+      end;
+
       (* Start-of-block and end-of-block handling (not actually a rule) *)
       (
         let%orzero (Start_clause _ | End_clause _) = acl1 in

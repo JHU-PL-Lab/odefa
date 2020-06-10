@@ -102,6 +102,8 @@ module type S = sig
       this monad. *)
   val cache : 'a Spec.Cache_key.t -> 'a m -> 'a m;;
 
+  val cache_abort : 'a Spec.Cache_key.t -> 'a m -> 'a m;;
+
   (** Records a path decision for the provided variable.  If the provided search
       path is valid in this environment, unit is returned in the environment.
       If the provided search path conflicts with a previous selection, the

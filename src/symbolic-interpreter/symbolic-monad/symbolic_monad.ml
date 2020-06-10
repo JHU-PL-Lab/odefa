@@ -102,6 +102,7 @@ module type S = sig
   val pick : 'a Enum.t -> 'a m;;
   val pause : unit -> unit m;;
   val cache : 'a Spec.Cache_key.t -> 'a m -> 'a m;;
+  val cache_abort : 'a Spec.Cache_key.t -> 'a m -> 'a m;;
   val record_decision :
     Relative_stack.t -> Ident.t -> clause -> Ident.t -> unit m;;
   val record_constraint : Constraint.t -> unit m;;
@@ -430,10 +431,35 @@ struct
         return item)
     in
     let blocked =
-         { blocked_key = key;
-           blocked_consumer = new_consumer;
-           blocked_computation = value;
-         }
+        { blocked_key = key;
+          blocked_consumer = new_consumer;
+          blocked_computation = value;
+        }
+    in
+    M(fun state -> ([Blocked(blocked)], state))
+  ;;
+
+  let cache_abort (key : 'a Cache_key.t) (value : 'a m) : 'a m =
+    let new_consumer =
+      (fun (_, log) ->
+        (lazy_logger `debug (fun () ->
+          Printf.sprintf
+            (* TODO: fix up formatting *)
+            ("Abort lookup successful at %s\n" ^^
+             "Formulae:\n%s\n" ^^
+             "Decisions:\n%s\n")
+            (Cache_key.show key)
+            (Solver.show log.log_solver)
+            (Relative_stack.Map.show pp_decision log.log_decisions)
+        ));
+        zero ();
+      )
+    in
+    let blocked =
+        { blocked_key = key;
+          blocked_consumer = new_consumer;
+          blocked_computation = value;
+        }
     in
     M(fun state -> ([Blocked(blocked)], state))
   ;;
@@ -1029,7 +1055,7 @@ struct
         in
         (* Finish stepping *)
         _trace_log_end_step final_ev;
-        _step_sanity_check final_ev;
+        (* _step_sanity_check final_ev; *)
         (output, final_ev)
     ;;
 
