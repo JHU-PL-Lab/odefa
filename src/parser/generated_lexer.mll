@@ -40,6 +40,7 @@ rule token = parse
   | ":"                              { COLON }
   | "."                              { DOT }
   | "input"                          { KEYWORD_INPUT }
+  | "abort"                          { KEYWORD_ABORT }
   | "fun"                            { KEYWORD_FUN }
   | "int"                            { KEYWORD_INT }
   | "true"                           { KEYWORD_TRUE }
