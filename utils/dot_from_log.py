@@ -260,7 +260,9 @@ class ClauseType:
                              "Abs_binary_operation_body",
                              "Abs_unary_operation_body",
                              "Abs_deref_body",
-                             "Abs_update_body"
+                             "Abs_update_body",
+                             "Abs_match_body",
+                             "Abs_abort_body"
                             ]:
                 return ClauseTypes.atomic
             elif body_type in ["Abs_appl_body",
@@ -283,6 +285,8 @@ def abbrv_clause(clause):
         return "start(%s)" % clause[1]
     elif clause[0] == "End_clause":
         return "end(%s)" % clause[1]
+    elif clause[0] == "Nonbinding_enter_clause":
+        return "%s=%s@+%s" % (clause[2][2][1], clause[1][1], clause[2][1]) 
     elif "enter_clause" in clause[0] or "exit_clause" in clause[0]:
         form = "+" if "enter_clause" in clause[0] else "-"
         return "%s=%s@%s%s" % (clause[1], clause[2], form, clause[3][1])
