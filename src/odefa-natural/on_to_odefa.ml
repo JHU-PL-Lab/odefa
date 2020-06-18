@@ -618,6 +618,19 @@ let alphatize (e : On_ast.expr) : On_ast.expr m =
   lift1 fst @@ walk e Ident_set.empty
 ;;
 
+let get_abort_expr =
+  let%bind abort_expr =
+    begin
+      let%bind abort_var = fresh_var "ab" in
+      let abort_clause =
+        Ast.Clause(abort_var, Ast.Abort_body)
+      in
+      return @@ Ast.Expr([abort_clause]);
+    end
+  in
+  return abort_expr
+;;
+
 let rec flatten_binop
     (e1 : On_ast.expr)
     (e2 : On_ast.expr)
@@ -656,32 +669,7 @@ and flatten_record_match
       return @@ Ast.Expr(clist)
     end
   in
-  (* TODO: Replace explode_expr with abort *)
-  let%bind abort_expr =
-    begin
-      let%bind abort_var = fresh_var "ab" in
-      let abort_clause =
-        Ast.Clause(abort_var, Ast.Abort_body)
-      in
-      return @@ Ast.Expr([abort_clause]);
-    end
-  in
-  (*
-  let%bind explode_expr =
-    begin
-      let%bind zero_var = fresh_var "zero" in
-      let zero_clause
-        = Ast.Clause(zero_var, Ast.Value_body(Ast.Value_int(0))) in
-      let%bind zero_appl_var = fresh_var "explode" in
-      let zero_appl_clause =
-        (* TODO: consider: perhaps annotate this exploding clause to indicate
-           that it's artificial and not user-written? *)
-        Ast.Clause(zero_appl_var, Ast.Appl_body(zero_var, zero_var))
-      in
-      return @@ Ast.Expr([zero_clause; zero_appl_clause])
-    end
-  in
-  *)
+  let%bind abort_expr = get_abort_expr in
   let proj_clause =
     Ast.Clause(proj_var, Ast.Projection_body(subj_var, Ast.Ident(ident))) in
   let match_clause =
@@ -884,26 +872,8 @@ and flatten_expr
           end
       end
     in
-    (* The base case is our EXPLODING clause
-       TODO: Replace this with "abort" encoding *)
-    let%bind abort_expr =
-      let%bind abort_var = fresh_var "ab" in
-      let abort_clause = Ast.Clause(abort_var, Ast.Abort_body) in
-      return @@ Ast.Expr([abort_clause])
-    in
-    (* 
-    let%bind explode_expr =
-      let%bind zero_var = fresh_var "zero" in
-      let zero_clause = Ast.Clause(zero_var, Ast.Value_body(Ast.Value_int(0))) in
-      let%bind zero_appl_var = fresh_var "explode" in
-      let zero_appl_clause =
-        (* TODO: consider: perhaps annotate this exploding clause to indicate
-           that it's artificial and not user-written? *)
-        Ast.Clause(zero_appl_var, Ast.Appl_body(zero_var, zero_var))
-      in
-      return @@ Ast.Expr([zero_clause; zero_appl_clause])
-    in
-    *)
+    (* The base case is our abort clause *)
+    let%bind abort_expr = get_abort_expr in
     let%bind match_expr =
       list_fold_right_m convert_single_match pat_expr_list abort_expr (* explode_expr *)
     in
@@ -920,6 +890,60 @@ and flatten_expr
     raise @@ Utils.Invariant_failure
       "flatten_expr: List expressions should have been handled!"
 ;;
+
+(*
+let rec condition_expr
+    (expr : Ast.expr)
+  : Ast.expr =
+  match expr with
+  | Expr(clause :: clauses') ->
+    begin
+      let Clause(var, body) = clause in
+      match body with
+      | Value_body _
+      | Var_body _
+      | Input_body
+      | Abort_body -> expr
+      | Binary_operation_body (v1, binop, v2) ->
+        (*
+        v = a +_ b;
+        ==>
+        ma = a ~ int;
+        mb = b ~ int;
+        m = a and b;
+        r = m ? (a + b) : (abort)
+        *)
+        let pattern =
+          match binop with
+          | Binary_operator_plus
+          | Binary_operator_minus
+          | Binary_operator_times
+          | Binary_operator_divide
+          | Binary_operator_modulus
+          | Binary_operator_less_than
+          | Binary_operator_less_than_or_equal_to
+          | Binary_operator_equal_to -> Ast.Int_pattern
+          | Binary_operator_and
+          | Binary_operator_or
+          | Binary_operator_xor -> Ast.Bool_pattern true (* FIXME *)
+        in
+        let%bind m1 = fresh_var "m1" in
+        let%bind m2 = fresh_var "m2" in
+        let%bind m = fresh_var "m" in
+        let%bind ret = fresh_var "ret" in
+        let m1_clause = Clause(m1, Match_body(v1, pattern)) in
+        let m2_clause = Clause(m2, Match_body(v2, pattern)) in
+        let m_clause = Clause(m, Binary_operation_body(m1, Binary_operator_and, m2) in
+        let ret_clause = Clause(ret, Conditional_body(m, clause :: condition_expr clauses', clause)) in
+        return @@ Expr([m1_clause; m2_clause; m_clause; ret_clause])
+    | Projection_body (v, lbl) -> expr
+    | Match_body (v, pattern) -> expr
+    | Appl_body (f, v) -> expr
+    | Conditional_body (v, etrue, efalse) -> expr
+    end
+  | Expr([]) -> expr
+;;
+*)
 
 let debug_transform
     (name : string)
