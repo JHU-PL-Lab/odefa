@@ -891,29 +891,49 @@ and flatten_expr
       "flatten_expr: List expressions should have been handled!"
 ;;
 
-(*
-let rec condition_expr
-    (expr : Ast.expr)
-  : Ast.expr =
-  match expr with
-  | Expr(clause :: clauses') ->
+let rec condition_clauses
+    (c_list : Ast.clause list)
+  : (Ast.clause list) m =
+  match c_list with
+  | clause :: clauses' ->
     begin
-      let Clause(var, body) = clause in
+      let Clause(symb, body) = clause in
       match body with
-      | Value_body _
+      | Value_body value ->
+        begin
+          match value with
+          | Value_function f ->
+            let Ast.Function_value(arg, Ast.Expr(body)) = f in
+            let%bind new_body = condition_clauses body in
+            let new_fun_val = Ast.Function_value(arg, Ast.Expr(new_body)) in
+            let new_val_body = Ast.Value_body(Value_function(new_fun_val)) in
+            let new_clause = Ast.Clause(symb, new_val_body) in
+            let%bind new_clauses' = condition_clauses clauses' in
+            return @@ new_clause :: new_clauses'
+          | _ ->
+            (* Nothing to constrain *)
+            let%bind new_clauses' = condition_clauses clauses' in
+            return @@ clause :: new_clauses'
+        end
       | Var_body _
       | Input_body
-      | Abort_body -> expr
+      | Abort_body
+      | Match_body _ ->
+        (* Nothing to constrain *)
+        begin
+          let%bind new_clauses' = condition_clauses clauses' in
+          return @@ clause :: new_clauses'
+        end
       | Binary_operation_body (v1, binop, v2) ->
-        (*
-        v = a +_ b;
-        ==>
-        ma = a ~ int;
-        mb = b ~ int;
-        m = a and b;
-        r = m ? (a + b) : (abort)
-        *)
-        let pattern =
+        begin
+          (*
+            binop = a + b;
+            ==>
+            m1 = a ~ int;
+            m2 = b ~ int;
+            m = m1 and m2;
+            cbinop = m ? (binop = a + b) : (ab = abort)
+          *)
           match binop with
           | Binary_operator_plus
           | Binary_operator_minus
@@ -922,28 +942,157 @@ let rec condition_expr
           | Binary_operator_modulus
           | Binary_operator_less_than
           | Binary_operator_less_than_or_equal_to
-          | Binary_operator_equal_to -> Ast.Int_pattern
+          | Binary_operator_equal_to ->
+            begin
+              (* Variables *)
+              let%bind m1 = fresh_var "m1" in
+              let%bind m2 = fresh_var "m2" in
+              let%bind m = fresh_var "m" in
+              let%bind v = fresh_var "constrain_binop" in
+              (* Clauses *)
+              let m1_clause = Ast.Clause(m1, Match_body(v1, Int_pattern)) in
+              let m2_clause = Ast.Clause(m2, Match_body(v2, Int_pattern)) in
+              (* Let-bind operator to stay under 80 lines *)
+              let and_op = Ast.Binary_operator_and in
+              let m_clause
+                = Ast.Clause(m, Binary_operation_body(m1, and_op, m2))
+              in
+              let%bind new_clauses' = condition_clauses clauses' in
+              let%bind t_path = return @@ Ast.Expr(clause :: new_clauses') in
+              let%bind f_path = get_abort_expr in
+              let val_clause
+                = Ast.Clause(v, Conditional_body(m, t_path, f_path))
+              in
+              return @@ [m1_clause; m2_clause; m_clause; val_clause]
+            end
           | Binary_operator_and
           | Binary_operator_or
-          | Binary_operator_xor -> Ast.Bool_pattern true (* FIXME *)
-        in
-        let%bind m1 = fresh_var "m1" in
-        let%bind m2 = fresh_var "m2" in
-        let%bind m = fresh_var "m" in
-        let%bind ret = fresh_var "ret" in
-        let m1_clause = Clause(m1, Match_body(v1, pattern)) in
-        let m2_clause = Clause(m2, Match_body(v2, pattern)) in
-        let m_clause = Clause(m, Binary_operation_body(m1, Binary_operator_and, m2) in
-        let ret_clause = Clause(ret, Conditional_body(m, clause :: condition_expr clauses', clause)) in
-        return @@ Expr([m1_clause; m2_clause; m_clause; ret_clause])
-    | Projection_body (v, lbl) -> expr
-    | Match_body (v, pattern) -> expr
-    | Appl_body (f, v) -> expr
-    | Conditional_body (v, etrue, efalse) -> expr
+          | Binary_operator_xor ->
+            begin
+              (* Variables *)
+              let%bind m1t = fresh_var "m1t" in
+              let%bind m1f = fresh_var "m1f" in
+              let%bind m2t = fresh_var "m2t" in
+              let%bind m2f = fresh_var "m2f" in
+              let%bind m1 = fresh_var "m1" in
+              let%bind m2 = fresh_var "m2" in
+              let%bind m = fresh_var "m" in
+              let%bind v = fresh_var "constrain_binop" in
+              (* Clauses *)
+              let m1tc = Ast.Clause(m1t, Match_body(v1, Bool_pattern true)) in
+              let m1fc = Ast.Clause(m1f, Match_body(v1, Bool_pattern false)) in
+              let m2tc = Ast.Clause(m2t, Match_body(v2, Bool_pattern true)) in
+              let m2fc = Ast.Clause(m2f, Match_body(v2, Bool_pattern false)) in
+              (* Let-bind operators to stay under 80 lines *)
+              let or_op = Ast.Binary_operator_or in
+              let and_op = Ast.Binary_operator_and in
+              let m1c
+                = Ast.Clause(m1, Binary_operation_body(m1t, or_op, m1f))
+              in
+              let m2c
+                = Ast.Clause(m2, Binary_operation_body(m2t, or_op, m2f))
+              in
+              let mc
+                = Ast.Clause(m, Binary_operation_body(m1, and_op, m2))
+              in
+              let%bind new_clauses' = condition_clauses clauses' in
+              let%bind t_path = return @@ Ast.Expr(clause :: new_clauses') in
+              let%bind f_path = get_abort_expr in
+              let val_clause
+                = Ast.Clause(v, Conditional_body(m, t_path, f_path))
+              in
+              return @@
+                [m1tc; m1fc; m2tc; m2fc; m1c; m2c; mc; val_clause]
+            end
+        end
+      | Projection_body (r, lbl) ->
+        begin
+          (*
+            proj = r.l;
+            ==>
+            m = r ~ {l};
+            cproj = m ? (proj = r.l) : (ab = abort);
+          *)
+          let%bind m = fresh_var "m" in
+          let%bind v = fresh_var "constrain_proj" in
+          let rec_pattern =
+            Ast.Ident_set.add lbl Ast.Ident_set.empty
+          in
+          let m_clause =
+            Ast.Clause(m, Match_body(r, Rec_pattern rec_pattern))
+          in
+          let%bind new_clauses' = condition_clauses clauses'
+          in
+          let%bind t_path = return @@ Ast.Expr(clause :: new_clauses') in
+          let%bind f_path = get_abort_expr in
+          let val_clause
+            = Ast.Clause(v, Conditional_body(m, t_path, f_path))
+          in
+          return @@ [m_clause; val_clause]
+        end
+      | Appl_body (f, _) ->
+        begin
+          (*
+            appl = f x;
+            ==>
+            m = f ~ fun;
+            cappl = m ? (appl = f x) : (ab = abort);
+          *)
+          let%bind m = fresh_var "m" in
+          let%bind v = fresh_var "constrain_appl" in
+          let m_clause = Ast.Clause(m, Match_body(f, Fun_pattern)) in
+          let%bind new_clauses' = condition_clauses clauses' in
+          let%bind t_path = return @@ Ast.Expr(clause :: new_clauses') in
+          let%bind f_path = get_abort_expr in
+          let val_clause
+            = Ast.Clause(v, Conditional_body(m, t_path, f_path))
+          in
+          return @@ [m_clause; val_clause]
+        end
+      | Conditional_body (pred, Ast.Expr(true_path), Ast.Expr(flse_path)) ->
+        begin
+          (* NOTE: The pattern match transformation is different from others
+            in order to more closely match the syntax in the DDSE paper.
+          *)
+          (*
+            val = pred ? true_path : false_path;
+            ==>
+            v = pred
+                ? (mt = pred ~ true; mt ? (vt = true_path) : (abt = abort))
+                : (mf = pred ~ false; mf ? (vf = false_path) : (abf = abort))
+          *)
+          let%bind mt = fresh_var "mt" in
+          let%bind mf = fresh_var "mf" in
+          let%bind vt = fresh_var "iftrue" in
+          let%bind vf = fresh_var "iffalse" in
+          let mtc = Ast.Clause(mt, Match_body(pred, Bool_pattern true)) in
+          let mfc = Ast.Clause(mf, Match_body(pred, Bool_pattern false)) in
+          let%bind new_true_path =
+            let%bind tpath = condition_clauses true_path in
+            let%bind fpath = get_abort_expr in
+            let%bind clause = return @@
+              Ast.Clause(vt, Ast.Conditional_body(mt, Ast.Expr(tpath), fpath))
+            in
+            return @@ Ast.Expr([mtc; clause])
+          in
+          let%bind new_false_path =
+            let%bind tpath = condition_clauses flse_path in
+            let%bind fpath = get_abort_expr in
+            let%bind clause = return @@
+              Ast.Clause(vf, Ast.Conditional_body(mt, Ast.Expr(tpath), fpath))
+            in
+            return @@ Ast.Expr([mfc; clause])
+          in
+          let%bind new_clause
+            = return @@ Ast.Clause(symb,
+                Conditional_body(pred, new_true_path, new_false_path))
+          in
+          let%bind new_clauses' = condition_clauses clauses' in
+          return @@ new_clause :: new_clauses'
+        end
     end
-  | Expr([]) -> expr
+  | [] -> return []
 ;;
-*)
 
 let debug_transform
     (name : string)
@@ -974,11 +1123,12 @@ let translate
       >>= debug_transform "post-alphatize" alphatize
     in
     let%bind (c_list, _) = flatten_expr transformed_e in
-    let Clause(last_var, _) = List.last c_list in
+    let%bind c_list' = condition_clauses c_list in (* NEW! *)
+    let Clause(last_var, _) = List.last c_list' in
     let%bind fresh_str = freshness_string in
     let res_var = Ast.Var(Ast.Ident(fresh_str ^ "result"), None) in
     let res_clause = Ast.Clause(res_var, Ast.Var_body(last_var)) in
-    return @@ Ast.Expr(c_list @ [res_clause])
+    return @@ Ast.Expr(c_list' @ [res_clause])
   in
   let context =
     match translation_context with
