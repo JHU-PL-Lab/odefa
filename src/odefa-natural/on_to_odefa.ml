@@ -657,6 +657,16 @@ and flatten_record_match
     end
   in
   (* TODO: Replace explode_expr with abort *)
+  let%bind abort_expr =
+    begin
+      let%bind abort_var = fresh_var "ab" in
+      let abort_clause =
+        Ast.Clause(abort_var, Ast.Abort_body)
+      in
+      return @@ Ast.Expr([abort_clause]);
+    end
+  in
+  (*
   let%bind explode_expr =
     begin
       let%bind zero_var = fresh_var "zero" in
@@ -671,13 +681,14 @@ and flatten_record_match
       return @@ Ast.Expr([zero_clause; zero_appl_clause])
     end
   in
+  *)
   let proj_clause =
     Ast.Clause(proj_var, Ast.Projection_body(subj_var, Ast.Ident(ident))) in
   let match_clause =
     Ast.Clause(match_var, Ast.Match_body(proj_var, convert_patterns pat)) in
   let if_clause =
     Ast.Clause(cond_var,
-               Ast.Conditional_body(match_var, inner_expr, explode_expr)) in
+               Ast.Conditional_body(match_var, inner_expr, (* explode_expr *) abort_expr)) in
   return @@ [proj_clause; match_clause; if_clause]
   end
 
@@ -875,6 +886,12 @@ and flatten_expr
     in
     (* The base case is our EXPLODING clause
        TODO: Replace this with "abort" encoding *)
+    let%bind abort_expr =
+      let%bind abort_var = fresh_var "ab" in
+      let abort_clause = Ast.Clause(abort_var, Ast.Abort_body) in
+      return @@ Ast.Expr([abort_clause])
+    in
+    (* 
     let%bind explode_expr =
       let%bind zero_var = fresh_var "zero" in
       let zero_clause = Ast.Clause(zero_var, Ast.Value_body(Ast.Value_int(0))) in
@@ -886,8 +903,9 @@ and flatten_expr
       in
       return @@ Ast.Expr([zero_clause; zero_appl_clause])
     in
+    *)
     let%bind match_expr =
-      list_fold_right_m convert_single_match pat_expr_list explode_expr
+      list_fold_right_m convert_single_match pat_expr_list abort_expr (* explode_expr *)
     in
     let Ast.Expr(match_clauses) = match_expr in
     let match_last_clause = List.last match_clauses in
