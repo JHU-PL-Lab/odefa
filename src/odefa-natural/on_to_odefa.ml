@@ -26,43 +26,6 @@ open TranslationMonad;;
 
 let lazy_logger = Logger_utils.make_lazy_logger "On_to_odefa";;
 
-let nonempty_body ((body : Ast.clause list), (var : Ast.var))
-  : (Ast.clause list * Ast.var) m =
-  match body with
-  | [] ->
-    let%bind x = fresh_var "var" in
-    return @@ ([Ast.Clause(x, Var_body var)], x)
-  | _ ->
-    return (body, var)
-;;
-
-let flatten_fun
-    ?binding_name:(binding_name=(None:On_ast.Ident.t option))
-    (param_names : On_ast.Ident.t list)
-    (body : Ast.expr)
-  : (Ast.expr * Ast.var) m =
-  list_fold_right_m
-    (fun (param : On_ast.Ident.t) ((expr : Ast.expr), (_ : Ast.Var.t)) ->
-       let On_ast.Ident(param_name : string) = param in
-       let odefa_ident : Ast.Ident.t = Ast.Ident(param_name) in
-       let%bind (new_var : Ast.var) =
-         match binding_name with
-         | None -> fresh_var "flatten_fun"
-         | Some(Ident(s)) -> fresh_var s
-       in
-       let new_clause : Ast.clause =
-         Ast.Clause(new_var,
-                    Ast.Value_body(Ast.Value_function(
-                        Ast.Function_value(Ast.Var(odefa_ident, None), expr)
-                      )))
-       in
-       let expr' : Ast.expr = Ast.Expr([new_clause]) in
-       return (expr', new_var)
-    )
-    param_names
-    (body, retv body)
-;;
-
 (** Determines all variables contained within a pattern. *)
 let rec pat_vars (pat : On_ast.pattern) : On_ast.Ident_set.t =
   match pat with
@@ -74,11 +37,11 @@ let rec pat_vars (pat : On_ast.pattern) : On_ast.Ident_set.t =
     m
     |> On_ast.Ident_map.enum
     |> Enum.fold
-      (fun idents (_,pat') ->
+      (fun idents (_, pat') ->
          On_ast.Ident_set.union idents (pat_vars pat')
       )
       On_ast.Ident_set.empty
-  | On_ast.VariantPat(Variant(_,pat')) -> pat_vars pat'
+  | On_ast.VariantPat(Variant(_, pat')) -> pat_vars pat'
   | On_ast.VarPat x -> On_ast.Ident_set.singleton x
   | On_ast.FunPat -> On_ast.Ident_set.empty
   | On_ast.EmptyLstPat -> On_ast.Ident_set.empty
@@ -108,57 +71,7 @@ let rec pat_rename_vars
                           pat_rename_vars renaming tl)
 ;;
 
-(* Helper functions for converting pattern matching *)
-
-(* Convert patterns from natodefa AST to odefa AST *)
-let convert_patterns (pattern: On_ast.pattern) : Ast.pattern =
-  match pattern with
-  | On_ast.AnyPat -> Ast.Any_pattern
-  | On_ast.IntPat -> Ast.Int_pattern
-  | On_ast.TruePat -> Ast.Bool_pattern(true)
-  | On_ast.FalsePat -> Ast.Bool_pattern(false)
-  | On_ast.FunPat -> Ast.Fun_pattern
-  | On_ast.RecPat rec_pattern -> Ast.Rec_pattern (
-      rec_pattern
-      |> On_ast.Ident_map.enum
-      |> Enum.map (fun (on_ident, _) ->
-        let On_ast.Ident(ident) = on_ident in Ast.Ident(ident))
-      |> Ast.Ident_set.of_enum
-    )
-  | On_ast.VariantPat (_) ->
-    raise @@ Utils.Invariant_failure
-    "match_converter: Variants patterns should have been encoded!"
-  | On_ast.VarPat (_) ->
-    raise @@ Utils.Invariant_failure
-    "match_converter: Var patterns should have been encoded!"
-  | On_ast.EmptyLstPat | On_ast.LstDestructPat _ ->
-    raise @@ Utils.Invariant_failure
-    "match_converter: List patterns should have been encoded!"
-
-(* Turn a deeply-nested record pattern into a shallow list *)
-let rec flatten_record_pat
-    (rec_pattern: On_ast.pattern On_ast.Ident_map.t)
-    (var: Ast.var)
-  : ((On_ast.ident * On_ast.pattern * Ast.var * Ast.var) list) m =
-  rec_pattern
-  |> On_ast.Ident_map.enum
-  |> List.of_enum
-  |> list_fold_left_m (fun accum (ident, pat) ->
-    let%bind proj_var = fresh_var "proj" in
-    match pat with
-    (* If we have a label with an "any" pattern, ie. {l=any}, don't match on
-       it, in order to save an extra lookup. We cannot do this for standalone
-       values, ie. v ~ any, since v may be undefined, but if v in {l=v} is
-       undefined, then the whole record is undefined also, so we are safe. *)
-    (* | On_ast.AnyPat ->
-      return @@ accum *)
-    | On_ast.RecPat inner_rec_pat ->
-      let%bind inner_list = flatten_record_pat inner_rec_pat proj_var in
-      return @@ accum @ [(ident, pat, var, proj_var)] @ inner_list
-    | _ -> return @@ accum @ [(ident, pat, var, proj_var)]
-  ) []
-
-(* Transform an expression to eliminate "let rec" expressions by encoding with
+(** Transform an expression to eliminate "let rec" expressions by encoding with
    self-passing. *)
 let rec_transform (e : On_ast.expr) : On_ast.expr m =
   begin
@@ -224,7 +137,7 @@ let rec_transform (e : On_ast.expr) : On_ast.expr m =
   end
 ;;
 
-(* Performs alpha substitution on a given expression. *)
+(** Performs alpha substitution on a given expression. *)
 let rec rename_variable
     (old_name : On_ast.ident)
     (new_name : On_ast.ident)
@@ -618,7 +531,21 @@ let alphatize (e : On_ast.expr) : On_ast.expr m =
   lift1 fst @@ walk e Ident_set.empty
 ;;
 
-let get_abort_expr =
+(* Expression flattening + helper functions *)
+
+(** Returns the body of a function or conditional with its return variable *)
+let nonempty_body ((body : Ast.clause list), (var : Ast.var))
+  : (Ast.clause list * Ast.var) m =
+  match body with
+  | [] ->
+    let%bind x = fresh_var "var" in
+    return @@ ([Ast.Clause(x, Var_body var)], x)
+  | _ ->
+    return (body, var)
+;;
+
+(** Create a new abort clause *)
+let get_abort_expr : (Ast.expr) m =
   let%bind abort_expr =
     begin
       let%bind abort_var = fresh_var "ab" in
@@ -631,6 +558,83 @@ let get_abort_expr =
   return abort_expr
 ;;
 
+(** Convert patterns from natodefa AST to odefa AST *)
+let convert_patterns (pattern: On_ast.pattern) : Ast.pattern =
+  match pattern with
+  | On_ast.AnyPat -> Ast.Any_pattern
+  | On_ast.IntPat -> Ast.Int_pattern
+  | On_ast.TruePat -> Ast.Bool_pattern(true)
+  | On_ast.FalsePat -> Ast.Bool_pattern(false)
+  | On_ast.FunPat -> Ast.Fun_pattern
+  | On_ast.RecPat rec_pattern -> Ast.Rec_pattern (
+      rec_pattern
+      |> On_ast.Ident_map.enum
+      |> Enum.map (fun (on_ident, _) ->
+        let On_ast.Ident(ident) = on_ident in Ast.Ident(ident))
+      |> Ast.Ident_set.of_enum
+    )
+  | On_ast.VariantPat (_) ->
+    raise @@ Utils.Invariant_failure
+    "match_converter: Variants patterns should have been encoded!"
+  | On_ast.VarPat (_) ->
+    raise @@ Utils.Invariant_failure
+    "match_converter: Var patterns should have been encoded!"
+  | On_ast.EmptyLstPat | On_ast.LstDestructPat _ ->
+    raise @@ Utils.Invariant_failure
+    "match_converter: List patterns should have been encoded!"
+
+(** Turn a deeply-nested record pattern into a shallow list *)
+let rec flatten_record_pat
+    (rec_pattern: On_ast.pattern On_ast.Ident_map.t)
+    (var: Ast.var)
+  : ((On_ast.ident * On_ast.pattern * Ast.var * Ast.var) list) m =
+  rec_pattern
+  |> On_ast.Ident_map.enum
+  |> List.of_enum
+  |> list_fold_left_m (fun accum (ident, pat) ->
+    let%bind proj_var = fresh_var "proj" in
+    match pat with
+    (* If we have a label with an "any" pattern, ie. {l=any}, don't match on
+       it, in order to save an extra lookup. We cannot do this for standalone
+       values, ie. v ~ any, since v may be undefined, but if v in {l=v} is
+       undefined, then the whole record is undefined also, so we are safe. *)
+    (* | On_ast.AnyPat ->
+      return @@ accum *)
+    | On_ast.RecPat inner_rec_pat ->
+      let%bind inner_list = flatten_record_pat inner_rec_pat proj_var in
+      return @@ accum @ [(ident, pat, var, proj_var)] @ inner_list
+    | _ -> return @@ accum @ [(ident, pat, var, proj_var)]
+  ) []
+
+(** Flatten a function *)
+let flatten_fun
+    ?binding_name:(binding_name=(None:On_ast.Ident.t option))
+    (param_names : On_ast.Ident.t list)
+    (body : Ast.expr)
+  : (Ast.expr * Ast.var) m =
+  list_fold_right_m
+    (fun (param : On_ast.Ident.t) ((expr : Ast.expr), (_ : Ast.Var.t)) ->
+       let On_ast.Ident(param_name : string) = param in
+       let odefa_ident : Ast.Ident.t = Ast.Ident(param_name) in
+       let%bind (new_var : Ast.var) =
+         match binding_name with
+         | None -> fresh_var "flatten_fun"
+         | Some(Ident(s)) -> fresh_var s
+       in
+       let new_clause : Ast.clause =
+         Ast.Clause(new_var,
+                    Ast.Value_body(Ast.Value_function(
+                        Ast.Function_value(Ast.Var(odefa_ident, None), expr)
+                      )))
+       in
+       let expr' : Ast.expr = Ast.Expr([new_clause]) in
+       return (expr', new_var)
+    )
+    param_names
+    (body, retv body)
+;;
+
+(** Flatten a binary operation *)
 let rec flatten_binop
     (e1 : On_ast.expr)
     (e2 : On_ast.expr)
@@ -647,26 +651,27 @@ let rec flatten_binop
   in
   return (e1_clist @ e2_clist @ [new_clause], new_var)
 
+(** Flatten pattern matching on a record *)
 and flatten_record_match
     (rec_pattern_list: (On_ast.ident * On_ast.pattern * Ast.var * Ast.var) list)
     (pattern_expr: On_ast.expr)
   : (Ast.clause list) m =
-  begin
-  let (On_ast.Ident(ident), pat, subj_var, proj_var) = List.hd rec_pattern_list
+  let (On_ast.Ident(ident), pat, subj_var, proj_var) =
+    List.hd rec_pattern_list
   in
   let rec_pattern_list' = List.tl rec_pattern_list in
   let%bind match_var = fresh_var "match" in
   let%bind cond_var = fresh_var "match_cond" in
   let%bind inner_expr =
     begin
-    if
-      List.is_empty rec_pattern_list'
-    then
-      let%bind (clist, _) = flatten_expr pattern_expr in
-      return @@ Ast.Expr(clist)
-    else
-      let%bind clist = flatten_record_match rec_pattern_list' pattern_expr in
-      return @@ Ast.Expr(clist)
+      if
+        List.is_empty rec_pattern_list'
+      then
+        let%bind (clist, _) = flatten_expr pattern_expr in
+        return @@ Ast.Expr(clist)
+      else
+        let%bind clist = flatten_record_match rec_pattern_list' pattern_expr in
+        return @@ Ast.Expr(clist)
     end
   in
   let%bind abort_expr = get_abort_expr in
@@ -676,10 +681,11 @@ and flatten_record_match
     Ast.Clause(match_var, Ast.Match_body(proj_var, convert_patterns pat)) in
   let if_clause =
     Ast.Clause(cond_var,
-               Ast.Conditional_body(match_var, inner_expr, (* explode_expr *) abort_expr)) in
+               Ast.Conditional_body(match_var, inner_expr, abort_expr))
+  in
   return @@ [proj_clause; match_clause; if_clause]
-  end
 
+(** Flatten an entire expression (i.e. convert natodefa into odefa code) *)
 and flatten_expr
     (e : On_ast.expr)
   : (Ast.clause list * Ast.var) m =
@@ -736,7 +742,8 @@ and flatten_expr
     end
   | LetRecFun (_, _) ->
     (* | LetRecFun (sig_list, e) ->  *)
-    raise @@ Utils.Invariant_failure "LetRecFun passed to flatten_expr"
+    raise @@
+      Utils.Invariant_failure "LetRecFun should not have been passed to flatten_expr"
   | Plus (e1, e2) ->
     flatten_binop e1 e2 Ast.Binary_operator_plus
   | Minus (e1, e2) ->
@@ -831,57 +838,55 @@ and flatten_expr
     return (e_clist @ [new_clause], new_var)
   | Match (subject, pat_expr_list) ->
     begin
-    (* We need to convert the subject first *)
-    let%bind (subject_clause_list, subject_var) = flatten_expr subject in
-    (* List.fold_right routine that deeply nests the contents of the match
-       into a series of odefa conditionals *)
-    (* the type of the accumulator would be the entire expression that goes into
-       the "else" case of the next conditional *)
-    let convert_single_match curr acc =
-      begin
-        let (curr_pat, curr_pat_expr) = curr in
-          begin
-            let%bind flat_pat_expr =
-              begin
-                match curr_pat with
-                | On_ast.RecPat rec_pattern -> 
-                  let%bind flat_rec_pattern
-                    = flatten_record_pat rec_pattern subject_var in
-                  if List.is_empty flat_rec_pattern
-                  then
-                    let%bind (clause_list, _) = flatten_expr curr_pat_expr in
-                    return clause_list
-                  else
-                    flatten_record_match flat_rec_pattern curr_pat_expr
-                | _ ->
+      (* We need to convert the subject first *)
+      let%bind (subject_clause_list, subject_var) = flatten_expr subject in
+      (* List.fold_right routine that deeply nests the contents of the match
+        into a series of odefa conditionals *)
+      (* the type of the accumulator would be the entire expression that goes into
+        the "else" case of the next conditional *)
+      let convert_single_match curr acc =
+        begin
+          let (curr_pat, curr_pat_expr) = curr in
+          let%bind flat_pat_expr =
+            begin
+              match curr_pat with
+              | On_ast.RecPat rec_pattern -> 
+                let%bind flat_rec_pattern
+                  = flatten_record_pat rec_pattern subject_var in
+                if List.is_empty flat_rec_pattern
+                then
                   let%bind (clause_list, _) = flatten_expr curr_pat_expr in
                   return clause_list
-              end
-            in
-            let%bind match_var = fresh_var "match" in
-            let%bind cond_var = fresh_var "match_cond" in
-            let ast_pat = convert_patterns curr_pat in
-            let match_clause =
-              Ast.Clause(match_var, Ast.Match_body(subject_var, ast_pat))
-            in
-            let if_clause =
-              Ast.Clause(cond_var,
+                else
+                  flatten_record_match flat_rec_pattern curr_pat_expr
+              | _ ->
+                let%bind (clause_list, _) = flatten_expr curr_pat_expr in
+                return clause_list
+            end
+          in
+          let%bind match_var = fresh_var "match" in
+          let%bind cond_var = fresh_var "match_cond" in
+          let ast_pat = convert_patterns curr_pat in
+          let match_clause =
+            Ast.Clause(match_var, Ast.Match_body(subject_var, ast_pat))
+          in
+          let if_clause =
+            Ast.Clause(cond_var,
                       Ast.Conditional_body(match_var, Expr flat_pat_expr, acc))
-            in
-            return @@ Ast.Expr([match_clause; if_clause])
-          end
-      end
-    in
-    (* The base case is our abort clause *)
-    let%bind abort_expr = get_abort_expr in
-    let%bind match_expr =
-      list_fold_right_m convert_single_match pat_expr_list abort_expr (* explode_expr *)
-    in
-    let Ast.Expr(match_clauses) = match_expr in
-    let match_last_clause = List.last match_clauses in
-    let Ast.Clause(match_last_clause_var, _) = match_last_clause in
-    let all_clauses = subject_clause_list @ match_clauses in
-    return (all_clauses, match_last_clause_var)
+          in
+          return @@ Ast.Expr([match_clause; if_clause])
+        end
+      in
+      (* The base case is our abort clause *)
+      let%bind abort_expr = get_abort_expr in
+      let%bind match_expr =
+        list_fold_right_m convert_single_match pat_expr_list abort_expr
+      in
+      let Ast.Expr(match_clauses) = match_expr in
+      let match_last_clause = List.last match_clauses in
+      let Ast.Clause(match_last_clause_var, _) = match_last_clause in
+      let all_clauses = subject_clause_list @ match_clauses in
+      return (all_clauses, match_last_clause_var)
     end
   | VariantExpr (_, _) ->
     raise @@ Utils.Invariant_failure
@@ -926,14 +931,6 @@ let rec condition_clauses
         end
       | Binary_operation_body (v1, binop, v2) ->
         begin
-          (*
-            binop = a + b;
-            ==>
-            m1 = a ~ int;
-            m2 = b ~ int;
-            m = m1 and m2;
-            cbinop = m ? (binop = a + b) : (ab = abort)
-          *)
           match binop with
           | Binary_operator_plus
           | Binary_operator_minus
@@ -943,6 +940,14 @@ let rec condition_clauses
           | Binary_operator_less_than
           | Binary_operator_less_than_or_equal_to
           | Binary_operator_equal_to ->
+            (*
+              binop = a + b;
+              ==>
+              m1 = a ~ int;
+              m2 = b ~ int;
+              m = m1 and m2;
+              constrain_binop = m ? (binop = a + b) : (ab = abort)
+            *)
             begin
               (* Variables *)
               let%bind m1 = fresh_var "m1" in
@@ -968,6 +973,18 @@ let rec condition_clauses
           | Binary_operator_and
           | Binary_operator_or
           | Binary_operator_xor ->
+            (*
+              binop = a and b;
+              ==>
+              m1t = a ~ true;
+              m1f = a ~ false;
+              m2t = b ~ true;
+              m2f = b ~ false;
+              m1 = m1t or m1f;
+              m2 = m2t or m2f;
+              m = m1 and m2;
+              constrain_binop = m ? (binop = a and b) : (ab = abort)
+            *)
             begin
               (* Variables *)
               let%bind m1t = fresh_var "m1t" in
@@ -1011,7 +1028,7 @@ let rec condition_clauses
             proj = r.l;
             ==>
             m = r ~ {l};
-            cproj = m ? (proj = r.l) : (ab = abort);
+            constrain_proj = m ? (proj = r.l) : (ab = abort);
           *)
           let%bind m = fresh_var "m" in
           let%bind v = fresh_var "constrain_proj" in
@@ -1021,8 +1038,7 @@ let rec condition_clauses
           let m_clause =
             Ast.Clause(m, Match_body(r, Rec_pattern rec_pattern))
           in
-          let%bind new_clauses' = condition_clauses clauses'
-          in
+          let%bind new_clauses' = condition_clauses clauses' in
           let%bind t_path = return @@ Ast.Expr(clause :: new_clauses') in
           let%bind f_path = get_abort_expr in
           let val_clause
@@ -1036,7 +1052,7 @@ let rec condition_clauses
             appl = f x;
             ==>
             m = f ~ fun;
-            cappl = m ? (appl = f x) : (ab = abort);
+            constrain_appl = m ? (appl = f x) : (ab = abort);
           *)
           let%bind m = fresh_var "m" in
           let%bind v = fresh_var "constrain_appl" in
@@ -1058,8 +1074,8 @@ let rec condition_clauses
             val = pred ? true_path : false_path;
             ==>
             v = pred
-                ? (mt = pred ~ true; mt ? (vt = true_path) : (abt = abort))
-                : (mf = pred ~ false; mf ? (vf = false_path) : (abf = abort))
+                ? (mt = pred ~ true; iftrue = mt ? true_path : (abt = abort))
+                : (mf = pred ~ false; iffalse = mf ? false_path : (abf = abort))
           *)
           let%bind mt = fresh_var "mt" in
           let%bind mf = fresh_var "mf" in
@@ -1079,7 +1095,7 @@ let rec condition_clauses
             let%bind tpath = condition_clauses flse_path in
             let%bind fpath = get_abort_expr in
             let%bind clause = return @@
-              Ast.Clause(vf, Ast.Conditional_body(mt, Ast.Expr(tpath), fpath))
+              Ast.Clause(vf, Ast.Conditional_body(mf, Ast.Expr(tpath), fpath))
             in
             return @@ Ast.Expr([mfc; clause])
           in
@@ -1123,12 +1139,12 @@ let translate
       >>= debug_transform "post-alphatize" alphatize
     in
     let%bind (c_list, _) = flatten_expr transformed_e in
-    let%bind c_list' = condition_clauses c_list in (* NEW! *)
-    let Clause(last_var, _) = List.last c_list' in
+    let%bind c_list = condition_clauses c_list in (* NEW! *)
+    let Clause(last_var, _) = List.last c_list in
     let%bind fresh_str = freshness_string in
     let res_var = Ast.Var(Ast.Ident(fresh_str ^ "result"), None) in
     let res_clause = Ast.Clause(res_var, Ast.Var_body(last_var)) in
-    return @@ Ast.Expr(c_list' @ [res_clause])
+    return @@ Ast.Expr(c_list @ [res_clause])
   in
   let context =
     match translation_context with
