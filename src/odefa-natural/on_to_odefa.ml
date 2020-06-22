@@ -563,13 +563,15 @@ let convert_patterns (pattern: On_ast.pattern) : Ast.pattern =
   | On_ast.IntPat -> Ast.Int_pattern
   | On_ast.BoolPat -> Ast.Bool_pattern
   | On_ast.FunPat -> Ast.Fun_pattern
-  | On_ast.RecPat rec_pattern -> Ast.Rec_pattern (
+  | On_ast.RecPat rec_pattern -> 
+    let rec_pattern' =
       rec_pattern
       |> On_ast.Ident_map.enum
       |> Enum.map (fun (on_ident, _) ->
         let On_ast.Ident(ident) = on_ident in Ast.Ident(ident))
       |> Ast.Ident_set.of_enum
-    )
+    in
+    Ast.Rec_pattern(rec_pattern')
   | On_ast.VariantPat (_) ->
     raise @@ Utils.Invariant_failure
     "match_converter: Variants patterns should have been encoded!"
@@ -840,18 +842,25 @@ and flatten_expr
   | Match (subject, pat_expr_list) ->
     begin
       (* We need to convert the subject first *)
-      let%bind (subject_clause_list, subject_var) = flatten_expr subject in
+      let%bind (subject_clause_list, subj_var) = flatten_expr subject in
       (* List.fold_right routine that deeply nests the contents of the match
         into a series of odefa conditionals *)
       (* the type of the accumulator would be the entire expression that goes into
         the "else" case of the next conditional *)
-      let convert_single_match curr accum =
+      let rec convert_matches
+          (match_list: (On_ast.pattern * On_ast.expr) list)
+          (match_vars: Ast.var list)
+        : Ast.expr m =
+        match match_list with
+        | curr_match :: remain_matches ->
         begin
-          let (curr_pat, curr_pat_expr) = curr in
-          let%bind flat_pat_expr =
+          let (curr_pat, curr_pat_expr) = curr_match in
+          let%bind match_var = fresh_var "match" in
+          let%bind cond_var = fresh_var "match_cond" in
+          let%bind flat_curr_clauses =
             begin
               match curr_pat with
-              | On_ast.RecPat rec_pattern -> 
+              | On_ast.RecPat rec_pat ->
                 (* 
                   match rec with
                   | {lbl = int} -> ...
@@ -862,38 +871,36 @@ and flatten_expr
                                         ...)
                                       : (ab = abort)
                 *)
-                let%bind flat_rec_pattern
-                  = flatten_record_pat rec_pattern subject_var in
-                if List.is_empty flat_rec_pattern
+                let%bind flat_rec_pat = flatten_record_pat rec_pat subj_var in
+                if List.is_empty flat_rec_pat
                 then
                   let%bind (clause_list, _) = flatten_expr curr_pat_expr in
                   return clause_list
                 else
-                  flatten_record_match flat_rec_pattern [] curr_pat_expr
+                  flatten_record_match flat_rec_pat [] curr_pat_expr
               | _ ->
                 let%bind (clause_list, _) = flatten_expr curr_pat_expr in
                 return clause_list
             end
           in
-          let%bind match_var = fresh_var "match" in
-          let%bind cond_var = fresh_var "match_cond" in
-          let ast_pat = convert_patterns curr_pat in
+          let flat_curr_expr = Ast.Expr (flat_curr_clauses) in
+          let%bind flat_remain_expr =
+            convert_matches remain_matches (match_var :: match_vars)
+          in
+          let odefa_pat = convert_patterns curr_pat in
           let match_clause =
-            Ast.Clause(match_var, Ast.Match_body(subject_var, ast_pat))
+            Ast.Clause(match_var, Match_body(subj_var, odefa_pat))
           in
           let if_clause =
             Ast.Clause(cond_var,
-                      Ast.Conditional_body(match_var, Expr flat_pat_expr, accum))
+              Conditional_body(match_var, flat_curr_expr, flat_remain_expr))
           in
           return @@ Ast.Expr([match_clause; if_clause])
         end
+        | [] ->
+          get_abort_expr match_vars
       in
-      (* The base case is our abort clause *)
-      (* TODO: Add variables to list *)
-      let%bind abort_expr = get_abort_expr [] in
-      let%bind match_expr =
-        list_fold_right_m convert_single_match pat_expr_list abort_expr
-      in
+      let%bind match_expr = convert_matches pat_expr_list [] in
       let Ast.Expr(match_clauses) = match_expr in
       let match_last_clause = List.last match_clauses in
       let Ast.Clause(match_last_clause_var, _) = match_last_clause in
@@ -1027,20 +1034,26 @@ let rec condition_clauses
           in
           return @@ [m_clause; val_clause]
         end
-      | Conditional_body (pred, _, _) ->
+      | Conditional_body (pred, Ast.Expr path1, Ast.Expr path2) ->
         begin
           (*
             cond = pred ? true_path : false_path;
             ==>
             m = pred ~ bool;
-            constrain_cond = m ? (cond = pred ? true_path  : false_path)
+            constrain_cond = m ? (cond = pred ? true_path : false_path)
                                : (ab = abort)
           *)
           let%bind m = fresh_var "m" in
           let%bind v = fresh_var "constrain_cond" in
           let m_clause = Ast.Clause(m, Match_body(pred, Bool_pattern)) in
           let%bind new_clauses' = condition_clauses clauses' in
-          let%bind t_path = return @@ Ast.Expr(clause :: new_clauses') in
+          let%bind new_path1 = condition_clauses path1 in
+          let%bind new_path2 = condition_clauses path2 in
+          let new_cond_body =
+            Ast.Conditional_body(pred, Expr new_path1, Expr new_path2)
+          in
+          let new_clause = Ast.Clause(symb, new_cond_body) in
+          let%bind t_path = return @@ Ast.Expr(new_clause :: new_clauses') in
           let%bind f_path = get_abort_expr [m] in
           let val_clause
             = Ast.Clause(v, Conditional_body(m, t_path, f_path))
