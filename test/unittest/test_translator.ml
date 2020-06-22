@@ -32,8 +32,7 @@ _add_test "pattern_variables" @@ fun _ ->
   let input = [
         On_ast.AnyPat;
         On_ast.IntPat;
-        On_ast.TruePat;
-        On_ast.FalsePat;
+        On_ast.BoolPat;
         On_ast.FunPat;
         On_ast.EmptyLstPat;
         (On_ast.VarPat (On_ast.Ident("x")))
@@ -115,14 +114,10 @@ _add_test "constrain_boolean" @@ fun _ ->
   let expected =
     "a = true;
      b = false;
-     m1t~0 = a ~ true;
-     m1f~1 = a ~ false;
-     m2t~2 = b ~ true;
-     m2f~3 = b ~ false;
-     m1~4 = m1t~0 or m1f~1;
-     m2~5 = m2t~2 or m2f~3;
-     m~6 = m1~4 and m2~5;
-     constrain_binop~7 = m~6 ? (binop = a and b) : (ab~8 = abort)"
+     m1~0 = a ~ bool;
+     m2~1 = b ~ bool;
+     m~2 = m1~0 and m2~1;
+     constrain_binop~3 = m~2 ? (binop = a and b) : (ab~4 = abort)"
   in
   test_exprs input expected
 ;;
@@ -164,11 +159,9 @@ _add_test "constrain_conditional" @@ fun _ ->
   in
   let expected =
     "pred = true;
-     cond = pred ? (mt~0 = pred ~ true;
-                    iftrue~2 = mt~0 ? (res1 = true) : (ab~4 = abort)
-               ) : (mf~1 = pred ~ false;
-                    iffalse~3 = mf~1 ? (res2 = false) : (ab~5 = abort)
-               )"
+     m~0 = pred ~ bool;
+     constrain_cond~1 = m~0 ? (cond = pred ? (res1 = true) : (res2 = false))
+                            : (ab~2 = abort);"
   in
   test_exprs input expected
 ;;
