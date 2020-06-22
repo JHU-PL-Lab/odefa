@@ -81,6 +81,10 @@ and pp_abstract_record_value formatter (Abs_record_value els) =
   in
   pp_concat_sep_delim "{" "}" "," pp_element formatter @@ Ident_map.enum els
 
+and pp_abstract_variable_list formatter abs_var_list =
+  pp_concat_sep_delim "[" "]" "," pp_abstract_var formatter @@
+    List.enum abs_var_list
+
 and pp_abstract_ref_value formatter (Abs_ref_value x) =
   Format.fprintf formatter "ref %a" pp_abstract_var x
 
@@ -104,8 +108,8 @@ and pp_abstract_clause_body formatter b =
   | Abs_binary_operation_body(x1,op,x2) ->
     Format.fprintf formatter "%a %a %a"
       pp_abstract_var x1 pp_binary_operator op pp_abstract_var x2
-  (* TODO: Add variables *)
-  | Abs_abort_body _ -> Format.pp_print_string formatter "abort"
+  | Abs_abort_body abs_var_list ->
+    Format.fprintf formatter "abort %a" pp_abstract_variable_list abs_var_list
 
 and pp_abstract_clause formatter (Abs_clause(x,b)) =
   Format.fprintf formatter "%a = @[<hv 2>%a@]"
@@ -132,6 +136,10 @@ and pp_brief_abstract_record_value formatter (Abs_record_value els) =
   in
   pp_concat_sep_delim "{" "}" "," pp_brief_element formatter @@ Ident_map.enum els
 
+and pp_brief_abstract_variable_list formatter abs_var_list =
+  pp_concat_sep_delim "[" "]" "," pp_abstract_var formatter @@
+    List.enum abs_var_list
+
 and pp_brief_abstract_ref_value formatter (Abs_ref_value x) =
   Format.fprintf formatter "ref %a" pp_abstract_var x
 
@@ -153,8 +161,9 @@ and pp_brief_abstract_clause_body formatter b =
   | Abs_binary_operation_body(x1,op,x2) ->
     Format.fprintf formatter "%a %a %a"
       pp_abstract_var x1 pp_binary_operator op pp_abstract_var x2
-  (* TODO: Add variables *)
-  | Abs_abort_body _ -> Format.pp_print_string formatter "abort"
+  | Abs_abort_body abs_var_list ->
+    Format.fprintf formatter "abort %a"
+      pp_brief_abstract_variable_list abs_var_list
 
 and pp_brief_abstract_clause formatter (Abs_clause(x,b)) =
   Format.fprintf formatter "%a = @[<hv 2>%a@]"

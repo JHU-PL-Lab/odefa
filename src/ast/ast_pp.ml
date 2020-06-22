@@ -63,6 +63,11 @@ let pp_record_value formatter (Record_value(els)) =
 ;;
 let show_record_value = pp_to_string pp_record_value;;
 
+let pp_variable_list formatter var_list =
+  pp_concat_sep_delim "[" "]" "," pp_var formatter @@ List.enum var_list
+;;
+let show_variable_list_value = pp_to_string pp_variable_list;;
+
 let rec pp_function_value formatter (Function_value(x,e)) =
   Format.fprintf formatter "fun %a -> (@ @[<2>%a@])" pp_var x pp_expr e
 
@@ -93,8 +98,8 @@ and pp_clause_body formatter b =
   | Binary_operation_body(x1,op,x2) ->
     Format.fprintf formatter "%a %a %a"
       pp_var x1 pp_binary_operator op pp_var x2
-  | Abort_body _ ->
-    Format.pp_print_string formatter "abort" (* TODO: Add variables *)
+  | Abort_body var_list ->
+    Format.fprintf formatter "abort %a" pp_variable_list var_list
 
 and pp_clause formatter c =
   match c with
