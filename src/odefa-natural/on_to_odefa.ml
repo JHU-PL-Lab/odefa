@@ -1014,15 +1014,8 @@ let rec condition_clauses
         end
       | Conditional_body (pred, _, _) ->
         begin
-          (* NOTE: The pattern match transformation is different from others
-            in order to more closely match the syntax in the DDSE paper.
-          *)
           (*
             cond = pred ? true_path : false_path;
-            ==>
-            v = pred
-                ? (mt = pred ~ true; iftrue = mt ? true_path : (abt = abort))
-                : (mf = pred ~ false; iffalse = mf ? false_path : (abf = abort))
             ==>
             m = pred ~ bool;
             constrain_cond = m ? (cond = pred ? true_path  : false_path)
@@ -1038,36 +1031,6 @@ let rec condition_clauses
             = Ast.Clause(v, Conditional_body(m, t_path, f_path))
           in
           return @@ [m_clause; val_clause]
-          (*
-          let%bind mt = fresh_var "mt" in
-          let%bind mf = fresh_var "mf" in
-          let%bind vt = fresh_var "iftrue" in
-          let%bind vf = fresh_var "iffalse" in
-          let mtc = Ast.Clause(mt, Match_body(pred, Bool_pattern true)) in
-          let mfc = Ast.Clause(mf, Match_body(pred, Bool_pattern false)) in
-          let%bind new_true_path =
-            let%bind tpath = condition_clauses true_path in
-            let%bind fpath = get_abort_expr in
-            let%bind clause = return @@
-              Ast.Clause(vt, Ast.Conditional_body(mt, Ast.Expr(tpath), fpath))
-            in
-            return @@ Ast.Expr([mtc; clause])
-          in
-          let%bind new_false_path =
-            let%bind tpath = condition_clauses flse_path in
-            let%bind fpath = get_abort_expr in
-            let%bind clause = return @@
-              Ast.Clause(vf, Ast.Conditional_body(mf, Ast.Expr(tpath), fpath))
-            in
-            return @@ Ast.Expr([mfc; clause])
-          in
-          let%bind new_clause
-            = return @@ Ast.Clause(symb,
-                Conditional_body(pred, new_true_path, new_false_path))
-          in
-          let%bind new_clauses' = condition_clauses clauses' in
-          return @@ new_clause :: new_clauses'
-          *)
         end
     end
   | [] -> return []
@@ -1089,6 +1052,7 @@ let debug_transform
 
 let translate
     ?translation_context:(translation_context=None)
+    ?is_instrumented:(is_instrumented=true)
     (e : On_ast.expr)
   : Odefa_ast.Ast.expr =
   let e_m =
@@ -1102,8 +1066,9 @@ let translate
       >>= debug_transform "post-alphatize" alphatize
     in
     let%bind (c_list, _) = flatten_expr transformed_e in
-    (* TODO: Let instrumentation be toggleable from command line *)
-    let%bind c_list = condition_clauses c_list in (* NEW! *)
+    let%bind c_list = (* NEW! *)
+      if is_instrumented then condition_clauses c_list else return c_list
+    in
     let Clause(last_var, _) = List.last c_list in
     let%bind fresh_str = freshness_string in
     let res_var = Ast.Var(Ast.Ident(fresh_str ^ "result"), None) in
