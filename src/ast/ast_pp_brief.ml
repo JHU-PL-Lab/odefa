@@ -94,7 +94,8 @@ and pp_clause_body formatter b =
   | Binary_operation_body(x1,op,x2) ->
     Format.fprintf formatter "%a %a %a"
       pp_var x1 pp_binary_operator op pp_var x2
-  | Abort_body ->
+  (* TODO: Add variables *)
+  | Abort_body _ ->
     Format.pp_print_string formatter "abort"
 
 and pp_clause formatter c =

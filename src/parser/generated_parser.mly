@@ -86,7 +86,7 @@ clause_body:
   | KEYWORD_INPUT
       { Input_body }
   | KEYWORD_ABORT
-      { Abort_body }
+      { Abort_body [] } /* FIXME: Add variables */
   | variable
       { Var_body($1) }
   | variable variable

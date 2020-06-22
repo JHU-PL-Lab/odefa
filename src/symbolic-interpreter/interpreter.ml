@@ -71,7 +71,7 @@ let prepare_environment (e : expr) (cfg : ddpa_graph)
         (enum_all_functions_in_expr e1) (enum_all_functions_in_expr e2)
     | Match_body (_, _)
     | Projection_body (_, _)
-    | Abort_body ->
+    | Abort_body _ ->
       Enum.empty ()
   and enum_all_functions_in_value value : function_value Enum.t =
     match value with
@@ -120,7 +120,7 @@ let prepare_environment (e : expr) (cfg : ddpa_graph)
           | Match_body (_, _)
           | Projection_body (_, _)
           | Binary_operation_body (_, _, _)
-          | Abort_body -> []
+          | Abort_body _ -> []
           | Conditional_body (_, e1, e2) ->
             e1 :: e2 :: expr_flatten e1 @ expr_flatten e2
        )
@@ -720,7 +720,7 @@ struct
       (* Abort (not a written rule) *)
       begin
         let%orzero _ :: lookup_stack' = lookup_stack in
-        let%orzero Unannotated_clause(Abs_clause(Abs_var _, Abs_abort_body)) = acl1 in
+        let%orzero Unannotated_clause(Abs_clause(Abs_var _, Abs_abort_body _)) = acl1 in
         let lookup_var = env.le_first_var in
         let new_lookup_stack = lookup_var :: lookup_stack' in
         _trace_log_recurse new_lookup_stack relstack acl1;
@@ -797,7 +797,7 @@ struct
 
   let step (x : evaluation) : evaluation_result list * evaluation option =
     let Evaluation(evaluation) = x in
-    let results, evaluation' = M.step evaluation in
+    let results, evaluation' = M.step ?show_value:(Some(fun _ -> "unit")) evaluation in
     let results' =
       results
       |> Enum.filter_map

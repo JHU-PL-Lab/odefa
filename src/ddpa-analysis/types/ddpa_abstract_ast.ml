@@ -47,7 +47,7 @@ and abstract_clause_body =
   | Abs_match_body of abstract_var * pattern
   | Abs_projection_body of abstract_var * ident
   | Abs_binary_operation_body of abstract_var * binary_operator * abstract_var
-  | Abs_abort_body
+  | Abs_abort_body of abstract_var list
 [@@deriving eq, ord, to_yojson]
 
 (** A type to represent abstract clauses. *)
@@ -104,7 +104,8 @@ and pp_abstract_clause_body formatter b =
   | Abs_binary_operation_body(x1,op,x2) ->
     Format.fprintf formatter "%a %a %a"
       pp_abstract_var x1 pp_binary_operator op pp_abstract_var x2
-  | Abs_abort_body -> Format.pp_print_string formatter "abort"
+  (* TODO: Add variables *)
+  | Abs_abort_body _ -> Format.pp_print_string formatter "abort"
 
 and pp_abstract_clause formatter (Abs_clause(x,b)) =
   Format.fprintf formatter "%a = @[<hv 2>%a@]"
@@ -152,7 +153,8 @@ and pp_brief_abstract_clause_body formatter b =
   | Abs_binary_operation_body(x1,op,x2) ->
     Format.fprintf formatter "%a %a %a"
       pp_abstract_var x1 pp_binary_operator op pp_abstract_var x2
-  | Abs_abort_body -> Format.pp_print_string formatter "abort"
+  (* TODO: Add variables *)
+  | Abs_abort_body _ -> Format.pp_print_string formatter "abort"
 
 and pp_brief_abstract_clause formatter (Abs_clause(x,b)) =
   Format.fprintf formatter "%a = @[<hv 2>%a@]"
@@ -177,7 +179,7 @@ let is_abstract_clause_immediate (Abs_clause(_,b)) =
   | Abs_match_body _
   | Abs_projection_body _
   | Abs_binary_operation_body _
-  | Abs_abort_body -> true
+  | Abs_abort_body _ -> true
   | Abs_appl_body _
   | Abs_conditional_body _ -> false
 ;;

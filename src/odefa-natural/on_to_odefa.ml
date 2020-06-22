@@ -543,12 +543,12 @@ let nonempty_body ((body : Ast.clause list), (var : Ast.var))
 ;;
 
 (** Create a new abort clause *)
-let get_abort_expr : (Ast.expr) m =
+let get_abort_expr (var_list : Ast.var list) : (Ast.expr) m =
   let%bind abort_expr =
     begin
       let%bind abort_var = fresh_var "ab" in
       let abort_clause =
-        Ast.Clause(abort_var, Ast.Abort_body)
+        Ast.Clause(abort_var, Ast.Abort_body var_list)
       in
       return @@ Ast.Expr([abort_clause]);
     end
@@ -651,14 +651,16 @@ let rec flatten_binop
 (** Flatten pattern matching on a record *)
 and flatten_record_match
     (rec_pattern_list: (On_ast.ident * On_ast.pattern * Ast.var * Ast.var) list)
+    (match_vars: Ast.var list)
     (pattern_expr: On_ast.expr)
   : (Ast.clause list) m =
-  let (On_ast.Ident(ident), pat, subj_var, proj_var) =
+  let (On_ast.Ident(ident), pat, rec_var, proj_var) =
     List.hd rec_pattern_list
   in
   let rec_pattern_list' = List.tl rec_pattern_list in
   let%bind match_var = fresh_var "match" in
   let%bind cond_var = fresh_var "match_cond" in
+  let match_vars' = match_var :: match_vars in
   let%bind inner_expr =
     begin
       if
@@ -667,15 +669,17 @@ and flatten_record_match
         let%bind (clist, _) = flatten_expr pattern_expr in
         return @@ Ast.Expr(clist)
       else
-        let%bind clist = flatten_record_match rec_pattern_list' pattern_expr in
+        let%bind clist = flatten_record_match rec_pattern_list' match_vars' pattern_expr in
         return @@ Ast.Expr(clist)
     end
   in
-  let%bind abort_expr = get_abort_expr in
+  let%bind abort_expr = get_abort_expr match_vars' in
   let proj_clause =
-    Ast.Clause(proj_var, Ast.Projection_body(subj_var, Ast.Ident(ident))) in
+    Ast.Clause(proj_var, Ast.Projection_body(rec_var, Ast.Ident(ident)))
+  in
   let match_clause =
-    Ast.Clause(match_var, Ast.Match_body(proj_var, convert_patterns pat)) in
+    Ast.Clause(match_var, Ast.Match_body(proj_var, convert_patterns pat))
+  in
   let if_clause =
     Ast.Clause(cond_var,
                Ast.Conditional_body(match_var, inner_expr, abort_expr))
@@ -841,13 +845,23 @@ and flatten_expr
         into a series of odefa conditionals *)
       (* the type of the accumulator would be the entire expression that goes into
         the "else" case of the next conditional *)
-      let convert_single_match curr acc =
+      let convert_single_match curr accum =
         begin
           let (curr_pat, curr_pat_expr) = curr in
           let%bind flat_pat_expr =
             begin
               match curr_pat with
               | On_ast.RecPat rec_pattern -> 
+                (* 
+                  match rec with
+                  | {lbl = int} -> ...
+                  ==>
+                  match = rec ~ {lbl};
+                  match_cond = match ? (proj = rec.hd;
+                                        match = proj ~ int;
+                                        ...)
+                                      : (ab = abort)
+                *)
                 let%bind flat_rec_pattern
                   = flatten_record_pat rec_pattern subject_var in
                 if List.is_empty flat_rec_pattern
@@ -855,7 +869,7 @@ and flatten_expr
                   let%bind (clause_list, _) = flatten_expr curr_pat_expr in
                   return clause_list
                 else
-                  flatten_record_match flat_rec_pattern curr_pat_expr
+                  flatten_record_match flat_rec_pattern [] curr_pat_expr
               | _ ->
                 let%bind (clause_list, _) = flatten_expr curr_pat_expr in
                 return clause_list
@@ -869,13 +883,14 @@ and flatten_expr
           in
           let if_clause =
             Ast.Clause(cond_var,
-                      Ast.Conditional_body(match_var, Expr flat_pat_expr, acc))
+                      Ast.Conditional_body(match_var, Expr flat_pat_expr, accum))
           in
           return @@ Ast.Expr([match_clause; if_clause])
         end
       in
       (* The base case is our abort clause *)
-      let%bind abort_expr = get_abort_expr in
+      (* TODO: Add variables to list *)
+      let%bind abort_expr = get_abort_expr [] in
       let%bind match_expr =
         list_fold_right_m convert_single_match pat_expr_list abort_expr
       in
@@ -919,8 +934,8 @@ let rec condition_clauses
         end
       | Var_body _
       | Input_body
-      | Abort_body
-      | Match_body _ ->
+      | Match_body _
+      | Abort_body _ ->
         (* Nothing to constrain *)
         begin
           let%bind new_clauses' = condition_clauses clauses' in
@@ -964,7 +979,7 @@ let rec condition_clauses
           let m_clause = Ast.Clause(m, binop_body) in
           let%bind new_clauses' = condition_clauses clauses' in
           let%bind t_path = return @@ Ast.Expr(clause :: new_clauses') in
-          let%bind f_path = get_abort_expr in
+          let%bind f_path = get_abort_expr [m1; m2] in
           let val_clause
             = Ast.Clause(v, Conditional_body(m, t_path, f_path))
           in
@@ -987,7 +1002,7 @@ let rec condition_clauses
           let m_clause = Ast.Clause(m, Match_body(r, rec_pat)) in
           let%bind new_clauses' = condition_clauses clauses' in
           let%bind t_path = return @@ Ast.Expr(clause :: new_clauses') in
-          let%bind f_path = get_abort_expr in
+          let%bind f_path = get_abort_expr [m] in
           let val_clause
             = Ast.Clause(v, Conditional_body(m, t_path, f_path))
           in
@@ -1006,7 +1021,7 @@ let rec condition_clauses
           let m_clause = Ast.Clause(m, Match_body(f, Fun_pattern)) in
           let%bind new_clauses' = condition_clauses clauses' in
           let%bind t_path = return @@ Ast.Expr(clause :: new_clauses') in
-          let%bind f_path = get_abort_expr in
+          let%bind f_path = get_abort_expr [m] in
           let val_clause
             = Ast.Clause(v, Conditional_body(m, t_path, f_path))
           in
@@ -1026,7 +1041,7 @@ let rec condition_clauses
           let m_clause = Ast.Clause(m, Match_body(pred, Bool_pattern)) in
           let%bind new_clauses' = condition_clauses clauses' in
           let%bind t_path = return @@ Ast.Expr(clause :: new_clauses') in
-          let%bind f_path = get_abort_expr in
+          let%bind f_path = get_abort_expr [m] in
           let val_clause
             = Ast.Clause(v, Conditional_body(m, t_path, f_path))
           in

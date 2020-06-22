@@ -73,8 +73,7 @@ let use_occurrences expression =
     fun (Clause (_, clause_body)) ->
       match clause_body with
       | Value_body _
-      | Input_body
-      | Abort_body ->
+      | Input_body ->
         Var_set.empty
       | Var_body variable ->
         Var_set.singleton variable
@@ -88,6 +87,8 @@ let use_occurrences expression =
         Var_set.singleton subject
       | Binary_operation_body (left_operand, _, right_operand) ->
         Var_set.of_list [left_operand; right_operand]
+      | Abort_body var_list ->
+        Var_set.of_list var_list
   )
   |> List.fold_left Var_set.union Var_set.empty
 ;;
@@ -107,7 +108,7 @@ let non_unique_bindings expression =
   |> Var_set.of_list
 ;;
 
-let _bind_filt bound site_x vars =
+let _bind_filter bound site_x vars =
   vars
   |> List.filter (fun x -> not @@ Ident_set.mem x bound)
   |> List.map (fun x -> (site_x, x))
@@ -146,18 +147,24 @@ and check_scope_clause_body
       | _ ->
         []
     end
-  | Var_body (Var(x,_)) -> _bind_filt bound site_x [x]
+  | Var_body (Var(x,_)) -> _bind_filter bound site_x [x]
   | Input_body -> []
-  | Appl_body (Var(x1,_),Var(x2,_)) -> _bind_filt bound site_x [x1;x2]
+  | Appl_body (Var(x1,_),Var(x2,_)) -> _bind_filter bound site_x [x1;x2]
   | Conditional_body (Var(x,_), e1, e2) ->
-    _bind_filt bound site_x [x] @
+    _bind_filter bound site_x [x] @
     check_scope_expr bound e1 @
     check_scope_expr bound e2
-  | Match_body (Var(x,_), _) -> _bind_filt bound site_x [x]
-  | Projection_body (Var(x,_), _) -> _bind_filt bound site_x [x]
+  | Match_body (Var(x,_), _) -> _bind_filter bound site_x [x]
+  | Projection_body (Var(x,_), _) -> _bind_filter bound site_x [x]
   | Binary_operation_body (Var(x1,_), _, Var(x2,_)) ->
-    _bind_filt bound site_x [x1;x2]
-  | Abort_body -> []
+    _bind_filter bound site_x [x1;x2]
+  | Abort_body var_list ->
+    List.fold_left
+      (fun accum var ->
+        let Var(x,_) = var in
+        (_bind_filter bound site_x [x]) @ accum)
+      []
+      var_list
 ;;
 
 (** Returns a list of pairs of variables. The pair represents a violation on the
@@ -186,7 +193,8 @@ let rec map_expr_vars (fn : Var.t -> Var.t) (e : expr) : expr =
 and map_clause_vars (fn : Var.t -> Var.t) (c : clause) : clause =
   let Clause(x,b) = c in Clause(fn x, map_clause_body_vars fn b)
 
-and map_clause_body_vars (fn : Var.t -> Var.t) (b : clause_body) : clause_body =
+and map_clause_body_vars (fn : Var.t -> Var.t) (b : clause_body)
+  : clause_body =
   match (b : clause_body) with
   | Value_body v -> Value_body (map_value_vars fn v)
   | Var_body x -> Var_body (fn x)
@@ -200,7 +208,8 @@ and map_clause_body_vars (fn : Var.t -> Var.t) (b : clause_body) : clause_body =
     Projection_body(fn x, l)
   | Binary_operation_body (x1, op, x2) ->
     Binary_operation_body (fn x1, op, fn x2)
-  | Abort_body -> Abort_body
+  | Abort_body var_list ->
+    Abort_body (List.map fn var_list)
 
 and map_value_vars (fn : Var.t -> Var.t) (v : value) : value =
   match (v : value) with
@@ -225,22 +234,22 @@ let rec transform_exprs_in_expr (fn : expr -> expr) (e : expr) : expr =
 and transform_exprs_in_clause (fn : expr -> expr) (c : clause) : clause =
   let Clause(x,b) = c in Clause(x, transform_exprs_in_clause_body fn b)
 
-and transform_exprs_in_clause_body (fn : expr -> expr) (b : clause_body)
+and transform_exprs_in_clause_body (fn : expr -> expr) (body : clause_body)
   : clause_body =
-  match (b : clause_body) with
+  match (body : clause_body) with
   | Value_body v -> Value_body (transform_exprs_in_value fn v)
-  | Var_body _ -> b
+  | Var_body _ -> body
   | Input_body -> Input_body
-  | Appl_body (_, _) -> b
+  | Appl_body (_, _) -> body
   | Conditional_body (x, e1, e2) ->
     Conditional_body (x,
                       transform_exprs_in_expr fn e1,
                       transform_exprs_in_expr fn e2)
   | Match_body(x, p) ->
     Match_body(x, p)
-  | Projection_body (_, _) -> b
-  | Binary_operation_body (_, _, _) -> b
-  | Abort_body -> Abort_body
+  | Projection_body (_, _) -> body
+  | Binary_operation_body (_, _, _) -> body
+  | Abort_body _ -> body
 
 and transform_exprs_in_value (fn : expr -> expr) (v : value) : value =
   match (v : value) with
