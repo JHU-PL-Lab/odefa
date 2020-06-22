@@ -43,6 +43,7 @@ rule token = parse
   | "abort"                          { KEYWORD_ABORT }
   | "fun"                            { KEYWORD_FUN }
   | "int"                            { KEYWORD_INT }
+  | "bool"                           { KEYWORD_BOOL }
   | "true"                           { KEYWORD_TRUE }
   | "false"                          { KEYWORD_FALSE }
   | "and"                            { KEYWORD_AND }

@@ -104,10 +104,10 @@ F.assert_solutions
   [ F.set_int F.x 5;
     F.set_bool F.y true;
     F.set_match F.z F.x Int_pattern;
-    F.set_match F.w F.y (Bool_pattern false);
+    F.set_match F.w F.y Bool_pattern;
   ]
   [ (F.z, Some(Value_bool true));
-    (F.w, Some(Value_bool false)); 
+    (F.w, Some(Value_bool true)); 
   ]
 ;;
 
@@ -132,8 +132,8 @@ _add_test "unsolvable pattern match" @@ fun _ ->
 F.assert_unsolvable
   [ F.alias F.y F.z;
     F.set_bool F.x true;
-    F.set_match F.y F.x (Bool_pattern true);
-    F.set_match F.z F.x (Bool_pattern false);
+    F.set_match F.y F.x Bool_pattern;
+    F.set_match F.z F.x Fun_pattern;
   ]
 ;;
 

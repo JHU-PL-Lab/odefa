@@ -1,4 +1,5 @@
 open Batteries;;
+(* open Jhupllib;; *)
 
 open Odefa_ast;;
 
@@ -60,7 +61,7 @@ type t =
     (**  An index of all pattern matching constraints over the symbol being
          matched. As the symbol can be matched many times (and the results
          assigned in many clauses), this is a multimap. *)
-    (* match_constraints_by_match_symbol : Symbol_to_symbol_and_pattern_multimap.t; *)
+    match_constraints_by_match_symbol : Symbol_to_symbol_and_pattern_multimap.t;
 
     (** An index of all symbol type constraints.  Because each symbol must have
         exactly one type, this is a normal dictionary. *)
@@ -83,8 +84,8 @@ let empty =
     value_constraints_by_symbol = Symbol_map.empty;
     projection_constraints_by_record_symbol =
       Symbol_to_symbol_and_ident_multimap.empty;
-    (* match_constraints_by_match_symbol =
-      Symbol_to_symbol_and_pattern_multimap.empty; *)
+    match_constraints_by_match_symbol =
+      Symbol_to_symbol_and_pattern_multimap.empty;
     type_constraints_by_symbol = Symbol_map.empty;
     stack_constraint = None;
   }
@@ -155,12 +156,12 @@ let rec _add_constraints_and_close
                 solver.projection_constraints_by_record_symbol
           }
         (* TODO: Flesh out Constraint_match *)
-        | Constraint_match(_,_,_) ->
+        | Constraint_match(x1,x2,p) ->
           { solver with
             constraints = Constraint.Set.add c solver.constraints;
-            (* match_constraints_by_match_symbol =
-              Symbol_to_symbol_and_pattern_multimap.add x (x', pattern)
-                solver.match_constraints_by_match_symbol *)
+            match_constraints_by_match_symbol =
+              Symbol_to_symbol_and_pattern_multimap.add x2 (x1, p)
+                solver.match_constraints_by_match_symbol
           }
         | Constraint_type(x,t) ->
           { solver with
@@ -313,17 +314,13 @@ let rec _add_constraints_and_close
                 | None ->
                   nc
               end
-            | Bool_pattern b ->
+            | Bool_pattern ->
               begin
-                let bool_val = Symbol_map.Exceptionless.find x'
-                  solver.value_constraints_by_symbol
-                in
-                match bool_val with
-                | Some(Bool b') ->
-                  if b = b' then
-                    nc |> Constraint.Set.add @@ Constraint_value(x, Bool(true))
-                  else
-                    nc |> Constraint.Set.add @@ Constraint_value(x, Bool(false))
+                let typ = Symbol_map.Exceptionless.find x'
+                  solver.type_constraints_by_symbol in
+                match typ with
+                | Some(BoolSymbol) ->
+                  nc |> Constraint.Set.add @@ Constraint_value(x, Bool(true))
                 | Some(_) ->
                   nc |> Constraint.Set.add @@ Constraint_value(x, Bool(false))
                 | None ->
@@ -554,6 +551,25 @@ let solve (solver : t) : solution option =
 let solvable solver =
   Option.is_some @@ solve solver
 ;;
+
+(*
+let find_type_errors solver =
+  solver.match_constraints_by_match_symbol
+  |> Symbol_to_symbol_and_pattern_multimap.enum
+  |> List.of_enum
+  |> List.filter_map (fun (key, value) ->
+    let (x, p) = value in
+    let xval = Symbol_map.find x solver.value_constraints_by_symbol in
+    match xval with
+    | Bool(true) ->
+      None
+    | Bool(false) ->
+      Some(key, p (*, Symbol_map.find key solver.type_constraints_by_symbol *))
+    | _ ->
+      raise @@ Utils.Invariant_failure "Match symbol should have boolean value"
+  )
+;;
+*)
 
 let enum solver = Constraint.Set.enum solver.constraints;;
 

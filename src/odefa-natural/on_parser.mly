@@ -35,6 +35,7 @@ exception On_Parse_error of string;;
 %token OR
 %token NOT
 %token INT
+%token BOOL_KEYWORD
 %token INPUT
 %token MATCH
 %token END
@@ -221,7 +222,7 @@ match_expr:
 pattern:
   | UNDERSCORE { AnyPat }
   | INT { IntPat }
-  | BOOL { if $1 then TruePat else FalsePat }
+  | BOOL_KEYWORD { BoolPat }
   | FUNCTION { FunPat }
   | IDENTIFIER { VarPat(Ident($1)) }
   | BACKTICK variant_label pattern { VariantPat(Variant($2, $3)) } %prec prec_variant

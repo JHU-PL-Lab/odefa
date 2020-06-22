@@ -31,8 +31,7 @@ let rec pat_vars (pat : On_ast.pattern) : On_ast.Ident_set.t =
   match pat with
   | On_ast.AnyPat -> On_ast.Ident_set.empty
   | On_ast.IntPat -> On_ast.Ident_set.empty
-  | On_ast.TruePat -> On_ast.Ident_set.empty
-  | On_ast.FalsePat -> On_ast.Ident_set.empty
+  | On_ast.BoolPat -> On_ast.Ident_set.empty
   | On_ast.RecPat m ->
     m
     |> On_ast.Ident_map.enum
@@ -57,8 +56,7 @@ let rec pat_rename_vars
   match pat with
   | On_ast.AnyPat -> pat
   | On_ast.IntPat -> pat
-  | On_ast.TruePat -> pat
-  | On_ast.FalsePat -> pat
+  | On_ast.BoolPat -> pat
   | On_ast.RecPat m ->
     On_ast.RecPat(On_ast.Ident_map.map (pat_rename_vars renaming) m)
   | On_ast.VariantPat(Variant(lbl,pat')) ->
@@ -563,8 +561,7 @@ let convert_patterns (pattern: On_ast.pattern) : Ast.pattern =
   match pattern with
   | On_ast.AnyPat -> Ast.Any_pattern
   | On_ast.IntPat -> Ast.Int_pattern
-  | On_ast.TruePat -> Ast.Bool_pattern(true)
-  | On_ast.FalsePat -> Ast.Bool_pattern(false)
+  | On_ast.BoolPat -> Ast.Bool_pattern
   | On_ast.FunPat -> Ast.Fun_pattern
   | On_ast.RecPat rec_pattern -> Ast.Rec_pattern (
       rec_pattern
@@ -931,96 +928,47 @@ let rec condition_clauses
         end
       | Binary_operation_body (v1, binop, v2) ->
         begin
-          match binop with
-          | Binary_operator_plus
-          | Binary_operator_minus
-          | Binary_operator_times
-          | Binary_operator_divide
-          | Binary_operator_modulus
-          | Binary_operator_less_than
-          | Binary_operator_less_than_or_equal_to
-          | Binary_operator_equal_to ->
-            (*
-              binop = a + b;
-              ==>
-              m1 = a ~ int;
-              m2 = b ~ int;
-              m = m1 and m2;
-              constrain_binop = m ? (binop = a + b) : (ab = abort)
-            *)
-            begin
-              (* Variables *)
-              let%bind m1 = fresh_var "m1" in
-              let%bind m2 = fresh_var "m2" in
-              let%bind m = fresh_var "m" in
-              let%bind v = fresh_var "constrain_binop" in
-              (* Clauses *)
-              let m1_clause = Ast.Clause(m1, Match_body(v1, Int_pattern)) in
-              let m2_clause = Ast.Clause(m2, Match_body(v2, Int_pattern)) in
-              (* Let-bind operator to stay under 80 lines *)
-              let and_op = Ast.Binary_operator_and in
-              let m_clause
-                = Ast.Clause(m, Binary_operation_body(m1, and_op, m2))
-              in
-              let%bind new_clauses' = condition_clauses clauses' in
-              let%bind t_path = return @@ Ast.Expr(clause :: new_clauses') in
-              let%bind f_path = get_abort_expr in
-              let val_clause
-                = Ast.Clause(v, Conditional_body(m, t_path, f_path))
-              in
-              return @@ [m1_clause; m2_clause; m_clause; val_clause]
-            end
-          | Binary_operator_and
-          | Binary_operator_or
-          | Binary_operator_xor ->
-            (*
-              binop = a and b;
-              ==>
-              m1t = a ~ true;
-              m1f = a ~ false;
-              m2t = b ~ true;
-              m2f = b ~ false;
-              m1 = m1t or m1f;
-              m2 = m2t or m2f;
-              m = m1 and m2;
-              constrain_binop = m ? (binop = a and b) : (ab = abort)
-            *)
-            begin
-              (* Variables *)
-              let%bind m1t = fresh_var "m1t" in
-              let%bind m1f = fresh_var "m1f" in
-              let%bind m2t = fresh_var "m2t" in
-              let%bind m2f = fresh_var "m2f" in
-              let%bind m1 = fresh_var "m1" in
-              let%bind m2 = fresh_var "m2" in
-              let%bind m = fresh_var "m" in
-              let%bind v = fresh_var "constrain_binop" in
-              (* Clauses *)
-              let m1tc = Ast.Clause(m1t, Match_body(v1, Bool_pattern true)) in
-              let m1fc = Ast.Clause(m1f, Match_body(v1, Bool_pattern false)) in
-              let m2tc = Ast.Clause(m2t, Match_body(v2, Bool_pattern true)) in
-              let m2fc = Ast.Clause(m2f, Match_body(v2, Bool_pattern false)) in
-              (* Let-bind operators to stay under 80 lines *)
-              let or_op = Ast.Binary_operator_or in
-              let and_op = Ast.Binary_operator_and in
-              let m1c
-                = Ast.Clause(m1, Binary_operation_body(m1t, or_op, m1f))
-              in
-              let m2c
-                = Ast.Clause(m2, Binary_operation_body(m2t, or_op, m2f))
-              in
-              let mc
-                = Ast.Clause(m, Binary_operation_body(m1, and_op, m2))
-              in
-              let%bind new_clauses' = condition_clauses clauses' in
-              let%bind t_path = return @@ Ast.Expr(clause :: new_clauses') in
-              let%bind f_path = get_abort_expr in
-              let val_clause
-                = Ast.Clause(v, Conditional_body(m, t_path, f_path))
-              in
-              return @@
-                [m1tc; m1fc; m2tc; m2fc; m1c; m2c; mc; val_clause]
-            end
+          (*
+            binop = a + b;
+            ==>
+            m1 = a ~ int;
+            m2 = b ~ int;
+            m = m1 and m2;
+            constrain_binop = m ? (binop = a + b) : (ab = abort);
+          *)
+          let pattern =
+            match binop with
+            | Binary_operator_plus
+            | Binary_operator_minus
+            | Binary_operator_times
+            | Binary_operator_divide
+            | Binary_operator_modulus
+            | Binary_operator_less_than
+            | Binary_operator_less_than_or_equal_to
+            | Binary_operator_equal_to -> Ast.Int_pattern
+            | Binary_operator_and
+            | Binary_operator_or
+            | Binary_operator_xor -> Ast.Bool_pattern 
+          in
+          (* Variables *)
+          let%bind m1 = fresh_var "m1" in
+          let%bind m2 = fresh_var "m2" in
+          let%bind m = fresh_var "m" in
+          let%bind v = fresh_var "constrain_binop" in
+          (* Clauses *)
+          let m1_clause = Ast.Clause(m1, Match_body(v1, pattern)) in
+          let m2_clause = Ast.Clause(m2, Match_body(v2, pattern)) in
+          (* Let-bind operator to stay under 80 lines *)
+          let and_op = Ast.Binary_operator_and in
+          let binop_body = Ast.Binary_operation_body(m1, and_op, m2) in
+          let m_clause = Ast.Clause(m, binop_body) in
+          let%bind new_clauses' = condition_clauses clauses' in
+          let%bind t_path = return @@ Ast.Expr(clause :: new_clauses') in
+          let%bind f_path = get_abort_expr in
+          let val_clause
+            = Ast.Clause(v, Conditional_body(m, t_path, f_path))
+          in
+          return @@ [m1_clause; m2_clause; m_clause; val_clause]
         end
       | Projection_body (r, lbl) ->
         begin
@@ -1032,12 +980,11 @@ let rec condition_clauses
           *)
           let%bind m = fresh_var "m" in
           let%bind v = fresh_var "constrain_proj" in
-          let rec_pattern =
+          let rec_pat_set =
             Ast.Ident_set.add lbl Ast.Ident_set.empty
           in
-          let m_clause =
-            Ast.Clause(m, Match_body(r, Rec_pattern rec_pattern))
-          in
+          let rec_pat = Ast.Rec_pattern rec_pat_set in
+          let m_clause = Ast.Clause(m, Match_body(r, rec_pat)) in
           let%bind new_clauses' = condition_clauses clauses' in
           let%bind t_path = return @@ Ast.Expr(clause :: new_clauses') in
           let%bind f_path = get_abort_expr in
@@ -1065,18 +1012,33 @@ let rec condition_clauses
           in
           return @@ [m_clause; val_clause]
         end
-      | Conditional_body (pred, Ast.Expr(true_path), Ast.Expr(flse_path)) ->
+      | Conditional_body (pred, _, _) ->
         begin
           (* NOTE: The pattern match transformation is different from others
             in order to more closely match the syntax in the DDSE paper.
           *)
           (*
-            val = pred ? true_path : false_path;
+            cond = pred ? true_path : false_path;
             ==>
             v = pred
                 ? (mt = pred ~ true; iftrue = mt ? true_path : (abt = abort))
                 : (mf = pred ~ false; iffalse = mf ? false_path : (abf = abort))
+            ==>
+            m = pred ~ bool;
+            constrain_cond = m ? (cond = pred ? true_path  : false_path)
+                               : (ab = abort)
           *)
+          let%bind m = fresh_var "m" in
+          let%bind v = fresh_var "constrain_cond" in
+          let m_clause = Ast.Clause(m, Match_body(pred, Bool_pattern)) in
+          let%bind new_clauses' = condition_clauses clauses' in
+          let%bind t_path = return @@ Ast.Expr(clause :: new_clauses') in
+          let%bind f_path = get_abort_expr in
+          let val_clause
+            = Ast.Clause(v, Conditional_body(m, t_path, f_path))
+          in
+          return @@ [m_clause; val_clause]
+          (*
           let%bind mt = fresh_var "mt" in
           let%bind mf = fresh_var "mf" in
           let%bind vt = fresh_var "iftrue" in
@@ -1105,6 +1067,7 @@ let rec condition_clauses
           in
           let%bind new_clauses' = condition_clauses clauses' in
           return @@ new_clause :: new_clauses'
+          *)
         end
     end
   | [] -> return []
@@ -1139,6 +1102,7 @@ let translate
       >>= debug_transform "post-alphatize" alphatize
     in
     let%bind (c_list, _) = flatten_expr transformed_e in
+    (* TODO: Let instrumentation be toggleable from command line *)
     let%bind c_list = condition_clauses c_list in (* NEW! *)
     let Clause(last_var, _) = List.last c_list in
     let%bind fresh_str = freshness_string in

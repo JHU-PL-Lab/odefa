@@ -122,10 +122,10 @@ let stdin_input_source (_:var) = Value_int(read_int());;
 let matches env x p : bool =
   let v = lookup env x in
   match v, p with
-  | _, Any_pattern -> true
-  | (Value_function(Function_value(_)), Fun_pattern) -> true
-  | (Value_int _, Int_pattern) -> true
-  | (Value_bool b, Bool_pattern b') -> b = b'
+  | (_, Any_pattern)
+  | (Value_function(Function_value(_)), Fun_pattern)
+  | (Value_int _, Int_pattern)
+  | (Value_bool _, Bool_pattern) -> true
   | (Value_record(Record_value(record)), Rec_pattern p_record) ->
     begin
       let pattern_enum = Ident_set.enum p_record in

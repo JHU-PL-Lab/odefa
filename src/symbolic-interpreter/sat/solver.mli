@@ -63,6 +63,8 @@ val solve : t -> solution option;;
 (** Determines whether a solution exists for a given solver. *)
 val solvable : t -> bool;;
 
+(* val find_type_errors : t -> (symbol * Ast.pattern) list;; *)
+
 (** Enumerates the constraints in a solver. *)
 val enum : t -> Constraint.t Enum.t;;
 

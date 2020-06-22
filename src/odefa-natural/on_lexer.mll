@@ -35,13 +35,14 @@ rule token = parse
 | "`"                  { BACKTICK }
 | "="                  { EQUALS }
 | "."                  { DOT }
-| "::"                  { DOUBLE_COLON }
+| "::"                 { DOUBLE_COLON }
 | "_"                  { UNDERSCORE }
 | "|"                  { PIPE }
 | "and"                { AND }
 | "or"                 { OR }
 | "not"                { NOT }
 | "int"                { INT }
+| "bool"               { BOOL_KEYWORD }
 | "fun"                { FUNCTION }
 | "function"           { FUNCTION }
 | "record"             { RECORD }

@@ -152,7 +152,7 @@ and expr = Expr of clause list [@@deriving eq, ord, to_yojson]
 and pattern =
   | Fun_pattern
   | Int_pattern
-  | Bool_pattern of bool
+  | Bool_pattern
   | Rec_pattern of Ident_set.t
   | Any_pattern
 [@@ deriving eq, ord, yojson]

@@ -77,7 +77,7 @@ let pp formatter sc =
     Format.fprintf formatter "%a = %a !~ %a"
       pp_symbol x pp_symbol x' pp_pattern p *)
   | Constraint_type(x,t) ->
-    Format.fprintf formatter "%a = %a" pp_symbol x pp_symbol_type t
+    Format.fprintf formatter "%a ~ %a" pp_symbol x pp_symbol_type t
   | Constraint_stack(s) ->
     Format.fprintf formatter "stack = %a" Relative_stack.pp_concrete_stack s
 ;;

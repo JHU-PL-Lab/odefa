@@ -107,8 +107,7 @@ and pp_pattern formatter p =
   match p with
   | Fun_pattern -> Format.pp_print_string formatter "fun"
   | Int_pattern -> Format.pp_print_string formatter "int"
-  | Bool_pattern(b) ->
-  Format.pp_print_string formatter @@ if b then "true" else "false"
+  | Bool_pattern -> Format.pp_print_string formatter "bool"
   | Rec_pattern els ->
     let pp_element formatter idnt =
       Format.fprintf formatter "%a" pp_ident idnt

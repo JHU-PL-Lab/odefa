@@ -20,7 +20,7 @@ let lbl_value_m : Ident.t m = _lbl_m "value";;
 (* This function encodes all list-related patterns with record patterns *)
 let rec encode_list_pattern (pat : pattern) : pattern m =
   match pat with
-  | AnyPat | IntPat | TruePat | FalsePat | FunPat | VarPat _ ->
+  | AnyPat | IntPat | BoolPat | FunPat | VarPat _ ->
     return pat
   | RecPat (rec_map) ->
     let%bind rec_map' =
@@ -152,7 +152,7 @@ let rec variant_pattern_to_record ((Variant(v_label, pat)) : variant_content)
    within it to Record patterns. *)
 and encode_variant_pattern (p : pattern) : pattern m =
   match p with
-  | AnyPat | IntPat | TruePat | FalsePat | FunPat | VarPat _ ->
+  | AnyPat | IntPat | BoolPat | FunPat | VarPat _ ->
     return p
   | RecPat (rec_map) ->
     let%bind rec_map' = ident_map_map_m encode_variant_pattern rec_map in
@@ -214,7 +214,7 @@ let rec encode_var_pat
   : (pattern * ((ident * expr) list))
   =
   match pat with
-  | AnyPat | IntPat | TruePat | FalsePat | FunPat ->
+  | AnyPat | IntPat | BoolPat | FunPat ->
     (pat, [])
   | RecPat (pat_map) ->
     (* This routine accumulates the new map (that does not have any variable

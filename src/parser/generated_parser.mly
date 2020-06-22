@@ -23,6 +23,7 @@ module List = BatList;;
 %token KEYWORD_ABORT
 %token KEYWORD_FUN
 %token KEYWORD_INT
+%token KEYWORD_BOOL
 %token KEYWORD_TRUE
 %token KEYWORD_FALSE
 %token KEYWORD_AND
@@ -169,8 +170,8 @@ pattern:
       { Fun_pattern }
   | KEYWORD_INT
       { Int_pattern }
-  | bool_pattern
-      { Bool_pattern($1) }
+  | KEYWORD_BOOL
+      { Bool_pattern }
   | KEYWORD_ANY
       { Any_pattern }
   | UNDERSCORE
@@ -187,13 +188,6 @@ record_pattern:
 record_pattern_element:
   | identifier
       { $1 }
-  ;
-
-bool_pattern:
-  | KEYWORD_TRUE
-      { true }
-  | KEYWORD_FALSE
-      { false }
   ;
 
 separated_nonempty_trailing_list(separator, rule):
