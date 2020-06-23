@@ -11,6 +11,8 @@ module List = BatList;;
 %token CLOSE_BRACE
 %token OPEN_PAREN
 %token CLOSE_PAREN
+%token OPEN_BRACKET
+%token CLOSE_BRACKET
 %token SEMICOLON
 %token COMMA
 %token EQUALS
@@ -85,8 +87,8 @@ clause_body:
       { Value_body($1) }
   | KEYWORD_INPUT
       { Input_body }
-  | KEYWORD_ABORT
-      { Abort_body [] } /* FIXME: Add variables */
+  | KEYWORD_ABORT variable_list
+      { Abort_body $2 }
   | variable
       { Var_body($1) }
   | variable variable
@@ -121,6 +123,13 @@ clause_body:
       { Binary_operation_body($1,Binary_operator_or,$3) }
   | variable KEYWORD_XOR variable
       { Binary_operation_body($1,Binary_operator_xor,$3) }
+  ;
+
+variable_list:
+  | OPEN_BRACKET CLOSE_BRACKET
+      { [] }
+  | OPEN_BRACKET separated_nonempty_trailing_list(COMMA, variable) CLOSE_BRACKET
+      { $2 }
   ;
 
 value:
