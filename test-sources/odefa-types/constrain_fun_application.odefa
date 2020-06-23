@@ -1,0 +1,10 @@
+# EXPECT-WELL-FORMED
+# EXPECT-STUCK
+# TODO: Add test for type error
+
+a = 0;
+f = false;
+
+m = f ~ fun;
+mres = m ? ( ret = f a ) : ( ab = abort[m] );
+t = mres;

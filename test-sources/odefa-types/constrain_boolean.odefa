@@ -1,0 +1,13 @@
+# EXPECT-WELL-FORMED
+# EXPECT-STUCK
+# TODO: Add test for type error
+
+b1 = false;
+b2 = 0;
+
+m1 = b1 ~ bool;
+m2 = b2 ~ bool;
+m = m1 and m2;
+
+mres = m ? ( ret = b1 and b2 ) : ( ab = abort[m1, m2] );
+t = mres
