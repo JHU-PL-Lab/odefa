@@ -49,6 +49,10 @@ let string_of_input_sequences input_sequences =
   String.join ", " @@ List.map string_of_input_sequence input_sequences
 ;;
 
+(* TODO: New expectations:
+ * | Expect_test_error of variable expected_type actual_type
+ *)
+
 type test_expectation =
   | Expect_evaluate
   | Expect_stuck
@@ -65,6 +69,8 @@ type test_expectation =
       bool (* true if we should be certain that generation is complete *)
   | Expect_required_input_sequence_generation_steps of int
 ;;
+
+(* **** Expectation utility functions **** *)
 
 let pp_test_expectation formatter expectation =
   match expectation with
@@ -96,6 +102,42 @@ let pp_test_expectation formatter expectation =
     Format.fprintf formatter "Expect input sequence generation steps = %d" n
 ;;
 
+let name_of_expectation expectation =
+  match expectation with
+  | Expect_evaluate -> "should evaluate"
+  | Expect_stuck -> "should get stuck"
+  | Expect_well_formed -> "should be well-formed"
+  | Expect_ill_formed -> "should be ill-formed"
+  | Expect_analysis_stack_is stack_option ->
+    let name =
+      match stack_option with
+      | Some stack ->
+        let module Stack =
+          (val stack : Ddpa_context_stack.Context_stack)
+        in
+        Stack.name
+      | None -> "none"
+    in
+    "should use analysis stack " ^ name
+  | Expect_input_is inputs ->
+    "should have input " ^ (string_of_input_sequence inputs)
+  | Expect_analysis_variable_lookup_from_end(ident,_) ->
+    "should have particular values for variable " ^ (show_ident ident)
+  | Expect_analysis_inconsistency_at ident ->
+    "should be inconsistent at " ^ show_ident ident
+  | Expect_analysis_no_inconsistencies ->
+    "should be consistent"
+  | Expect_input_sequences_reach(var,sequences,complete) ->
+    Printf.sprintf "should reach variable %s with inputs %s%s"
+      var
+      (string_of_input_sequences sequences)
+      (if complete then " (and no others)" else "")
+  | Expect_required_input_sequence_generation_steps(n) ->
+    Printf.sprintf "should only require %d steps to discover inputs" n
+;;
+
+(* **** Expectation parsing **** *)
+
 type expectation_parse =
   | Success of test_expectation
   | Failure of string
@@ -110,44 +152,106 @@ type expectation_stack_decision =
   | Chosen_stack of (module Ddpa_context_stack.Context_stack) option
 ;;
 
+let assert_no_args lst =
+  if List.is_empty lst
+  then ()
+  else raise @@ Expectation_parse_failure "expected no arguments"
+;;
+
+let assert_one_arg lst =
+  match lst with
+  | [x] -> x
+  | _ ->
+    raise @@
+    Expectation_parse_failure ("expected one argument; got " ^
+                               string_of_int (List.length lst))
+;;
+
+let assert_two_args lst =
+  match lst with
+  | [x;y] -> (x,y)
+  | _ ->
+    raise @@
+    Expectation_parse_failure ("expected two arguments; got " ^
+                               string_of_int (List.length lst))
+;;
+
+(* Parse the input sequence integers + final bool variable *)
+let parse_input_args chars : int list list * bool =
+  let parse_int chars : int * char list =
+    let is_digit_char c = (Char.is_digit c) || c == '-' in
+    let ns = List.take_while is_digit_char chars in
+    let parse_exception = Expectation_parse_failure(
+        "In input sequence expectation, expected integer at: " ^
+        (String.of_list chars)) in
+    if List.is_empty ns then begin
+      raise parse_exception
+    end else begin
+      let chars' = List.drop_while is_digit_char chars in
+      let to_int_result = int_of_string_opt @@ String.of_list ns in
+      match to_int_result with
+      | Some i -> (i, chars')
+      | None -> raise parse_exception
+    end
+  in
+  let parse_input_sequence chars : int list option * char list =
+    match chars with
+    | '[' :: chars' ->
+      let first, chars'' = parse_int chars' in
+      let rec loop loop_chars : int list * char list =
+        match loop_chars with
+        | ',' :: loop_chars' ->
+          let num, loop_chars'' = parse_int loop_chars' in
+          let nums, loop_chars''' = loop loop_chars'' in
+          (num :: nums, loop_chars''')
+        | ']' :: loop_chars' ->
+          ([], loop_chars')
+        | _ ->
+          raise @@ Expectation_parse_failure(
+            "In input sequence expectation, expected comma at: " ^
+            (String.of_list chars))
+      in
+      let rest, chars''' = loop chars'' in
+      (Some (first :: rest), chars''')
+    | _ ->
+      (None, chars)
+  in
+  let rec parse_input_sequences chars : int list list * char list =
+    let (seq_opt, chars') = parse_input_sequence chars in
+    match seq_opt with
+    | Some seq ->
+      let (rest, chars'') = parse_input_sequences chars' in
+      (seq :: rest, chars'')
+    | None ->
+      ([], chars')
+  in
+  let nums, chars' = parse_input_sequences chars in
+  match chars' with
+  | [] -> (nums, false)
+  | ['!'] -> (nums, true)
+  | _ ->
+    raise @@ Expectation_parse_failure(
+      "In input sequence expectation, unexpected trailing characters: " ^
+      (String.of_list chars'))
+;;
+
 let parse_expectation str =
-  let assert_no_args lst =
-    if List.is_empty lst
-    then ()
-    else raise @@ Expectation_parse_failure "expected no arguments"
-  in
-  let assert_one_arg lst =
-    match lst with
-    | [x] -> x
-    | _ ->
-      raise @@
-      Expectation_parse_failure ("expected one argument; got " ^
-                                 string_of_int (List.length lst))
-  in
-  let assert_two_args lst =
-    match lst with
-    | [x;y] -> (x,y)
-    | _ ->
-      raise @@
-      Expectation_parse_failure ("expected two arguments; got " ^
-                                 string_of_int (List.length lst))
-  in
   try
     let expectation =
       match String_utils.whitespace_split ~max:2 str with
-      | "EXPECT-EVALUATE"::args_part ->
+      | "EXPECT-EVALUATE" :: args_part ->
         assert_no_args args_part;
         Expect_evaluate
-      | "EXPECT-STUCK"::args_part ->
+      | "EXPECT-STUCK" :: args_part ->
         assert_no_args args_part;
         Expect_stuck
-      | "EXPECT-WELL-FORMED"::args_part ->
+      | "EXPECT-WELL-FORMED" :: args_part ->
         assert_no_args args_part;
         Expect_well_formed
-      | "EXPECT-ILL-FORMED"::args_part ->
+      | "EXPECT-ILL-FORMED" :: args_part ->
         assert_no_args args_part;
         Expect_ill_formed
-      | "EXPECT-ANALYSIS-STACK-IS"::args_part ->
+      | "EXPECT-ANALYSIS-STACK-IS" :: args_part ->
         let args_str = String.join "" args_part in
         let args = whitespace_split args_str in
         let name = assert_one_arg args in
@@ -175,21 +279,21 @@ let parse_expectation str =
             )
         in
         Expect_input_is inputs
-      | "EXPECT-ANALYSIS-LOOKUP-FROM-END"::args_part ->
+      | "EXPECT-ANALYSIS-LOOKUP-FROM-END" :: args_part ->
         let args_str = String.join "" args_part in
         let args = whitespace_split ~max:2 args_str in
         let (ident_str, pp_expectation) = assert_two_args args in
         let ident = Ident(ident_str) in
         Expect_analysis_variable_lookup_from_end(ident,pp_expectation)
-      | "EXPECT-ANALYSIS-INCONSISTENCY-AT"::args_part ->
+      | "EXPECT-ANALYSIS-INCONSISTENCY-AT" :: args_part ->
         let args_str = String.join "" args_part in
         let args = whitespace_split args_str in
         let call_site = assert_one_arg args in
         Expect_analysis_inconsistency_at (Ident(call_site))
-      | "EXPECT-ANALYSIS-NO-INCONSISTENCIES"::args_part ->
+      | "EXPECT-ANALYSIS-NO-INCONSISTENCIES" :: args_part ->
         assert_no_args args_part;
         Expect_analysis_no_inconsistencies
-      | "EXPECT-INPUT-SEQUENCES-REACH"::args_part ->
+      | "EXPECT-INPUT-SEQUENCES-REACH" :: args_part ->
         begin
           match String_utils.whitespace_split ~max:2
                   (String.join "" args_part) with
@@ -197,71 +301,17 @@ let parse_expectation str =
             raise @@ Expectation_parse_failure
               "Missing input sequence variable name"
           | variable_name :: rest_args ->
-            let parse_rest_args chs =
-              let parse_int chs : int * char list =
-                let is_digit_char c = (Char.is_digit c) || c == '-' in
-                let ns = List.take_while is_digit_char chs in
-                let parse_exception = Expectation_parse_failure(
-                    "In input sequence expectation, expected integer at: " ^
-                    (String.of_list chs)) in
-                if List.is_empty ns then begin
-                  raise parse_exception
-                end else begin
-                  let chs' = List.drop_while is_digit_char chs in
-                  let to_int_result = int_of_string_opt @@ String.of_list ns in
-                  match to_int_result with
-                  | Some i -> (i, chs')
-                  | None -> raise parse_exception
-                end
-              in
-              let parse_input_sequence chs : int list option * char list =
-                match chs with
-                | '[' :: chs' ->
-                  let first, chs'' = parse_int chs' in
-                  let rec loop loop_chs : int list * char list =
-                    match loop_chs with
-                    | ',' :: loop_chs' ->
-                      let num, loop_chs'' = parse_int loop_chs' in
-                      let nums, loop_chs''' = loop loop_chs'' in
-                      (num :: nums, loop_chs''')
-                    | ']' :: loop_chs' ->
-                      ([], loop_chs')
-                    | _ ->
-                      raise @@ Expectation_parse_failure(
-                        "In input sequence expectation, expected comma at: " ^
-                        (String.of_list chs))
-                  in
-                  let rest, chs''' = loop chs'' in
-                  (Some (first :: rest), chs''')
-                | _ ->
-                  (None, chs)
-              in
-              let rec parse_input_sequences chs : int list list * char list =
-                let (seq_opt, chs') = parse_input_sequence chs in
-                match seq_opt with
-                | Some seq ->
-                  let (rest, chs'') = parse_input_sequences chs' in
-                  (seq :: rest, chs'')
-                | None ->
-                  ([], chs')
-              in
-              let nums, chs' = parse_input_sequences chs in
-              match chs' with
-              | [] -> (nums, false)
-              | ['!'] -> (nums, true)
-              | _ ->
-                raise @@ Expectation_parse_failure(
-                  "In input sequence expectation, unexpected trailing characters: " ^
-                  (String.of_list chs'))
+            let rest_chars =
+              rest_args
+              |> String.join ""
+              |> String.to_list
+              |> List.filter (not % Char.is_whitespace) 
             in
-            let (input_sequences, complete) =
-              parse_rest_args @@ List.filter (not % Char.is_whitespace) @@
-              String.to_list @@ String.join "" rest_args
-            in
+            let (input_sequences, complete) = parse_input_args rest_chars in
             Expect_input_sequences_reach(
               variable_name, input_sequences, complete)
         end
-      | "EXPECT-REQUIRED-INPUT-SEQUENCE-GENERATION-STEPS"::args ->
+      | "EXPECT-REQUIRED-INPUT-SEQUENCE-GENERATION-STEPS" :: args ->
         let nstr = assert_one_arg args in
         begin
           try
@@ -281,6 +331,8 @@ let parse_expectation str =
   | Expectation_parse_failure s -> Some (Failure s)
   | Expectation_not_found -> None
 ;;
+
+(* **** Expectation observation **** *)
 
 let observe_evaluated expectation =
   match expectation with
@@ -405,41 +457,11 @@ let observe_no_inconsistency expectation =
   | _ -> Some expectation
 ;;
 
+(* **** Testing **** *)
+
 let make_test filename expectations =
-  let name_of_expectation expectation = match expectation with
-    | Expect_evaluate -> "should evaluate"
-    | Expect_stuck -> "should get stuck"
-    | Expect_well_formed -> "should be well-formed"
-    | Expect_ill_formed -> "should be ill-formed"
-    | Expect_analysis_stack_is stack_option ->
-      let name =
-        match stack_option with
-        | Some stack ->
-          let module Stack =
-            (val stack : Ddpa_context_stack.Context_stack)
-          in
-          Stack.name
-        | None -> "none"
-      in
-      "should use analysis stack " ^ name
-    | Expect_input_is inputs ->
-      "should have input " ^ (string_of_input_sequence inputs)
-    | Expect_analysis_variable_lookup_from_end(ident,_) ->
-      "should have particular values for variable " ^ (show_ident ident)
-    | Expect_analysis_inconsistency_at ident ->
-      "should be inconsistent at " ^ show_ident ident
-    | Expect_analysis_no_inconsistencies ->
-      "should be consistent"
-    | Expect_input_sequences_reach(var,sequences,complete) ->
-      Printf.sprintf "should reach variable %s with inputs %s%s"
-        var
-        (string_of_input_sequences sequences)
-        (if complete then " (and no others)" else "")
-    | Expect_required_input_sequence_generation_steps(n) ->
-      Printf.sprintf "should only require %d steps to discover inputs" n
-  in
-  let test_name = filename ^ ": (" ^
-                  string_of_list name_of_expectation expectations ^ ")"
+  let test_name =
+    filename ^ ": (" ^ string_of_list name_of_expectation expectations ^ ")"
   in
   (* Create the test in a thunk. *)
   test_name >::
@@ -457,7 +479,8 @@ let make_test filename expectations =
     let observation f =
       expectations_left := List.filter_map f @@ !expectations_left;
       lazy_logger `trace (fun () ->
-          Printf.sprintf "In test for %s, expectations remaining after an observation: %s"
+          Printf.sprintf
+            "In test for %s, expectations remaining after an observation: %s"
             filename
             (Pp_utils.pp_to_string (Pp_utils.pp_list pp_test_expectation)
                !expectations_left)
@@ -470,6 +493,7 @@ let make_test filename expectations =
        satisfied.  This addresses nonsense cases such as expecting an ill-formed
        expression to evaluate. *)
     begin
+      (* Translate code if it's natodefa *)
       let is_nato = String.ends_with filename "natodefa" in
       let expr =
         if is_nato then
@@ -599,7 +623,7 @@ let make_test filename expectations =
       let input_generation_steps_ref = ref None in
       observation @@ observe_input_generation_steps input_generation_steps_ref;
       let input_generation_steps =
-        Option.default 10000 !input_generation_steps_ref
+        Option.default 10000 !input_generation_steps_ref (* TODO: Increase from 10000 *)
       in
       let input_generation_expectations =
         let (a,b) =
@@ -725,24 +749,24 @@ let make_test filename expectations =
 ;;
 
 let make_test_from filename =
+  let expectation_from_str str =
+    let str' = String.trim str in
+       if String.starts_with str' "#"
+       then
+         let str'' = String.trim @@ String.tail str' 1 in
+         match parse_expectation str'' with
+         | Some (Success expectation) -> Some(Success expectation)
+         | Some (Failure s) -> Some(Failure(
+             Printf.sprintf
+               "Error parsing expectation:\n        Error: %s\n        Text:  %s"
+               s str''))
+         | None -> None
+       else None
+  in
   let expectations =
     filename
     |> File.lines_of
-    |> Enum.filter_map
-      (fun str ->
-         let str' = String.trim str in
-         if String.starts_with str' "#"
-         then
-           let str'' = String.trim @@ String.tail str' 1 in
-           match parse_expectation str'' with
-           | Some (Success expectation) -> Some(Success expectation)
-           | Some (Failure s) -> Some(Failure(
-               Printf.sprintf
-                 "Error parsing expectation:\n        Error: %s\n        Text:  %s"
-                 s str''))
-           | None -> None
-         else None
-      )
+    |> Enum.filter_map expectation_from_str
     |> List.of_enum
   in
   let failures =
@@ -789,7 +813,7 @@ let wrap_make_test_from filename =
     filename >:: function _ -> assert_failure s
 ;;
 
-let make_all_tests pathname =
+let make_tests_from_dir pathname =
   let legal_exts = [".odefa"; ".natodefa"] in
   if Sys.file_exists pathname && Sys.is_directory pathname
   then
@@ -807,4 +831,11 @@ let make_all_tests pathname =
         "Test file directory " ^ pathname ^ " is missing"))
 ;;
 
-let tests = "Test_source_files" >::: make_all_tests "test-sources";;
+let tests =
+  "Test_source_files" >::: (
+    (* make_tests_from_dir "test-sources" @ *)
+    make_tests_from_dir "test-sources/odefa-basic" @
+    make_tests_from_dir "test-sources/odefa-fails" @
+    make_tests_from_dir "test-sources/odefa-stack"
+  )
+;;

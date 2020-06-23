@@ -3,6 +3,6 @@
 f = fun x -> (
   fr = 0
 );
-g = fun x -> ( # => ILL-FORMEDNESS
+g = fun x -> ( # x is un-alphatized 
   gr = 0;
 );

@@ -1,7 +1,8 @@
 # EXPECT-WELL-FORMED
 # EXPECT-EVALUATE
 # EXPECT-ANALYSIS-STACK-IS 0ddpa
-# EXPECT-ANALYSIS-LOOKUP-FROM-END z {false, true}
+# EXPECT-ANALYSIS-LOOKUP-FROM-END zx {false, true}
+# EXPECT-ANALYSIS-LOOKUP-FROM-END zy {false, true}
 # EXPECT-ANALYSIS-NO-INCONSISTENCIES
 
 empty = 0;
@@ -12,4 +13,5 @@ g = f a;
 h = f b;
 x = g empty;
 y = h empty;
-z = x;
+zx = x;
+zy = y;

@@ -1,0 +1,7 @@
+# EXPECT-ILL-FORMED
+
+f = fun fp -> (
+  fr = a; # a is a free variable here
+);
+
+a = f; 

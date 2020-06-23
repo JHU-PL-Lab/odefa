@@ -1,0 +1,16 @@
+# EXPECT-WELL-FORMED
+# EXPECT-EVALUATE
+# EXPECT-ANALYSIS-LOOKUP-FROM-END pa {int}
+# EXPECT-ANALYSIS-LOOKUP-FROM-END pb {true}
+# EXPECT-ANALYSIS-LOOKUP-FROM-END pc {false}
+# EXPECT-ANALYSIS-NO-INCONSISTENCIES
+
+a = 2;
+b = true;
+c = false;
+
+r = { la = a, lb = b, lc = c };
+
+pa = r.la;
+pb = r.lb;
+pc = r.lc;
