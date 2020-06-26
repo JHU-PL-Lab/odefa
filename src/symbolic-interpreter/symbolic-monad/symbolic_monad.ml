@@ -106,6 +106,7 @@ module type S = sig
   val record_decision :
     Relative_stack.t -> Ident.t -> clause -> Ident.t -> unit m;;
   val record_constraint : Constraint.t -> unit m;;
+  val record_abort_point : symbol -> symbol list -> unit m;;
   val check_constraints : 'a m -> 'a m;;
 
   type 'a evaluation;;
@@ -113,6 +114,7 @@ module type S = sig
   type 'a evaluation_result =
     { er_value : 'a;
       er_solver : Solver.t;
+      er_type_errors : (ident * type_sig * type_sig) list;
       er_evaluation_steps : int;
       er_result_steps : int;
     };;
@@ -137,17 +139,26 @@ struct
   type decision = Ident.t * clause * Ident.t [@@deriving show];;
   let _ = show_decision;;
 
-  type decision_map =
-    (Ident.t * clause * Ident.t) Relative_stack.Map.t
-  [@@deriving show]
-  ;;
+  type decision_map =(Ident.t * clause * Ident.t) Relative_stack.Map.t
+  [@@deriving show];;
   let _ = show_decision_map;;
+
+  type abort_program_point = symbol list [@@deriving eq, ord, show];;
+  let _ = equal_abort_program_point;;
+  let _ = compare_abort_program_point;;
+  let _ = show_abort_program_point;;
+
+  type abort_program_point_map = abort_program_point Symbol_map.t
+  [@@deriving show];;
+  let _ = show_abort_program_point_map;;
 
   type log = {
     log_solver : Solver.t;
     log_decisions : decision_map;
+    log_abort_points : abort_program_point_map;
     log_steps : int;
-  } [@@deriving show];;
+  }
+  [@@deriving show];;
   let _ = show_log;;
 
   (* Not currently using state. *)
@@ -193,6 +204,7 @@ struct
   let empty_log = {
     log_solver = Solver.empty;
     log_decisions = Relative_stack.Map.empty;
+    log_abort_points = Symbol_map.empty;
     log_steps = 0;
   }
   ;;
@@ -200,6 +212,9 @@ struct
   exception MergeFailure of
       Relative_stack.t * (ident * clause * ident) * (ident * clause * ident);;
 
+  exception MergeAbortsFailure of
+      symbol * (symbol list) * (symbol list);;
+  
   let _trace_log_solver_contradiction
       (log1: log)
       (log2: log)
@@ -264,7 +279,7 @@ struct
     )
   ;;
 
-  let _merge_fn key a b =
+  let _merge_two_decisions key a b =
     match a, b with
     | None, None -> None
     | Some x, None -> Some x
@@ -274,6 +289,18 @@ struct
         Some (x1, c1, x1')
       else
         raise @@ MergeFailure(key, v1, v2)
+  ;;
+
+  let _merge_two_abort_points key a b =
+    match a, b with
+    | None, None -> None
+    | Some x, None -> Some x
+    | None, Some x -> Some x
+    | Some (x1), Some (x2) ->
+      if List.for_all2 (fun v1 v2 -> v1 = v2) x1 x2 then
+        Some x1
+      else
+        raise @@ MergeAbortsFailure (key, x1, x2)
   ;;
 
   let merge_logs (log1 : log) (log2 : log) : log option =
@@ -290,15 +317,32 @@ struct
       try
         let d1 = log1.log_decisions in
         let d2 = log2.log_decisions in
-        Some(Relative_stack.Map.merge _merge_fn d1 d2)
+        Some(Relative_stack.Map.merge _merge_two_decisions d1 d2)
       with
         MergeFailure(key, v1, v2) ->
           _trace_log_decision_contradiction key v1 v2;
         None
     in
+    let%bind merged_abort_points =
+      try
+        let ap1 = log1.log_abort_points in
+        let ap2 = log2.log_abort_points in
+        Some(Symbol_map.merge _merge_two_abort_points ap1 ap2)
+      with
+        MergeAbortsFailure(key, v1, v2) ->
+          lazy_logger `trace (fun () ->
+            Printf.sprintf
+              "Failure to merge abort point %s with lists %s and %s"
+              (show_symbol key)
+              (show_abort_program_point v1)
+              (show_abort_program_point v2)
+          );
+        None
+    in
     let new_log =
       { log_solver = merged_solver;
         log_decisions = merged_decisions;
+        log_abort_points = merged_abort_points;
         log_steps = log1.log_steps + log2.log_steps;
       }
     in
@@ -470,6 +514,7 @@ struct
     _record_log @@
     { log_solver = Solver.empty;
       log_decisions = Relative_stack.Map.singleton s (x,c,x');
+      log_abort_points = Symbol_map.empty;
       log_steps = 0;
     }
   ;;
@@ -478,6 +523,18 @@ struct
     _record_log @@
     { log_solver = Solver.singleton c;
       log_decisions = Relative_stack.Map.empty;
+      log_abort_points = Symbol_map.empty;
+      log_steps = 0;
+    }
+  ;;
+
+  let record_abort_point
+      (ab_symbol: symbol) (symbol_list: symbol list)
+    : unit m =
+    _record_log @@
+    { log_solver = Solver.empty;
+      log_decisions = Relative_stack.Map.empty;
+      log_abort_points = Symbol_map.singleton ab_symbol symbol_list;
       log_steps = 0;
     }
   ;;
@@ -487,7 +544,8 @@ struct
   let _trace_log_contradiction (log : log) : state =
     lazy_logger `trace @@ fun () ->
       Printf.sprintf
-        "SAT contradiction at formulae check in:\n%s\n" (Solver.show log.log_solver)
+        "SAT contradiction at formulae check in:\n%s\n"
+        (Solver.show log.log_solver)
   ;;
 
   (* Returns a function that zeros out a particular world if it has a
@@ -532,6 +590,7 @@ struct
   type 'out evaluation_result =
     { er_value : 'out;
       er_solver : Solver.t;
+      er_type_errors : (ident * type_sig * type_sig) list;
       er_evaluation_steps : int;
       er_result_steps : int;
     };;
@@ -682,11 +741,13 @@ struct
            "  Value:\n    %s\n" ^^
            "  Formulae:\n    %s\n" ^^
            "  Decisions:\n    %s\n" ^^
+           "  Abort program points:\n    %s\n" ^^
            "  Result steps: %d\n" ^^
            "  Cache size: %d\n")
           (show_value value)
           (Solver.show log.log_solver)
           (Relative_stack.Map.show pp_decision log.log_decisions)
+          (Symbol_map.show pp_abort_program_point log.log_abort_points)
           (log.log_steps + 1)
           (Destination_map.cardinal final_ev.ev_destinations)
       )
@@ -921,9 +982,19 @@ struct
       completed
       |> Enum.map
         (fun (value, log) ->
+            let match_symb_list =
+              log.log_abort_points
+              |> Symbol_map.values
+              |> List.of_enum
+              |> List.flatten
+            in
+            let type_errors =
+              List.map (Solver.find_type_error log.log_solver) match_symb_list
+            in
             _debug_log_step_output ~show_value:show_value final_ev value log;
             { er_value = value;
               er_solver = log.log_solver;
+              er_type_errors = type_errors;
               er_evaluation_steps = final_ev.ev_evaluation_steps;
               er_result_steps = log.log_steps + 1;
             }

@@ -1,0 +1,10 @@
+(executable
+  (name type_checker)
+  (libraries
+    batteries
+    jhupllib
+    odefa.ast
+    odefa.natural
+    odefa.parser
+  )
+)

@@ -155,7 +155,7 @@ and pattern =
   | Bool_pattern
   | Rec_pattern of Ident_set.t
   | Any_pattern
-[@@ deriving eq, ord, yojson]
+[@@ deriving eq, ord, to_yojson]
 ;;
 
 module Value =
@@ -172,4 +172,22 @@ struct
   let equal = equal_pattern;;
   let compare = compare_pattern;;
   let to_yojson = pattern_to_yojson;;
+end;;
+
+(** A type representing the types of the language.
+    Note that subtyping rules apply to records (and functions implicitly). *)
+type type_sig =
+  | Int_type
+  | Bool_type
+  | Fun_type
+  | Rec_type of Ident_set.t
+[@@ deriving eq, ord, to_yojson]
+;;
+
+module TypeSignature =
+struct
+  type t = type_sig
+  let equal = equal_type_sig;;
+  let compare = compare_type_sig;;
+  let to_yojson = type_sig_to_yojson;;
 end;;

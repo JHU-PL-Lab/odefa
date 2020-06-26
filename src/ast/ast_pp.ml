@@ -125,3 +125,15 @@ let show_value = pp_to_string pp_value;;
 let show_clause = pp_to_string pp_clause;;
 let show_brief_clause formatter (Clause(x,_)) = pp_var formatter x;;
 let show_expr = pp_to_string pp_expr;;
+let show_pattern = pp_to_string pp_pattern;;
+
+let pp_type_sig formatter type_sig =
+  match type_sig with
+  | Int_type -> Format.pp_print_string formatter "int"
+  | Bool_type -> Format.pp_print_string formatter "bool"
+  | Fun_type -> Format.pp_print_string formatter "fun"
+  | Rec_type labels ->
+    pp_concat_sep_delim "{" "}" "," pp_ident formatter @@ Ident_set.enum labels
+;;
+
+let show_type_sig = pp_to_string pp_type_sig;;

@@ -54,3 +54,7 @@ module Symbol_map = struct
   include Pp_utils.Map_pp(M)(Symbol);;
   include Yojson_utils.Map_to_yojson(M)(Symbol);;
 end;;
+
+type type_error = ident * type_sig * type_sig [@@deriving show];;
+
+type type_error_list = type_error list [@@deriving show];;

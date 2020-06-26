@@ -121,6 +121,8 @@ let input_sequence_from_solution
     )
 ;;
 
+let _ = input_sequence_from_solution;; (* XXX: TEMP! *)
+
 let rec take_steps
     (e : expr)
     (x : Ident.t)
@@ -177,13 +179,13 @@ let rec take_steps
           | None ->
             raise @@ Jhupllib_utils.Invariant_failure
               "input_sequence_from_result (no solution)"
-          | Some solution ->
+          | Some (* solution *) _ ->
             let Concrete_stack stack =
               result.Symbolic_interpreter.Interpreter.er_stack
             in
-            let stop_var = Var(x,Some(Freshening_stack(stack))) in
-            let input_sequence =
-              input_sequence_from_solution solution e stop_var
+            let (* stop_var *) _ = Var(x,Some(Freshening_stack(stack))) in
+            let input_sequence = [] (* XXX: Temporary! *)
+              (* input_sequence_from_solution solution e stop_var *)
             in
             lazy_logger `trace (fun () ->
                 Printf.sprintf "Yielding input sequence: %s"

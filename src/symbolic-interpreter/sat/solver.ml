@@ -1,5 +1,5 @@
 open Batteries;;
-(* open Jhupllib;; *)
+open Jhupllib;;
 
 open Odefa_ast;;
 
@@ -29,15 +29,11 @@ end;;
 
 module Symbol_and_pattern =
 struct
-  type t = symbol * pattern [@@deriving ord];;
+  type t = symbol * pattern;;
 end;;
 
 module Symbol_to_symbol_and_ident_multimap =
   Jhupllib.Multimap.Make(Symbol)(Symbol_and_ident)
-;;
-
-module Symbol_to_symbol_and_pattern_multimap =
-  Jhupllib.Multimap.Make(Symbol)(Symbol_and_pattern)
 ;;
 
 type t =
@@ -58,10 +54,10 @@ type t =
         assigned to many symbols), this is a multimap. *)
     projection_constraints_by_record_symbol : Symbol_to_symbol_and_ident_multimap.t;
 
-    (**  An index of all pattern matching constraints over the symbol being
-         matched. As the symbol can be matched many times (and the results
-         assigned in many clauses), this is a multimap. *)
-    match_constraints_by_match_symbol : Symbol_to_symbol_and_pattern_multimap.t;
+    (** An index of all match constraints by the symbol being bound (as opposed
+        to the variable being matched upon).  Since each variable can only be
+        bound to a unique pattern matching clause, this is a map. *)
+    match_constraints_by_symbol : Symbol_and_pattern.t Symbol_map.t;
 
     (** An index of all symbol type constraints.  Because each symbol must have
         exactly one type, this is a normal dictionary. *)
@@ -84,8 +80,7 @@ let empty =
     value_constraints_by_symbol = Symbol_map.empty;
     projection_constraints_by_record_symbol =
       Symbol_to_symbol_and_ident_multimap.empty;
-    match_constraints_by_match_symbol =
-      Symbol_to_symbol_and_pattern_multimap.empty;
+    match_constraints_by_symbol = Symbol_map.empty;
     type_constraints_by_symbol = Symbol_map.empty;
     stack_constraint = None;
   }
@@ -159,9 +154,8 @@ let rec _add_constraints_and_close
         | Constraint_match(x1,x2,p) ->
           { solver with
             constraints = Constraint.Set.add c solver.constraints;
-            match_constraints_by_match_symbol =
-              Symbol_to_symbol_and_pattern_multimap.add x2 (x1, p)
-                solver.match_constraints_by_match_symbol
+            match_constraints_by_symbol =
+              Symbol_map.add x1 (x2, p) solver.match_constraints_by_symbol
           }
         | Constraint_type(x,t) ->
           { solver with
@@ -552,24 +546,67 @@ let solvable solver =
   Option.is_some @@ solve solver
 ;;
 
-(*
-let find_type_errors solver =
-  solver.match_constraints_by_match_symbol
-  |> Symbol_to_symbol_and_pattern_multimap.enum
-  |> List.of_enum
-  |> List.filter_map (fun (key, value) ->
-    let (x, p) = value in
-    let xval = Symbol_map.find x solver.value_constraints_by_symbol in
-    match xval with
-    | Bool(true) ->
-      None
-    | Bool(false) ->
-      Some(key, p (*, Symbol_map.find key solver.type_constraints_by_symbol *))
-    | _ ->
-      raise @@ Utils.Invariant_failure "Match symbol should have boolean value"
-  )
+let find_type_error solver symbol =
+  let (variable, pattern) =
+    try
+      (* Both the symbol name and stack have to exist in the constraint set.
+         This forces pattern matches to be in the same local function scope as
+         the operation. *)
+      Symbol_map.find symbol solver.match_constraints_by_symbol;
+    with Not_found ->
+      raise @@
+        Utils.Invariant_failure "Symbol not found in match constraint set!"
+  in
+  let sym_type : Constraint.symbol_type =
+    try
+      Symbol_map.find variable solver.type_constraints_by_symbol;
+    with Not_found ->
+      raise @@
+        Utils.Invariant_failure "Symbol not found in value constraint set!"
+  in
+  let var_ident =
+    match variable with
+    | Symbol (ident, _) -> ident
+    | SpecialSymbol (SSymTrue) -> Ident("#true#")
+  in
+  let expected_type =
+    match pattern with
+    | Int_pattern -> Int_type
+    | Bool_pattern -> Bool_type
+    | Fun_pattern -> Fun_type
+    | Rec_pattern labels -> Rec_type labels
+    | Any_pattern ->
+      raise @@
+        Utils.Invariant_failure "Constraint should not be on 'any' pattern!"
+  in
+  let actual_type =
+    match sym_type with
+    | IntSymbol -> Int_type
+    | BoolSymbol -> Bool_type
+    | FunctionSymbol -> Fun_type
+    | RecordSymbol ->
+      let record_labels =
+        try
+          let sym_val
+            = Symbol_map.find variable solver.value_constraints_by_symbol
+          in
+          match sym_val with
+          | Record rec_map ->
+              rec_map
+              |> Ident_map.keys
+              |> Ident_set.of_enum
+          | _ ->
+            raise @@
+              Utils.Invariant_failure "Record value typed incorrectly!"
+        with Not_found ->
+          raise @@
+            Utils.Invariant_failure "Symbol not found in value constraint set!"
+      in
+      Rec_type record_labels
+  in
+  (* TODO: Don't return this if expected_type equals or supertypes actual_type *)
+  (var_ident, expected_type, actual_type)
 ;;
-*)
 
 let enum solver = Constraint.Set.enum solver.constraints;;
 
@@ -581,4 +618,4 @@ let pp formatter solver =
   Constraint.Set.pp formatter solver.constraints
 ;;
 
-let show solver = Jhupllib.Pp_utils.pp_to_string pp solver;;
+let show solver = Pp_utils.pp_to_string pp solver;;

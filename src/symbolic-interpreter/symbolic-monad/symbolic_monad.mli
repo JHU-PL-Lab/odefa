@@ -115,6 +115,10 @@ module type S = sig
   (** Stores a constraint in this environment's constraint set. *)
   val record_constraint : Constraint.t -> unit m;;
 
+  (** Stores an abort point with the information given in an abort clause. *)
+  val record_abort_point :
+    Interpreter_types.symbol -> Interpreter_types.symbol list -> unit m;;
+
   (** Checks that a monadic value's constraints are solvable.  For each
       non-deterministic path in the provided monadic value, a solution is
       attempted for the constraints.  Any paths with unsolvable constraints are
@@ -134,6 +138,7 @@ module type S = sig
   type 'a evaluation_result =
     { er_value : 'a;
       er_solver : Solver.t;
+      er_type_errors : (ident * type_sig * type_sig) list;
       er_evaluation_steps : int;
       er_result_steps : int;
     };;

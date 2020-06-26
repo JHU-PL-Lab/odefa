@@ -720,12 +720,22 @@ struct
       (* Abort (not a written rule) *)
       begin
         let%orzero _ :: lookup_stack' = lookup_stack in
-        let%orzero Unannotated_clause(Abs_clause(Abs_var _, Abs_abort_body _)) = acl1 in
+        let%orzero Unannotated_clause(
+            Abs_clause(Abs_var v, Abs_abort_body vlist)) = acl1 in
+        let abort_symbol = Symbol(v, relstack) in
+        let variables =
+          List.map (fun abs_v -> let Abs_var v = abs_v in Symbol(v, relstack)) vlist
+        in
         let lookup_var = env.le_first_var in
         let new_lookup_stack = lookup_var :: lookup_stack' in
         _trace_log_recurse new_lookup_stack relstack acl1;
+        (*
         cache_abort (Cache_lookup(new_lookup_stack, acl1, relstack)) @@
           lookup env new_lookup_stack acl1 relstack
+        *)
+        let%bind _ = recurse new_lookup_stack acl1 relstack in
+        let%bind () = record_abort_point abort_symbol variables in
+        return abort_symbol
       end;
 
       (* Start-of-block and end-of-block handling (not actually a rule) *)
@@ -814,6 +824,12 @@ struct
                      (Relative_stack.show_concrete_stack stack)
                      (Solver.show evaluation_result.M.er_solver)
                  )
+             end;
+             begin
+              lazy_logger `debug (fun () ->
+                Printf.sprintf "Type errors:\n    %s"
+                  (show_type_error_list evaluation_result.M.er_type_errors)
+              )
              end;
              Some {er_solver = evaluation_result.M.er_solver;
                    er_stack = stack;

@@ -16,6 +16,7 @@ type symbol_type =
   | RecordSymbol
   | FunctionSymbol
 [@@deriving eq, ord, show, to_yojson]
+(* TODO: Replace symbol_type with Ast.type_sig *)
 ;;
 
 (** A representation of runtime values in terms of symbols. *)
