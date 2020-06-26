@@ -967,6 +967,7 @@ let rec condition_clauses
             | Binary_operator_modulus
             | Binary_operator_less_than
             | Binary_operator_less_than_or_equal_to
+            (* TODO: Make "==" binop work with both ints and bools *)
             | Binary_operator_equal_to -> Ast.Int_pattern
             | Binary_operator_and
             | Binary_operator_or
