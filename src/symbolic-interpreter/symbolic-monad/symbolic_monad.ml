@@ -989,7 +989,8 @@ struct
               |> List.flatten
             in
             let type_errors =
-              List.map (Solver.find_type_error log.log_solver) match_symb_list
+              let find_err_fn = Solver.find_type_error log.log_solver in
+              List.filter_map find_err_fn match_symb_list
             in
             _debug_log_step_output ~show_value:show_value final_ev value log;
             { er_value = value;

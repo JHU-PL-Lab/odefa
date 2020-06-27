@@ -546,6 +546,18 @@ let solvable solver =
   Option.is_some @@ solve solver
 ;;
 
+let _expected_actual_types_equal expected actual =
+  match expected, actual with
+  | Int_type, Int_type
+  | Bool_type, Bool_type
+  | Fun_type, Fun_type -> true
+  | Rec_type expected_lbls, Rec_type actual_lbls ->
+      (* True if actual type is a subset of the expected type, 
+         i.e. the expected type is a supertype of the actual type. *)
+      Ident_set.subset actual_lbls expected_lbls
+  | _ -> false
+;;
+
 let find_type_error solver symbol =
   let (variable, pattern) =
     try
@@ -604,8 +616,11 @@ let find_type_error solver symbol =
       in
       Rec_type record_labels
   in
-  (* TODO: Don't return this if expected_type equals or supertypes actual_type *)
-  (var_ident, expected_type, actual_type)
+  (* Don't return false positives *)
+  if not (_expected_actual_types_equal expected_type actual_type) then
+    Some (var_ident, expected_type, actual_type)
+  else
+    None
 ;;
 
 let enum solver = Constraint.Set.enum solver.constraints;;

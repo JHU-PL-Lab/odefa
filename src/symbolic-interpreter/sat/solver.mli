@@ -65,7 +65,7 @@ val solvable : t -> bool;;
 
 (** Find a type error associated with a pattern match symbol. *)
 val find_type_error :
-    t -> symbol -> Ast.ident * Ast.type_sig * Ast.type_sig;;
+    t -> symbol -> (Ast.ident * Ast.type_sig * Ast.type_sig) option;;
 
 (** Enumerates the constraints in a solver. *)
 val enum : t -> Constraint.t Enum.t;;
