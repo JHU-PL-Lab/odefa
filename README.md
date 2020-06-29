@@ -33,7 +33,7 @@ make
 make benchmark
 ```
 
-The evaluation result will be in `result/evaluation-<current date>`. For each benchmark `<test-name>`, the output is in `<test-name>_<n>.txt` for n-th execution and the recorded execution time is in `<test-name>.time.txt`. The overall statistics is in `0table.txt`. It will be used to fill the table in the paper. The evaluation data for this paper is in `result/paper-evaluate-<date>` while the previous used data is in `result/archive`.
+The evaluation result will be in `result/evaluation-<current date>`. For each benchmark `<test-name>`, the output is in `<test-name>_<n>.txt` for n-th execution and the recorded execution time is in `<test-name>.time.txt`. The overall statistics is in `0table.txt`. It will be used to fill the table in the paper. The evaluation data for this paper is in `result/paper-evaluate-<date>` while the previous used data is in `result/archive`. Case `long_rev_sum3` here corresponds to case `palindrome` in the paper evaluation.
 
 For other usages, see Step 6 below and toplevel usage section.
 
@@ -228,7 +228,7 @@ A program usually starts with several `input`s, denoting taking input from the w
 $ ./test_generator hello.natodefa -t target -r 1
 
 Input sequence: [5]
-Generated in 10520 steps.
+Generated in 2275 steps.
 Requested input sequences found; terminating.
 ```
 
