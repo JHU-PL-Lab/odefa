@@ -33,3 +33,6 @@
 
 # artifact
 *.tgz
+
+# Opam local switch
+_opam

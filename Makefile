@@ -36,7 +36,7 @@ benchmark:
 tar:
 	make clean
 	rm -f artifact09-source.tgz
-	tar -czvf artifact09-source.tgz --exclude-vcs --exclude-vcs-ignores --exclude=*.tgz .
+	tar -czvf artifact09-source.tgz --exclude-vcs --exclude-vcs-ignores --exclude=*.tgz --exclude=_opam .
 
 tar-md5:
 	md5sum artifact09-source.tgz | awk '{ print $$1 }' | xargs -I % cp artifact09-source.tgz "artifact09-source-%.tgz"
