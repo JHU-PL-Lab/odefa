@@ -1,5 +1,8 @@
 open Batteries;;
 
+open Odefa_command_line;;
+open Command_line_parsers;;
+
 open Odefa_ast;;
 open Odefa_ddpa;;
 open Odefa_test_generation;;
@@ -27,6 +30,7 @@ let named_exploration_policies =
   ]
 ;;
 
+(*
 let single_value_parser
     (type a)
     (arg_name : string)
@@ -108,6 +112,7 @@ let logging_option_parser : unit BatOptParse.Opt.t =
     ;
   }
 ;;
+*)
 
 type parsers =
   { parse_context_stack : (module Context_stack) BatOptParse.Opt.t;
@@ -120,10 +125,14 @@ type parsers =
   }
 ;;
 
+(*
 exception Argument_parse_failure;;
+*)
 
 let make_parsers () : parsers =
   { parse_context_stack =
+      select_context_stack_parser ();
+      (*
       single_value_parser
         "CONTEXT_STACK"
         (Some "Specifies the context stack used in CFG construction.")
@@ -149,6 +158,7 @@ let make_parsers () : parsers =
            else
              None
         );
+      *)
     parse_target_point =
       single_value_parser
         "VARIABLE"
@@ -170,6 +180,33 @@ let make_parsers () : parsers =
         None
         (fun x -> try Some(int_of_string x) with | Failure _ -> None);
     parse_exploration_policy =
+      begin
+        let named_exploration_policies_str =
+          begin
+            named_exploration_policies
+            |> List.map snd
+            |> List.map (fun s -> "* " ^ s)
+            |> String.concat "\n "
+          end
+        in
+        single_value_parser
+          ~invalid_value_err_msg:
+            (fun _ str ->
+              "Could not understand exploration policy: " ^ str ^ "\n" ^
+              "Valid policies are:\n " ^
+              named_exploration_policies_str
+            )
+          "EXPLORATION_POLICY"
+          (Some ("Specifies the exploration policy of the evaluation queue."))
+          (Some (Explore_breadth_first))
+          (fun s ->
+            try
+              Some(List.assoc_inv s named_exploration_policies)
+            with
+            | Not_found -> None 
+          )
+        end;
+      (*
       BatOptParse.Opt.value_option
         "POLICY" (Some(Explore_breadth_first))
         (fun s ->
@@ -187,16 +224,18 @@ let make_parsers () : parsers =
              |> String.concat "\n  "
            )
         );
+        *)
     parse_compact_output =
       single_value_parser
         "COMPACT_OUTPUT"
         (Some ("Specifies whether the output is compact of descriptive\n"))
         None
         (fun x -> try Some (bool_of_string x) with | Failure _ -> None);
-    parse_logging = logging_option_parser;
+    parse_logging = logging_option_parser ();
   }
 ;;
 
+(*
 exception ParseFailure of string;;
 
 let insist name parser =
@@ -205,6 +244,7 @@ let insist name parser =
     raise @@ ParseFailure(Printf.sprintf "%s is required." name)
   | Some x -> x
 ;;
+*)
 
 let parse_args () : generator_args =
   let cli_parser =
@@ -248,6 +288,29 @@ let parse_args () : generator_args =
     ~long_name:"compact-output"
     parsers.parse_compact_output;
   (* **** Perform parse **** *)
+  try
+    let filename = parse_out_filename cli_parser in
+    let conf =
+          { conf_context_model =
+              insist "Context model" parsers.parse_context_stack;
+          }
+    in
+    { ga_generator_configuration = conf;
+      ga_filename = filename;
+      ga_target_point =
+        Ident(insist "Target point" parsers.parse_target_point);
+      ga_maximum_steps =
+        parsers.parse_max_steps.BatOptParse.Opt.option_get ();
+      ga_maximum_results =
+        parsers.parse_max_results.BatOptParse.Opt.option_get ();
+      ga_exploration_policy =
+        insist "Exploration policy" parsers.parse_exploration_policy;
+      ga_compact_output =
+        match (parsers.parse_compact_output.BatOptParse.Opt.option_get ()) with
+        | Some b -> b
+        | None -> false
+    }
+  (*
   let positional_args = BatOptParse.OptParser.parse_argv cli_parser in
   try
     match positional_args with
@@ -277,8 +340,9 @@ let parse_args () : generator_args =
     | _::extras ->
       raise @@ ParseFailure(
         Printf.sprintf "Spurious arguments: %s" (String.join " " extras))
+  *)
   with
-  | ParseFailure msg ->
+  | Command_line_parsers.ParseFailure msg ->
     BatOptParse.OptParser.error cli_parser @@ msg;
     raise @@ Jhupllib.Utils.Invariant_failure
       "BatOptParse.OptParser.error was supposed to terminate the program!"

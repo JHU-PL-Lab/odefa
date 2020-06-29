@@ -1,0 +1,16 @@
+(library
+  (name odefa_command_line)
+  (public_name odefa.command-line)
+  (synopsis "Odefa command line shared utils")
+  (libraries
+    batteries
+    jhupllib
+    odefa.ddpa
+  )
+  (preprocess
+    (pps
+      ocaml-monadic
+      ppx_deriving.std
+    )
+  )
+)
