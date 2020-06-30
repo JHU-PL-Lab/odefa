@@ -17,6 +17,7 @@ let pp_evaluation_environment = pp_map pp_var pp_value Environment.enum;;
 let show_evaluation_environment = pp_to_string pp_evaluation_environment;;
 
 exception Evaluation_failure of string;;
+exception Abort_failure of var;;
 
 let lookup env x =
   if Environment.mem env x then
@@ -272,9 +273,7 @@ let rec evaluate
         Environment.add env x result;
         recurse t
       | Abort_body _ ->
-        raise @@ Evaluation_failure(
-          Printf.sprintf "Cannot complete evaluation at an abort clause"
-        )
+        raise @@ Abort_failure x
     end
 ;;
 

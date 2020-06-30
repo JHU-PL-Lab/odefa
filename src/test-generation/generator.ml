@@ -57,12 +57,12 @@ let input_sequence_from_solution
     (stop_var : Var.t)
   : int list =
   let (get_value, _) = solution in
-  let _, stop_stack =
+  let stop_stack =
     match stop_var with
-    | Var(_,None) ->
+    | Var(_, None) ->
       raise @@ Jhupllib.Utils.Invariant_failure
         "Non-freshened stop variable!"
-    | Var(x,Some(Freshening_stack(stop_stack))) -> x,stop_stack
+    | Var(_, Some(Freshening_stack(stop_stack))) -> stop_stack
   in
   let input_record = ref [] in
   let read_from_solver (Var(x,stack_opt)) =
@@ -108,6 +108,14 @@ let input_sequence_from_solution
         "evaluation completed without triggering halt exception!"
     with
     | Halt_interpretation_as_input_sequence_is_complete -> ()
+    (* TODO: check that the abort var is in the set of abort clauses encountered during symbolic lookup. 
+       Otherwise we have an Invariant_failure*)
+    | Odefa_interpreter.Interpreter.Abort_failure ab_var ->
+      lazy_logger `trace (fun () ->
+        Printf.sprintf
+          "Execution failed at abort clause %s"
+          (show_var ab_var));
+      ()
   end;
   let input_sequence = List.rev !input_record in
   input_sequence
@@ -121,29 +129,54 @@ let input_sequence_from_solution
     )
 ;;
 
-let _ = input_sequence_from_solution;; (* XXX: TEMP! *)
+let input_sequence_from_result e x result =
+  let solver = result.Symbolic_interpreter.Interpreter.er_solver in
+  match Solver.solve solver with
+  | None ->
+    raise @@ Jhupllib_utils.Invariant_failure
+      "input_sequence_from_result (no solution)"
+  | Some solution ->
+    let Concrete_stack stack =
+      result.Symbolic_interpreter.Interpreter.er_stack
+    in
+    let stop_var = Var(x, Some(Freshening_stack(stack))) in
+    let input_sequence =
+      input_sequence_from_solution solution e stop_var
+    in
+    lazy_logger `trace (fun () ->
+        Printf.sprintf "Yielding input sequence: %s"
+          (String.join "," @@ List.map string_of_int input_sequence)
+      );
+    input_sequence
+;;
+
+let type_errors_from_result result =
+  let type_errors = result.Symbolic_interpreter.Interpreter.er_type_errors in
+  type_errors
+;;
 
 let rec take_steps
+    (answer_fn : Symbolic_interpreter.Interpreter.evaluation_result -> 'a)
     (e : expr)
     (x : Ident.t)
     (max_steps : int)
     (evaluation : Symbolic_interpreter.Interpreter.evaluation)
-  : test_generation_result =
+  : 'a test_generation_result =
   let rec loop
       (step_count : int)
       (ev : Symbolic_interpreter.Interpreter.evaluation)
-    : test_generation_result =
+    : 'a test_generation_result =
     lazy_logger `trace (fun () -> Printf.sprintf
                            "%d/%d completed in this pass" step_count max_steps);
     if step_count = max_steps then begin
       lazy_logger `trace (fun () ->
           "Pass reached max step count; returning suspended generator.");
-      { tgr_input_sequences = [];
+      { tgr_answers = [];
         tgr_steps = step_count;
         tgr_generator =
           { tg_program = e;
             tg_target = x;
-            tg_generator_fn = Some(fun n -> take_steps e x n ev)
+            tg_generator_fn = Some(fun n -> take_steps answer_fn e x n ev)
           };
       }
     end else begin
@@ -162,7 +195,7 @@ let rec take_steps
              result indicating as much. *)
           lazy_logger `trace (fun () ->
               "Interpreter evaluation complete; stopping.");
-          { tgr_input_sequences = [];
+          { tgr_answers = [];
             tgr_steps = step_count + 1;
             tgr_generator =
               { tg_program = e;
@@ -173,6 +206,8 @@ let rec take_steps
       end else begin
         (* We have results! *)
         lazy_logger `trace (fun () -> "Found input sequences!");
+        let answers = List.map answer_fn results in
+        (*
         let input_sequence_from_result result =
           let solver = result.Symbolic_interpreter.Interpreter.er_solver in
           match Solver.solve solver with
@@ -193,13 +228,18 @@ let rec take_steps
               );
             input_sequence
         in
+        let type_errors_from_result result =
+          result.Symbolic_interpreter.Interpreter.er_type_errors
+        in
         let input_sequences = List.map input_sequence_from_result results in
+        let type_errors = List.flatten @@ List.map type_errors_from_result results in
+        *)
         let generator_fn =
           match ev'_opt with
           | None -> None
-          | Some ev' -> Some(fun n -> take_steps e x n ev')
+          | Some ev' -> Some(fun n -> take_steps answer_fn e x n ev')
         in
-        { tgr_input_sequences = input_sequences;
+        { tgr_answers = answers;
           tgr_steps = step_count + 1;
           tgr_generator =
             { tg_program = e;
@@ -216,10 +256,11 @@ let rec take_steps
 let create
     ?exploration_policy:(exploration_policy=
                          Symbolic_interpreter.Interpreter.Explore_breadth_first)
+    (answer_fn : Symbolic_interpreter.Interpreter.evaluation_result -> 'a)
     (conf : configuration)
     (e : expr)
     (x : Ident.t)
-  : test_generator =
+  : 'a test_generator =
   let module Stack = (val conf.conf_context_model) in
   let module Analysis = Ddpa_analysis.Make(Stack) in
   let cfg =
@@ -235,26 +276,26 @@ let create
   in
   { tg_program = e;
     tg_target = x;
-    tg_generator_fn = Some(fun n -> take_steps e x n evaluation)
+    tg_generator_fn = Some(fun n -> take_steps answer_fn e x n evaluation)
   }
 ;;
 
 let generate_inputs
     ?generation_callback:(generation_callback=fun _ _ -> ())
     (max_steps_opt : int option)
-    (original_generator : test_generator)
-  : (int list * int) list * test_generator option =
+    (original_generator : 'a test_generator)
+  : ('a list * int) list * 'a test_generator option =
   lazy_logger `trace
     (fun () -> "Generating inputs for expression:\n" ^
                Pp_utils.pp_to_string pp_expr original_generator.tg_program
     );
   let max_steps_per_loop = 100 in
   let rec loop
-      (generator : test_generator)
+      (generator : 'a test_generator)
       (steps_left_opt : int option)
       (steps_taken : int)
-      (results : (int list * int) list)
-    : (int list * int) list * test_generator option =
+      (results : ('a list * int) list)
+    : ('a list * int) list * 'a test_generator option =
     let steps_to_take =
       match steps_left_opt with
       | None -> max_steps_per_loop
@@ -285,6 +326,14 @@ let generate_inputs
               (if result.tgr_steps = 1 then "" else "s")
               steps_taken');
         begin
+          match result.tgr_answers with
+          | _ :: _ ->
+            result.tgr_answers
+            |> List.iter
+              (fun answer -> 
+                generation_callback answer steps_taken'
+              )
+          (*
           match result.tgr_input_sequences with
           | _ :: _ ->
             result.tgr_input_sequences
@@ -296,14 +345,19 @@ let generate_inputs
                         List.map string_of_int input_sequence));
                  generation_callback input_sequence steps_taken';
               );
+          *)
           | [] ->
             lazy_logger `trace
               (fun () ->
                  "No further input sequence discovered in this iteration.");
         end;
+        (*
         let results' =
-          List.map (fun seq -> (seq, steps_taken')) result.tgr_input_sequences @
-          results
+          List.map
+            (fun seq -> (seq, steps_taken'))
+            result.tgr_answers @ results
+        *)
+        let results' = [(result.tgr_answers, steps_taken')] @ results
         in
         let steps_left_opt' =
           Option.map (fun n -> max 0 @@ n - result.tgr_steps) steps_left_opt

@@ -3,6 +3,8 @@ open Jhupllib;;
 
 open Odefa_ast;;
 
+open Odefa_test_generation;;
+
 let logger = Logger_utils.make_logger "Type_checker";;
 let lazy_logger = Logger_utils.make_lazy_logger "Type_checker";;
 
@@ -55,5 +57,73 @@ let get_ast (args : Type_checker_parser.type_checker_args) =
 
 let () =
   let args = Type_checker_parser.parse_args () in
-  let _ = get_ast args in
+  let ast = get_ast args in
+  let generator =
+    Generator.create
+      (Some (module Ddpa_single_element_stack.Stack : Context_stack))
+      ast
+      args.tc_target_var
+  in
+  begin
+    try
+      let answers, generator_opt =
+        Generator.generate_inputs 100 generator
+      in
+      
   ()
+
+(*
+try
+    let results_remaining = ref args.ga_maximum_results in
+    let generator =
+      Generator.create
+        ~exploration_policy:args.ga_exploration_policy
+        args.ga_generator_configuration
+        ast
+        args.ga_target_point
+    in
+    let generation_callback (inputs : int list) (steps : int) : unit =
+      if args.ga_compact_output then (
+        Printf.printf "[%s]\n%d\n"
+          (String.join "," @@ List.map string_of_int inputs) steps
+      ) else (
+        Printf.printf "Input sequence: [%s]\nGenerated in %d steps.\n"
+          (String.join ", " @@ List.map string_of_int inputs) steps
+      );
+      flush stdout;
+      results_remaining := (Option.map (fun n -> n - 1) !results_remaining);
+      if !results_remaining = Some 0 then begin
+        raise GenerationComplete
+      end;
+    in
+    begin
+      try
+        let answers, generator_opt =
+          Generator.generate_inputs
+            ~generation_callback:generation_callback
+            args.ga_maximum_steps
+            generator
+        in
+        let answer_count = List.length answers in
+        if args.ga_compact_output then (
+          Printf.printf "%d\n" answer_count;
+          if Option.is_none generator_opt then
+            print_endline "no"
+          else
+            print_endline "yes"
+        ) else (
+          Printf.printf "%d answer%s generated\n"
+            answer_count (if answer_count = 1 then "" else "s");
+          if Option.is_none generator_opt then
+            print_endline "No further control flows exist."
+          else
+            print_endline "Further control flows may exist."
+        )
+      with
+      | GenerationComplete ->
+        print_endline "Requested input sequences found; terminating.";
+    end
+  with
+  | Odefa_symbolic_interpreter.Interpreter.Invalid_query msg ->
+    prerr_endline msg
+*)

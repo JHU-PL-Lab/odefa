@@ -17,6 +17,8 @@ val show_evaluation_environment : evaluation_environment -> string;;
 
 exception Evaluation_failure of string;;
 
+exception Abort_failure of var;;
+
 (**
    Evaluates the provided expression.  If evaluation becomes stuck, an
    Evaluation_failure is raised.  On successful evaluation, the last evaluated

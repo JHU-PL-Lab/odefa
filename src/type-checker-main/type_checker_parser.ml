@@ -11,13 +11,16 @@ type type_checker_args = {
 }
 ;;
 
+(* Argument that only accepts a single variable *)
 let single_value_parser
     (arg_name: string)
     (help: string option)
-    (default: 'a option)
-    (parse: string -> 'a option)
+    (default_option: 'a option)
+    (parse_fn: string -> 'a option)
   : 'a BatOptParse.Opt.t =
+  (* Ref to store the argument in *)
   let cell : 'a option ref = ref None in
+  (* Read from command line and set argument *)
   let option_set option_name args =
     let fail s = raise @@ BatOptParse.Opt.Option_error(option_name, s) in
     match args with
@@ -25,13 +28,13 @@ let single_value_parser
       fail @@ Printf.sprintf "Argument required for option %s" option_name
     | [str] ->
       begin
-        match parse str with
+        match parse_fn str with
         | None ->
           fail @@ Printf.sprintf "Unrecognized %s value: %s" arg_name str
         | Some result ->
           begin
             match !cell with
-            | None -> cell := Some result
+            | None -> cell := Some result (* Success ! *)
             | Some _ ->
               fail @@ Printf.sprintf "Multiple %s values provided" arg_name
           end
@@ -42,7 +45,8 @@ let single_value_parser
   in
   { option_set = option_set;
     option_set_value = (fun value -> cell := Some value);
-    option_get = (fun () -> if Option.is_some !cell then !cell else default);
+    option_get = (fun () ->
+      if Option.is_some !cell then !cell else default_option);
     option_metavars = [arg_name];
     option_defhelp = help;
   }
