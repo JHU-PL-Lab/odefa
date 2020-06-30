@@ -10,6 +10,8 @@ let lazy_logger = Logger_utils.make_lazy_logger "Test_generator";;
 exception CommandLineParseFailure of string;;
 exception GenerationComplete;;
 
+module Input_generator = Generator.Make(Generator.Input_sequence);;
+
 let () =
   (* Parse CLI args *)
   let args = Generator_configuration_parser.parse_args () in
@@ -58,21 +60,21 @@ let () =
   (* Generate tests *)
   try
     let results_remaining = ref args.ga_maximum_results in
-    let generator =
-      Generator.create
+    let generator = Input_generator.create
         ~exploration_policy:args.ga_exploration_policy
         args.ga_generator_configuration
         ast
         args.ga_target_point
     in
-    let generation_callback (inputs : int list) (steps : int) : unit =
-      if args.ga_compact_output then (
-        Printf.printf "[%s]\n%d\n"
-          (String.join "," @@ List.map string_of_int inputs) steps
-      ) else (
-        Printf.printf "Input sequence: [%s]\nGenerated in %d steps.\n"
-          (String.join ", " @@ List.map string_of_int inputs) steps
-      );
+    let generation_callback
+        (inputs : Input_generator.Answer.t) (steps : int)
+      : unit =
+      if args.ga_compact_output then begin
+        Printf.printf "%s\n%d\n" (Input_generator.Answer.show inputs) steps
+      end else begin
+        Printf.printf "Input sequence: %s\nGenerated in %d steps.\n"
+          (Input_generator.Answer.show inputs) steps
+      end;
       flush stdout;
       results_remaining := (Option.map (fun n -> n - 1) !results_remaining);
       if !results_remaining = Some 0 then begin
@@ -82,7 +84,7 @@ let () =
     begin
       try
         let answers, generator_opt =
-          Generator.generate_inputs
+          Input_generator.generate_answers
             ~generation_callback:generation_callback
             args.ga_maximum_steps
             generator
