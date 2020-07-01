@@ -122,18 +122,15 @@ Benchmarks
 
 1. Install [Odefa](#build).
 2. Install [Racket](https://racket-lang.org) 6.12 or newer.
-3. Install Racket dependencies:
-   ```console
-   $ raco pkg install gregor
-   ```
+3. Install [Java](https://www.oracle.com/java/technologies/javase-downloads.html) 1.8 or newer.
 4. Install [P4F](https://bitbucket.org/ucombinator/p4f-prototype).
 5. Run `benchmark/run.sh`:
    ```console
    $ bash benchmark/run.sh
    ```
-6. Run `benchmark/collect-results.rkt`:
+6. Aggregate results:
    ```console
-   $ racket benchmark/collect-results.rkt
+   $ benchmark/resultsToCSV.py --dir benchmark/results
    ```
 
 Developer Setup
