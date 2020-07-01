@@ -177,19 +177,21 @@ let analyze_variables_option =
                 let components =
                   analyze_string
                   |> String.lchop ~n:5
-                  |> (fun x -> String.nsplit x ~by:",")
+                  |> (fun x -> String.split_on_string x ~by:",")
                 in
                 let parse_component component =
                   begin
-                    match String.nsplit component ~by:"@" with
+                    match String.split_on_string component ~by:"@" with
                     | [name] -> (LUVar name, END, [])
                     | [name;rest] ->
                       begin
-                        match String.nsplit rest ~by:":" with
+                        match String.split_on_string rest ~by:":" with
                         | [loc] -> (LUVar name, ProgramPoint loc, [])
                         | [loc;stack] ->
                           begin
-                            let stack_parsed = String.nsplit stack ~by:"|" in
+                            let stack_parsed =
+                                String.split_on_string stack ~by:"|"
+                            in
                             let stack_elements =
                               List.map (fun var -> LUVar var) stack_parsed
                             in (LUVar name, ProgramPoint loc, stack_elements)

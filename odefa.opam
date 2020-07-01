@@ -13,7 +13,7 @@ run-test: [ "dune" "runtest" "-p" name "-j" jobs ]
 depends: [
   "ocaml" {>= "4.04.0"}
   "base-threads"
-  "batteries"
+  "batteries" {>= "3.0.0" }
   "dune" {build & >= "1.0"}
   "jhupllib" {>= "0.1.1"}
   "ocaml-monadic" {>= "0.4.1"}

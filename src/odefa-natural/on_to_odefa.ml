@@ -634,7 +634,7 @@ let alphatize (e : On_ast.expr) : On_ast.expr m =
       let%bind params', body'', seen_declared'''', _ =
         ensure_expr_unique_names params body' seen_declared'''
       in
-      return (LetFun(Funsig(name', params', body''), expr''), seen_declared''''
+      return (LetFun(Funsig(name', params', body''), expr''), seen_declared'''')
     | Plus (e1, e2) ->
       let%bind e1', seen_declared' = walk e1 seen_declared in
       let%bind e2', seen_declared'' = walk e2 seen_declared' in
