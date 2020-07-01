@@ -145,7 +145,7 @@ function ready_p4f {
 }
 
 function ready_boomerang_spds {
-    ls -1 cases/*.java | while read line; do
+    ls -1 ${CASES_PATH}/*.java | while read line; do
         cat "$line" | streamRewriteJavaResource "${BOOMERANG_SPDS_EXAMPLE_PACKAGE}" > "${BOOMERANG_SPDS_EXAMPLE_PATH}/$(basename "$line")"
     done
     for supportClass in BoomerangSPDSBenchmarkMain TestUtils; do
@@ -155,7 +155,7 @@ function ready_boomerang_spds {
 }
 
 function ready_boomerang_original {
-    ls -1 cases/*.java | while read line; do
+    ls -1 ${CASES_PATH}/*.java | while read line; do
         cat "$line" | streamRewriteJavaResource "${BOOMERANG_ORIGINAL_OBJECT_PACKAGE}" > "${BOOMERANG_ORIGINAL_OBJECT_PATH}/$(basename "$line")"
     done
     dest="${BOOMERANG_ORIGINAL_META_PATH}"
