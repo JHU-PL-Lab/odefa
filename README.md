@@ -128,7 +128,7 @@ Benchmarks
    ```console
    $ bash benchmark/run.sh
    ```
-6. Aggregate results:
+6. Aggregate results into `benchmark.csv`:
    ```console
    $ benchmark/resultsToCSV.py --dir benchmark/results
    ```

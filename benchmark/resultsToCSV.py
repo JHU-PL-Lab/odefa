@@ -120,7 +120,7 @@ def produce_csv_from(results_directory, name, group_data):
     """
     Produces a CSV file for the provided experiment data.
     """
-    with open(results_directory + os.sep + name + "-table.csv", 'w') as csvfile:
+    with open("benchmark.csv", 'w') as csvfile:
         writer = csv.writer(csvfile, quoting=csv.QUOTE_MINIMAL)
         # Extract the data for this case.
         analyses = analyses_in_preferred_order(group_data["analyses"])
@@ -131,8 +131,11 @@ def produce_csv_from(results_directory, name, group_data):
         for case in cases:
             row = [case]
             for analysis in analyses:
-                time = group_data["results"][case][analysis]["time"]
-                row.append("timeout" if time is None else time)
+                try:
+                    time = group_data["results"][case][analysis]["time"]
+                    row.append("timeout" if time is None else time)
+                except KeyError:
+                    row.append("n/a")
             writer.writerow(row)
 
 def main():
