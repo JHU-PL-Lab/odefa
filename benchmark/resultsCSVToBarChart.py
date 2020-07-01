@@ -147,7 +147,7 @@ def produce_bar_chart_from(output_dir, name, group_data, is_horizontal):
                             textcoords="offset points",
                             ha="center" if is_horizontal else "left",
                             va="bottom" if is_horizontal else "center",
-                            fontsize=6)
+                            fontsize=8)
         if is_horizontal:
             ax.set_ylabel("Time (ms)")
             ax.set_yscale("log")
