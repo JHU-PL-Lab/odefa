@@ -21,7 +21,6 @@ let lazy_logger = Logger_utils.make_lazy_logger "Generator";;
 exception Parse_failure;;
 
 module type Answer = sig
-
   type t;;
   val answer_from_result : expr -> ident -> evaluation_result -> t;;
   val answer_from_string : string -> t;;
@@ -215,6 +214,69 @@ module Input_sequence : Answer = struct
   let is_empty inputs = List.is_empty inputs;;
 
   let count inputs = List.length inputs;;
+end;;
+
+module Type_errors : Answer = struct
+  type t = (ident * type_sig * type_sig) list
+
+  let answer_from_result _ _ result =
+    result.er_type_errors
+  ;;
+
+  let answer_from_string arg_str =
+    let arg_str' =
+      begin
+        if (String.starts_with arg_str "[")
+          && (String.ends_with arg_str "]") then
+          arg_str
+          |> String.lchop
+          |> String.rchop
+        else
+          arg_str
+      end
+    in
+    let str_lst =
+      arg_str'
+      |> Str.global_replace (Str.regexp "[ ]*") ""
+      |> Str.split (Str.regexp ",")
+    in
+    List.map (fun str ->
+      str
+      |> Str.global_replace (Str.regexp "[)(]") ""
+      |> (fun str -> 
+        let lst = Str.split (Str.regexp "[,]") str in
+        match lst with
+        | [s1; s2; s3] ->
+          let to_type_err s =
+            match s with
+            | "int" -> Int_type
+            | "bool" -> Bool_type
+            | "fun" -> Fun_type
+            | "rec" -> Rec_type (Ident_set.empty)
+            | _ -> raise Parse_failure
+          in
+          (Ident(s1), to_type_err s2, to_type_err s3)
+        | _ -> raise Parse_failure 
+      )
+    )
+    str_lst
+  ;;
+
+  let show type_errors =
+    let show_one_type_error type_error =
+      let (id, typ1, typ2) = type_error in
+      "* Variable: " ^ (show_ident id) ^ "\n" ^
+      "* Expected: " ^ (show_type_sig typ1) ^ "\n" ^
+      "* Actual: " ^ (show_type_sig typ2) ^ "\n"
+    in
+    String.join ", " @@ List.map show_one_type_error type_errors
+  ;;
+
+  let empty = [];;
+
+  let is_empty type_errors = List.is_empty type_errors;;
+
+  let count type_errors = List.length type_errors;;
 end;;
 
 module Make(Answer : Answer) : Generator = struct

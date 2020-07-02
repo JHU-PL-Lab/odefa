@@ -11,6 +11,10 @@ let lazy_logger = Logger_utils.make_lazy_logger "Type_checker";;
 exception CommandLineParseFailure of string;;
 exception TypeCheckComplete;;
 
+exception GenerationComplete;;
+
+module Type_error_generator = Generator.Make(Generator.Type_errors);;
+
 let get_ast (args : Type_checker_parser.type_checker_args) =
   let filename : string = args.tc_filename in
   let is_natodefa = Filename.extension filename = ".natodefa" in
@@ -20,7 +24,7 @@ let get_ast (args : Type_checker_parser.type_checker_args) =
       let natodefa_ast =
         File.with_file_in filename Odefa_natural.On_parse.parse_program
       in
-      let odefa_ast = Odefa_natural.On_to_odefa.translate natodefa_ast
+      let odefa_ast = Odefa_natural.On_to_odefa.translate ~is_instrumented:true natodefa_ast
       in
       Ast_wellformedness.check_wellformed_expr odefa_ast;
       odefa_ast
@@ -55,41 +59,22 @@ let get_ast (args : Type_checker_parser.type_checker_args) =
     end
 ;;
 
+(* TODO: Add variable of operation where type error occured *)
 let () =
   let args = Type_checker_parser.parse_args () in
   let ast = get_ast args in
-  let generator =
-    Generator.create
-      (Some (module Ddpa_single_element_stack.Stack : Context_stack))
-      ast
-      args.tc_target_var
-  in
-  begin
-    try
-      let answers, generator_opt =
-        Generator.generate_inputs 100 generator
-      in
-      
-  ()
-
-(*
-try
-    let results_remaining = ref args.ga_maximum_results in
+  try
+    let results_remaining = ref args.tc_maximum_results in
     let generator =
-      Generator.create
-        ~exploration_policy:args.ga_exploration_policy
-        args.ga_generator_configuration
+      Type_error_generator.create
+        ~exploration_policy:args.tc_exploration_policy
+        args.tc_generator_configuration
         ast
-        args.ga_target_point
+        args.tc_target_var
     in
-    let generation_callback (inputs : int list) (steps : int) : unit =
-      if args.ga_compact_output then (
-        Printf.printf "[%s]\n%d\n"
-          (String.join "," @@ List.map string_of_int inputs) steps
-      ) else (
-        Printf.printf "Input sequence: [%s]\nGenerated in %d steps.\n"
-          (String.join ", " @@ List.map string_of_int inputs) steps
-      );
+    let generation_callback (type_errors : Type_error_generator.Answer.t) (steps: int) : unit =
+      let _ = steps in (* Temp *)
+      Printf.printf "Type errors:\n%s\n" (Type_error_generator.Answer.show type_errors);
       flush stdout;
       results_remaining := (Option.map (fun n -> n - 1) !results_remaining);
       if !results_remaining = Some 0 then begin
@@ -99,31 +84,22 @@ try
     begin
       try
         let answers, generator_opt =
-          Generator.generate_inputs
+          Type_error_generator.generate_answers
             ~generation_callback:generation_callback
-            args.ga_maximum_steps
+            args.tc_maximum_steps
             generator
         in
         let answer_count = List.length answers in
-        if args.ga_compact_output then (
-          Printf.printf "%d\n" answer_count;
-          if Option.is_none generator_opt then
-            print_endline "no"
-          else
-            print_endline "yes"
-        ) else (
-          Printf.printf "%d answer%s generated\n"
-            answer_count (if answer_count = 1 then "" else "s");
-          if Option.is_none generator_opt then
-            print_endline "No further control flows exist."
-          else
-            print_endline "Further control flows may exist."
-        )
+        Printf.printf "%d answer%s generated\n"
+          answer_count (if answer_count = 1 then "" else "s");
+        if Option.is_none generator_opt then
+          print_endline "No further control flows exist."
+        else
+          print_endline "Further control flows may exist."
       with
       | GenerationComplete ->
-        print_endline "Requested input sequences found; terminating.";
+        print_endline "Type errors found; terminating";
     end
   with
   | Odefa_symbolic_interpreter.Interpreter.Invalid_query msg ->
     prerr_endline msg
-*)

@@ -4,7 +4,10 @@
     batteries
     jhupllib
     odefa.ast
+    odefa.command-line
+    odefa.ddpa
     odefa.natural
     odefa.parser
+    odefa.test-generation
   )
 )

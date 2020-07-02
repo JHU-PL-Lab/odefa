@@ -33,6 +33,8 @@ end;;
 
 module Input_sequence : Answer;;
 
+module Type_errors : Answer;;
+
 (** The interface of a generic answer generator. *)
 module type Generator = sig
   module Answer : Answer;;
