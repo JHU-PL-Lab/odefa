@@ -1081,7 +1081,7 @@ let debug_transform
 
 let translate
     ?translation_context:(translation_context=None)
-    ?is_instrumented:(is_instrumented=true)
+    ?is_instrumented:(is_instrumented=false)
     (e : On_ast.expr)
   : Odefa_ast.Ast.expr =
   let e_m =

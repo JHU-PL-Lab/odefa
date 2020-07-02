@@ -251,6 +251,7 @@ type evaluation_result = {
   er_solver : Solver.t;
   er_stack : Relative_stack.concrete_stack;
   er_solution : (symbol -> value option);
+  er_type_errors : (ident * type_sig * type_sig) list
 };;
 
 exception Invalid_query of string;;
@@ -833,7 +834,8 @@ struct
              end;
              Some {er_solver = evaluation_result.M.er_solver;
                    er_stack = stack;
-                   er_solution = get_value
+                   er_solution = get_value;
+                   er_type_errors = evaluation_result.M.er_type_errors;
                   }
            | None ->
              begin

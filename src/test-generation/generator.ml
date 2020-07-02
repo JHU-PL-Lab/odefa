@@ -18,10 +18,17 @@ module Solver = Symbolic_interpreter.Solver;;
 
 let lazy_logger = Logger_utils.make_lazy_logger "Generator";;
 
+exception Parse_failure;;
+
 module type Answer = sig
+
   type t;;
   val answer_from_result : expr -> ident -> evaluation_result -> t;;
+  val answer_from_string : string -> t;;
   val show : t -> string;;
+  val empty : t;;
+  val is_empty : t -> bool;;
+  val count : t -> int;;
 end;;
 
 module type Generator = sig
@@ -175,9 +182,39 @@ module Input_sequence : Answer = struct
 
   let answer_from_result = input_sequence_from_result;;
 
+  (* String "[ 1, 2, 3 ]" or "1, 2, 3" to input sequence *)
+  let answer_from_string arg_str =
+    (* let arg_char_lst = String.to_list arg_str in *)
+    let arg_str' =
+      begin
+        if (String.starts_with arg_str "[")
+            && (String.ends_with arg_str "]") then
+          arg_str
+          |> String.lchop
+          |> String.rchop
+        else
+          arg_str
+      end
+    in
+    let str_lst =
+      arg_str'
+      |> Str.global_replace (Str.regexp "[ ]*") ""
+      |> Str.split (Str.regexp ",")
+    in
+    try
+      List.map int_of_string str_lst
+    with Failure _ ->
+      raise Parse_failure
+  ;;
+
   let show inputs =
     "[" ^ (String.join ", " @@ List.map string_of_int inputs) ^ "]"
-  ;;
+  
+  let empty = [];;
+
+  let is_empty inputs = List.is_empty inputs;;
+
+  let count inputs = List.length inputs;;
 end;;
 
 module Make(Answer : Answer) : Generator = struct

@@ -39,10 +39,17 @@ exception File_test_creation_failure of string;;
 
 (** Thrown internally when an input generation test can halt generation as all
     sequences have been generated. *)
-exception Input_generation_complete of Generator_types.test_generator;;
+
+exception Input_generation_complete;;
+
+module Input_generator = Generator.Make(Generator.Input_sequence);;
+
+let string_of_int_list int_list =
+  "[" ^ (String.join ", " @@ List.map string_of_int int_list) ^ "]"
+;;
 
 let string_of_input_sequence input_sequence =
-  "[" ^ (String.join "," @@ List.map string_of_int input_sequence) ^ "]"
+  Input_generator.Answer.show input_sequence
 ;;
 
 let string_of_input_sequences input_sequences =
@@ -65,7 +72,7 @@ type test_expectation =
   | Expect_analysis_no_inconsistencies
   | Expect_input_sequences_reach of
       string * (* the variable *)
-      int list list * (* the expected input sequences *)
+      Input_generator.Answer.t list * (* the expected input sequences *)
       bool (* true if we should be certain that generation is complete *)
   | Expect_required_input_sequence_generation_steps of int
 ;;
@@ -81,8 +88,7 @@ let pp_test_expectation formatter expectation =
   | Expect_analysis_stack_is _ ->
     Format.pp_print_string formatter "Expect_analysis_stack_is(...)"
   | Expect_input_is inputs ->
-    Format.fprintf formatter "Expect_int_is [%s]"
-      (String.join ", " @@ List.map string_of_int inputs)
+    Format.fprintf formatter "Expect_int_is %s" (string_of_int_list inputs)
   | Expect_analysis_variable_lookup_from_end(x,expected) ->
     Format.fprintf formatter
       "Expect_analysis_variable_lookup_from_end(%a,\"%s\")"
@@ -120,7 +126,7 @@ let name_of_expectation expectation =
     in
     "should use analysis stack " ^ name
   | Expect_input_is inputs ->
-    "should have input " ^ (string_of_input_sequence inputs)
+    "should have input " ^ (string_of_int_list inputs)
   | Expect_analysis_variable_lookup_from_end(ident,_) ->
     "should have particular values for variable " ^ (show_ident ident)
   | Expect_analysis_inconsistency_at ident ->
@@ -177,7 +183,8 @@ let assert_two_args lst =
 ;;
 
 (* Parse the input sequence integers + final bool variable *)
-let parse_input_args chars : int list list * bool =
+(*
+let parse_input_args chars : Input_generator.Answer.t list * bool =
   let parse_int chars : int * char list =
     let is_digit_char c = (Char.is_digit c) || c == '-' in
     let ns = List.take_while is_digit_char chars in
@@ -234,6 +241,7 @@ let parse_input_args chars : int list list * bool =
       "In input sequence expectation, unexpected trailing characters: " ^
       (String.of_list chars'))
 ;;
+*)
 
 let parse_expectation str =
   try
@@ -264,6 +272,7 @@ let parse_expectation str =
             raise @@ Expectation_parse_failure "invalid stack name"
         end
       | "EXPECT-INPUT-IS"::args_part ->
+        (*
         let args_str = String.join "" args_part in
         let args = whitespace_split args_str in
         let inputs =
@@ -278,7 +287,27 @@ let parse_expectation str =
                    ("Could not parse input: " ^ s)
             )
         in
-        Expect_input_is inputs
+        *)
+        begin
+          match args_part with
+          | [args_str] ->
+            begin
+              try
+                let inputs =
+                  args_str
+                  |> whitespace_split
+                  |> List.map int_of_string
+                in
+                Expect_input_is inputs
+              with Failure _ ->
+                  raise @@ Expectation_parse_failure
+                    ("Could not parse input: " ^ args_str)
+            end
+          | [] ->
+            raise @@ Expectation_parse_failure "Missing arguments"
+          | _ ->
+            raise @@ Expectation_parse_failure "Spurious arguments"
+        end
       | "EXPECT-ANALYSIS-LOOKUP-FROM-END" :: args_part ->
         let args_str = String.join "" args_part in
         let args = whitespace_split ~max:2 args_str in
@@ -301,6 +330,47 @@ let parse_expectation str =
             raise @@ Expectation_parse_failure
               "Missing input sequence variable name"
           | variable_name :: rest_args ->
+            begin
+              let (input_sequences, complete) =
+                match rest_args with
+                | [rest_args_str] ->
+                  let rest_args_lst : string list =
+                    rest_args_str
+                    |> Str.split (Str.regexp "[][]")
+                    |> List.map (Str.global_replace (Str.regexp "[ ]*") "")
+                    |> List.filter (fun str -> not (String.equal "" str))
+                  in
+                  let complete : bool =
+                    String.equal "!" (List.last rest_args_lst)
+                  in
+                  let input_sequences =
+                    if complete then begin
+                      let rest_args_lst' =
+                        (* Remove final '!' element from list *)
+                        rest_args_lst
+                        |> List.rev
+                        |> List.tl
+                        |> List.rev
+                      in
+                      List.map
+                        Input_generator.Answer.answer_from_string
+                        rest_args_lst'
+                    end else begin
+                      List.map
+                        Input_generator.Answer.answer_from_string
+                        rest_args_lst
+                    end
+                  in
+                  (input_sequences, complete)
+                | [] -> raise @@ Expectation_parse_failure
+                          "Missing input sequence arguments"
+                | _ -> raise @@ Expectation_parse_failure
+                          "Spurious input sequence arguments"
+              in
+              Expect_input_sequences_reach(
+                variable_name, input_sequences, complete)
+            end;
+            (*
             let rest_chars =
               rest_args
               |> String.join ""
@@ -310,6 +380,7 @@ let parse_expectation str =
             let (input_sequences, complete) = parse_input_args rest_chars in
             Expect_input_sequences_reach(
               variable_name, input_sequences, complete)
+            *)
         end
       | "EXPECT-REQUIRED-INPUT-SEQUENCE-GENERATION-STEPS" :: args ->
         let nstr = assert_one_arg args in
@@ -651,18 +722,19 @@ let make_test filename expectations =
                  assert_failure
                    "Test specified input sequence requirement without context model."
              in
-             let generator = Generator.create
+             let generator = Input_generator.create
                  ?exploration_policy:(Some (Odefa_symbolic_interpreter.Interpreter.Explore_least_relative_stack_repetition))
                  configuration expr (Ident x) in
              let remaining_input_sequences = ref inputs in
-             let callback sequence _steps =
+             let callback sequence (_steps : int) =
                if List.mem sequence !remaining_input_sequences then begin
                  remaining_input_sequences :=
                    List.remove !remaining_input_sequences sequence;
                  if List.is_empty !remaining_input_sequences && not complete then
                    (* We're not looking for a complete input generation and we've
                       found everything we wanted to find.  We're finished! *)
-                   raise @@ Input_generation_complete(generator);
+                   (* raise @@ Input_generation_complete(generator); *)
+                   raise Input_generation_complete;
                end else begin
                  (* An input sequence was generated which we didn't expect. *)
                  if complete then
@@ -683,11 +755,11 @@ let make_test filename expectations =
              (* Setting an arbitrary generation limit for unit tests. *)
              let (_, generator') =
                try
-                 Generator.generate_inputs
+                 Input_generator.generate_answers
                    ~generation_callback:callback
                    (Some input_generation_steps) generator
                with
-               | Input_generation_complete generator ->
+               | Input_generation_complete ->
                  ([], Some generator)
              in
              let complaints =
@@ -833,10 +905,10 @@ let make_tests_from_dir pathname =
 
 let tests =
   "Test_source_files" >::: (
-    (* make_tests_from_dir "test-sources" @ *)
+    make_tests_from_dir "test-sources" @
     make_tests_from_dir "test-sources/odefa-basic" @
     make_tests_from_dir "test-sources/odefa-fails" @
-    make_tests_from_dir "test-sources/odefa-stack" @
-    make_tests_from_dir "test-sources/odefa-types"
+    make_tests_from_dir "test-sources/odefa-stack" (* @
+    make_tests_from_dir "test-sources/odefa-types" *)
   )
 ;;
