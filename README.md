@@ -1,8 +1,9 @@
-Odefa
+Sato
 =====
 
-This is the artifact for the paper **Higher-Order Demand-Driven Symbolic Evaluation**.
+_"You don't need to apologize for anything."_ - Asami Sato, _The Legend of Korra_
 
+**Sato**, the **S**ymbolic **A**nalysis **T**ypechecker for **O**defa, dynamically locates type errors during demand-driven symbolic execution.
 
 Install
 -------
