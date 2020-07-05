@@ -172,6 +172,7 @@ and _create_end_of_block_map_for_function (f : abstract_function_value) =
 (**
    Defines the behavior of binary operations in abstract evaluation.
 *)
+(*
 let abstract_binary_operation
     (binop : binary_operator)
     (arg1 : abstract_value)
@@ -184,7 +185,7 @@ let abstract_binary_operation
     | Binary_operator_times
     | Binary_operator_divide
     | Binary_operator_modulus
-    ), Abs_value_int, Abs_value_int ->
+    ), (* Abs_value_int, Abs_value_int*) _, _ ->
     singleton Abs_value_int
   | ( Binary_operator_less_than
     | Binary_operator_less_than_or_equal_to
@@ -201,7 +202,31 @@ let abstract_binary_operation
     singleton @@ Abs_value_bool(b1 <> b2)
   | _ -> None
 ;;
+*)
 
+let abstract_binary_operation
+    (binop : binary_operator)
+    (_ : abstract_value)
+    (_ : abstract_value)
+  : abstract_value Enum.t option =
+  match binop with
+  | Binary_operator_plus
+  | Binary_operator_minus
+  | Binary_operator_times
+  | Binary_operator_divide
+  | Binary_operator_modulus ->
+    Some (Enum.singleton Abs_value_int)
+  | Binary_operator_less_than
+  | Binary_operator_less_than_or_equal_to
+  | Binary_operator_and
+  | Binary_operator_or
+  | Binary_operator_xor ->
+    Some (List.enum [Abs_value_bool true; Abs_value_bool false])
+  | Binary_operator_equal_to ->
+    Some (List.enum [Abs_value_int; Abs_value_bool true; Abs_value_bool false])
+;;
+
+(*
 let abstract_pattern_match (v : abstract_value) (p : pattern)
   : abstract_value Enum.t =
   match v, p with
@@ -215,3 +240,8 @@ let abstract_pattern_match (v : abstract_value) (p : pattern)
     List.enum [Abs_value_bool(true); Abs_value_bool(false)]
   | _ ->
     Enum.singleton @@ Abs_value_bool(false)
+*)
+
+let abstract_pattern_match (_ : abstract_value) (_ : pattern)
+  : abstract_value Enum.t =
+  List.enum [Abs_value_bool(true); Abs_value_bool(false)]

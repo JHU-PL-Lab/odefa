@@ -120,6 +120,7 @@ let pp_type_sig formatter type_sig =
   | Fun_type -> Format.pp_print_string formatter "fun"
   | Rec_type labels ->
     pp_concat_sep_delim "{" "}" "," pp_ident formatter @@ Ident_set.enum labels
+  | Bottom_type -> Format.pp_print_string formatter "bottom"
 ;;
 
 let show_type_sig = pp_to_string pp_type_sig;;

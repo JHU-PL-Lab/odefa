@@ -140,11 +140,13 @@ module Input_sequence : Answer = struct
       (* TODO: check that the abort var is in the set of abort clauses encountered during symbolic lookup. 
         Otherwise we have an Invariant_failure*)
       | Odefa_interpreter.Interpreter.Abort_failure ab_var ->
+        (* Fail silently *)
         lazy_logger `trace (fun () ->
           Printf.sprintf
             "Execution failed at abort clause %s"
             (show_var ab_var));
         ()
+        (* raise (Jhupllib.Utils.Invariant_failure ("abort failure at " ^ (show_var ab_var))) *)
     end;
     let input_sequence = List.rev !input_record in
     input_sequence
@@ -269,7 +271,7 @@ module Type_errors : Answer = struct
       "* Expected: " ^ (show_type_sig typ1) ^ "\n" ^
       "* Actual: " ^ (show_type_sig typ2) ^ "\n"
     in
-    String.join ", " @@ List.map show_one_type_error type_errors
+    String.join "\n" @@ List.map show_one_type_error type_errors
   ;;
 
   let empty = [];;
@@ -462,10 +464,3 @@ module Make(Answer : Answer) : Generator = struct
   loop original_generator max_steps_opt 0 []
 ;;
 end;;
-
-(*
-let type_errors_from_result result =
-  let type_errors = result.Symbolic_interpreter.Interpreter.er_type_errors in
-  type_errors
-;;
-*)

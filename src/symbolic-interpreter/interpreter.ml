@@ -736,6 +736,8 @@ struct
         *)
         let%bind _ = recurse new_lookup_stack acl1 relstack in
         let%bind () = record_abort_point abort_symbol variables in
+        let%bind () = record_constraint @@
+          Constraint_abort(abort_symbol) in
         return abort_symbol
       end;
 

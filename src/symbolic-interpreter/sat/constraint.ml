@@ -13,6 +13,7 @@ type symbol_type =
   | BoolSymbol
   | RecordSymbol
   | FunctionSymbol
+  | BottomSymbol
 [@@deriving eq, ord, to_yojson]
 ;;
 
@@ -22,6 +23,7 @@ let pp_symbol_type formatter t =
   | BoolSymbol -> Format.pp_print_string formatter "bool"
   | RecordSymbol -> Format.pp_print_string formatter "record"
   | FunctionSymbol -> Format.pp_print_string formatter "function"
+  | BottomSymbol -> Format.pp_print_string formatter "bottom"
 ;;
 
 let show_symbol_type = Pp_utils.pp_to_string pp_symbol_type;;
@@ -53,9 +55,9 @@ type t =
   | Constraint_binop of symbol * symbol * binary_operator * symbol (* x = x+x *)
   | Constraint_projection of symbol * symbol * ident (* x = x.l *)
   | Constraint_match of symbol * symbol * pattern (* x = x ~ p *)
-  (* | Constraint_antimatch of symbol * symbol * pattern (* x = x !~ p *) *)
   | Constraint_type of symbol * symbol_type (* x : t *)
   | Constraint_stack of Relative_stack.concrete_stack (* stack = C *)
+  | Constraint_abort of symbol (* ab = abort [ ... ] *)
 [@@deriving eq, ord, to_yojson]
 ;;
 
@@ -81,6 +83,8 @@ let pp formatter sc =
     Format.fprintf formatter "%a ~ %a" pp_symbol x pp_symbol_type t
   | Constraint_stack(s) ->
     Format.fprintf formatter "stack = %a" Relative_stack.pp_concrete_stack s
+  | Constraint_abort(ab) ->
+    Format.fprintf formatter "%a = abort" pp_symbol ab
 ;;
 
 let show = Pp_utils.pp_to_string pp;;

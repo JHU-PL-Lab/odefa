@@ -181,6 +181,7 @@ type type_sig =
   | Bool_type
   | Fun_type
   | Rec_type of Ident_set.t
+  | Bottom_type
 [@@ deriving eq, ord, to_yojson]
 ;;
 

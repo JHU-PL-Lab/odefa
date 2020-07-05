@@ -15,6 +15,7 @@ type symbol_type =
   | BoolSymbol
   | RecordSymbol
   | FunctionSymbol
+  | BottomSymbol
 [@@deriving eq, ord, show, to_yojson]
 (* TODO: Replace symbol_type with Ast.type_sig *)
 ;;
@@ -38,6 +39,7 @@ type t =
   | Constraint_match of symbol * symbol * pattern (* x = x ~ p *)
   | Constraint_type of symbol * symbol_type (* x : t *)
   | Constraint_stack of Relative_stack.concrete_stack (* stack = C *)
+  | Constraint_abort of symbol (* ab = abort [...] *)
 [@@deriving eq, ord, show, to_yojson]
 ;;
 

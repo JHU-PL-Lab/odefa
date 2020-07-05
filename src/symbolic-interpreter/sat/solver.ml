@@ -189,6 +189,12 @@ let rec _add_constraints_and_close
             constraints = Constraint.Set.add c solver.constraints;
             stack_constraint = Some s;
           }
+        | Constraint_abort _ ->
+          begin
+            { solver with
+              constraints = Constraint.Set.add c solver.constraints;
+            }
+          end;
       in
       let new_constraints : Constraint.Set.t =
         match c with
@@ -361,6 +367,8 @@ let rec _add_constraints_and_close
           |> Constraint.Set.of_enum
         | Constraint_stack _ ->
           Constraint.Set.empty
+        | Constraint_abort(ab) ->
+          Constraint.Set.singleton @@ Constraint_type(ab, BottomSymbol);
       in
       _add_constraints_and_close
         (Constraint.Set.union new_constraints constraints) new_solver
@@ -395,6 +403,7 @@ let z3_expr_of_symbol
   | Some BoolSymbol -> Some(Z3.Boolean.mk_const ctx z3symbol)
   | Some FunctionSymbol -> None
   | Some RecordSymbol -> None
+  | Some BottomSymbol -> None
   | None -> None
 ;;
 
@@ -474,6 +483,8 @@ let z3_constraint_of_constraint
     None
   | Constraint_stack _ ->
     None
+  | Constraint_abort _ ->
+    None
 ;;
 
 let solve (solver : t) : solution option =
@@ -529,6 +540,7 @@ let solve (solver : t) : solution option =
               | Some RecordSymbol ->
                 (* TODO: look up the corresponding record *)
                 raise @@ Jhupllib_utils.Not_yet_implemented "solution for record"
+              | Some BottomSymbol -> None
               | None -> None
             end
         in
@@ -567,14 +579,17 @@ let find_type_error solver symbol =
       Symbol_map.find symbol solver.match_constraints_by_symbol;
     with Not_found ->
       raise @@
-        Utils.Invariant_failure "Symbol not found in match constraint set!"
+        Utils.Invariant_failure ("Symbol " ^ (show_symbol symbol) ^ " not found in match constraint set!")
   in
   let sym_type : Constraint.symbol_type =
     try
-      Symbol_map.find variable solver.type_constraints_by_symbol;
+      Symbol_map.find variable solver.type_constraints_by_symbol
     with Not_found ->
+      (* 
       raise @@
-        Utils.Invariant_failure "Symbol not found in value constraint set!"
+        Utils.Invariant_failure ("Symbol " ^ (show_symbol variable) ^ " not found in type constraint set!")
+      *)
+      BottomSymbol
   in
   let var_ident =
     match variable with
@@ -593,6 +608,7 @@ let find_type_error solver symbol =
   in
   let actual_type =
     match sym_type with
+    | BottomSymbol -> Bottom_type
     | IntSymbol -> Int_type
     | BoolSymbol -> Bool_type
     | FunctionSymbol -> Fun_type
@@ -612,7 +628,7 @@ let find_type_error solver symbol =
               Utils.Invariant_failure "Record value typed incorrectly!"
         with Not_found ->
           raise @@
-            Utils.Invariant_failure "Symbol not found in value constraint set!"
+            Utils.Invariant_failure ("Symbol " ^ (show_symbol variable) ^ " not found in value constraint set!")
       in
       Rec_type record_labels
   in

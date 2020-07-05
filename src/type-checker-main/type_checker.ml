@@ -83,15 +83,15 @@ let () =
     in
     begin
       try
-        let answers, generator_opt =
+        let (* answers *) _, generator_opt =
           Type_error_generator.generate_answers
             ~generation_callback:generation_callback
             args.tc_maximum_steps
             generator
         in
-        let answer_count = List.length answers in
+        (* let answer_count = List.length answers in
         Printf.printf "%d answer%s generated\n"
-          answer_count (if answer_count = 1 then "" else "s");
+          answer_count (if answer_count = 1 then "" else "s"); *)
         if Option.is_none generator_opt then
           print_endline "No further control flows exist."
         else
