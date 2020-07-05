@@ -1,4 +1,4 @@
-.PHONY: all clean repl sandbox test benchmark
+.PHONY: all sato clean repl sandbox test benchmark
 
 all:
 	dune build
@@ -13,6 +13,12 @@ all:
 	ln -s _build/default/src/toploop-main/ddpa_toploop.exe ddpa_toploop
 	ln -s _build/default/src/test-generation-main/test_generator.exe test_generator
 	ln -s _build/default/src/translator-main/translator.exe translator
+	ln -s _build/default/src/type-checker-main/type_checker.exe type_checker
+
+sato:
+	dune build
+	dune build src/type-checker-main/type_checker.exe
+	rm -f type_checker
 	ln -s _build/default/src/type-checker-main/type_checker.exe type_checker
 
 sandbox:
