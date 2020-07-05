@@ -8,7 +8,7 @@ let codenames =
   ["Raava"; "Wan"; "Yangchen"; "Kuruk"; "Kyoshi"; "Roku"; "Aang"; "Korra"]
 
 let version_str =
-  "Version " ^
+  "Sato version " ^
   (string_of_int major_version) ^ "." ^
   (string_of_int minor_version) ^ "." ^
   (string_of_int patch_version) ^

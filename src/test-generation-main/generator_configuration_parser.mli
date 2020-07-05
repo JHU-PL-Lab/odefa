@@ -4,7 +4,7 @@
 *)
 
 open Odefa_ast;;
-open Odefa_test_generation;;
+open Odefa_answer_generation;;
 
 open Ast;;
 

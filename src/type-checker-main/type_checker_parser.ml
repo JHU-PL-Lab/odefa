@@ -2,7 +2,7 @@ open Batteries;;
 
 open Odefa_ast;;
 open Odefa_ddpa;;
-open Odefa_test_generation;;
+open Odefa_answer_generation;;
 
 open Ast;;
 open Ddpa_context_stack;;

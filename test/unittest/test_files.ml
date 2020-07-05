@@ -19,7 +19,7 @@ open OUnit2;;
 open Odefa_ast;;
 open Odefa_ddpa;;
 open Odefa_parser;;
-open Odefa_test_generation;;
+open Odefa_answer_generation;;
 open Odefa_toploop;;
 
 open Odefa_natural;;

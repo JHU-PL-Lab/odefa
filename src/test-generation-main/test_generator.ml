@@ -2,7 +2,7 @@ open Batteries;;
 open Jhupllib;;
 
 open Odefa_ast;;
-open Odefa_test_generation;;
+open Odefa_answer_generation;;
 
 let logger = Logger_utils.make_logger "Test_generator";;
 let lazy_logger = Logger_utils.make_lazy_logger "Test_generator";;

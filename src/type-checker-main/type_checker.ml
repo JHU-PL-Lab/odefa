@@ -3,7 +3,7 @@ open Jhupllib;;
 
 open Odefa_ast;;
 
-open Odefa_test_generation;;
+open Odefa_answer_generation;;
 
 let logger = Logger_utils.make_logger "Type_checker";;
 let lazy_logger = Logger_utils.make_lazy_logger "Type_checker";;

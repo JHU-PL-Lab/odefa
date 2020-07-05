@@ -13,7 +13,7 @@
     odefa.ddpa
     odefa.parser
     odefa.symbolic-interpreter
-    odefa.test-generation
+    odefa.answer-generation
     odefa.toploop
     odefa.natural
     oUnit

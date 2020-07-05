@@ -8,6 +8,6 @@
     odefa.ddpa
     odefa.natural
     odefa.parser
-    odefa.test-generation
+    odefa.answer-generation
   )
 )
