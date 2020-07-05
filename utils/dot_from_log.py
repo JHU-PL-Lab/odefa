@@ -3,7 +3,7 @@
 
 import argparse
 import codecs
-import collections
+import collections.abc as collections
 import json
 import re
 import sys
