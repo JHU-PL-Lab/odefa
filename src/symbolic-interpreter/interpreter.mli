@@ -31,8 +31,8 @@ type evaluation_result = {
   er_solution : (symbol -> value option);
   (** The solution to the formulae found by this evaluation. *)
 
-  er_type_errors : (ident * type_sig * type_sig) list;
-  (** Any type errors encountered during this evaluation. *)
+  er_abort_points : (symbol list) Symbol_map.t;
+  (** Any abort points encountered during this evaluation. *)
 };;
 
 (** Raised if a query is invalid (e.g. a variable is requested for an expression

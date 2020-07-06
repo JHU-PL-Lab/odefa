@@ -20,6 +20,8 @@ open Odefa_ast;;
 
 open Ast;;
 
+open Interpreter_types;;
+
 (** The information pertinent to a single element of work in a symbolic monad
     computation. *)
 type ('cache_key, 'work) work_info = {
@@ -138,7 +140,8 @@ module type S = sig
   type 'a evaluation_result =
     { er_value : 'a;
       er_solver : Solver.t;
-      er_type_errors : (ident * type_sig * type_sig) list;
+      (* er_type_errors : (ident * type_sig * type_sig) list; *)
+      er_abort_points : (symbol list) Symbol_map.t;
       er_evaluation_steps : int;
       er_result_steps : int;
     };;

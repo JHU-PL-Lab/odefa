@@ -3,7 +3,6 @@
 *)
 
 open Odefa_ast;;
-
 open Ast;;
 
 open Generator_answer;;

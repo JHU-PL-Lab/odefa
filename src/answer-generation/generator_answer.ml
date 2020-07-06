@@ -186,14 +186,28 @@ module Type_errors : Answer = struct
   type t = type_error list
 
   let answer_from_result (_: expr) (_: ident) result =
-    List.map (fun type_err ->
-      let (var, expected, actual) = type_err in
-      { odefa_var = var;
-        expected_type = expected;
-        actual_type = actual;
-      }
-    )
-    result.er_type_errors
+    let solver = result.er_solver in
+    let find_type_error_fn = find_type_error solver in
+    result.er_abort_points
+    |> Symbol_map.enum
+    |> Enum.fold (fun accum (_, var_list) ->
+        let err_list =
+          List.filter_map
+            (fun v ->
+              let type_err = find_type_error_fn v in
+              match type_err with
+              | None -> None
+              | Some (v', expected, actual) ->
+                Some {
+                      odefa_var = v';
+                      expected_type = expected;
+                      actual_type = actual;
+                    }
+            )
+            var_list
+        in
+        err_list @ accum
+      ) []
   ;;
 
   (*

@@ -74,7 +74,7 @@ module Make(Answer : Answer) : Generator = struct
         (ev : evaluation)
       : generation_result =
       lazy_logger `trace (fun () -> Printf.sprintf
-                            "%d/%d completed in this pass" step_count max_steps);
+                          "%d/%d completed in this pass" step_count max_steps);
       if step_count = max_steps then begin
         lazy_logger `trace (fun () ->
             "Pass reached max step count; returning suspended generator.");

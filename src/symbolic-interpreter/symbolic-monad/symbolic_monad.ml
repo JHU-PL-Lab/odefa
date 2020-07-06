@@ -114,7 +114,8 @@ module type S = sig
   type 'a evaluation_result =
     { er_value : 'a;
       er_solver : Solver.t;
-      er_type_errors : (ident * type_sig * type_sig) list;
+      (* er_type_errors : (ident * type_sig * type_sig) list; *)
+      er_abort_points : (symbol list) Symbol_map.t;
       er_evaluation_steps : int;
       er_result_steps : int;
     };;
@@ -590,7 +591,8 @@ struct
   type 'out evaluation_result =
     { er_value : 'out;
       er_solver : Solver.t;
-      er_type_errors : (ident * type_sig * type_sig) list;
+      (* er_type_errors : (ident * type_sig * type_sig) list; *)
+      er_abort_points : (symbol list) Symbol_map.t;
       er_evaluation_steps : int;
       er_result_steps : int;
     };;
@@ -982,6 +984,7 @@ struct
       completed
       |> Enum.map
         (fun (value, log) ->
+            (*
             let match_symb_list =
               log.log_abort_points
               |> Symbol_map.values
@@ -992,10 +995,12 @@ struct
               let find_err_fn = Solver.find_type_error log.log_solver in
               List.filter_map find_err_fn match_symb_list
             in
+            *)
             _debug_log_step_output ~show_value:show_value final_ev value log;
             { er_value = value;
               er_solver = log.log_solver;
-              er_type_errors = type_errors;
+              (* er_type_errors = type_errors; *)
+              er_abort_points = log.log_abort_points;
               er_evaluation_steps = final_ev.ev_evaluation_steps;
               er_result_steps = log.log_steps + 1;
             }

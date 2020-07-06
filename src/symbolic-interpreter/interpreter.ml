@@ -251,7 +251,8 @@ type evaluation_result = {
   er_solver : Solver.t;
   er_stack : Relative_stack.concrete_stack;
   er_solution : (symbol -> value option);
-  er_type_errors : (ident * type_sig * type_sig) list
+  (* er_type_errors : (ident * type_sig * type_sig) list *)
+  er_abort_points : (symbol list) Symbol_map.t;
 };;
 
 exception Invalid_query of string;;
@@ -828,16 +829,18 @@ struct
                      (Solver.show evaluation_result.M.er_solver)
                  )
              end;
+             (*
              begin
               lazy_logger `debug (fun () ->
-                Printf.sprintf "Type errors:\n    %s"
-                  (show_type_error_list evaluation_result.M.er_type_errors)
+                Printf.sprintf "Abort clauses encountered:\n    %s"
+                  (show_symbol evaluation_result.M.er_abort_points)
               )
              end;
+             *)
              Some {er_solver = evaluation_result.M.er_solver;
                    er_stack = stack;
                    er_solution = get_value;
-                   er_type_errors = evaluation_result.M.er_type_errors;
+                   er_abort_points = evaluation_result.M.er_abort_points;
                   }
            | None ->
              begin
