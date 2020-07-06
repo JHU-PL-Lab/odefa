@@ -1,4 +1,4 @@
-.PHONY: all sato clean repl sandbox test benchmark
+.PHONY: all ddse sato clean repl sandbox test benchmark
 
 all:
 	dune build
@@ -14,6 +14,12 @@ all:
 	ln -s _build/default/src/test-generation-main/test_generator.exe test_generator
 	ln -s _build/default/src/translator-main/translator.exe translator
 	ln -s _build/default/src/type-checker-main/type_checker.exe type_checker
+
+ddse:
+	dune build
+	dune build src/test-generation-main/test_generator.exe
+	rm -f test_generator
+	ln -s _build/default/src/test-generation-main/test_generator.exe test_generator
 
 sato:
 	dune build
