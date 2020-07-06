@@ -10,7 +10,6 @@ open Ast_pp;;
 open Generator_answer;;
 open Generator_configuration;;
 
-(* open Odefa_symbolic_interpreter.Interpreter_types;; *)
 open Odefa_symbolic_interpreter.Interpreter;;
 
 module Symbolic_interpreter = Odefa_symbolic_interpreter;;

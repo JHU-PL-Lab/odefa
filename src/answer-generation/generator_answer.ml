@@ -172,12 +172,31 @@ end;;
 (* **** Type Errors **** *)
 
 module Type_errors : Answer = struct
-  type t = (ident * type_sig * type_sig) list
+  (* type t = (ident * type_sig * type_sig) list *)
 
-  let answer_from_result _ _ result =
+  type type_error = {
+    odefa_var : Ident.t;
+    (* define_clause : clause; *)
+    (* use_clause : clause; *)
+    expected_type : type_sig;
+    actual_type : type_sig;
+    (* input_seq : int list option; *)
+  }
+
+  type t = type_error list
+
+  let answer_from_result (_: expr) (_: ident) result =
+    List.map (fun type_err ->
+      let (var, expected, actual) = type_err in
+      { odefa_var = var;
+        expected_type = expected;
+        actual_type = actual;
+      }
+    )
     result.er_type_errors
   ;;
 
+  (*
   let answer_from_string arg_str =
     let arg_str' =
       begin
@@ -216,13 +235,21 @@ module Type_errors : Answer = struct
     )
     str_lst
   ;;
+  *)
+
+  (* TEMP *)
+  let answer_from_string (arg_str : string) =
+    let _ = arg_str in
+    [{ odefa_var = Ident("foo");
+      expected_type = Bool_type;
+      actual_type = Int_type }]
+  ;;
 
   let show type_errors =
     let show_one_type_error type_error =
-      let (id, typ1, typ2) = type_error in
-      "* Variable: " ^ (show_ident id) ^ "\n" ^
-      "* Expected: " ^ (show_type_sig typ1) ^ "\n" ^
-      "* Actual: " ^ (show_type_sig typ2) ^ "\n"
+      "* Variable: " ^ (show_ident type_error.odefa_var) ^ "\n" ^
+      "* Expected: " ^ (show_type_sig type_error.expected_type) ^ "\n" ^
+      "* Actual: " ^ (show_type_sig type_error.actual_type) ^ "\n"
     in
     String.join "\n" @@ List.map show_one_type_error type_errors
   ;;
