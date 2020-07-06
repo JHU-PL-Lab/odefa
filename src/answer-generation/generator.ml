@@ -21,8 +21,20 @@ let lazy_logger = Logger_utils.make_lazy_logger "Generator";;
 module type Generator = sig
   module Answer : Answer;;
 
-  type generator;;
-  type generation_result;;
+  type generator =
+    {
+      gen_program : expr;
+      gen_target : Ident.t;
+      generator_fn : (int -> generation_result) option
+    }
+
+  and generation_result =
+    {
+      gen_answers : Answer.t list;
+      gen_steps : int;
+      gen_generator : generator;
+    }
+  ;;
 
   val create :
     ?exploration_policy:exploration_policy ->
