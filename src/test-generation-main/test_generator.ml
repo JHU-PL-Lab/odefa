@@ -10,7 +10,7 @@ let lazy_logger = Logger_utils.make_lazy_logger "Test_generator";;
 exception CommandLineParseFailure of string;;
 exception GenerationComplete;;
 
-module Input_generator = Generator.Make(Generator.Input_sequence);;
+module Input_generator = Generator.Make(Generator_answer.Input_sequence);;
 
 let () =
   (* Parse CLI args *)

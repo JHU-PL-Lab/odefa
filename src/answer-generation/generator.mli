@@ -6,34 +6,11 @@ open Odefa_ast;;
 
 open Ast;;
 
+open Generator_answer;;
 open Generator_configuration;;
 
 open Odefa_symbolic_interpreter;;
 open Interpreter;;
-
-exception Parse_failure;;
-
-(** A generic answer that can be extracted from a symbolic evaluation result. *)
-module type Answer = sig
-  (** The type of the answer. *)
-  type t;;
-
-  (** A routine to extract an answer from a symbolic evaluation result. *)
-  val answer_from_result : expr -> ident -> evaluation_result -> t;;
-
-  (** Parse an answer from a string (for testing purposes) *)
-  val answer_from_string : string -> t;;
-
-  (* Standard data structure functions *)
-  val show : t -> string;;
-  val empty : t;;
-  val is_empty : t -> bool;;
-  val count : t -> int;;
-end;;
-
-module Input_sequence : Answer;;
-
-module Type_errors : Answer;;
 
 (** The interface of a generic answer generator. *)
 module type Generator = sig

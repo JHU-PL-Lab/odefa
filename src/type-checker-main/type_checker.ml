@@ -13,7 +13,7 @@ exception TypeCheckComplete;;
 
 exception GenerationComplete;;
 
-module Type_error_generator = Generator.Make(Generator.Type_errors);;
+module Type_error_generator = Generator.Make(Generator_answer.Type_errors);;
 
 let get_ast (args : Type_checker_parser.type_checker_args) =
   let filename : string = args.tc_filename in
