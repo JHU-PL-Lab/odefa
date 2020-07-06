@@ -55,7 +55,7 @@ let input_sequence_from_result
     (e : expr)
     (x : Ident.t)
     (result : Interpreter.evaluation_result)
-  : (int list * Var.t option) =
+  : (int list * symbol option) =
   match Solver.solve result.er_solver with
   | None ->
     raise @@ Jhupllib_utils.Invariant_failure
@@ -113,12 +113,12 @@ let input_sequence_from_result
         let abort_relstack = relativize_stack stop_stack abort_stack in
         let abort_symbol = Symbol(abort_x, abort_relstack) in
         if Symbol_map.mem abort_symbol result.er_abort_points then
-          Some (abort_var)
+          Some (abort_symbol)
         else
           raise @@ Utils.Invariant_failure
             ("Encountered unknown abort clause " ^ (Ast_pp.show_var abort_var))
     in
-    let abort_var_opt = execute_interpreter () in
+    let abort_symbol_opt = execute_interpreter () in
     let input_sequence = List.rev !input_record in
     let input_seq_ints =
       List.map
@@ -131,5 +131,5 @@ let input_sequence_from_result
         )
         input_sequence
     in
-    (input_seq_ints, abort_var_opt)
+    (input_seq_ints, abort_symbol_opt)
 ;;

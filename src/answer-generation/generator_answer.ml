@@ -74,7 +74,6 @@ end;;
 (* **** Type Errors **** *)
 
 module Type_errors : Answer = struct
-  (* type t = (ident * type_sig * type_sig) list *)
 
   type type_error = {
     odefa_var : Ident.t;
@@ -82,34 +81,48 @@ module Type_errors : Answer = struct
     (* use_clause : clause; *)
     expected_type : type_sig;
     actual_type : type_sig;
-    (* input_seq : int list option; *)
   }
 
-  type t = type_error list
+  type type_error_seq = {
+    type_errors : type_error list;
+    input_seq : int list
+  }
 
-  let answer_from_result (_: expr) (_: ident) result =
+  type t = type_error_seq
+
+  let answer_from_result e x result =
     let solver = result.er_solver in
     let find_type_error_fn = find_type_error solver in
-    result.er_abort_points
-    |> Symbol_map.enum
-    |> Enum.fold (fun accum (_, var_list) ->
-        let err_list =
-          List.filter_map
-            (fun v ->
-              let type_err = find_type_error_fn v in
-              match type_err with
-              | None -> None
-              | Some (v', expected, actual) ->
-                Some {
-                      odefa_var = v';
-                      expected_type = expected;
-                      actual_type = actual;
-                    }
-            )
-            var_list
-        in
-        err_list @ accum
-      ) []
+    let type_errors =
+      result.er_abort_points
+      |> Symbol_map.enum
+      |> Enum.fold (fun accum (_, var_list) ->
+          let err_list =
+            List.filter_map
+              (fun v ->
+                let type_err = find_type_error_fn v in
+                match type_err with
+                | None -> None
+                | Some (v', expected, actual) ->
+                  Some {
+                        odefa_var = v';
+                        expected_type = expected;
+                        actual_type = actual;
+                      }
+              )
+              var_list
+          in
+          err_list @ accum
+        )
+        []
+    in
+    let (input_seq, _) =
+      Generator_utils.input_sequence_from_result e x result
+    in
+    {
+      type_errors = type_errors;
+      input_seq = input_seq
+    }
   ;;
 
   (*
@@ -156,23 +169,34 @@ module Type_errors : Answer = struct
   (* TEMP *)
   let answer_from_string (arg_str : string) =
     let _ = arg_str in
-    [{ odefa_var = Ident("foo");
-      expected_type = Bool_type;
-      actual_type = Int_type }]
+    { type_errors =
+      [{ odefa_var = Ident("foo");
+        expected_type = Bool_type;
+        actual_type = Int_type }];
+      input_seq = []
+    }
   ;;
 
-  let show type_errors =
-    let show_one_type_error type_error =
+  let show type_error_seq =
+    let show_type_error type_error =
       "* Variable: " ^ (show_ident type_error.odefa_var) ^ "\n" ^
       "* Expected: " ^ (show_type_sig type_error.expected_type) ^ "\n" ^
       "* Actual: " ^ (show_type_sig type_error.actual_type) ^ "\n"
     in
-    String.join "\n" @@ List.map show_one_type_error type_errors
+    let show_input_seq inputs =
+      "[" ^ (String.join ", " @@ List.map string_of_int inputs) ^ "]"
+    in
+    (String.join "\n" @@
+      List.map show_type_error type_error_seq.type_errors) ^
+    ("\nInput sequence: " ^ (show_input_seq type_error_seq.input_seq))
   ;;
 
-  let empty = [];;
+  let empty = {
+    type_errors = [];
+    input_seq = [];
+  };;
 
-  let is_empty type_errors = List.is_empty type_errors;;
+  let is_empty type_errors = List.is_empty type_errors.type_errors;;
 
-  let count type_errors = List.length type_errors;;
+  let count type_errors = List.length type_errors.type_errors;;
 end;;
