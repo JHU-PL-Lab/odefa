@@ -1,7 +1,7 @@
 Sato
 =====
 
-_"You don't need to apologize for anything."_ - Asami Sato, _The Legend of Korra_
+_"I am so embarrassed. My name's Asami. Let me make this up to you somehow. Uh...how about I treat you to dinner?"_ - Asami Sato, _The Legend of Korra_
 
 **Sato**, the **S**ymbolic **A**nalysis **T**ypechecker for **O**defa, dynamically locates type errors during demand-driven symbolic execution.
 
