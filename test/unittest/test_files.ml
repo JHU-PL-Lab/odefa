@@ -27,6 +27,7 @@ open Odefa_natural;;
 open Ast;;
 open Ast_pp;;
 open Ast_wellformedness;;
+open Generator_answer;;
 open Generator_configuration;;
 open Toploop_options;;
 open Toploop_types;;
@@ -42,7 +43,7 @@ exception File_test_creation_failure of string;;
 
 exception Input_generation_complete;;
 
-module Input_generator = Generator.Make(Generator.Input_sequence);;
+module Input_generator = Generator.Make(Input_sequence);;
 
 let string_of_int_list int_list =
   "[" ^ (String.join ", " @@ List.map string_of_int int_list) ^ "]"
