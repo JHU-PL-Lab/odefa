@@ -26,7 +26,8 @@ let () =
           File.with_file_in args.ga_filename
             Odefa_natural.On_parse.parse_program
         in
-        Odefa_natural.On_to_odefa.translate natast
+        let (abs_ast, _) = Odefa_natural.On_to_odefa.translate natast in
+        abs_ast
       with
       | Sys_error err ->
         prerr_endline err;

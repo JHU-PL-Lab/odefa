@@ -2,6 +2,7 @@ open Batteries;;
 open Jhupllib;;
 
 open Odefa_ast;;
+open Odefa_natural;;
 
 open Odefa_answer_generation;;
 
@@ -22,11 +23,24 @@ let get_ast (args : Type_checker_parser.type_checker_args) =
   try
     if is_natodefa then begin
       let natodefa_ast =
-        File.with_file_in filename Odefa_natural.On_parse.parse_program
+        File.with_file_in filename On_parse.parse_program
       in
-      let odefa_ast = Odefa_natural.On_to_odefa.translate ~is_instrumented:true natodefa_ast
+      let (odefa_ast, odefa_info) = On_to_odefa.translate ~is_instrumented:true natodefa_ast
       in
       Ast_wellformedness.check_wellformed_expr odefa_ast;
+      let abort_string = 
+        odefa_info.odefa_aborts
+        |> Ast.Var_map.enum
+        |> Enum.map
+          (fun (_, v) ->
+            (Ast_pp.show_var v.On_to_odefa_types.odefa_abort_symbol) ^ ", " ^
+            (Ast_pp.show_clause v.On_to_odefa_types.odefa_abort_operation) ^ ", " ^
+            "[" ^ (String.join ", " @@ List.map Ast_pp.show_clause v.On_to_odefa_types.odefa_abort_matches) ^ "]"
+          )
+        |> List.of_enum
+        |> String.join "\n"
+      in
+      print_endline abort_string;
       odefa_ast
     end else if is_odefa then begin
       if args.tc_debug then begin

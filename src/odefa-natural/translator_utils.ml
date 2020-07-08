@@ -2,12 +2,15 @@ open Batteries;;
 
 open Odefa_ast;;
 
+open On_to_odefa_types;;
+
 type translation_context =
   { mutable tc_fresh_name_counter : int;
     tc_fresh_suffix_separator : string;
     tc_contextual_recursion : bool;
+    mutable tc_odefa_natodefa_info : odefa_natodefa_info;
   }
-[@@deriving eq, ord, show]
+[@@deriving eq, ord (*, show *)]
 ;;
 
 let new_translation_context
@@ -18,23 +21,28 @@ let new_translation_context
   { tc_fresh_name_counter = 0;
     tc_fresh_suffix_separator = suffix;
     tc_contextual_recursion = contextual_recursion;
+    tc_odefa_natodefa_info = {
+      odefa_aborts = Ast.Var_map.empty;
+      (* natodefa_exprs = Ast.Var_map.empty; *)
+    }
   }
 ;;
 
-module TranslationMonad :
-sig
+module TranslationMonad : sig
   include Monad.Monad;;
   val run : translation_context -> 'a m -> 'a
   val fresh_name : string -> string m
   val fresh_var : string -> Ast.var m
+  val add_abort : odefa_abort_info -> unit m
+  (* val add_natodefa_expr : (Ast.var * On_ast.expr) -> unit m *)
   val freshness_string : string m
   val acontextual_recursion : bool m
+  val get_odefa_natodefa_info : odefa_natodefa_info m
   val sequence : 'a m list -> 'a list m
   val list_fold_left_m : ('acc -> 'el -> 'acc m) -> 'acc -> 'el list -> 'acc m
   val list_fold_right_m : ('el -> 'acc -> 'acc m) -> 'el list -> 'acc -> 'acc m
   val (@@@) : ('a -> 'b m) -> 'a m -> 'b m
-end =
-struct
+end = struct
   include Monad.Make(
     struct
       type 'a m = translation_context -> 'a;;
@@ -43,21 +51,54 @@ struct
         fun ctx -> f (x ctx) ctx
       ;;
     end
-    );;
-  let run ctx m =
-    m ctx
+    )
   ;;
+
+  let run ctx m = m ctx
+  ;;
+
   let fresh_name name ctx =
     let n = ctx.tc_fresh_name_counter in
     ctx.tc_fresh_name_counter <- n + 1;
     name ^ ctx.tc_fresh_suffix_separator ^ string_of_int n
   ;;
+
   let fresh_var name ctx =
     let name' = fresh_name name ctx in
     Ast.Var(Ast.Ident name', None)
   ;;
-  let freshness_string ctx = ctx.tc_fresh_suffix_separator;;
-  let acontextual_recursion ctx = not ctx.tc_contextual_recursion;;
+
+  let add_abort abort_info ctx =
+    let odefa_on_info = ctx.tc_odefa_natodefa_info in
+    let odefa_aborts = odefa_on_info.odefa_aborts in
+    let abort_symb = abort_info.odefa_abort_symbol in
+    ctx.tc_odefa_natodefa_info.odefa_aborts <-
+      Ast.Var_map.add abort_symb abort_info odefa_aborts;
+    ()
+  ;;
+
+  (*
+  let add_natodefa_expr (odefa_var, natodefa_expr) ctx =
+    let odefa_on_info = ctx.tc_odefa_natodefa_info in
+    let natodefa_exprs = odefa_on_info.odefa_aborts in
+    ctx.tc_odefa_natodefa_info.natodefa_exprs <-
+      Ast.Var_map.add odefa_var natodefa_expr natodefa_exprs;
+    ()
+  ;;
+  *)
+
+  let freshness_string ctx =
+    ctx.tc_fresh_suffix_separator
+  ;;
+
+  let acontextual_recursion ctx =
+    not ctx.tc_contextual_recursion
+  ;;
+
+  let get_odefa_natodefa_info ctx =
+    ctx.tc_odefa_natodefa_info
+  ;;
+
   let rec sequence ms =
     match ms with
     | [] -> return []
@@ -66,6 +107,7 @@ struct
       let%bind t' = sequence t in
       return @@ h' :: t'
   ;;
+
   let rec list_fold_left_m fn acc els =
     match els with
     | [] -> return acc
@@ -73,6 +115,7 @@ struct
       let%bind acc' = fn acc h in
       list_fold_left_m fn acc' t
   ;;
+
   let rec list_fold_right_m fn els acc =
     match els with
     | [] -> return acc
@@ -80,8 +123,10 @@ struct
       let%bind acc' = list_fold_right_m fn t acc in
       fn h acc'
   ;;
+
   let (@@@) f x = bind x f;;
-end;;
+end
+;;
 
 let ident_map_map_m
     (fn : 'a -> 'b TranslationMonad.m)

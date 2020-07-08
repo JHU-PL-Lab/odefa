@@ -177,6 +177,7 @@ module Type_errors : Answer = struct
     }
   ;;
 
+  (* TODO: Show a "no type errors" message if type_error_seq is empty *)
   let show type_error_seq =
     let show_type_error type_error =
       "* Variable: " ^ (show_ident type_error.odefa_var) ^ "\n" ^

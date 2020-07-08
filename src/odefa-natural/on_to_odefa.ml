@@ -4,6 +4,7 @@ open Jhupllib;;
 open Odefa_ast;;
 
 open Ast_tools;;
+open On_to_odefa_types;;
 open Preliminary_conversion;;
 (* open Simplification;; *)
 open Translator_utils;;
@@ -529,7 +530,7 @@ let alphatize (e : On_ast.expr) : On_ast.expr m =
   lift1 fst @@ walk e Ident_set.empty
 ;;
 
-(* Expression flattening + helper functions *)
+(* **** Expression flattening + helper functions **** *)
 
 (** Returns the body of a function or conditional with its return variable *)
 let nonempty_body ((body : Ast.clause list), (var : Ast.var))
@@ -543,6 +544,7 @@ let nonempty_body ((body : Ast.clause list), (var : Ast.var))
 ;;
 
 (** Create a new abort clause *)
+
 let get_abort_expr (var_list : Ast.var list) : (Ast.expr) m =
   let%bind abort_expr =
     begin
@@ -550,6 +552,31 @@ let get_abort_expr (var_list : Ast.var list) : (Ast.expr) m =
       let abort_clause =
         Ast.Clause(abort_var, Ast.Abort_body var_list)
       in
+      return @@ Ast.Expr([abort_clause]);
+    end
+  in
+  return abort_expr
+;;
+
+let get_abort_expr_2 (op : Ast.clause) (match_lst : Ast.clause list) : (Ast.expr) m =
+  let%bind abort_expr =
+    begin
+      (* TODO: var_lst is temporary *)
+      let var_lst =
+        List.map (fun clause ->
+          let Ast.Clause (x, _) = clause in x
+        )
+        match_lst
+      in
+      let%bind abort_var = fresh_var "ab" in
+      let abort_clause = Ast.Clause(abort_var, Ast.Abort_body var_lst) in
+      let abort_info = {
+        odefa_abort_symbol = abort_var;
+        odefa_abort_matches = match_lst;
+        odefa_abort_operation = op;
+      }
+      in
+      let%bind () = add_abort abort_info in
       return @@ Ast.Expr([abort_clause]);
     end
   in
@@ -835,9 +862,9 @@ and flatten_expr
     let On_ast.Label(l_string) = lab in
     let l_ident = Ast.Ident(l_string) in
     let%bind new_var = fresh_var "record_proj" in (* TODO: Rename "record_proj" to just "proj" *)
-    let new_clause = Ast.Clause(new_var,
-                                Ast.Projection_body(e_var, l_ident)
-                               ) in
+    let new_clause =
+      Ast.Clause(new_var, Ast.Projection_body(e_var, l_ident))
+    in
     return (e_clist @ [new_clause], new_var)
   | Match (subject, pat_expr_list) ->
     begin
@@ -987,7 +1014,7 @@ let rec condition_clauses
           let m_clause = Ast.Clause(m, binop_body) in
           let%bind new_clauses' = condition_clauses clauses' in
           let%bind t_path = return @@ Ast.Expr(clause :: new_clauses') in
-          let%bind f_path = get_abort_expr [m1; m2] in
+          let%bind f_path = get_abort_expr_2 clause [m1_clause; m2_clause] in
           let val_clause
             = Ast.Clause(v, Conditional_body(m, t_path, f_path))
           in
@@ -1010,7 +1037,7 @@ let rec condition_clauses
           let m_clause = Ast.Clause(m, Match_body(r, rec_pat)) in
           let%bind new_clauses' = condition_clauses clauses' in
           let%bind t_path = return @@ Ast.Expr(clause :: new_clauses') in
-          let%bind f_path = get_abort_expr [m] in
+          let%bind f_path = get_abort_expr_2 clause [m_clause] in
           let val_clause
             = Ast.Clause(v, Conditional_body(m, t_path, f_path))
           in
@@ -1029,7 +1056,7 @@ let rec condition_clauses
           let m_clause = Ast.Clause(m, Match_body(f, Fun_pattern)) in
           let%bind new_clauses' = condition_clauses clauses' in
           let%bind t_path = return @@ Ast.Expr(clause :: new_clauses') in
-          let%bind f_path = get_abort_expr [m] in
+          let%bind f_path = get_abort_expr_2 clause [m_clause] in
           let val_clause
             = Ast.Clause(v, Conditional_body(m, t_path, f_path))
           in
@@ -1055,7 +1082,7 @@ let rec condition_clauses
           in
           let new_clause = Ast.Clause(symb, new_cond_body) in
           let%bind t_path = return @@ Ast.Expr(new_clause :: new_clauses') in
-          let%bind f_path = get_abort_expr [m] in
+          let%bind f_path = get_abort_expr_2 clause [m_clause] in
           let val_clause
             = Ast.Clause(v, Conditional_body(m, t_path, f_path))
           in
@@ -1083,8 +1110,8 @@ let translate
     ?translation_context:(translation_context=None)
     ?is_instrumented:(is_instrumented=false)
     (e : On_ast.expr)
-  : Odefa_ast.Ast.expr =
-  let e_m =
+  : (Odefa_ast.Ast.expr * odefa_natodefa_info) =
+  let (e_m_with_info : (Ast.expr * odefa_natodefa_info) m) =
     let%bind transformed_e =
       return e
       >>= debug_transform "pre-alphatize" alphatize
@@ -1102,14 +1129,15 @@ let translate
     let%bind fresh_str = freshness_string in
     let res_var = Ast.Var(Ast.Ident(fresh_str ^ "result"), None) in
     let res_clause = Ast.Clause(res_var, Ast.Var_body(last_var)) in
-    return @@ Ast.Expr(c_list @ [res_clause])
+    let%bind odefa_on_info = get_odefa_natodefa_info in
+    return @@ (Ast.Expr(c_list @ [res_clause]), odefa_on_info)
   in
   let context =
     match translation_context with
     | None -> new_translation_context ()
     | Some ctx -> ctx
   in
-  run context e_m
+  run context e_m_with_info
   (* NOTE: commenting this out for DDSE because it has a tendency to eliminate
      unnecessary variables and we use those as targets *)
   (* |> eliminate_aliases *)
