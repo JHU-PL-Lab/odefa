@@ -3,6 +3,7 @@ open Jhupllib;;
 
 open Odefa_ast;;
 open Odefa_natural;;
+open Odefa_parser;;
 
 open Odefa_answer_generation;;
 
@@ -40,18 +41,22 @@ let get_ast (args : Type_checker_parser.type_checker_args) =
         |> List.of_enum
         |> String.join "\n"
       in
+      let expr_string =
+        odefa_info.natodefa_exprs
+        |> Ast.Var_map.enum
+        |> Enum.map
+          (fun (o_var, on_expr) ->
+            (Ast_pp.show_var o_var) ^ ": " ^ (On_ast.show_expr on_expr))
+        |> List.of_enum
+        |> String.join "\n"
+      in
       print_endline abort_string;
-      odefa_ast
+      print_endline expr_string;
+      (odefa_ast, odefa_info)
     end else if is_odefa then begin
-      if args.tc_debug then begin
-        let odefa_ast =
-          File.with_file_in filename Odefa_parser.Parser.parse_program
-        in
-        Ast_wellformedness.check_wellformed_expr odefa_ast;
-        odefa_ast
-      end else begin
-        raise @@ Invalid_argument ".odefa files cannot be directly typechecked"
-      end
+      let odefa_ast = File.with_file_in filename Parser.parse_program in
+      let () = Ast_wellformedness.check_wellformed_expr odefa_ast in
+      Type_instrumentation.instrument_odefa odefa_ast
     end else begin
       raise @@ Invalid_argument "Filetype not supported"
     end
@@ -76,7 +81,7 @@ let get_ast (args : Type_checker_parser.type_checker_args) =
 (* TODO: Add variable of operation where type error occured *)
 let () =
   let args = Type_checker_parser.parse_args () in
-  let ast = get_ast args in
+  let (ast, _) = get_ast args in
   try
     let results_remaining = ref args.tc_maximum_results in
     let generator =
