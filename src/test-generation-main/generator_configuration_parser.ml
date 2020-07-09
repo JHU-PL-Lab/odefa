@@ -22,7 +22,7 @@ type generator_args = {
 };;
 
 let parse_args () : generator_args =
-  let (parsers, cli_parser) = make_cli_parser () in
+  let (parsers, cli_parser) = make_cli_parser Generator_version.version_str in
   (* **** Perform parse **** *)
   try
     let filename = parse_out_filename cli_parser in

@@ -14,4 +14,4 @@ type parsers =
   }
 ;;
 
-val make_cli_parser : unit -> (parsers * BatOptParse.OptParser.t);;
+val make_cli_parser : string -> (parsers * BatOptParse.OptParser.t);;

@@ -85,9 +85,9 @@ let make_parsers () : parsers =
   }
 ;;
 
-let make_cli_parser () =
+let make_cli_parser version_str =
   let cli_parser =
-    BatOptParse.OptParser.make ~version:"0.1" ()
+    BatOptParse.OptParser.make ~version:version_str ()
   in
   let parsers = make_parsers () in
   (* **** Add options **** *)

@@ -23,7 +23,7 @@ type type_checker_args = {
 ;;
 
 let parse_args () : type_checker_args =
-  let (parsers, cli_parser) = make_cli_parser () in
+  let (parsers, cli_parser) = make_cli_parser Type_checker_version.version_str in
   (* **** Perform parse **** *)
   try
     let filename = parse_out_filename cli_parser in

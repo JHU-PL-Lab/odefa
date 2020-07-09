@@ -1,11 +1,11 @@
 let major_version = 0;;
 
-let minor_version = 0;;
+let minor_version = 1;;
 
 let patch_version = 0;;
 
 let codenames =
-  ["Raava"; "Wan"; "Yangchen"; "Kuruk"; "Kyoshi"; "Roku"; "Aang"; "Korra"]
+  [] (* ["Raava"; "Wan"; "Yangchen"; "Kuruk"; "Kyoshi"; "Roku"; "Aang"; "Korra"] *)
 
 let version_str =
   "Sato version " ^
