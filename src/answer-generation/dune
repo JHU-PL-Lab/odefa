@@ -1,3 +1,4 @@
+(copy_files# command-line/*.{ml,mli})
 (library
   (name odefa_answer_generation)
   (public_name odefa.answer-generation)
