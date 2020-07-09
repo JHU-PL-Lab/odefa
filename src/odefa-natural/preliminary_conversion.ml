@@ -62,7 +62,7 @@ let list_transform (e : expr) : expr m =
   let transformer recurse expr =
     match expr with
     | List (expr_list) ->
-      let list_maker = fun element -> fun acc ->
+      let list_maker = fun element acc ->
         let%bind clean_elm = recurse element in
         let new_map =
           Ident_map.empty
@@ -198,7 +198,7 @@ let encode_variant (e : expr) : expr m =
     proj_subj: The expression needed to reach the current pattern
                (from a certain record that is in the bottommost layer of the
                 expression.)
-   pat:        The current pattern
+    pat:       The current pattern
 
    Return value:
    (pattern * ((ident * expr) list)) :
@@ -211,8 +211,7 @@ let encode_variant (e : expr) : expr m =
 let rec encode_var_pat
     (proj_subj : expr)
     (pat : pattern)
-  : (pattern * ((ident * expr) list))
-  =
+  : (pattern * ((ident * expr) list)) =
   match pat with
   | AnyPat | IntPat | BoolPat | FunPat ->
     (pat, [])

@@ -23,7 +23,7 @@ let new_translation_context
     tc_contextual_recursion = contextual_recursion;
     tc_odefa_natodefa_info = {
       odefa_aborts = Ast.Var_map.empty;
-      (* natodefa_exprs = Ast.Var_map.empty; *)
+      natodefa_exprs = Ast.Var_map.empty;
     }
   }
 ;;
@@ -34,7 +34,7 @@ module TranslationMonad : sig
   val fresh_name : string -> string m
   val fresh_var : string -> Ast.var m
   val add_abort : odefa_abort_info -> unit m
-  (* val add_natodefa_expr : (Ast.var * On_ast.expr) -> unit m *)
+  val add_natodefa_expr : Ast.var -> On_ast.expr -> unit m
   val freshness_string : string m
   val acontextual_recursion : bool m
   val get_odefa_natodefa_info : odefa_natodefa_info m
@@ -77,15 +77,13 @@ end = struct
     ()
   ;;
 
-  (*
-  let add_natodefa_expr (odefa_var, natodefa_expr) ctx =
+  let add_natodefa_expr odefa_var natodefa_expr ctx =
     let odefa_on_info = ctx.tc_odefa_natodefa_info in
-    let natodefa_exprs = odefa_on_info.odefa_aborts in
+    let natodefa_exprs = odefa_on_info.natodefa_exprs in
     ctx.tc_odefa_natodefa_info.natodefa_exprs <-
       Ast.Var_map.add odefa_var natodefa_expr natodefa_exprs;
     ()
   ;;
-  *)
 
   let freshness_string ctx =
     ctx.tc_fresh_suffix_separator
