@@ -11,7 +11,7 @@ open Translator_utils.TranslationMonad;;
 
 let add_type_ab match_clauses op_clause =
   let%bind abort_var = fresh_var "ab" in
-  let abort_clause = Clause(abort_var, Abort_body []) in
+  let abort_clause = Clause(abort_var, Abort_body) in
   let%bind () = add_type_abort abort_var match_clauses op_clause in
   return @@ Expr([abort_clause]);
 ;;
@@ -43,7 +43,7 @@ let rec instrument_clauses
       | Var_body _
       | Input_body
       | Match_body _
-      | Abort_body _ ->
+      | Abort_body ->
         (* Nothing to constrain *)
         begin
           let%bind new_clauses' = instrument_clauses clauses' in

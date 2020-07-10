@@ -108,7 +108,7 @@ let input_sequence_from_result
         raise Halt_interpretation_as_input_sequence_is_complete
       else
         match b with
-        | Abort_body _ -> raise @@ Halt_interpretation_on_abort x
+        | Abort_body -> raise @@ Halt_interpretation_on_abort x
         | _ -> ()
     in
     (* Run the interpreter with the above input source and clause callback *)

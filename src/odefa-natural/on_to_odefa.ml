@@ -547,12 +547,13 @@ let nonempty_body ((body : Ast.clause list), (var : Ast.var))
 
 (** Create a new abort clause *)
 
-let get_abort_expr (var_list : Ast.var list) : (Ast.expr) m =
+(* TODO: Remove *)
+let get_abort_expr (_ : Ast.var list) : (Ast.expr) m =
   let%bind abort_expr =
     begin
       let%bind abort_var = fresh_var "ab" in
       let abort_clause =
-        Ast.Clause(abort_var, Ast.Abort_body var_list)
+        Ast.Clause(abort_var, Ast.Abort_body)
       in
       return @@ Ast.Expr([abort_clause]);
     end
@@ -589,7 +590,7 @@ let get_abort_expr_2 (op : Ast.clause) (match_lst : Ast.clause list) : (Ast.expr
 
 let add_match_ab match_clauses =
   let%bind abort_var = fresh_var "ab" in
-  let abort_clause = Ast.Clause(abort_var, Ast.Abort_body []) in
+  let abort_clause = Ast.Clause(abort_var, Ast.Abort_body) in
   let%bind () = add_match_abort abort_var match_clauses in
   return @@ Ast.Expr([abort_clause]);
 ;;

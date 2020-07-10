@@ -87,8 +87,7 @@ let use_occurrences expression =
         Var_set.singleton subject
       | Binary_operation_body (left_operand, _, right_operand) ->
         Var_set.of_list [left_operand; right_operand]
-      | Abort_body var_list ->
-        Var_set.of_list var_list
+      | Abort_body -> Var_set.empty
   )
   |> List.fold_left Var_set.union Var_set.empty
 ;;
@@ -158,13 +157,7 @@ and check_scope_clause_body
   | Projection_body (Var(x,_), _) -> _bind_filter bound site_x [x]
   | Binary_operation_body (Var(x1,_), _, Var(x2,_)) ->
     _bind_filter bound site_x [x1;x2]
-  | Abort_body var_list ->
-    List.fold_left
-      (fun accum var ->
-        let Var(x,_) = var in
-        (_bind_filter bound site_x [x]) @ accum)
-      []
-      var_list
+  | Abort_body -> []
 ;;
 
 (** Returns a list of pairs of variables. The pair represents a violation on the
@@ -208,8 +201,7 @@ and map_clause_body_vars (fn : Var.t -> Var.t) (b : clause_body)
     Projection_body(fn x, l)
   | Binary_operation_body (x1, op, x2) ->
     Binary_operation_body (fn x1, op, fn x2)
-  | Abort_body var_list ->
-    Abort_body (List.map fn var_list)
+  | Abort_body -> Abort_body
 
 and map_value_vars (fn : Var.t -> Var.t) (v : value) : value =
   match (v : value) with
@@ -239,7 +231,7 @@ and transform_exprs_in_clause_body (fn : expr -> expr) (body : clause_body)
   match (body : clause_body) with
   | Value_body v -> Value_body (transform_exprs_in_value fn v)
   | Var_body _ -> body
-  | Input_body -> Input_body
+  | Input_body -> body
   | Appl_body (_, _) -> body
   | Conditional_body (x, e1, e2) ->
     Conditional_body (x,
@@ -249,7 +241,7 @@ and transform_exprs_in_clause_body (fn : expr -> expr) (body : clause_body)
     Match_body(x, p)
   | Projection_body (_, _) -> body
   | Binary_operation_body (_, _, _) -> body
-  | Abort_body _ -> body
+  | Abort_body -> body
 
 and transform_exprs_in_value (fn : expr -> expr) (v : value) : value =
   match (v : value) with
