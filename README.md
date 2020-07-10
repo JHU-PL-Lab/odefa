@@ -51,7 +51,7 @@ TODO
   - [ ] Serial type errors
   - [ ] Type error after infinite loop/omega combinator
   - [ ] Recursion
-- [ ] Add "no type errors found" message if there are no type errors
+- [x] Add "no type errors found" message if there are no type errors
 - [ ] Add "Primitive" pattern/type for bool + int "=="
 - [ ] Change inputs
   - [x] Remove #true# clauses
