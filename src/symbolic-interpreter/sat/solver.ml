@@ -18,6 +18,13 @@ type contradiction =
   | MatchContradiction of symbol * symbol * pattern
 ;;
 
+type type_error = {
+  terr_ident : Ast.ident;
+  terr_value : Constraint.value;
+  terr_expected_type : Ast.type_sig;
+  terr_actual_type : Ast.type_sig;
+}
+
 exception Contradiction of contradiction;;
 
 module Symbol_to_symbol_multimap = Jhupllib.Multimap.Make(Symbol)(Symbol);;
@@ -589,12 +596,20 @@ let find_type_error solver symbol =
       raise @@
         Utils.Invariant_failure ("Symbol " ^ (show_symbol variable) ^ " not found in type constraint set!")
       *)
+      (* Needed for abort clauses *)
       BottomSymbol
   in
   let var_ident =
     match variable with
     | Symbol (ident, _) -> ident
     | SpecialSymbol (SSymTrue) -> Ident("#true#")
+  in
+  let var_value =
+    try
+      Symbol_map.find variable solver.value_constraints_by_symbol
+    with Not_found ->
+      raise @@
+        Utils.Invariant_failure ("Symbol " ^ (show_symbol variable) ^ " not found in value constraint set!")
   in
   let expected_type =
     match pattern with
@@ -634,7 +649,15 @@ let find_type_error solver symbol =
   in
   (* Don't return false positives *)
   if not (_expected_actual_types_equal expected_type actual_type) then
-    Some (var_ident, expected_type, actual_type)
+    let type_err = 
+      Some {
+        terr_ident = var_ident;
+        terr_value = var_value;
+        terr_expected_type = expected_type;
+        terr_actual_type = actual_type;
+      }
+    in
+    type_err
   else
     None
 ;;

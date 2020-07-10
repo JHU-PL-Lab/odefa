@@ -175,7 +175,7 @@ struct
 end;;
 
 (** A type representing the types of the language.
-    Note that subtyping rules apply to records (and functions implicitly). *)
+    Note that subtyping rules apply to records. *)
 type type_sig =
   | Int_type
   | Bool_type

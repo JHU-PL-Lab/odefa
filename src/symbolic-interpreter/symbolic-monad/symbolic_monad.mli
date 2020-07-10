@@ -119,7 +119,7 @@ module type S = sig
 
   (** Stores an abort point with the information given in an abort clause. *)
   val record_abort_point :
-    Interpreter_types.symbol -> Interpreter_types.symbol list -> unit m;;
+    Interpreter_types.symbol -> Interpreter_types.abort_info -> unit m;;
 
   (** Checks that a monadic value's constraints are solvable.  For each
       non-deterministic path in the provided monadic value, a solution is
@@ -140,8 +140,7 @@ module type S = sig
   type 'a evaluation_result =
     { er_value : 'a;
       er_solver : Solver.t;
-      (* er_type_errors : (ident * type_sig * type_sig) list; *)
-      er_abort_points : (symbol list) Symbol_map.t;
+      er_abort_points : abort_info Symbol_map.t;
       er_evaluation_steps : int;
       er_result_steps : int;
     };;

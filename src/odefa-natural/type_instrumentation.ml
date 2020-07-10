@@ -1,13 +1,24 @@
+open Batteries;;
 
 open Odefa_ast;;
+open Odefa_symbolic_interpreter;;
+
 open Ast;;
 
-open On_to_odefa;;
+open Interpreter_types;;
+
 open Translator_utils.TranslationMonad;;
 
+let add_type_ab match_clauses op_clause =
+  let%bind abort_var = fresh_var "ab" in
+  let abort_clause = Clause(abort_var, Abort_body []) in
+  let%bind () = add_type_abort abort_var match_clauses op_clause in
+  return @@ Expr([abort_clause]);
+;;
+
 let rec instrument_clauses
-    (c_list : Ast.clause list)
-  : (Ast.clause list) m =
+    (c_list : clause list)
+  : (clause list) m =
   match c_list with
   | clause :: clauses' ->
     begin
@@ -17,11 +28,11 @@ let rec instrument_clauses
         begin
           match value with
           | Value_function f ->
-            let Ast.Function_value(arg, Ast.Expr(body)) = f in
+            let Function_value(arg, Expr(body)) = f in
             let%bind new_body = instrument_clauses body in
-            let new_fun_val = Ast.Function_value(arg, Ast.Expr(new_body)) in
-            let new_val_body = Ast.Value_body(Value_function(new_fun_val)) in
-            let new_clause = Ast.Clause(symb, new_val_body) in
+            let new_fun_val = Function_value(arg, Expr(new_body)) in
+            let new_val_body = Value_body(Value_function(new_fun_val)) in
+            let new_clause = Clause(symb, new_val_body) in
             let%bind new_clauses' = instrument_clauses clauses' in
             return @@ new_clause :: new_clauses'
           | _ ->
@@ -58,10 +69,10 @@ let rec instrument_clauses
             | Binary_operator_less_than
             | Binary_operator_less_than_or_equal_to
             (* TODO: Make "==" binop work with both ints and bools *)
-            | Binary_operator_equal_to -> Ast.Int_pattern
+            | Binary_operator_equal_to -> Int_pattern
             | Binary_operator_and
             | Binary_operator_or
-            | Binary_operator_xor -> Ast.Bool_pattern 
+            | Binary_operator_xor -> Bool_pattern 
           in
           (* Variables *)
           let%bind m1 = fresh_var "m1" in
@@ -69,17 +80,17 @@ let rec instrument_clauses
           let%bind m = fresh_var "m" in
           let%bind v = fresh_var "constrain_binop" in
           (* Clauses *)
-          let m1_clause = Ast.Clause(m1, Match_body(v1, pattern)) in
-          let m2_clause = Ast.Clause(m2, Match_body(v2, pattern)) in
+          let m1_clause = Clause(m1, Match_body(v1, pattern)) in
+          let m2_clause = Clause(m2, Match_body(v2, pattern)) in
           (* Let-bind operator to stay under 80 lines *)
-          let and_op = Ast.Binary_operator_and in
-          let binop_body = Ast.Binary_operation_body(m1, and_op, m2) in
-          let m_clause = Ast.Clause(m, binop_body) in
+          let and_op = Binary_operator_and in
+          let binop_body = Binary_operation_body(m1, and_op, m2) in
+          let m_clause = Clause(m, binop_body) in
           let%bind new_clauses' = instrument_clauses clauses' in
-          let%bind t_path = return @@ Ast.Expr(clause :: new_clauses') in
-          let%bind f_path = get_abort_expr_2 clause [m1_clause; m2_clause] in
+          let%bind t_path = return @@ Expr(clause :: new_clauses') in
+          let%bind f_path = add_type_ab [m1_clause; m2_clause] clause in
           let val_clause
-            = Ast.Clause(v, Conditional_body(m, t_path, f_path))
+            = Clause(v, Conditional_body(m, t_path, f_path))
           in
           return @@ [m1_clause; m2_clause; m_clause; val_clause]
         end
@@ -94,15 +105,15 @@ let rec instrument_clauses
           let%bind m = fresh_var "m" in
           let%bind v = fresh_var "constrain_proj" in
           let rec_pat_set =
-            Ast.Ident_set.add lbl Ast.Ident_set.empty
+            Ident_set.add lbl Ident_set.empty
           in
-          let rec_pat = Ast.Rec_pattern rec_pat_set in
-          let m_clause = Ast.Clause(m, Match_body(r, rec_pat)) in
+          let rec_pat = Rec_pattern rec_pat_set in
+          let m_clause = Clause(m, Match_body(r, rec_pat)) in
           let%bind new_clauses' = instrument_clauses clauses' in
-          let%bind t_path = return @@ Ast.Expr(clause :: new_clauses') in
-          let%bind f_path = get_abort_expr_2 clause [m_clause] in
+          let%bind t_path = return @@ Expr(clause :: new_clauses') in
+          let%bind f_path = add_type_ab [m_clause] clause in
           let val_clause
-            = Ast.Clause(v, Conditional_body(m, t_path, f_path))
+            = Clause(v, Conditional_body(m, t_path, f_path))
           in
           return @@ [m_clause; val_clause]
         end
@@ -116,16 +127,16 @@ let rec instrument_clauses
           *)
           let%bind m = fresh_var "m" in
           let%bind v = fresh_var "constrain_appl" in
-          let m_clause = Ast.Clause(m, Match_body(f, Fun_pattern)) in
+          let m_clause = Clause(m, Match_body(f, Fun_pattern)) in
           let%bind new_clauses' = instrument_clauses clauses' in
-          let%bind t_path = return @@ Ast.Expr(clause :: new_clauses') in
-          let%bind f_path = get_abort_expr_2 clause [m_clause] in
+          let%bind t_path = return @@ Expr(clause :: new_clauses') in
+          let%bind f_path = add_type_ab [m_clause] clause in
           let val_clause
-            = Ast.Clause(v, Conditional_body(m, t_path, f_path))
+            = Clause(v, Conditional_body(m, t_path, f_path))
           in
           return @@ [m_clause; val_clause]
         end
-      | Conditional_body (pred, Ast.Expr path1, Ast.Expr path2) ->
+      | Conditional_body (pred, Expr path1, Expr path2) ->
         begin
           (*
             cond = pred ? true_path : false_path;
@@ -136,18 +147,18 @@ let rec instrument_clauses
           *)
           let%bind m = fresh_var "m" in
           let%bind v = fresh_var "constrain_cond" in
-          let m_clause = Ast.Clause(m, Match_body(pred, Bool_pattern)) in
+          let m_clause = Clause(m, Match_body(pred, Bool_pattern)) in
           let%bind new_clauses' = instrument_clauses clauses' in
           let%bind new_path1 = instrument_clauses path1 in
           let%bind new_path2 = instrument_clauses path2 in
           let new_cond_body =
-            Ast.Conditional_body(pred, Expr new_path1, Expr new_path2)
+            Conditional_body(pred, Expr new_path1, Expr new_path2)
           in
-          let new_clause = Ast.Clause(symb, new_cond_body) in
-          let%bind t_path = return @@ Ast.Expr(new_clause :: new_clauses') in
-          let%bind f_path = get_abort_expr_2 clause [m_clause] in
+          let new_clause = Clause(symb, new_cond_body) in
+          let%bind t_path = return @@ Expr(new_clause :: new_clauses') in
+          let%bind f_path = add_type_ab [m_clause] clause in
           let val_clause
-            = Ast.Clause(v, Conditional_body(m, t_path, f_path))
+            = Clause(v, Conditional_body(m, t_path, f_path))
           in
           return @@ [m_clause; val_clause]
         end
@@ -155,13 +166,19 @@ let rec instrument_clauses
   | [] -> return []
 ;;
 
-let instrument_odefa (odefa_ast : Ast.expr)
-  : (Odefa_ast.Ast.expr * On_to_odefa_types.odefa_natodefa_info) =
-  let (monad_val : (Ast.expr * On_to_odefa_types.odefa_natodefa_info) m) =
-    let Ast.Expr(odefa_clist) = odefa_ast in
-    let%bind trans_clist = condition_clauses odefa_clist in
-    let%bind odefa_info = get_odefa_natodefa_info in
-    return (Ast.Expr(trans_clist), odefa_info)
+let instrument_odefa (odefa_ast : expr)
+  : (expr * abort_info Ident_map.t) =
+  let (monad_val : (expr * abort_info Ident_map.t) m) =
+    (* Transform odefa program *)
+    let Expr(odefa_clist) = odefa_ast in
+    let%bind trans_clist = instrument_clauses odefa_clist in
+    let%bind odefa_aborts = get_aborts in
+    (* Add "~result" to the end of the program *)
+    let Clause(last_var, _) = List.last trans_clist in
+    let%bind fresh_str = freshness_string in
+    let result_var = Ast.Var(Ast.Ident(fresh_str ^ "result"), None) in
+    let result_clause = Ast.Clause(result_var, Ast.Var_body(last_var)) in
+    return (Expr(trans_clist @ [result_clause]), odefa_aborts)
   in
   let context = Translator_utils.new_translation_context () in
   run context monad_val

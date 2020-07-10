@@ -55,6 +55,39 @@ module Symbol_map = struct
   include Yojson_utils.Map_to_yojson(M)(Symbol);;
 end;;
 
-type type_error = ident * type_sig * type_sig [@@deriving show];;
+(** Information that is associated with a type abort clause, i.e. an abort that
+    is triggered upon a type error. *)
+type type_abort_info = {
+  (** The identifier for the abort clause. *)
+  abort_ident : ident;
 
-type type_error_list = type_error list [@@deriving show];;
+  (** The match clauses that constrain the type of the variables in the
+      operation.  For the abort to trigger, ANY one of the matches may be
+      false. *)
+  abort_matches : clause Ident_map.t;
+
+  (** The operation that the abort conditions.  If the operation fails then the
+      abort is triggered. *)
+  abort_operation : clause;
+}
+[@@ deriving eq, ord, show]
+;;
+
+(** Information that is associated with a match abort clause, i.e. an abort
+    that is triggered if a variable fails a pattern match expression. *)
+type match_abort_info = {
+  (** The identifier for the abort clause. *)
+  abort_ident : ident;
+
+  (** The match clauses that are part of the match expression.  For the abort
+      to trigger, ALL of the matches must be false. *)
+  abort_matches : clause Ident_map.t;
+}
+[@@ deriving eq, ord, show]
+;;
+
+type abort_info =
+  | Type_abort_info of type_abort_info
+  | Match_abort_info of match_abort_info
+[@@ deriving eq, ord, show]
+;;

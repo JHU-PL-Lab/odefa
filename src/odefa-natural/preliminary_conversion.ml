@@ -62,7 +62,7 @@ let list_transform (e : expr) : expr m =
   let transformer recurse expr =
     match expr with
     | List (expr_list) ->
-      let list_maker = fun element acc ->
+      let list_maker element acc =
         let%bind clean_elm = recurse element in
         let new_map =
           Ident_map.empty

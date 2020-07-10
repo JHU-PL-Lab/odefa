@@ -40,6 +40,10 @@ type lookup_environment = {
   (** A mapping from function return variables to the functions which declare
       them. *)
 
+  le_abort_clause_mapping : abort_info Ident_map.t;
+  (** A mapping from abort clause identifiers to identifier information
+      associated with the error. *)
+
   le_first_var : Ident.t;
   (** The identifier which represents the first defined variable in the
       program. *)
@@ -49,8 +53,12 @@ type lookup_environment = {
    Given a program and its corresponding CFG, constructs an appropriate lookup
    environment.
 *)
-let prepare_environment (e : expr) (cfg : ddpa_graph)
+let prepare_environment
+    (aborts : abort_info Ident_map.t)
+    (cfg : ddpa_graph)
+    (e : expr)
   : lookup_environment =
+  (* Helper functions *)
   let rec enum_all_functions_in_expr expr : function_value Enum.t =
     let Expr(clauses) = expr in
     Enum.concat @@ Enum.map enum_all_functions_in_clause @@ List.enum clauses
@@ -153,6 +161,7 @@ let prepare_environment (e : expr) (cfg : ddpa_graph)
     le_clause_predecessor_mapping = clause_predecessor_mapping;
     le_function_parameter_mapping = function_parameter_mapping;
     le_function_return_mapping = function_return_mapping;
+    le_abort_clause_mapping = aborts;
     le_first_var = first_var;
   }
 ;;
@@ -251,8 +260,7 @@ type evaluation_result = {
   er_solver : Solver.t;
   er_stack : Relative_stack.concrete_stack;
   er_solution : (symbol -> value option);
-  (* er_type_errors : (ident * type_sig * type_sig) list *)
-  er_abort_points : (symbol list) Symbol_map.t;
+  er_abort_points : abort_info Symbol_map.t;
 };;
 
 exception Invalid_query of string;;
@@ -260,7 +268,7 @@ exception Invalid_query of string;;
 module type Interpreter =
 sig
   type evaluation;;
-  val start : ddpa_graph -> expr -> ident -> evaluation;;
+  val start : abort_info Ident_map.t -> ddpa_graph -> expr -> ident -> evaluation;;
   val step : evaluation -> evaluation_result list * evaluation option;;
 end;;
 
@@ -723,11 +731,14 @@ struct
       begin
         let%orzero _ :: lookup_stack' = lookup_stack in
         let%orzero Unannotated_clause(
-            Abs_clause(Abs_var v, Abs_abort_body vlist)) = acl1 in
+            Abs_clause(Abs_var v, Abs_abort_body _)) = acl1 in
         let abort_symbol = Symbol(v, relstack) in
+        (*
         let variables =
           List.map (fun abs_v -> let Abs_var v = abs_v in Symbol(v, relstack)) vlist
         in
+        *)
+        let abort_info = Ident_map.find v env.le_abort_clause_mapping in
         let lookup_var = env.le_first_var in
         let new_lookup_stack = lookup_var :: lookup_stack' in
         _trace_log_recurse new_lookup_stack relstack acl1;
@@ -736,7 +747,7 @@ struct
           lookup env new_lookup_stack acl1 relstack
         *)
         let%bind _ = recurse new_lookup_stack acl1 relstack in
-        let%bind () = record_abort_point abort_symbol variables in
+        let%bind () = record_abort_point abort_symbol abort_info in
         let%bind () = record_constraint @@
           Constraint_abort(abort_symbol) in
         return abort_symbol
@@ -780,10 +791,11 @@ struct
 
   type evaluation = Evaluation of unit M.evaluation;;
 
-  let start (cfg : ddpa_graph) (e : expr) (program_point : ident)
+  let start (aborts : abort_info Ident_map.t) (cfg : ddpa_graph) (e : expr) (program_point : ident)
     : evaluation =
     let open M in
-    let env = prepare_environment e cfg in
+    let _ = aborts in
+    let env = prepare_environment aborts cfg e in
     let initial_lookup_var = env.le_first_var in
     let acl =
       try
@@ -829,14 +841,6 @@ struct
                      (Solver.show evaluation_result.M.er_solver)
                  )
              end;
-             (*
-             begin
-              lazy_logger `debug (fun () ->
-                Printf.sprintf "Abort clauses encountered:\n    %s"
-                  (show_symbol evaluation_result.M.er_abort_points)
-              )
-             end;
-             *)
              Some {er_solver = evaluation_result.M.er_solver;
                    er_stack = stack;
                    er_solution = get_value;
@@ -881,16 +885,17 @@ module LeastRelativeStackRepetitionInterpreter =
 
 let start
     ?exploration_policy:(exploration_policy=Explore_breadth_first)
-    (cfg : ddpa_graph) (e : expr) (x : ident) : evaluation =
+    (aborts : abort_info Ident_map.t) (cfg : ddpa_graph) (e : expr) (x : ident)
+  : evaluation =
   match exploration_policy with
   | Explore_breadth_first ->
-    let e = QueueInterpreter.start cfg e x in
+    let e = QueueInterpreter.start aborts cfg e x in
     Evaluation(QueueInterpreter.step, e)
   | Explore_smallest_relative_stack_length ->
-    let e = SmallestRelativeStackLengthInterpreter.start cfg e x in
+    let e = SmallestRelativeStackLengthInterpreter.start aborts cfg e x in
     Evaluation(SmallestRelativeStackLengthInterpreter.step, e)
   | Explore_least_relative_stack_repetition ->
-    let e = LeastRelativeStackRepetitionInterpreter.start cfg e x in
+    let e = LeastRelativeStackRepetitionInterpreter.start aborts cfg e x in
     Evaluation(LeastRelativeStackRepetitionInterpreter.step, e)
 ;;
 

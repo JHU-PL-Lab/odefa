@@ -3,6 +3,7 @@ open Jhupllib;;
 
 open Odefa_ast;;
 open Odefa_answer_generation;;
+(* open Odefa_symbolic_interpreter.Interpreter_types;; *)
 
 let logger = Logger_utils.make_logger "Test_generator";;
 let lazy_logger = Logger_utils.make_lazy_logger "Test_generator";;
@@ -16,7 +17,7 @@ let () =
   (* Parse CLI args *)
   let args = Generator_configuration_parser.parse_args () in
   (* Read the AST *)
-  let ast =
+  let (ast, aborts) =
     let is_natodefa =
       Filename.extension args.ga_filename = ".natodefa"
     in
@@ -26,15 +27,15 @@ let () =
           File.with_file_in args.ga_filename
             Odefa_natural.On_parse.parse_program
         in
-        let (abs_ast, _) = Odefa_natural.On_to_odefa.translate natast in
-        abs_ast
+        Odefa_natural.On_to_odefa.translate natast
       with
       | Sys_error err ->
         prerr_endline err;
         exit 1
     end else begin
       try
-        File.with_file_in args.ga_filename Odefa_parser.Parser.parse_program
+        Odefa_natural.Type_instrumentation.instrument_odefa @@
+          File.with_file_in args.ga_filename Odefa_parser.Parser.parse_program
       with
       | Sys_error err ->
         prerr_endline err;
@@ -64,6 +65,7 @@ let () =
     let generator = Input_generator.create
         ~exploration_policy:args.ga_exploration_policy
         args.ga_generator_configuration
+        aborts
         ast
         args.ga_target_point
     in

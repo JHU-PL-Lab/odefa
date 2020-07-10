@@ -12,16 +12,33 @@ let lazy_logger = Logger_utils.make_lazy_logger "Generator_utils";;
 exception Halt_interpretation_as_input_sequence_is_complete;;
 exception Halt_interpretation_on_abort of Var.t;;
 
+let absolutize_stack
+    (reference_point : Ident.t list)
+    (relstack : Relative_stack.t)
+  : Ident.t list =
+  let costack, stack = Relative_stack.to_lists relstack in
+  (* Start by throwing away everything they have in common. *)
+  let rec discard_common start finish =
+    match start, finish with
+    | x :: start', y :: finish' when equal_ident x y ->
+      discard_common start' finish'
+    | _ -> start, finish
+  in
+  let _, finish = discard_common reference_point (List.rev costack) in
+  (* Attach the stack to C *)
+  stack @ finish
+;;
+
 (** Computes a relative stack by calculating the difference between two
     (absolute) stacks.  Given a reference point at which to start, this
     function computes the relative stack which will produce the goal. *)
 let relativize_stack
     (reference_point : Ident.t list)
     (goal : Ident.t list)
-    : Relative_stack.t =
+  : Relative_stack.t =
   let insist f x s =
     match f x s with
-    | None -> raise @@ Jhupllib.Utils.Invariant_failure "insist got None stack"
+    | None -> raise @@ Utils.Invariant_failure "insist got None stack"
     | Some s' -> s'
   in
   (* Start by throwing away everything they have in common. *)

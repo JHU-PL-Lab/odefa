@@ -106,7 +106,7 @@ module type S = sig
   val record_decision :
     Relative_stack.t -> Ident.t -> clause -> Ident.t -> unit m;;
   val record_constraint : Constraint.t -> unit m;;
-  val record_abort_point : symbol -> symbol list -> unit m;;
+  val record_abort_point : symbol -> abort_info -> unit m;;
   val check_constraints : 'a m -> 'a m;;
 
   type 'a evaluation;;
@@ -114,8 +114,7 @@ module type S = sig
   type 'a evaluation_result =
     { er_value : 'a;
       er_solver : Solver.t;
-      (* er_type_errors : (ident * type_sig * type_sig) list; *)
-      er_abort_points : (symbol list) Symbol_map.t;
+      er_abort_points : abort_info Symbol_map.t;
       er_evaluation_steps : int;
       er_result_steps : int;
     };;
@@ -144,19 +143,10 @@ struct
   [@@deriving show];;
   let _ = show_decision_map;;
 
-  type abort_program_point = symbol list [@@deriving eq, ord, show];;
-  let _ = equal_abort_program_point;;
-  let _ = compare_abort_program_point;;
-  let _ = show_abort_program_point;;
-
-  type abort_program_point_map = abort_program_point Symbol_map.t
-  [@@deriving show];;
-  let _ = show_abort_program_point_map;;
-
   type log = {
     log_solver : Solver.t;
     log_decisions : decision_map;
-    log_abort_points : abort_program_point_map;
+    log_abort_points : abort_info Symbol_map.t;
     log_steps : int;
   }
   [@@deriving show];;
@@ -214,7 +204,7 @@ struct
       Relative_stack.t * (ident * clause * ident) * (ident * clause * ident);;
 
   exception MergeAbortsFailure of
-      symbol * (symbol list) * (symbol list);;
+      symbol * abort_info * abort_info;;
   
   let _trace_log_solver_contradiction
       (log1: log)
@@ -292,13 +282,13 @@ struct
         raise @@ MergeFailure(key, v1, v2)
   ;;
 
-  let _merge_two_abort_points key a b =
+  let _merge_two_abort_points key (a : abort_info option) (b : abort_info option) =
     match a, b with
     | None, None -> None
     | Some x, None -> Some x
     | None, Some x -> Some x
     | Some (x1), Some (x2) ->
-      if List.for_all2 (fun v1 v2 -> v1 = v2) x1 x2 then
+      if equal_abort_info x1 x2 then
         Some x1
       else
         raise @@ MergeAbortsFailure (key, x1, x2)
@@ -333,10 +323,10 @@ struct
         MergeAbortsFailure(key, v1, v2) ->
           lazy_logger `trace (fun () ->
             Printf.sprintf
-              "Failure to merge abort point %s with lists %s and %s"
+              "Failure to merge abort point %s with abort info \n%s\n and\n%s"
               (show_symbol key)
-              (show_abort_program_point v1)
-              (show_abort_program_point v2)
+              (show_abort_info v1)
+              (show_abort_info v2)
           );
         None
     in
@@ -452,16 +442,6 @@ struct
     let suspended_val = Unblocked(Suspended(completed_mon, empty_log)) in
     let suspended_mon = M(fun state -> ([suspended_val], state)) in
     suspended_mon
-    (*
-    M(fun state ->
-       let single_step_log = {empty_log with log_steps = 1} in
-       let completed_value = Unblocked(Completed((), single_step_log)) in
-       let suspended_value =
-         Suspended(M(fun state -> ([completed_value], state)), empty_log)
-       in
-       ([Unblocked(suspended_value)], state)
-     )
-     *)
   ;;
 
   (* Wrap a log in a monadic value with an empty computation *)
@@ -530,12 +510,12 @@ struct
   ;;
 
   let record_abort_point
-      (ab_symbol: symbol) (symbol_list: symbol list)
+      (ab_symbol: symbol) (ab_info: abort_info)
     : unit m =
     _record_log @@
     { log_solver = Solver.empty;
       log_decisions = Relative_stack.Map.empty;
-      log_abort_points = Symbol_map.singleton ab_symbol symbol_list;
+      log_abort_points = Symbol_map.singleton ab_symbol ab_info;
       log_steps = 0;
     }
   ;;
@@ -591,8 +571,7 @@ struct
   type 'out evaluation_result =
     { er_value : 'out;
       er_solver : Solver.t;
-      (* er_type_errors : (ident * type_sig * type_sig) list; *)
-      er_abort_points : (symbol list) Symbol_map.t;
+      er_abort_points : abort_info Symbol_map.t;
       er_evaluation_steps : int;
       er_result_steps : int;
     };;
@@ -749,7 +728,7 @@ struct
           (show_value value)
           (Solver.show log.log_solver)
           (Relative_stack.Map.show pp_decision log.log_decisions)
-          (Symbol_map.show pp_abort_program_point log.log_abort_points)
+          (Symbol_map.show pp_abort_info log.log_abort_points)
           (log.log_steps + 1)
           (Destination_map.cardinal final_ev.ev_destinations)
       )

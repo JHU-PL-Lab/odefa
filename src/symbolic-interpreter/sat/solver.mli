@@ -32,6 +32,15 @@ type contradiction =
   | MatchContradiction of symbol * symbol * Ast.pattern
 ;;
 
+(* Information relating to errors *)
+
+type type_error = {
+  terr_ident : Ast.ident;
+  terr_value : Constraint.value;
+  terr_expected_type : Ast.type_sig;
+  terr_actual_type : Ast.type_sig;
+}
+
 (** An exception which is raised if a contradiction appears in a constraint set
     during closure. *)
 exception Contradiction of contradiction;;
@@ -64,8 +73,7 @@ val solve : t -> solution option;;
 val solvable : t -> bool;;
 
 (** Find a type error associated with a pattern match symbol. *)
-val find_type_error :
-    t -> symbol -> (Ast.ident * Ast.type_sig * Ast.type_sig) option;;
+val find_type_error : t -> symbol -> type_error option;;
 
 (** Enumerates the constraints in a solver. *)
 val enum : t -> Constraint.t Enum.t;;

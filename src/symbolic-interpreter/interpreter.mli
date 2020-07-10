@@ -31,7 +31,7 @@ type evaluation_result = {
   er_solution : (symbol -> value option);
   (** The solution to the formulae found by this evaluation. *)
 
-  er_abort_points : (symbol list) Symbol_map.t;
+  er_abort_points : abort_info Symbol_map.t;
   (** Any abort points encountered during this evaluation. *)
 };;
 
@@ -44,8 +44,8 @@ exception Invalid_query of string;;
     point (described by a variable).  The provided CFG must be complete with
     respect to the expression. *)
 val start :
-  ?exploration_policy:exploration_policy -> ddpa_graph -> expr -> Ident.t ->
-  evaluation;;
+  ?exploration_policy:exploration_policy -> abort_info Ident_map.t -> ddpa_graph -> expr ->
+  Ident.t -> evaluation;;
 
 (** Takes a step of demand-driven evaluation.  This routine returns any
     evaluation results it encounters in this step (as nondeterminism may lead to

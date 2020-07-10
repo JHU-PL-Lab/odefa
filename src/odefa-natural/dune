@@ -17,6 +17,7 @@
     jhupllib
     monadlib
     odefa.ast
+    odefa.symbolic-interpreter
   )
   (preprocess
     (pps

@@ -3,6 +3,7 @@ open Jhupllib;;
 
 open Odefa_ast;;
 open Odefa_natural;;
+open Odefa_symbolic_interpreter;;
 open Odefa_parser;;
 
 open Odefa_answer_generation;;
@@ -17,7 +18,8 @@ exception GenerationComplete;;
 
 module Type_error_generator = Generator.Make(Generator_answer.Type_errors);;
 
-let get_ast (args : Type_checker_parser.type_checker_args) =
+let get_ast (args : Type_checker_parser.type_checker_args)
+  : (Ast.expr * Interpreter_types.abort_info Ast.Ident_map.t) =
   let filename : string = args.tc_filename in
   let is_natodefa = Filename.extension filename = ".natodefa" in
   let is_odefa = Filename.extension filename = ".odefa" in
@@ -26,33 +28,11 @@ let get_ast (args : Type_checker_parser.type_checker_args) =
       let natodefa_ast =
         File.with_file_in filename On_parse.parse_program
       in
-      let (odefa_ast, odefa_info) = On_to_odefa.translate ~is_instrumented:true natodefa_ast
+      let (odefa_ast, odefa_aborts) =
+        On_to_odefa.translate ~is_instrumented:true natodefa_ast
       in
       Ast_wellformedness.check_wellformed_expr odefa_ast;
-      let abort_string = 
-        odefa_info.odefa_aborts
-        |> Ast.Var_map.enum
-        |> Enum.map
-          (fun (_, v) ->
-            (Ast_pp.show_var v.On_to_odefa_types.odefa_abort_symbol) ^ ", " ^
-            (Ast_pp.show_clause v.On_to_odefa_types.odefa_abort_operation) ^ ", " ^
-            "[" ^ (String.join ", " @@ List.map Ast_pp.show_clause v.On_to_odefa_types.odefa_abort_matches) ^ "]"
-          )
-        |> List.of_enum
-        |> String.join "\n"
-      in
-      let expr_string =
-        odefa_info.natodefa_exprs
-        |> Ast.Var_map.enum
-        |> Enum.map
-          (fun (o_var, on_expr) ->
-            (Ast_pp.show_var o_var) ^ ": " ^ (On_ast.show_expr on_expr))
-        |> List.of_enum
-        |> String.join "\n"
-      in
-      print_endline abort_string;
-      print_endline expr_string;
-      (odefa_ast, odefa_info)
+      (odefa_ast, odefa_aborts)
     end else if is_odefa then begin
       let odefa_ast = File.with_file_in filename Parser.parse_program in
       let () = Ast_wellformedness.check_wellformed_expr odefa_ast in
@@ -81,19 +61,30 @@ let get_ast (args : Type_checker_parser.type_checker_args) =
 (* TODO: Add variable of operation where type error occured *)
 let () =
   let args = Type_checker_parser.parse_args () in
-  let (ast, _) = get_ast args in
+  let (ast, abort_map) = get_ast args in
+  let abort_string = 
+    abort_map
+    |> Ast.Ident_map.enum
+    |> Enum.map
+      (fun (_, abort_info) -> Interpreter_types.show_abort_info abort_info)
+    |> List.of_enum
+    |> String.join "\n"
+  in
+  lazy_logger `debug (fun () -> Printf.sprintf "Aborts:\n%s" abort_string);
   try
     let results_remaining = ref args.tc_maximum_results in
     let generator =
       Type_error_generator.create
         ~exploration_policy:args.tc_exploration_policy
         args.tc_generator_configuration
+        abort_map
         ast
         args.tc_target_var
     in
-    let generation_callback (type_errors : Type_error_generator.Answer.t) (steps: int) : unit =
+    let generation_callback
+      (type_errors : Type_error_generator.Answer.t) (steps: int) : unit =
       let _ = steps in (* Temp *)
-      Printf.printf "Type errors:\n%s\n" (Type_error_generator.Answer.show type_errors);
+      print_endline (Type_error_generator.Answer.show type_errors);
       flush stdout;
       results_remaining := (Option.map (fun n -> n - 1) !results_remaining);
       if !results_remaining = Some 0 then begin

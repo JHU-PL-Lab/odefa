@@ -10,6 +10,7 @@ open Generator_configuration;;
 
 open Odefa_symbolic_interpreter;;
 open Interpreter;;
+open Interpreter_types;;
 
 (** The interface of a generic answer generator. *)
 module type Generator = sig
@@ -69,7 +70,7 @@ module type Generator = sig
       [Odefa_symbolic_interpreter.Interpreter.Invalid_query]. *)
   val create :
     ?exploration_policy:exploration_policy ->
-    configuration -> expr -> ident -> generator;;
+    configuration -> abort_info Ident_map.t -> expr -> ident -> generator;;
   
   (** A convenience routine for running generation with a generator.  The
       given optional integer is the maximum number of steps to take.  This
@@ -77,7 +78,7 @@ module type Generator = sig
       have been provably exhausted or the maximum number of steps has been
       reached. If the latter occurs, the returned test_generator will be a Some
       value.  In any case, each result in the provided list is a sequence of
-      inputs together with the number of steps required to reach it.
+      answers together with the number of steps required to reach it.
 
       The generation_callback optional parameter provides results in the form
       of this function's returned values but is called as each new result is

@@ -5,6 +5,8 @@ open Odefa_ast;;
 open Ast;;
 open Ast_pp;;
 
+
+open Odefa_symbolic_interpreter;;
 open Odefa_symbolic_interpreter.Interpreter_types;;
 open Odefa_symbolic_interpreter.Interpreter;;
 open Odefa_symbolic_interpreter.Solver;;
@@ -76,52 +78,98 @@ end;;
 module Type_errors : Answer = struct
 
   type type_error = {
-    odefa_var : Ident.t;
-    (* define_clause : clause; *)
-    (* use_clause : clause; *)
-    expected_type : type_sig;
-    actual_type : type_sig;
+    terr_expected_type : type_sig;
+    terr_actual_type : type_sig;
+    terr_operation : clause;
+    terr_var_definition : (ident * value)
   }
 
-  type type_error_seq = {
-    type_errors : type_error list;
-    input_seq : int list
+  type error_seq = {
+    err_type_errors : type_error list;
+    err_input_seq : int list
   }
 
-  type t = type_error_seq
+  type t = error_seq
+
+  let _symbol_to_var_value
+      (stop_stack : Ident.t list)
+      (symb_value : Constraint.value)
+    : Ast.value =
+    match symb_value with
+    | Constraint.Int n -> Ast.Value_int n
+    | Constraint.Bool b -> Ast.Value_bool b
+    | Constraint.Function f -> Ast.Value_function f
+    | Constraint.Record symb_map ->
+      begin
+        let var_map =
+          Ident_map.map
+            (fun symb ->
+              match symb with
+              | Symbol (ident, relstack) ->
+                let abstack = Generator_utils.absolutize_stack stop_stack relstack in
+                Var (ident, Some (Ast.Freshening_stack (abstack)))
+              | SpecialSymbol SSymTrue ->
+                raise @@ Jhupllib.Utils.Invariant_failure
+                  "Special symbol cannot be used in a record!"
+            )
+            symb_map
+        in
+        Ast.Value_record (Record_value var_map)
+      end
+    ;;
 
   let answer_from_result e x result =
+    let Concrete_stack stop_stack = result.er_stack in
     let solver = result.er_solver in
-    let find_type_error_fn = find_type_error solver in
-    let type_errors =
-      result.er_abort_points
-      |> Symbol_map.enum
-      |> Enum.fold (fun accum (_, var_list) ->
-          let err_list =
-            List.filter_map
-              (fun v ->
-                let type_err = find_type_error_fn v in
-                match type_err with
-                | None -> None
-                | Some (v', expected, actual) ->
-                  Some {
-                        odefa_var = v';
-                        expected_type = expected;
-                        actual_type = actual;
-                      }
-              )
-              var_list
-          in
-          err_list @ accum
-        )
-        []
-    in
     let (input_seq, _) =
       Generator_utils.input_sequence_from_result e x result
     in
-    {
-      type_errors = type_errors;
-      input_seq = input_seq
+    let abort_points = result.er_abort_points in
+    let type_err_lst =
+      abort_points
+      |> Symbol_map.enum
+      |> Enum.fold
+          (fun accum (ab_symb, ab_info) ->
+            let relstack =
+              match ab_symb with
+              | Symbol (_, relstack) -> relstack
+              | SpecialSymbol _ ->
+                  raise @@ Jhupllib.Utils.Invariant_failure
+                  "Cannot have SpecialSymbol define an abort clause"
+            in
+            match ab_info with
+            | Type_abort_info type_ab_info ->
+              let match_imap = type_ab_info.abort_matches in
+              let err_list =
+                match_imap
+                |> Ident_map.enum
+                |> Enum.filter_map
+                  (fun (ident, _) ->
+                    let type_err =
+                      find_type_error solver (Symbol(ident, relstack))
+                    in
+                    match type_err with
+                    | None -> None
+                    | Some type_err_rec ->
+                      let terr_value =
+                        _symbol_to_var_value stop_stack type_err_rec.terr_value
+                      in
+                      Some {
+                        terr_expected_type = type_err_rec.terr_expected_type;
+                        terr_actual_type = type_err_rec.terr_actual_type;
+                        terr_operation = type_ab_info.abort_operation;
+                        terr_var_definition = (type_err_rec.terr_ident, terr_value);
+                      }
+                  )
+                |> List.of_enum
+              in
+              err_list @ accum
+            | Match_abort_info _ -> accum (* Not implemented yet! *)
+          )
+          []
+    in
+    { err_type_errors = type_err_lst;
+      err_input_seq = input_seq;
     }
   ;;
 
@@ -169,35 +217,34 @@ module Type_errors : Answer = struct
   (* TEMP *)
   let answer_from_string (arg_str : string) =
     let _ = arg_str in
-    { type_errors =
-      [{ odefa_var = Ident("foo");
-        expected_type = Bool_type;
-        actual_type = Int_type }];
-      input_seq = []
+    { err_type_errors = [];
+      err_input_seq = []
     }
   ;;
 
   (* TODO: Show a "no type errors" message if type_error_seq is empty *)
-  let show type_error_seq =
+  let show error_seq =
     let show_type_error type_error =
-      "* Variable: " ^ (show_ident type_error.odefa_var) ^ "\n" ^
-      "* Expected: " ^ (show_type_sig type_error.expected_type) ^ "\n" ^
-      "* Actual: " ^ (show_type_sig type_error.actual_type) ^ "\n"
+      let (ident, value) = type_error.terr_var_definition in
+      "* Operation:  " ^ (show_clause type_error.terr_operation) ^ "\n" ^
+      "* Definition: " ^ (show_ident ident) ^" = "^ (show_value value) ^ "\n" ^
+      "* Expected:   " ^ (show_type_sig type_error.terr_expected_type) ^ "\n" ^
+      "* Actual:     " ^ (show_type_sig type_error.terr_actual_type) ^ "\n"
     in
     let show_input_seq inputs =
       "[" ^ (String.join ", " @@ List.map string_of_int inputs) ^ "]"
     in
-    (String.join "\n" @@
-      List.map show_type_error type_error_seq.type_errors) ^
-    ("\nInput sequence: " ^ (show_input_seq type_error_seq.input_seq))
+    ("Type errors for input sequence " ^
+    (show_input_seq error_seq.err_input_seq) ^ "\n" ^
+    (String.join "\n" (List.map show_type_error error_seq.err_type_errors)))
   ;;
 
   let empty = {
-    type_errors = [];
-    input_seq = [];
+    err_type_errors = [];
+    err_input_seq = [];
   };;
 
-  let is_empty type_errors = List.is_empty type_errors.type_errors;;
+  let is_empty type_errors = List.is_empty type_errors.err_type_errors;;
 
-  let count type_errors = List.length type_errors.type_errors;;
+  let count type_errors = List.length type_errors.err_type_errors;;
 end;;
