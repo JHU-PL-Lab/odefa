@@ -8,18 +8,11 @@ open Ast;;
 open Ast_pp;;
 open Pp_utils;;
 
-(** An enumeration of special symbols used throughout the interpreter. *)
-type special_symbol =
-  | SSymTrue
-[@@deriving eq, ord, show, to_yojson]
-;;
-
 (** The type of a symbol in the symbolic interpreter.  This is essentially the
     type of a variable using a stack-costack pair rather than a freshening
     stack. *)
 type symbol =
   | Symbol of Ident.t * Relative_stack.t
-  | SpecialSymbol of special_symbol
 [@@deriving eq, ord, to_yojson]
 ;;
 
@@ -29,11 +22,6 @@ let pp_symbol : symbol pretty_printer =
   | Symbol(x,relstack) ->
     pp_ident formatter x;
     Relative_stack.pp formatter relstack;
-  | SpecialSymbol ss ->
-    begin
-      match ss with
-      | SSymTrue -> Format.pp_print_string formatter "#true#"
-    end
 ;;
 let show_symbol = pp_to_string pp_symbol;;
 

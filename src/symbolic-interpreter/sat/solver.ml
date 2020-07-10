@@ -592,20 +592,21 @@ let _expected_actual_types_equal expected actual =
   | _ -> false
 ;;
 
-let find_type_error solver symbol =
-  let (variable, pattern) =
+let find_type_error solver match_symbol =
+  let (symbol, pattern) =
     try
       (* Both the symbol name and stack have to exist in the constraint set.
          This forces pattern matches to be in the same local function scope as
          the operation. *)
-      Symbol_map.find symbol solver.match_constraints_by_symbol;
+      Symbol_map.find match_symbol solver.match_constraints_by_symbol;
     with Not_found ->
       raise @@
-        Utils.Invariant_failure ("Symbol " ^ (show_symbol symbol) ^ " not found in match constraint set!")
+        Utils.Invariant_failure ("Symbol " ^ (show_symbol match_symbol) ^
+          " not found in match constraint set!")
   in
   let sym_type : Constraint.symbol_type =
     try
-      Symbol_map.find variable solver.type_constraints_by_symbol
+      Symbol_map.find symbol solver.type_constraints_by_symbol
     with Not_found ->
       (* 
       raise @@
@@ -614,22 +615,19 @@ let find_type_error solver symbol =
       (* Needed for abort clauses *)
       BottomSymbol
   in
-  let var_ident =
-    match variable with
-    | Symbol (ident, _) -> ident
-    | SpecialSymbol (SSymTrue) -> Ident("#true#")
+  let Symbol(var_ident, _) = symbol
   in
   let var_value =
     try
-      Symbol_map.find variable solver.value_constraints_by_symbol
+      Symbol_map.find symbol solver.value_constraints_by_symbol
     with Not_found ->
       begin
-        if Symbol_set.mem variable solver.input_constraints_by_symbol then
+        if Symbol_set.mem symbol solver.input_constraints_by_symbol then
           Constraint.Int 0 (* TODO: Temporary solution! *)
         else
           raise @@
             Utils.Invariant_failure
-            ("Symbol " ^ (show_symbol variable) ^
+            ("Symbol " ^ (show_symbol symbol) ^
             " not found in value nor input constraint set!")
       end
   in
@@ -653,7 +651,7 @@ let find_type_error solver symbol =
       let record_labels =
         try
           let sym_val
-            = Symbol_map.find variable solver.value_constraints_by_symbol
+            = Symbol_map.find symbol solver.value_constraints_by_symbol
           in
           match sym_val with
           | Record rec_map ->
@@ -665,7 +663,7 @@ let find_type_error solver symbol =
               Utils.Invariant_failure "Record value typed incorrectly!"
         with Not_found ->
           raise @@
-            Utils.Invariant_failure ("Symbol " ^ (show_symbol variable) ^ " not found in value constraint set!")
+            Utils.Invariant_failure ("Symbol " ^ (show_symbol symbol) ^ " not found in value constraint set!")
       in
       Rec_type record_labels
   in

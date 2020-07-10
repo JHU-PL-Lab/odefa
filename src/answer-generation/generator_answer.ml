@@ -103,14 +103,9 @@ module Type_errors : Answer = struct
       begin
         let var_map =
           Ident_map.map
-            (fun symb ->
-              match symb with
-              | Symbol (ident, relstack) ->
-                let abstack = Generator_utils.absolutize_stack stop_stack relstack in
-                Var (ident, Some (Ast.Freshening_stack (abstack)))
-              | SpecialSymbol SSymTrue ->
-                raise @@ Jhupllib.Utils.Invariant_failure
-                  "Special symbol cannot be used in a record!"
+            (fun (Symbol(ident, relstack)) ->
+              let abstack = Generator_utils.absolutize_stack stop_stack relstack in
+              Var (ident, Some (Ast.Freshening_stack (abstack)))
             )
             symb_map
         in
@@ -130,13 +125,7 @@ module Type_errors : Answer = struct
       |> Symbol_map.enum
       |> Enum.fold
           (fun accum (ab_symb, ab_info) ->
-            let relstack =
-              match ab_symb with
-              | Symbol (_, relstack) -> relstack
-              | SpecialSymbol _ ->
-                  raise @@ Jhupllib.Utils.Invariant_failure
-                  "Cannot have SpecialSymbol define an abort clause"
-            in
+            let Symbol(_, relstack) = ab_symb in
             match ab_info with
             | Type_abort_info type_ab_info ->
               let match_imap = type_ab_info.abort_matches in

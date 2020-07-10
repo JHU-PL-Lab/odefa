@@ -21,7 +21,6 @@ let symbol_suffix_of_relative_stack
 
 let name_of_symbol (s : symbol) =
   match s with
-  | SpecialSymbol SSymTrue -> "$$$true"
   | Symbol(Ident name, relstack) ->
     name ^ symbol_suffix_of_relative_stack relstack
 ;;
