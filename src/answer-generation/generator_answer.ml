@@ -223,9 +223,13 @@ module Type_errors : Answer = struct
     let show_input_seq inputs =
       "[" ^ (String.join ", " @@ List.map string_of_int inputs) ^ "]"
     in
-    ("Type errors for input sequence " ^
-    (show_input_seq error_seq.err_input_seq) ^ "\n" ^
-    (String.join "\n" (List.map show_type_error error_seq.err_type_errors)))
+    if not @@ List.is_empty error_seq.err_type_errors then begin
+      ("Type errors for input sequence " ^
+      (show_input_seq error_seq.err_input_seq) ^ "\n" ^
+      (String.join "\n" (List.map show_type_error error_seq.err_type_errors)))
+    end else begin
+      "" (* Do not show anything if there are no type errors. *)
+    end
   ;;
 
   let empty = {

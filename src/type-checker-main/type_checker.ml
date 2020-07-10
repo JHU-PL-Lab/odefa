@@ -73,6 +73,7 @@ let () =
   lazy_logger `debug (fun () -> Printf.sprintf "Aborts:\n%s" abort_string);
   try
     let results_remaining = ref args.tc_maximum_results in
+    let total_errors = ref 0 in
     let generator =
       Type_error_generator.create
         ~exploration_policy:args.tc_exploration_policy
@@ -86,6 +87,7 @@ let () =
       let _ = steps in (* Temp *)
       print_endline (Type_error_generator.Answer.show type_errors);
       flush stdout;
+      total_errors := !total_errors + Type_error_generator.Answer.count type_errors;
       results_remaining := (Option.map (fun n -> n - 1) !results_remaining);
       if !results_remaining = Some 0 then begin
         raise GenerationComplete
@@ -99,9 +101,12 @@ let () =
             args.tc_maximum_steps
             generator
         in
-        (* let answer_count = List.length answers in
-        Printf.printf "%d answer%s generated\n"
-          answer_count (if answer_count = 1 then "" else "s"); *)
+        (* Display number of type errors. *)
+        if !total_errors = 0 then
+          print_endline "No errors found."
+        else
+          print_endline @@ (string_of_int !total_errors) ^ " errors found.";
+        (* Display if control flows have been exhausted or not. *)
         if Option.is_none generator_opt then
           print_endline "No further control flows exist."
         else
