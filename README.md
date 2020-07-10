@@ -44,27 +44,27 @@ make benchmark
 
 TODO
 ---
-- [] Write tests (most important)
- - [] Reorganize the rest of the pre-existing tests
- - [] All clause/expression types
- - [] Tests that condition control flow on input (Parallel type errors)
- - [] Serial type errors
- - [] Type error after infinite loop/omega combinator
- - [] Recursion
-- [] Add "Primitive" pattern/type for bool + int "=="
-- [] Change inputs
- - [] Remove #true# clauses
- - [x] DON'T add new types for inputs
-- [] More errors
- - [] Match errors (conjunction vs. disjunction)
- - [] Divide by zero (new nonzero pattern?)
- - [] Asserts (encode in odefa)
-- [] Add odefa-to-natodefa mapping
- - [] Variants, lists, and other advanced data structures
- - [] Line + column numbers
-- [] Convert from nested clauses to "ANF" clauses (?)
- - [] Report first error/abort encountered; don't report subsequent errors
-- [] Heuristic for when to end recursion
- - [] Idea 1: Scale max steps by lines of code
- - [] Idea 2: Limit context stack growth re. adding the same call site
-- [] Report errors early, without having to reach the beginning (hard)
+- [ ] Write tests (most important)
+  - [ ] Reorganize the rest of the pre-existing tests
+  - [ ] All clause/expression types
+  - [ ] Tests that condition control flow on input (Parallel type errors)
+  - [ ] Serial type errors
+  - [ ] Type error after infinite loop/omega combinator
+  - [ ] Recursion
+- [ ] Add "Primitive" pattern/type for bool + int "=="
+- [ ] Change inputs
+  - [ ] Remove #true# clauses
+  - [x] DON'T add new types for inputs
+- [ ] More errors
+  - [ ] Match errors (conjunction vs. disjunction)
+  - [ ] Divide by zero (new nonzero pattern?)
+  - [ ] Asserts (encode in odefa)
+- [ ] Add odefa-to-natodefa mapping
+  - [ ] Variants, lists, and other advanced data structures
+  - [ ] Line + column numbers
+- [ ] Convert from nested clauses to "ANF" clauses (?)
+  - [ ] Report first error/abort encountered; don't report subsequent errors
+- [ ] Heuristic for when to end recursion
+  - [ ] Idea 1: Scale max steps by lines of code
+  - [ ] Idea 2: Limit context stack growth re. adding the same call site
+- [ ] Report errors early, without having to reach the beginning (hard)
