@@ -30,7 +30,7 @@ exception Contradiction of contradiction;;
 module Symbol_to_symbol_multimap = Jhupllib.Multimap.Make(Symbol)(Symbol);;
 
 module Symbol_and_ident =
-struct;;
+struct
   type t = symbol * ident [@@deriving ord];;
 end;;
 
@@ -55,6 +55,10 @@ type t =
         no symbol may be constrained to multiple different values, this is just
         a normal dictionary. *)
     value_constraints_by_symbol : value Symbol_map.t;
+
+    (** An index of all input constraints by symbol.  As all inputs clause
+        bodies are identical, this is a set. *)
+    input_constraints_by_symbol : Symbol_set.t;
 
     (** An index of all record projection constraints over the record symbol.
         As a given record symbol may be projected many times (and the results
@@ -85,6 +89,7 @@ let empty =
   { constraints = Constraint.Set.empty;
     alias_constraints_by_symbol = Symbol_to_symbol_multimap.empty;
     value_constraints_by_symbol = Symbol_map.empty;
+    input_constraints_by_symbol = Symbol_set.empty;
     projection_constraints_by_record_symbol =
       Symbol_to_symbol_and_ident_multimap.empty;
     match_constraints_by_symbol = Symbol_map.empty;
@@ -138,6 +143,12 @@ let rec _add_constraints_and_close
                 end;
                 Symbol_map.add x v solver.value_constraints_by_symbol
               end;
+          }
+        | Constraint_input(x) ->
+          { solver with
+            constraints = Constraint.Set.add c solver.constraints;
+            input_constraints_by_symbol =
+              Symbol_set.add x solver.input_constraints_by_symbol
           }
         | Constraint_alias(x1,x2) ->
           { solver with
@@ -247,6 +258,8 @@ let rec _add_constraints_and_close
             Enum.append transitivity_constraints @@
             Enum.append projection_constraints type_constraints
           end
+        | Constraint_input(x) ->
+          Constraint.Set.singleton @@ Constraint_type(x, IntSymbol)
         | Constraint_alias(x,x') ->
           begin
             let symmetry_constraint =
@@ -482,6 +495,8 @@ let z3_constraint_of_constraint
           let not_zero = Z3.Boolean.mk_not ctx is_zero in
           Some([binary_c; not_zero]))
       | _ -> Some ([binary_c]) )
+  | Constraint_input _ ->
+    None
   | Constraint_match _ ->
     None
   | Constraint_projection _ ->
@@ -608,8 +623,15 @@ let find_type_error solver symbol =
     try
       Symbol_map.find variable solver.value_constraints_by_symbol
     with Not_found ->
-      raise @@
-        Utils.Invariant_failure ("Symbol " ^ (show_symbol variable) ^ " not found in value constraint set!")
+      begin
+        if Symbol_set.mem variable solver.input_constraints_by_symbol then
+          Constraint.Int 0 (* TODO: Temporary solution! *)
+        else
+          raise @@
+            Utils.Invariant_failure
+            ("Symbol " ^ (show_symbol variable) ^
+            " not found in value nor input constraint set!")
+      end
   in
   let expected_type =
     match pattern with

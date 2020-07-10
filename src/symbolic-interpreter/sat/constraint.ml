@@ -51,13 +51,14 @@ let show_value = Pp_utils.pp_to_string pp_value;;
 
 type t =
   | Constraint_value of symbol * value (* x = v *)
+  | Constraint_input of symbol (* x = input *)
   | Constraint_alias of symbol * symbol (* x = x *)
-  | Constraint_binop of symbol * symbol * binary_operator * symbol (* x = x+x *)
+  | Constraint_binop of symbol * symbol * binary_operator * symbol (* x = x + x *)
   | Constraint_projection of symbol * symbol * ident (* x = x.l *)
   | Constraint_match of symbol * symbol * pattern (* x = x ~ p *)
   | Constraint_type of symbol * symbol_type (* x : t *)
   | Constraint_stack of Relative_stack.concrete_stack (* stack = C *)
-  | Constraint_abort of symbol (* ab = abort [ ... ] *)
+  | Constraint_abort of symbol (* x = abort *)
 [@@deriving eq, ord, to_yojson]
 ;;
 
@@ -65,6 +66,8 @@ let pp formatter sc =
   match sc with
   | Constraint_value(x,v) ->
     Format.fprintf formatter "%a = %a" pp_symbol x pp_value v
+  | Constraint_input(x) ->
+    Format.fprintf formatter "%a = input" pp_symbol x
   | Constraint_alias(x,x') ->
     Format.fprintf formatter "%a = %a" pp_symbol x pp_symbol x'
   | Constraint_binop(x,x',op,x'') ->
@@ -76,15 +79,12 @@ let pp formatter sc =
   | Constraint_match(x,x',p) ->
     Format.fprintf formatter "%a = %a ~ %a"
       pp_symbol x pp_symbol x' pp_pattern p
-  (* | Constraint_antimatch(x,x',p) ->
-    Format.fprintf formatter "%a = %a !~ %a"
-      pp_symbol x pp_symbol x' pp_pattern p *)
   | Constraint_type(x,t) ->
     Format.fprintf formatter "%a ~ %a" pp_symbol x pp_symbol_type t
   | Constraint_stack(s) ->
     Format.fprintf formatter "stack = %a" Relative_stack.pp_concrete_stack s
-  | Constraint_abort(ab) ->
-    Format.fprintf formatter "%a = abort" pp_symbol ab
+  | Constraint_abort(x) ->
+    Format.fprintf formatter "%a = abort" pp_symbol x
 ;;
 
 let show = Pp_utils.pp_to_string pp;;

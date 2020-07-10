@@ -445,11 +445,7 @@ struct
         (* Induce the resulting formula *)
         let lookup_symbol = Symbol(lookup_var, relstack) in
         let%bind () = record_constraint @@
-          Constraint.Constraint_binop(
-            SpecialSymbol SSymTrue,
-            lookup_symbol,
-            Binary_operator_equal_to,
-            lookup_symbol)
+          Constraint.Constraint_input(lookup_symbol)
         in
         (* If we're at the top of the program, we should record a stack
             constraint. *)
@@ -733,23 +729,13 @@ struct
         let%orzero Unannotated_clause(
             Abs_clause(Abs_var v, Abs_abort_body)) = acl1 in
         let abort_symbol = Symbol(v, relstack) in
-        (*
-        let variables =
-          List.map (fun abs_v -> let Abs_var v = abs_v in Symbol(v, relstack)) vlist
-        in
-        *)
         let abort_info = Ident_map.find v env.le_abort_clause_mapping in
         let lookup_var = env.le_first_var in
         let new_lookup_stack = lookup_var :: lookup_stack' in
         _trace_log_recurse new_lookup_stack relstack acl1;
-        (*
-        cache_abort (Cache_lookup(new_lookup_stack, acl1, relstack)) @@
-          lookup env new_lookup_stack acl1 relstack
-        *)
         let%bind _ = recurse new_lookup_stack acl1 relstack in
         let%bind () = record_abort_point abort_symbol abort_info in
-        let%bind () = record_constraint @@
-          Constraint_abort(abort_symbol) in
+        let%bind () = record_constraint @@ Constraint_abort(abort_symbol) in
         return abort_symbol
       end;
 
