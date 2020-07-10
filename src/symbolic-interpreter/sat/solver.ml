@@ -601,19 +601,14 @@ let find_type_error solver match_symbol =
       Symbol_map.find match_symbol solver.match_constraints_by_symbol;
     with Not_found ->
       raise @@
-        Utils.Invariant_failure ("Symbol " ^ (show_symbol match_symbol) ^
-          " not found in match constraint set!")
+        Utils.Invariant_failure ("Symbol " ^ (show_symbol match_symbol) ^ " not found in match constraint set!")
   in
   let sym_type : Constraint.symbol_type =
     try
       Symbol_map.find symbol solver.type_constraints_by_symbol
     with Not_found ->
-      (* 
       raise @@
-        Utils.Invariant_failure ("Symbol " ^ (show_symbol variable) ^ " not found in type constraint set!")
-      *)
-      (* Needed for abort clauses *)
-      BottomSymbol
+        Utils.Invariant_failure ("Symbol " ^ (show_symbol symbol) ^ " not found in type constraint set!")
   in
   let Symbol(var_ident, _) = symbol
   in
