@@ -1,0 +1,16 @@
+# EXPECT-WELL-FORMED
+# EXPECT-EVALUATE
+# EXPECT-ANALYSIS-LOOKUP-FROM-END a {int}
+# EXPECT-ANALYSIS-LOOKUP-FROM-END b {true}
+# EXPECT-ANALYSIS-LOOKUP-FROM-END c {false}
+# EXPECT-ANALYSIS-LOOKUP-FROM-END f {x -> ( ret = x)}
+# EXPECT-ANALYSIS-LOOKUP-FROM-END r {{x=a, y=b, z=c}}
+# EXPECT-ANALYSIS-NO-INCONSISTENCIES
+
+a = 0;
+b = true;
+c = false;
+
+f = fun x -> ( ret = x );
+
+r = { x = a, y = b, z = c }

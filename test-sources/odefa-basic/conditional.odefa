@@ -1,0 +1,22 @@
+# EXPECT-WELL-FORMED
+# EXPECT-EVALUATE
+# EXPECT-ANALYSIS-LOOKUP-FROM-END r1 {int}
+# EXPECT-ANALYSIS-LOOKUP-FROM-END r2 {false}
+# EXPECT-ANALYSIS-LOOKUP-FROM-END r3 {true}
+# EXPECT-ANALYSIS-LOOKUP-FROM-END r4 {int}
+# EXPECT-ANALYSIS-LOOKUP-FROM-END r5 {int, false}
+# EXPECT-ANALYSIS-NO-INCONSISTENCIES
+
+t = true;
+f = false;
+
+r1 = f ? ( r11 = false ) : ( r12 = 0 );
+r2 = f ? ( r21 = 0 ) : ( r22 = false );
+
+r3 = t ? ( r31 = true ) : ( r32 = 0 );
+r4 = t ? ( r41 = 0 ) : ( r42 = true );
+
+x = 1;
+y = 2;
+z = x == y;
+r5 = z ? ( r51 = false ) : ( r52 = 0 );

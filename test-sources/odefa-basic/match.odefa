@@ -1,0 +1,28 @@
+# EXPECT-WELL-FORMED
+# EXPECT-EVALUATE
+# EXPECT-ANALYSIS-LOOKUP-FROM-END mn {false, true}
+# EXPECT-ANALYSIS-LOOKUP-FROM-END mb {false, true}
+# EXPECT-ANALYSIS-LOOKUP-FROM-END mf {false, true}
+# EXPECT-ANALYSIS-LOOKUP-FROM-END mr {false, true}
+# EXPECT-ANALYSIS-LOOKUP-FROM-END rn {false, true}
+# EXPECT-ANALYSIS-LOOKUP-FROM-END rb {false, true}
+# EXPECT-ANALYSIS-LOOKUP-FROM-END rf {false, true}
+# EXPECT-ANALYSIS-LOOKUP-FROM-END rr {false, true}
+# EXPECT-ANALYSIS-NO-INCONSISTENCIES
+
+n = 0;
+b = true;
+f = fun x -> (ret = x);
+r = {lf = f};
+
+mn = n ~ int;
+rn = mn ? ( rn1 = true ) : ( rn2 = false );
+
+mb = b ~ bool;
+rb = mb ? ( rb1 = true ) : ( rb2 = false );
+
+mf = f ~ fun;
+rf = mf ? ( rf1 = true ) : ( rf2 = false );
+
+mr = r ~ {lf};
+rr = mr ? ( rr1 = true ) : ( rr2 = false );

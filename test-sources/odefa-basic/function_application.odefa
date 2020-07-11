@@ -1,0 +1,13 @@
+# EXPECT-WELL-FORMED
+# EXPECT-EVALUATE
+# EXPECT-ANALYSIS-LOOKUP-FROM-END y {false}
+# EXPECT-ANALYSIS-LOOKUP-FROM-END z {true}
+# EXPECT-ANALYSIS-NO-INCONSISTENCIES
+
+x = true;
+
+f1 = fun a -> ( r1 = false );
+f2 = fun b -> ( r2 = b );
+
+y = f1 x;
+z = f2 x;

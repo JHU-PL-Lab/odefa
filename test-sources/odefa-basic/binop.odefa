@@ -1,0 +1,36 @@
+# EXPECT-WELL-FORMED
+# EXPECT-EVALUATE
+# EXPECT-ANALYSIS-LOOKUP-FROM-END sum {int}
+# EXPECT-ANALYSIS-LOOKUP-FROM-END diff {int}
+# EXPECT-ANALYSIS-LOOKUP-FROM-END prod {int}
+# EXPECT-ANALYSIS-LOOKUP-FROM-END quot {int}
+# EXPECT-ANALYSIS-LOOKUP-FROM-END rem {int}
+# EXPECT-ANALYSIS-LOOKUP-FROM-END lt {false, true}
+# EXPECT-ANALYSIS-LOOKUP-FROM-END leq {false, true}
+# EXPECT-ANALYSIS-LOOKUP-FROM-END eq {int, false, true}
+# EXPECT-ANALYSIS-LOOKUP-FROM-END t_eq_f {int, false, true}
+# EXPECT-ANALYSIS-LOOKUP-FROM-END t_and_f {false, true}
+# EXPECT-ANALYSIS-LOOKUP-FROM-END t_or_f {false, true}
+# EXPECT-ANALYSIS-LOOKUP-FROM-END t_xor_f {false, true}
+# EXPECT-ANALYSIS-NO-INCONSISTENCIES
+
+one = 1;
+two = 2;
+
+t = true;
+f = false;
+
+sum = one + two;
+diff = two - one;
+prod = one * two;
+quot = two / one;
+rem = two % one;
+
+lt = one < two;
+leq = one <= two;
+eq = one == two;
+
+t_eq_f = t == f;
+t_and_f = t and f;
+t_or_f = t xor f;
+t_xor_f = t xor f;
