@@ -24,6 +24,8 @@ open Odefa_toploop;;
 
 open Odefa_natural;;
 
+open Odefa_symbolic_interpreter.Interpreter
+
 open Ast;;
 open Ast_pp;;
 open Ast_wellformedness;;
@@ -531,13 +533,319 @@ let observe_no_inconsistency expectation =
 
 (* **** Testing **** *)
 
+(* This routine takes an observation function and applies it to all of the
+    not-yet-handled expectations. *)
+let _observation filename expectations_left f =
+  let exp_l' = List.filter_map f expectations_left in
+  lazy_logger `trace (fun () ->
+    Printf.sprintf
+      "In test for %s, expectations remaining after an observation: %s"
+      filename
+      (Pp_utils.pp_to_string (Pp_utils.pp_list pp_test_expectation) exp_l'));
+  exp_l'
+;;
+
+(* This routine detects expectations of a particular form. *)
+let _have_expectation expectations_left pred =
+  List.exists pred expectations_left
+;;
+
+(* We're going to execute the following block.  If it completes without
+    error, we're also going to require that all of its expectations were
+    satisfied.  This addresses nonsense cases such as expecting an ill-formed
+    expression to evaluate. *)
+
+(** Test demand-driven program analysis. *)
+let test_ddpa
+    (filename : string)
+    (expect_left : test_expectation list ref)
+    (stack_module_choice : expectation_stack_decision)
+    (expr: Ast.expr)
+  : unit =
+  let observation = _observation filename in
+  (* Configure the toploop options *)
+  let chosen_module_option =
+    match stack_module_choice with
+    | Default_stack ->
+      Some (module Ddpa_single_element_stack.Stack : Ddpa_context_stack.Context_stack)
+    | Chosen_stack value -> value
+  in
+  let variables_to_analyze =
+    !expect_left
+    |> List.enum
+    |> Enum.filter_map
+      (function
+        | Expect_analysis_variable_lookup_from_end(ident,expected) ->
+          Some (ident, expected)
+        | _ -> None)
+    |> List.of_enum
+  in
+  let configuration =
+    { topconf_context_stack = chosen_module_option;
+      topconf_log_prefix = filename ^ "_";
+      topconf_ddpa_log_level = None;
+      topconf_pdr_log_level = None;
+      topconf_pdr_log_deltas = false;
+      topconf_graph_log_file_name = "ddpa_test.log.yojson";
+      topconf_analyze_vars =
+        if variables_to_analyze = []
+        then Toploop_option_parsers.Analyze_no_variables
+        else
+          Toploop_option_parsers.Analyze_specific_variables
+            (variables_to_analyze
+              |> List.map (fun (Ident s, _) -> (s, None, None)));
+      topconf_disable_evaluation =
+        not @@ _have_expectation !expect_left
+          (function
+            | Expect_evaluate -> true
+            | Expect_stuck -> true
+            | _ -> false);
+      topconf_disable_inconsistency_check =
+        not @@ _have_expectation !expect_left
+          (function
+            | Expect_analysis_no_inconsistencies -> true
+            | Expect_analysis_inconsistency_at _ -> true
+            | _ -> false);
+      topconf_disable_analysis = false;
+      topconf_report_sizes = false;
+      topconf_report_source_statistics = false
+    }
+  in
+  (* Set the inputs we feed into the toploop. *)
+  let input_ref = ref None in
+  expect_left := observation !expect_left (observe_input_selection input_ref);
+  let input_callback =
+    match !input_ref with
+    | Some inputs ->
+      (let buffer = ref inputs in
+        fun () ->
+          match !buffer with
+          | [] -> failwith "Out of input"
+          | head :: tail ->
+            buffer := tail;
+            head
+      )
+    | None -> Toploop.default_callbacks.cb_input
+  in
+  let callbacks =
+    { Toploop.default_callbacks with
+      cb_input = input_callback
+    }
+  in
+  (* Run the DDPA toploop *)
+  lazy_logger `trace (fun () ->
+      Printf.sprintf "Test for %s: executing toploop handler" filename);
+  let result =
+    Toploop.handle_expression
+      ~callbacks:callbacks
+      configuration
+      expr
+  in
+  lazy_logger `trace (fun () ->
+      Printf.sprintf "Test for %s: toploop result was %s"
+        filename (Pp_utils.pp_to_string pp_result result));
+  (* Report well-formedness or ill-formedness as appropriate. *)
+  if result.illformednesses = [] then begin
+    expect_left :=
+      observation !expect_left observe_well_formed
+  end else begin 
+    expect_left :=
+      observation !expect_left (observe_ill_formed result.illformednesses)
+  end;
+  (* Report each discovered error *)
+  List.iter
+    (fun error ->
+      expect_left := observation !expect_left (observe_inconsistency error)
+    )
+    result.errors;
+  (* If there are no errors, report that. *)
+  if result.errors = [] then begin
+    expect_left := observation !expect_left observe_no_inconsistency
+  end;
+  (* Report each resulting variable analysis. *)
+  result.analyses
+  |> List.iter
+    (fun ((varname, _, _), values) ->
+      let repr =
+        Pp_utils.pp_to_string Ddpa_abstract_ast.Abs_value_set.pp values
+      in
+      expect_left := observation !expect_left
+        (observe_analysis_variable_lookup_from_end (Ident varname) repr)
+    );
+  (* Now report the result of evaluation. *)
+  begin
+    match result.evaluation_result with
+    | Evaluation_completed _ ->
+      expect_left := observation !expect_left observe_evaluated
+    | Evaluation_failure failure ->
+      expect_left := observation !expect_left (observe_stuck failure)
+    | Evaluation_invalidated -> ()
+    | Evaluation_disabled -> ()
+  end;
+;;
+
+(** Test demand-driven symbolic analysis, specifically the expected input
+    sequence generation. *)
+let test_ddse
+    (filename : string)
+    (expect_left : test_expectation list ref)
+    (stack_module_choice : expectation_stack_decision)
+    (expr: Ast.expr)
+  : unit =
+  let observation = _observation filename in
+  (* Configure DDSE options. *)
+  (* Select the appropriate context stack for DDPA. *)
+  let chosen_module_option =
+    match stack_module_choice with
+    | Default_stack ->
+      Some (module Ddpa_single_element_stack.Stack :
+              Ddpa_context_stack.Context_stack)
+    | Chosen_stack value -> value
+  in
+  (* Configure the max number of steps. *)
+  let input_generation_steps_ref = ref None in
+  expect_left := observation !expect_left
+    (observe_input_generation_steps input_generation_steps_ref);
+  let input_generation_steps =
+    Option.default 10000 !input_generation_steps_ref (* TODO: Increase from 10000 *)
+  in
+  (* Configure the expected input sequences. *)
+  let input_generation_expectations =
+    (* Separate out input sequence expectations from the other expectations *)
+    let (input_expectations, remaining_expectations) =
+      List.fold_left
+        (fun (input_expects, remaining_expects) expectation ->
+          match expectation with
+          | Expect_input_sequences_reach (x, inputs, complete) ->
+            ((x, inputs, complete) :: input_expects, remaining_expects)
+          | _ -> (input_expects, expectation :: remaining_expects))
+        ([],[])
+        !expect_left
+    in
+    expect_left := List.rev remaining_expectations;
+    List.rev input_expectations
+  in
+  (* Run test generations given a target variable [x], an expected input
+     sequence [inputs], and the expected completness result [complete]. *)
+  let run_test_generation (x, inputs, complete) =
+    (* Set context model*)
+    let configuration =
+      match chosen_module_option with
+      | Some context_model ->
+        { conf_context_model = context_model; }
+      | None ->
+        assert_failure
+          "Test specified input sequence requirement without context model."
+    in
+    (* Create input sequence generator *)
+    let generator =
+      Input_generator.create
+      ?exploration_policy:(Some (Explore_least_relative_stack_repetition))
+      configuration
+      (Ident_map.empty) (* TODO: Use actual abort clause map *)
+      expr
+      (Ident x)
+    in
+    let remaining_input_seq = ref inputs in
+    let callback
+        (sequence : Input_generator.Answer.t)
+        (_steps : int)
+      : unit =
+      if List.mem sequence !remaining_input_seq then begin
+        remaining_input_seq := List.remove !remaining_input_seq sequence;
+        if List.is_empty !remaining_input_seq && not complete then
+          (* We're not looking for a complete input generation and we've
+            found everything we wanted to find.  We're finished! *)
+          raise Input_generation_complete;
+      end else begin
+        (* An input sequence was generated which we didn't expect. *)
+        if complete then
+          (* If the input sequences in the test are expected to be
+            complete, this one represents a problem. *)
+          assert_failure
+            (Printf.sprintf
+              "Unexpected input sequence generated: %s"
+              (string_of_input_sequence sequence))
+        else
+          (* If the input sequences in the test are not expected to be
+            complete, maybe this is just one which we didn't explicitly
+            call out. *)
+          ()
+      end
+    in
+    (* Run generator *)
+    let (_, generator') =
+      try
+        Input_generator.generate_answers
+          ~generation_callback:callback
+          (Some input_generation_steps)
+          generator
+      with
+      | Input_generation_complete ->
+        ([], Some generator)
+    in
+    (* Report any complaints *)
+    (* First, verify that all input sequences were discovered. *)
+    let ungenerated_input_complaints =
+      List.map
+        (fun input_sequence ->
+          Printf.sprintf
+            "Did not generate input sequence %s for variable %s."
+            (string_of_input_sequence input_sequence) x
+        )
+        !remaining_input_seq
+    in
+    (* If we expected a complete input sequence and didn't get that
+       guarantee, complain. *)
+    let uncomplete_input_complaints =
+      if complete && Option.is_some generator' then
+        [Printf.sprintf
+          "Test generation did not complete in %d steps."
+          input_generation_steps
+        ]
+      else
+        []
+    in
+    let complaints =
+      ungenerated_input_complaints @ uncomplete_input_complaints
+    in
+    complaints
+  in
+  let input_generation_complaints =
+    input_generation_expectations
+    |> List.map run_test_generation
+    |> List.concat
+  in
+  (* If there are any expectations of errors left, they're a problem. *)
+  List.iter
+    (function
+      | Expect_analysis_inconsistency_at ident ->
+        assert_failure @@ "Expected error at " ^
+                          show_ident ident ^ " which did not occur"
+      | _ -> ()
+    )
+    !expect_left;
+  (* If there are any complaints about input generation, announce them
+      now. *)
+  if not @@ List.is_empty input_generation_complaints then
+    assert_failure (
+      input_generation_complaints
+      |> List.map (fun s -> "* " ^ s)
+      |> String.join "\n"
+      |> (fun s ->
+          "Input generation test failed to meet expectations:\n" ^ s)
+    )
+;;
+
+(** Test symbolic analysis typechecking. *)
+let test_sato = "foo";;
+
 let make_test filename expectations =
   let test_name =
     filename ^ ": (" ^ string_of_list name_of_expectation expectations ^ ")"
   in
   (* Create the test in a thunk. *)
-  test_name >::
-  function _ ->
+  let test_thunk _ =
     lazy_logger `trace (fun () ->
         Printf.sprintf "Performing test for %s with expectations: %s"
           filename
@@ -546,279 +854,34 @@ let make_test filename expectations =
       );
     (* Using a mutable list of not-yet-handled expectations. *)
     let expectations_left = ref expectations in
-    (* This routine takes an observation function and applies it to all of the
-       not-yet-handled expectations. *)
-    let observation f =
-      expectations_left := List.filter_map f @@ !expectations_left;
-      lazy_logger `trace (fun () ->
-          Printf.sprintf
-            "In test for %s, expectations remaining after an observation: %s"
-            filename
-            (Pp_utils.pp_to_string (Pp_utils.pp_list pp_test_expectation)
-               !expectations_left)
-        );
-    in
-    (* This routine detects expectations of a particular form. *)
-    let have_expectation pred = List.exists pred (!expectations_left) in
-    (* We're going to execute the following block.  If it completes without
-       error, we're also going to require that all of its expectations were
-       satisfied.  This addresses nonsense cases such as expecting an ill-formed
-       expression to evaluate. *)
-    begin
-      (* Translate code if it's natodefa *)
-      let is_nato = String.ends_with filename "natodefa" in
-      let expr =
-        if is_nato then
-          let on_expr = File.with_file_in filename On_parse.parse_program in
-          On_to_odefa.translate on_expr
-        else
-          File.with_file_in filename Parser.parse_program in
-      (* Decide what kind of analysis to perform. *)
-      let module_choice = ref Default_stack in
-      observation (observe_analysis_stack_selection module_choice);
-      let chosen_module_option =
-        match !module_choice with
-        | Default_stack ->
-          Some (module Ddpa_single_element_stack.Stack :
-                 Ddpa_context_stack.Context_stack)
-        | Chosen_stack value -> value
-      in
-      (* Configure the toploop *)
-      let variables_to_analyze =
-        !expectations_left
-        |> List.enum
-        |> Enum.filter_map
-          (function
-            | Expect_analysis_variable_lookup_from_end(ident,expected) ->
-              Some(ident,expected)
-            | _ -> None)
-        |> List.of_enum
-      in
-      let configuration =
-        { topconf_context_stack = chosen_module_option
-        ; topconf_log_prefix = filename ^ "_"
-        ; topconf_ddpa_log_level = None
-        ; topconf_pdr_log_level = None
-        ; topconf_pdr_log_deltas = false
-        ; topconf_graph_log_file_name = "ddpa_test.log.yojson"
-        ; topconf_analyze_vars =
-            if variables_to_analyze = []
-            then Toploop_option_parsers.Analyze_no_variables
-            else
-              Toploop_option_parsers.Analyze_specific_variables
-                (variables_to_analyze
-                 |> List.map (fun (Ident s, _) -> (s, None, None)))
-        ; topconf_disable_evaluation =
-            not @@ have_expectation
-              (function
-                | Expect_evaluate -> true
-                | Expect_stuck -> true
-                | _ -> false)
-        ; topconf_disable_inconsistency_check =
-            not @@ have_expectation
-              (function
-                | Expect_analysis_no_inconsistencies -> true
-                | Expect_analysis_inconsistency_at _ -> true
-                | _ -> false)
-        ; topconf_disable_analysis = false
-        ; topconf_report_sizes = false
-        ; topconf_report_source_statistics = false
-        }
-      in
-      let input_ref = ref None in
-      observation (observe_input_selection input_ref);
-      let input_callback =
-        match !input_ref with
-        | Some inputs ->
-          (let buffer = ref inputs in
-           fun () ->
-             match !buffer with
-             | [] -> failwith "Out of input"
-             | h::t -> buffer := t; h
-          )
-        | None -> Toploop.default_callbacks.cb_input
-      in
-      let callbacks =
-        { Toploop.default_callbacks with
-          cb_input = input_callback
-        }
-      in
-      lazy_logger `trace (fun () ->
-          Printf.sprintf "Test for %s: executing toploop handler"
-            filename
-        );
-      (* Run the toploop *)
-      let result =
-        Toploop.handle_expression
-          ~callbacks:callbacks
-          configuration
-          expr
-      in
-      lazy_logger `trace (fun () ->
-          Printf.sprintf "Test for %s: toploop result was %s"
-            filename (Pp_utils.pp_to_string pp_result result)
-        );
-      (* Report well-formedness or ill-formedness as appropriate. *)
-      if result.illformednesses = []
-      then observation @@ observe_well_formed
-      else observation @@ observe_ill_formed result.illformednesses;
-      (* Report each discovered error *)
-      result.errors
-      |> List.iter
-        (fun error -> observation @@ observe_inconsistency error);
-      (* If there are no errors, report that. *)
-      if result.errors = [] then observation observe_no_inconsistency;
-      (* Report each resulting variable analysis. *)
-      result.analyses
-      |> List.iter
-        (fun ((varname,_,_),values) ->
-           let repr =
-             Pp_utils.pp_to_string Ddpa_abstract_ast.Abs_value_set.pp values
-           in
-           observation @@ observe_analysis_variable_lookup_from_end
-             (Ident varname) repr
-        );
-      (* Now report the result of evaluation. *)
-      begin
-        match result.evaluation_result with
-        | Evaluation_completed _ -> observation observe_evaluated
-        | Evaluation_failure failure -> observation (observe_stuck failure)
-        | Evaluation_invalidated -> ()
-        | Evaluation_disabled -> ()
-      end;
-      (* Next, we'll handle input sequence generation.  This requires a
-         different approach because we have no guarantee of termination.  We'll
-         remove all of the expectations of this form from the list and process
-         them individually.  (This is kind of gross and indicates that we're
-         bolting onto an abstraction which is no longer suitable for what we're
-         doing here, but we can live with this for now.) *)
-      let input_generation_steps_ref = ref None in
-      observation @@ observe_input_generation_steps input_generation_steps_ref;
-      let input_generation_steps =
-        Option.default 10000 !input_generation_steps_ref (* TODO: Increase from 10000 *)
-      in
-      let input_generation_expectations =
-        let (a,b) =
-          !expectations_left
-          |> List.fold_left (fun (iges,niges) expectation ->
-              match expectation with
-              | Expect_input_sequences_reach(x,inputs,complete) ->
-                ((x, inputs, complete) :: iges, niges)
-              | _ -> (iges, expectation :: niges)
-            )
-            ([],[])
-        in
-        expectations_left := List.rev b;
-        List.rev a
-      in
-      let input_generation_complaints =
-        input_generation_expectations
-        |> List.map
-          (fun (x, inputs, complete) ->
-             let configuration =
-               match chosen_module_option with
-               | Some context_model ->
-                 { conf_context_model = context_model; }
-               | None ->
-                 assert_failure
-                   "Test specified input sequence requirement without context model."
-             in
-             let generator = Input_generator.create
-                 ?exploration_policy:(Some (Odefa_symbolic_interpreter.Interpreter.Explore_least_relative_stack_repetition))
-                 configuration expr (Ident x) in
-             let remaining_input_sequences = ref inputs in
-             let callback sequence (_steps : int) =
-               if List.mem sequence !remaining_input_sequences then begin
-                 remaining_input_sequences :=
-                   List.remove !remaining_input_sequences sequence;
-                 if List.is_empty !remaining_input_sequences && not complete then
-                   (* We're not looking for a complete input generation and we've
-                      found everything we wanted to find.  We're finished! *)
-                   (* raise @@ Input_generation_complete(generator); *)
-                   raise Input_generation_complete;
-               end else begin
-                 (* An input sequence was generated which we didn't expect. *)
-                 if complete then
-                   (* If the input sequences in the test are expected to be
-                      complete, this one represents a problem. *)
-                   assert_failure
-                     (Printf.sprintf
-                        "Unexpected input sequence generated: %s"
-                        (string_of_input_sequence sequence)
-                     )
-                 else
-                   (* If the input sequences in the test are not expected to be
-                      complete, maybe this is just one which we didn't explicitly
-                      call out. *)
-                   ()
-               end
-             in
-             (* Setting an arbitrary generation limit for unit tests. *)
-             let (_, generator') =
-               try
-                 Input_generator.generate_answers
-                   ~generation_callback:callback
-                   (Some input_generation_steps) generator
-               with
-               | Input_generation_complete ->
-                 ([], Some generator)
-             in
-             let complaints =
-               (
-                 (* First, verify that all input sequences were discovered. *)
-                 !remaining_input_sequences
-                 |> List.map
-                   (fun input_sequence ->
-                      Printf.sprintf
-                        "Did not generate input sequence %s for variable %s."
-                        (string_of_input_sequence input_sequence) x
-                   )
-               ) @
-               (
-                 (* If we expected a complete input sequence and didn't get that
-                    guarantee, complain. *)
-                 if complete && Option.is_some generator' then
-                   [Printf.sprintf
-                      "Test generation did not complete in %d steps."
-                      input_generation_steps
-                   ]
-                 else
-                   []
-               )
-             in
-             complaints
-          )
-        |> List.concat
-      in
-      (* If there are any expectations of errors left, they're a problem. *)
-      !expectations_left
-      |> List.iter
-        (function
-          | Expect_analysis_inconsistency_at ident ->
-            assert_failure @@ "Expected error at " ^
-                              show_ident ident ^ " which did not occur"
-          | _ -> ()
-        );
-      (* If there are any complaints about input generation, announce them
-         now. *)
-      if not @@ List.is_empty input_generation_complaints then begin
-        assert_failure (
-          input_generation_complaints
-          |> List.map (fun s -> "* " ^ s)
-          |> String.join "\n"
-          |> (fun s ->
-              "Input generation test failed to meet expectations:\n" ^ s)
-        )
-      end;
-    end;
+    (* Translate code if it's natodefa *)
+    let is_nato = String.ends_with filename "natodefa" in
+    let expr =
+      if is_nato then
+        let on_expr = File.with_file_in filename On_parse.parse_program in
+        let (e, _) = On_to_odefa.translate on_expr in
+        e
+      else
+        File.with_file_in filename Parser.parse_program in
+    (* Decide what kind of analysis to perform. *)
+    let module_choice = ref Default_stack in
+    let obs = _observation filename in
+    expectations_left := obs !expectations_left (observe_analysis_stack_selection module_choice);
+    (* Perform tests *)
+    test_ddpa filename expectations_left !module_choice expr;
+    test_ddse filename expectations_left !module_choice expr;
     (* Now assert that every expectation has been addressed. *)
     match !expectations_left with
     | [] -> ()
     | expectations' ->
-      assert_failure @@ "The following expectations could not be met:" ^
-                        "\n    * " ^ concat_sep "\n    * "
-                          (List.enum @@
-                           List.map name_of_expectation expectations')
+      assert_failure @@
+        "The following expectations could not be met:" ^ "\n" ^
+        "    * " ^
+        concat_sep
+          "\n    * "
+          (List.enum @@ List.map name_of_expectation expectations')
+  in
+  test_name >:: test_thunk
 ;;
 
 let make_test_from filename =
