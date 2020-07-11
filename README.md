@@ -45,7 +45,7 @@ make benchmark
 TODO
 ---
 - [ ] Write tests (most important)
-  - [ ] Reorganize the rest of the pre-existing tests
+  - [x] Reorganize the rest of the pre-existing tests
   - [ ] All clause/expression types
   - [ ] Tests that condition control flow on input (Parallel type errors)
   - [ ] Serial type errors
@@ -69,4 +69,6 @@ TODO
 - [ ] Heuristic for when to end recursion
   - [ ] Idea 1: Scale max steps by lines of code
   - [ ] Idea 2: Limit context stack growth re. adding the same call site
-- [ ] Report errors early, without having to reach the beginning (hard)
+- [ ] Report errors locally, without having to reach the beginning (hard)
+  - [ ] Type errors after infinite loops/omega combinators
+  - [ ] Type errors in non-satisfiable universes
