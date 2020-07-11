@@ -67,6 +67,8 @@ rule token = parse
 | "=="                 { EQUAL_EQUAL }
 | "<"                  { LESS }
 | "<="                 { LESS_EQUAL }
+| ">"                  { GREATER }
+| ">="                 { GREATER_EQUAL }
 | digit+ as n          { INT_LITERAL (int_of_string n) }
 | ident_start ident_cont* as s     { IDENTIFIER s }
 

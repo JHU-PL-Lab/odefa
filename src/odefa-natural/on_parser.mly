@@ -46,6 +46,8 @@ exception On_Parse_error of string;;
 %token PERCENT
 %token LESS
 %token LESS_EQUAL
+%token GREATER
+%token GREATER_EQUAL
 %token EQUAL_EQUAL
 
 /*
@@ -57,7 +59,7 @@ exception On_Parse_error of string;;
 %right DOUBLE_COLON                     /* :: */
 %right OR                               /* Or */
 %right AND                              /* And */
-%left EQUAL_EQUAL LESS LESS_EQUAL       /* = < <= */
+%left EQUAL_EQUAL LESS LESS_EQUAL       /* = < <= > >= */
 %left PLUS MINUS ASTERISK SLASH PERCENT /* + - * / % */
 %right prec_variant                     /* 'A expr */
 %left DOT                               /* record access */
@@ -88,6 +90,10 @@ expr:
       { LessThan($1, $3) }
   | expr LESS_EQUAL expr
       { Leq($1, $3) }
+  | expr GREATER expr
+      { GreaterThan($1, $3) }
+  | expr GREATER_EQUAL expr
+      { Geq($1, $3) }
   | expr AND expr
       { And($1, $3) }
   | expr OR expr

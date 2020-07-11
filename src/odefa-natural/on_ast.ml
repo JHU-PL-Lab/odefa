@@ -52,6 +52,7 @@ and expr =
   | Times of expr * expr | Divide of expr * expr
   | Modulus of expr * expr | Equal of expr * expr
   | LessThan of expr * expr | Leq of expr * expr
+  | GreaterThan of expr * expr | Geq of expr * expr
   | And of expr * expr | Or of expr * expr | Not of expr
   | If of expr * expr * expr
   | Record of expr Ident_map.t | RecordProj of expr * label

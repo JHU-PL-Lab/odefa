@@ -229,6 +229,8 @@ let rec rename_variable
   | On_ast.Equal (e1, e2) -> On_ast.Equal(recurse e1, recurse e2)
   | On_ast.LessThan (e1, e2) -> On_ast.LessThan(recurse e1, recurse e2)
   | On_ast.Leq (e1, e2) -> On_ast.Leq(recurse e1, recurse e2)
+  | On_ast.GreaterThan (e1, e2) -> On_ast.GreaterThan(recurse e1, recurse e2)
+  | On_ast.Geq (e1, e2) -> On_ast.Geq(recurse e1, recurse e2)
   | On_ast.And (e1, e2) -> On_ast.And(recurse e1, recurse e2)
   | On_ast.Or (e1, e2) -> On_ast.Or(recurse e1, recurse e2)
   | On_ast.Not e1 -> On_ast.Not(recurse e1)
@@ -435,6 +437,14 @@ let alphatize (e : On_ast.expr) : On_ast.expr m =
       let%bind e1', seen_declared' = walk e1 seen_declared in
       let%bind e2', seen_declared'' = walk e2 seen_declared' in
       return (Leq(e1', e2'), seen_declared'')
+    | GreaterThan (e1, e2) ->
+      let%bind e1', seen_declared' = walk e1 seen_declared in
+      let%bind e2', seen_declared'' = walk e2 seen_declared' in
+      return (GreaterThan(e1', e2'), seen_declared'')
+    | Geq (e1, e2) ->
+      let%bind e1', seen_declared' = walk e1 seen_declared in
+      let%bind e2', seen_declared'' = walk e2 seen_declared' in
+      return (Geq(e1', e2'), seen_declared'')
     | And (e1, e2) ->
       let%bind e1', seen_declared' = walk e1 seen_declared in
       let%bind e2', seen_declared'' = walk e2 seen_declared' in
@@ -812,23 +822,28 @@ and flatten_expr
     flatten_binop e e1 e2 Ast.Binary_operator_less_than
   | Leq (e1, e2) ->
     flatten_binop e e1 e2 Ast.Binary_operator_less_than_or_equal_to
+  (* Reverse order for e1 and e2 *)
+  | GreaterThan (e1, e2) ->
+    flatten_binop e e2 e1 Ast.Binary_operator_less_than
+  | Geq (e1, e2) ->
+    flatten_binop e e2 e1 Ast.Binary_operator_less_than_or_equal_to
   | And (e1, e2) ->
     flatten_binop e e1 e2 Ast.Binary_operator_and
   | Or (e1, e2) ->
     flatten_binop e e1 e2 Ast.Binary_operator_or
   | Not (e) ->
     begin
-    let%bind (e_clist, e_var) = flatten_expr e in
-    let%bind true_var = fresh_var "true" in
-    let%bind binop_var = fresh_var "binop" in
-    (* let%bind () = add_natodefa_expr true_var e in *)
-    (* let%bind () = add_natodefa_expr binop_var e in *)
-    let binop = Ast.Binary_operator_xor in
-    let true_body = Ast.Value_body(Value_bool true) in
-    let binop_body = Ast.Binary_operation_body(e_var, binop, true_var) in
-    let true_clause = Ast.Clause(true_var, true_body) in
-    let binop_clause = Ast.Clause(binop_var, binop_body) in
-    return (e_clist @ [true_clause; binop_clause], binop_var)
+      let%bind (e_clist, e_var) = flatten_expr e in
+      let%bind true_var = fresh_var "true" in
+      let%bind binop_var = fresh_var "binop" in
+      (* let%bind () = add_natodefa_expr true_var e in *)
+      (* let%bind () = add_natodefa_expr binop_var e in *)
+      let binop = Ast.Binary_operator_xor in
+      let true_body = Ast.Value_body(Value_bool true) in
+      let binop_body = Ast.Binary_operation_body(e_var, binop, true_var) in
+      let true_clause = Ast.Clause(true_var, true_body) in
+      let binop_clause = Ast.Clause(binop_var, binop_body) in
+      return (e_clist @ [true_clause; binop_clause], binop_var)
     end
   | If (e1, e2, e3) ->
     (* TODO: there will be another version of a conditional where we can
