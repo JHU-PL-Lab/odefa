@@ -3,6 +3,7 @@
 # EXPECT-ANALYSIS-STACK-IS 1ddpa
 # EXPECT-ANALYSIS-LOOKUP-FROM-END z {true}
 # EXPECT-ANALYSIS-NO-INCONSISTENCIES
+# EXPECT-ANALYSIS-NO-TYPE-ERRORS
 
 empty = 0;
 f = fun k -> ( r0 = fun j -> ( r1 = k; ); );

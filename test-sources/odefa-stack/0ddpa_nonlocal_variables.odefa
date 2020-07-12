@@ -4,6 +4,7 @@
 # EXPECT-ANALYSIS-LOOKUP-FROM-END zx {false, true}
 # EXPECT-ANALYSIS-LOOKUP-FROM-END zy {false, true}
 # EXPECT-ANALYSIS-NO-INCONSISTENCIES
+# EXPECT-ANALYSIS-NO-TYPE-ERRORS
 
 empty = 0;
 f = fun k -> ( r0 = fun j -> ( r1 = k; ); );

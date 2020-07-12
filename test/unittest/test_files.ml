@@ -24,7 +24,8 @@ open Odefa_toploop;;
 
 open Odefa_natural;;
 
-open Odefa_symbolic_interpreter.Interpreter
+open Odefa_symbolic_interpreter.Interpreter;;
+open Odefa_symbolic_interpreter.Interpreter_types;;
 
 open Ast;;
 open Ast_pp;;
@@ -46,6 +47,7 @@ exception File_test_creation_failure of string;;
 exception Input_generation_complete;;
 
 module Input_generator = Generator.Make(Input_sequence);;
+module Type_error_generator = Generator.Make(Type_errors);;
 
 let string_of_int_list int_list =
   "[" ^ (String.join ", " @@ List.map string_of_int int_list) ^ "]"
@@ -59,25 +61,31 @@ let string_of_input_sequences input_sequences =
   String.join ", " @@ List.map string_of_input_sequence input_sequences
 ;;
 
-(* TODO: New expectations:
- * | Expect_test_error of variable expected_type actual_type
- *)
-
 type test_expectation =
+  (* Can the expression successfully evaluate? *)
   | Expect_evaluate
   | Expect_stuck
+  (* Is the expression syntactically correct? *)
   | Expect_well_formed
   | Expect_ill_formed
+  (* Set the analysis stack, e.g. 0ddpa, 1ddpa, etc. *)
   | Expect_analysis_stack_is of (module Ddpa_context_stack.Context_stack) option
+  (* Set the input to feed into the program. *)
   | Expect_input_is of int list
+  (* What values does DDPA expect the variable to be? *)
   | Expect_analysis_variable_lookup_from_end of ident * string
+  (* Is there an inconsistency? *)
   | Expect_analysis_inconsistency_at of ident
   | Expect_analysis_no_inconsistencies
+  (* What input sequences reach what variables? *)
   | Expect_input_sequences_reach of
       string * (* the variable *)
       Input_generator.Answer.t list * (* the expected input sequences *)
       bool (* true if we should be certain that generation is complete *)
+  (* Set the number of input gen steps required. *)
   | Expect_required_input_sequence_generation_steps of int
+  | Expect_no_type_errors
+  | Expect_type_error
 ;;
 
 (* **** Expectation utility functions **** *)
@@ -109,6 +117,8 @@ let pp_test_expectation formatter expectation =
       (if complete then " (and no others)" else "")
   | Expect_required_input_sequence_generation_steps(n) ->
     Format.fprintf formatter "Expect input sequence generation steps = %d" n
+  | Expect_no_type_errors -> Format.pp_print_string formatter "Expect_no_type_errors"
+  | Expect_type_error -> Format.pp_print_string formatter "Expect_type_error"
 ;;
 
 let name_of_expectation expectation =
@@ -143,6 +153,8 @@ let name_of_expectation expectation =
       (if complete then " (and no others)" else "")
   | Expect_required_input_sequence_generation_steps(n) ->
     Printf.sprintf "should only require %d steps to discover inputs" n
+  | Expect_no_type_errors -> "should have no type errors"
+  | Expect_type_error -> "should have a type error"
 ;;
 
 (* **** Expectation parsing **** *)
@@ -185,67 +197,6 @@ let assert_two_args lst =
                                string_of_int (List.length lst))
 ;;
 
-(* Parse the input sequence integers + final bool variable *)
-(*
-let parse_input_args chars : Input_generator.Answer.t list * bool =
-  let parse_int chars : int * char list =
-    let is_digit_char c = (Char.is_digit c) || c == '-' in
-    let ns = List.take_while is_digit_char chars in
-    let parse_exception = Expectation_parse_failure(
-        "In input sequence expectation, expected integer at: " ^
-        (String.of_list chars)) in
-    if List.is_empty ns then begin
-      raise parse_exception
-    end else begin
-      let chars' = List.drop_while is_digit_char chars in
-      let to_int_result = int_of_string_opt @@ String.of_list ns in
-      match to_int_result with
-      | Some i -> (i, chars')
-      | None -> raise parse_exception
-    end
-  in
-  let parse_input_sequence chars : int list option * char list =
-    match chars with
-    | '[' :: chars' ->
-      let first, chars'' = parse_int chars' in
-      let rec loop loop_chars : int list * char list =
-        match loop_chars with
-        | ',' :: loop_chars' ->
-          let num, loop_chars'' = parse_int loop_chars' in
-          let nums, loop_chars''' = loop loop_chars'' in
-          (num :: nums, loop_chars''')
-        | ']' :: loop_chars' ->
-          ([], loop_chars')
-        | _ ->
-          raise @@ Expectation_parse_failure(
-            "In input sequence expectation, expected comma at: " ^
-            (String.of_list chars))
-      in
-      let rest, chars''' = loop chars'' in
-      (Some (first :: rest), chars''')
-    | _ ->
-      (None, chars)
-  in
-  let rec parse_input_sequences chars : int list list * char list =
-    let (seq_opt, chars') = parse_input_sequence chars in
-    match seq_opt with
-    | Some seq ->
-      let (rest, chars'') = parse_input_sequences chars' in
-      (seq :: rest, chars'')
-    | None ->
-      ([], chars')
-  in
-  let nums, chars' = parse_input_sequences chars in
-  match chars' with
-  | [] -> (nums, false)
-  | ['!'] -> (nums, true)
-  | _ ->
-    raise @@ Expectation_parse_failure(
-      "In input sequence expectation, unexpected trailing characters: " ^
-      (String.of_list chars'))
-;;
-*)
-
 let parse_expectation str =
   try
     let expectation =
@@ -275,22 +226,6 @@ let parse_expectation str =
             raise @@ Expectation_parse_failure "invalid stack name"
         end
       | "EXPECT-INPUT-IS"::args_part ->
-        (*
-        let args_str = String.join "" args_part in
-        let args = whitespace_split args_str in
-        let inputs =
-          args
-          |> List.map
-            (fun s ->
-               try
-                 int_of_string s
-               with
-               | Failure _ ->
-                 raise @@ Expectation_parse_failure
-                   ("Could not parse input: " ^ s)
-            )
-        in
-        *)
         begin
           match args_part with
           | [args_str] ->
@@ -373,17 +308,6 @@ let parse_expectation str =
               Expect_input_sequences_reach(
                 variable_name, input_sequences, complete)
             end;
-            (*
-            let rest_chars =
-              rest_args
-              |> String.join ""
-              |> String.to_list
-              |> List.filter (not % Char.is_whitespace) 
-            in
-            let (input_sequences, complete) = parse_input_args rest_chars in
-            Expect_input_sequences_reach(
-              variable_name, input_sequences, complete)
-            *)
         end
       | "EXPECT-REQUIRED-INPUT-SEQUENCE-GENERATION-STEPS" :: args ->
         let nstr = assert_one_arg args in
@@ -397,6 +321,12 @@ let parse_expectation str =
                  "Could not parse number of expected input generation steps: %s"
                  nstr)
         end
+      | "EXPECT-NO-TYPE-ERRORS" :: args_part ->
+        assert_no_args args_part;
+        Expect_no_type_errors
+      | "EXPECT-TYPE-ERROR" :: args_part ->
+        assert_no_args args_part;
+        Expect_type_error
       | _ ->
         raise @@ Expectation_not_found
     in
@@ -406,7 +336,11 @@ let parse_expectation str =
   | Expectation_not_found -> None
 ;;
 
-(* **** Expectation observation **** *)
+(* **** Expectation observation functions **** *)
+
+(* Functions return None if the expectation is satisfied to remove said
+   expectation from the list, returns Some to keep it if the expectation
+   is irrelevant, and assert_failure is the expectation fails. *)
 
 let observe_evaluated expectation =
   match expectation with
@@ -531,6 +465,16 @@ let observe_no_inconsistency expectation =
   | _ -> Some expectation
 ;;
 
+let observe_no_type_errors num_type_errors expectation =
+  match expectation with
+  | Expect_no_type_errors ->
+    if num_type_errors = 0 then
+      None
+    else
+      assert_failure @@ "expected no type error, but type error detected"
+  | _ -> Some expectation
+;;
+
 (* **** Testing **** *)
 
 (* This routine takes an observation function and applies it to all of the
@@ -550,11 +494,6 @@ let _have_expectation expectations_left pred =
   List.exists pred expectations_left
 ;;
 
-(* We're going to execute the following block.  If it completes without
-    error, we're also going to require that all of its expectations were
-    satisfied.  This addresses nonsense cases such as expecting an ill-formed
-    expression to evaluate. *)
-
 (** Test demand-driven program analysis. *)
 let test_ddpa
     (filename : string)
@@ -567,7 +506,8 @@ let test_ddpa
   let chosen_module_option =
     match stack_module_choice with
     | Default_stack ->
-      Some (module Ddpa_single_element_stack.Stack : Ddpa_context_stack.Context_stack)
+      Some (module Ddpa_single_element_stack.Stack :
+              Ddpa_context_stack.Context_stack)
     | Chosen_stack value -> value
   in
   let variables_to_analyze =
@@ -728,7 +668,7 @@ let test_ddse
   (* Run test generations given a target variable [x], an expected input
      sequence [inputs], and the expected completness result [complete]. *)
   let run_test_generation (x, inputs, complete) =
-    (* Set context model*)
+    (* Set context model *)
     let configuration =
       match chosen_module_option with
       | Some context_model ->
@@ -838,7 +778,64 @@ let test_ddse
 ;;
 
 (** Test symbolic analysis typechecking. *)
-let test_sato = "foo";;
+let test_sato
+    (filename : string)
+    (expect_left : test_expectation list ref)
+    (stack_module_choice : expectation_stack_decision)
+    (expr : expr)
+    (abort_map : abort_info Ident_map.t)
+  : unit =
+  let observation = _observation filename in
+  (* Configure Sato options. *)
+  (* Select the appropriate context stack for DDPA. *)
+  let chosen_module_option =
+    match stack_module_choice with
+    | Default_stack ->
+      Some (module Ddpa_single_element_stack.Stack :
+              Ddpa_context_stack.Context_stack)
+    | Chosen_stack value -> value
+  in
+  (* Configure the max number of steps. *)
+  let generation_steps_ref = ref None in
+  expect_left := observation !expect_left
+    (observe_input_generation_steps generation_steps_ref);
+  let generation_steps =
+    Option.default 10000 !generation_steps_ref (* TODO: Increase from 10000 *)
+  in
+  (* Configure the context model *)
+  let configuration =
+    match chosen_module_option with
+    | Some context_model ->
+      { conf_context_model = context_model; }
+    | None ->
+      assert_failure
+        "Test specified input sequence requirement without context model."
+  in
+  let Var (last_ident, _) = Ast_tools.retv expr in
+  let generator =
+    Type_error_generator.create
+      ?exploration_policy:(Some (Explore_least_relative_stack_repetition))
+      configuration
+      abort_map
+      expr
+      last_ident
+  in
+  let total_errors = ref 0 in
+  let callback
+      (type_errors : Type_error_generator.Answer.t)
+      (steps : int)
+    : unit =
+    let _ = steps in
+    total_errors := !total_errors + Type_error_generator.Answer.count type_errors;
+  in
+  let _ =
+    Type_error_generator.generate_answers
+      ~generation_callback:callback
+      (Some generation_steps)
+      generator
+  in
+  expect_left := observation !expect_left (observe_no_type_errors !total_errors);
+;;
 
 let make_test filename expectations =
   let test_name =
@@ -856,13 +853,17 @@ let make_test filename expectations =
     let expectations_left = ref expectations in
     (* Translate code if it's natodefa *)
     let is_nato = String.ends_with filename "natodefa" in
-    let expr =
+    let (expr, instrumented_expr, abort_map) =
       if is_nato then
         let on_expr = File.with_file_in filename On_parse.parse_program in
         let (e, _) = On_to_odefa.translate on_expr in
-        e
+        let (ins_e, ab_map) = Type_instrumentation.instrument_odefa e in
+        (e, ins_e, ab_map)
       else
-        File.with_file_in filename Parser.parse_program in
+        let e = File.with_file_in filename Parser.parse_program in
+        let (ins_e, ab_map) = Type_instrumentation.instrument_odefa e in
+        (e, ins_e, ab_map)
+    in
     (* Decide what kind of analysis to perform. *)
     let module_choice = ref Default_stack in
     let obs = _observation filename in
@@ -870,6 +871,7 @@ let make_test filename expectations =
     (* Perform tests *)
     test_ddpa filename expectations_left !module_choice expr;
     test_ddse filename expectations_left !module_choice expr;
+    test_sato filename expectations_left !module_choice instrumented_expr abort_map;
     (* Now assert that every expectation has been addressed. *)
     match !expectations_left with
     | [] -> ()
@@ -972,7 +974,10 @@ let tests =
     make_tests_from_dir "test-sources" @
     make_tests_from_dir "test-sources/odefa-basic" @
     make_tests_from_dir "test-sources/odefa-fails" @
+    make_tests_from_dir "test-sources/odefa-input" @
     make_tests_from_dir "test-sources/odefa-stack" (* @
-    make_tests_from_dir "test-sources/odefa-types" *)
+    make_tests_from_dir "test-sources/natodefa-basic" @
+    make_tests_from_dir "test-sources/natodefa-input" *)
+    (* make_tests_from_dir "test-sources/odefa-types" *)
   )
 ;;

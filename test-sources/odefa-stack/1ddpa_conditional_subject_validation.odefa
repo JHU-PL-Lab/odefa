@@ -4,6 +4,7 @@
 # EXPECT-ANALYSIS-LOOKUP-FROM-END ra {false}
 # EXPECT-ANALYSIS-LOOKUP-FROM-END rb {int}
 # EXPECT-ANALYSIS-NO-INCONSISTENCIES
+# EXPECT-ANALYSIS-NO-TYPE-ERRORS
 
 f = fun b -> (
         r = b ? ( Tr = false ) : ( Fr = 0 )
