@@ -91,9 +91,6 @@ type test_expectation =
     Type_error_generator.Answer.t
 ;;
 
-(*
-[] [(x = a, z = x + y, int, bool), ...]
-*)
 (* **** Expectation utility functions **** *)
 
 let pp_test_expectation formatter expectation =
@@ -700,7 +697,16 @@ let test_ddse
   let input_generation_steps =
     Option.default 10000 !input_generation_steps_ref (* TODO: Increase from 10000 *)
   in
-  (* Configure the expected input sequences. *)
+  (* Set context model *)
+  let configuration =
+    match chosen_module_option with
+    | Some context_model ->
+      { conf_context_model = context_model; }
+    | None ->
+      assert_failure
+        "Test specified input sequence requirement without context model."
+  in
+  (* Retrieve input sequence expectations. *)
   let input_generation_expectations =
     (* Separate out input sequence expectations from the other expectations *)
     let (input_expectations, remaining_expectations) =
@@ -719,15 +725,6 @@ let test_ddse
   (* Run test generations given a target variable [x], an expected input
      sequence [inputs], and the expected completness result [complete]. *)
   let run_test_generation (x, inputs, complete) =
-    (* Set context model *)
-    let configuration =
-      match chosen_module_option with
-      | Some context_model ->
-        { conf_context_model = context_model; }
-      | None ->
-        assert_failure
-          "Test specified input sequence requirement without context model."
-    in
     (* Create input sequence generator *)
     let generator =
       Input_generator.create
@@ -743,6 +740,7 @@ let test_ddse
         (_steps : int)
       : unit =
       if List.mem sequence !remaining_input_seq then begin
+        (* An input sequence was generated that was expected. *)
         remaining_input_seq := List.remove !remaining_input_seq sequence;
         if List.is_empty !remaining_input_seq && not complete then
           (* We're not looking for a complete input generation and we've
@@ -862,33 +860,81 @@ let test_sato
       assert_failure
         "Test specified input sequence requirement without context model."
   in
-  (* Create the generator *)
-  let Var (last_ident, _) = Ast_tools.retv expr in
-  let generator =
-    Type_error_generator.create
-      ?exploration_policy:(Some (Explore_least_relative_stack_repetition))
-      configuration
-      abort_map
-      expr
-      last_ident
+  (* Retrieve type error expectations *)
+  let type_err_expectations =
+    (* Separate out input sequence expectations from the other expectations *)
+    let (type_err_expectations, remaining_expectations) =
+      List.fold_left
+        (fun (type_err_expects, remaining_expects) expectation ->
+          match expectation with
+          | Expect_type_error (x, type_errs) ->
+            ((x, type_errs) :: type_err_expects, remaining_expects)
+          | _ ->
+            (type_err_expects, expectation :: remaining_expects))
+        ([],[])
+        !expect_left
+    in
+    expect_left := List.rev remaining_expectations;
+    List.rev type_err_expectations
   in
-  let total_errors = ref 0 in
-  let callback
-      (type_errors : Type_error_generator.Answer.t)
-      (steps : int)
-    : unit =
-    let _ = steps in
-    total_errors := !total_errors + Type_error_generator.Answer.count type_errors;
+  let target_list = List.map (fun (x, _) -> x) type_err_expectations in
+  (* We always want to include a test from the last variable, especially if we
+     are expecting no type errors. Add the last variable if it hasn't been
+     included yet. *)
+  let Var (Ident (last_ident), _) = Ast_tools.retv expr in
+  let target_var_list =
+    if List.mem last_ident target_list then
+      last_ident :: target_list
+    else
+      target_list
   in
-  (* Run the generator *)
+  let total_err_lst = ref [] in
+  let total_err_num = ref 0 in
+  let run_type_checker x =
+    let generator =
+      Type_error_generator.create
+        ?exploration_policy:(Some (Explore_least_relative_stack_repetition))
+        configuration
+        abort_map
+        expr
+        (Ident x)
+    in
+    let callback
+        (type_errors : Type_error_generator.Answer.t)
+        (steps : int)
+      : unit =
+      let _ = steps in
+      total_err_lst := (x, type_errors) :: (!total_err_lst);
+      total_err_num :=
+        !total_err_num + Type_error_generator.Answer.count type_errors;
+    in
+    let _ =
+      Type_error_generator.generate_answers
+        ~generation_callback:callback
+        (Some generation_steps)
+        generator
+    in
+    ()
+  in
+  let _ = List.map run_type_checker target_var_list in
+  (* If we expected type errors, determine if any of them activated. *)
   let _ =
-    Type_error_generator.generate_answers
-      ~generation_callback:callback
-      (Some generation_steps)
-      generator
+    List.map
+      (fun type_err_expect ->
+        if not (List.mem type_err_expect !total_err_lst) then
+          let (_, err) = type_err_expect in
+          assert_failure @@ "Expected type errors not found:\n" ^
+            (Type_error_generator.Answer.show err)
+        else
+          total_err_lst := List.remove !total_err_lst type_err_expect;
+      )
+      type_err_expectations
   in
-  (* Check if there are no type errors *)
-  expect_left := observation !expect_left (observe_no_type_errors !total_errors);
+  (* TODO: Add an ALL type errors expectation, to see if we get suprious type
+     errors? *)
+  (* If we expected no type errors, check that there are indeed none. *)
+  expect_left :=
+    observation !expect_left (observe_no_type_errors !total_err_num);
 ;;
 
 let make_test filename expectations =
@@ -1025,11 +1071,11 @@ let make_tests_from_dir pathname =
 
 let tests =
   "Test_source_files" >::: (
-    (* make_tests_from_dir "test-sources" @
+    make_tests_from_dir "test-sources" @
     make_tests_from_dir "test-sources/odefa-basic" @
     make_tests_from_dir "test-sources/odefa-fails" @
     make_tests_from_dir "test-sources/odefa-input" @
-    make_tests_from_dir "test-sources/odefa-stack" @
+    make_tests_from_dir "test-sources/odefa-stack" @ (*
     make_tests_from_dir "test-sources/natodefa-basic" @
     make_tests_from_dir "test-sources/natodefa-input" *)
     make_tests_from_dir "test-sources/odefa-types"

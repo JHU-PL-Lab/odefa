@@ -822,29 +822,26 @@ and flatten_expr
     flatten_binop e e1 e2 Ast.Binary_operator_less_than
   | Leq (e1, e2) ->
     flatten_binop e e1 e2 Ast.Binary_operator_less_than_or_equal_to
-  (* Reverse order for e1 and e2 *)
-  | GreaterThan (e1, e2) ->
+  | GreaterThan (e1, e2) -> (* Reverse e1 and e2 *)
     flatten_binop e e2 e1 Ast.Binary_operator_less_than
-  | Geq (e1, e2) ->
+  | Geq (e1, e2) -> (* Reverse e1 and e2 *)
     flatten_binop e e2 e1 Ast.Binary_operator_less_than_or_equal_to
   | And (e1, e2) ->
     flatten_binop e e1 e2 Ast.Binary_operator_and
   | Or (e1, e2) ->
     flatten_binop e e1 e2 Ast.Binary_operator_or
   | Not (e) ->
-    begin
-      let%bind (e_clist, e_var) = flatten_expr e in
-      let%bind true_var = fresh_var "true" in
-      let%bind binop_var = fresh_var "binop" in
-      (* let%bind () = add_natodefa_expr true_var e in *)
-      (* let%bind () = add_natodefa_expr binop_var e in *)
-      let binop = Ast.Binary_operator_xor in
-      let true_body = Ast.Value_body(Value_bool true) in
-      let binop_body = Ast.Binary_operation_body(e_var, binop, true_var) in
-      let true_clause = Ast.Clause(true_var, true_body) in
-      let binop_clause = Ast.Clause(binop_var, binop_body) in
-      return (e_clist @ [true_clause; binop_clause], binop_var)
-    end
+    let%bind (e_clist, e_var) = flatten_expr e in
+    let%bind true_var = fresh_var "true" in
+    let%bind binop_var = fresh_var "binop" in
+    (* let%bind () = add_natodefa_expr true_var e in *)
+    (* let%bind () = add_natodefa_expr binop_var e in *)
+    let binop = Ast.Binary_operator_xor in
+    let true_body = Ast.Value_body(Value_bool true) in
+    let binop_body = Ast.Binary_operation_body(e_var, binop, true_var) in
+    let true_clause = Ast.Clause(true_var, true_body) in
+    let binop_clause = Ast.Clause(binop_var, binop_body) in
+    return (e_clist @ [true_clause; binop_clause], binop_var)
   | If (e1, e2, e3) ->
     (* TODO: there will be another version of a conditional where we can
        do pattern matching. *)

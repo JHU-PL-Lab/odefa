@@ -1,6 +1,7 @@
 # EXPECT-WELL-FORMED
-# EXPECT-TYPE-ERROR z [] [ "z = x + y" "y = false" "int" "bool" ] [ "z = x + y" "x = false" "int" "bool" ]
+# EXPECT-TYPE-ERROR ~result [] [ "z = x + y" "x = false" "int" "bool" ] [ "z = x + y" "y = false" "int" "bool" ]
 
-x = true;
+x = false;
 y = false;
 z = x + y;
+foo = z;

@@ -215,14 +215,14 @@ module Type_errors : Answer = struct
 
   (* ["operation" "definition" "expected" "actual"]*)
   let answer_from_string arg_str =
-    let arg_lst =
-      Str.split (Str.regexp "[][]") arg_str
-    in
+    (* Split on square brackets *)
+    let arg_lst = Str.split (Str.regexp "[][]") arg_str in
     match arg_lst with
     | input_str :: type_err_strs ->
       begin
         let inputs = parse_comma_seperated_ints input_str in
         let type_err_strs' =
+          (* Remove whitespace-only strings *)
           type_err_strs
           |> List.map String.trim
           |> List.filter (fun s -> (String.length s) > 0)
@@ -232,6 +232,7 @@ module Type_errors : Answer = struct
             (fun type_err_str ->
               let type_err_props =
                 Str.split (Str.regexp "[\"]") type_err_str
+                (* Remove whitespace-only strings *)
                 |> List.map String.trim
                 |> List.filter (fun s -> (String.length s) > 0)
               in
@@ -260,10 +261,10 @@ module Type_errors : Answer = struct
   let show error_seq =
     let show_type_error type_error =
       let (ident, value) = type_error.terr_var_definition in
-      "* Operation:  " ^ (show_clause type_error.terr_operation) ^ "\n" ^
-      "* Definition: " ^ (show_ident ident) ^ " = " ^ (show_value value) ^ "\n" ^
-      "* Expected:   " ^ (show_type_sig type_error.terr_expected_type) ^ "\n" ^
-      "* Actual:     " ^ (show_type_sig type_error.terr_actual_type) ^ "\n"
+      "* Operation  : " ^ (show_clause type_error.terr_operation) ^ "\n" ^
+      "* Definition : " ^ (show_ident ident) ^ " = " ^ (show_value value) ^ "\n" ^
+      "* Expected   : " ^ (show_type_sig type_error.terr_expected_type) ^ "\n" ^
+      "* Actual     : " ^ (show_type_sig type_error.terr_actual_type) ^ "\n"
     in
     let show_input_seq inputs =
       "[" ^ (String.join ", " @@ List.map string_of_int inputs) ^ "]"

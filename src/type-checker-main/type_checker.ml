@@ -71,6 +71,7 @@ let () =
     |> List.of_enum
     |> String.join "\n"
   in
+  lazy_logger `debug (fun () -> Printf.sprintf "Translated program:\n%s" (Ast_pp.show_expr ast));
   lazy_logger `debug (fun () -> Printf.sprintf "Aborts:\n%s" abort_string);
   try
     let results_remaining = ref args.tc_maximum_results in
