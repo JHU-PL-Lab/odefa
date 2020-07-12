@@ -17,6 +17,7 @@ exception TypeCheckComplete;;
 exception GenerationComplete;;
 
 module Type_error_generator = Generator.Make(Generator_answer.Type_errors);;
+module Ans = Type_error_generator.Answer;;
 
 let get_ast (args : Type_checker_parser.type_checker_args)
   : (Ast.expr * Interpreter_types.abort_info Ast.Ident_map.t) =
@@ -83,11 +84,11 @@ let () =
         args.tc_target_var
     in
     let generation_callback
-      (type_errors : Type_error_generator.Answer.t) (steps: int) : unit =
+      (type_errors : Ans.t) (steps: int) : unit =
       let _ = steps in (* Temp *)
-      print_endline (Type_error_generator.Answer.show type_errors);
+      print_endline (Ans.show type_errors);
       flush stdout;
-      total_errors := !total_errors + Type_error_generator.Answer.count type_errors;
+      total_errors := !total_errors + Ans.count type_errors;
       results_remaining := (Option.map (fun n -> n - 1) !results_remaining);
       if !results_remaining = Some 0 then begin
         raise GenerationComplete

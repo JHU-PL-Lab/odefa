@@ -26,10 +26,20 @@ let parse_expressions (input : IO.input) =
     handle_parse_error buf @@ fun () ->
     Generated_parser.delim_expr Generated_lexer.token buf
   in
-  LazyList.from_while read_expr;;
+  LazyList.from_while read_expr
+;;
 
 let parse_program (input : IO.input) =
   let buf = Lexing.from_channel input in
   handle_parse_error buf @@ fun () ->
   Generated_parser.prog Generated_lexer.token buf
+;;
+
+let parse_expression_string (expr_str : string) =
+  let buf = Lexing.from_string expr_str in
+  let read_expr () =
+    handle_parse_error buf @@ fun () ->
+    Generated_parser.delim_expr Generated_lexer.token buf
+  in
+  LazyList.to_list @@ LazyList.from_while read_expr
 ;;

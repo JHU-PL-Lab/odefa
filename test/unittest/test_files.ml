@@ -84,10 +84,16 @@ type test_expectation =
       bool (* true if we should be certain that generation is complete *)
   (* Set the number of input gen steps required. *)
   | Expect_required_input_sequence_generation_steps of int
+  (* Are there type errors? *)
   | Expect_no_type_errors
-  | Expect_type_error
+  | Expect_type_error of
+    string *
+    Type_error_generator.Answer.t
 ;;
 
+(*
+[] [(x = a, z = x + y, int, bool), ...]
+*)
 (* **** Expectation utility functions **** *)
 
 let pp_test_expectation formatter expectation =
@@ -118,7 +124,9 @@ let pp_test_expectation formatter expectation =
   | Expect_required_input_sequence_generation_steps(n) ->
     Format.fprintf formatter "Expect input sequence generation steps = %d" n
   | Expect_no_type_errors -> Format.pp_print_string formatter "Expect_no_type_errors"
-  | Expect_type_error -> Format.pp_print_string formatter "Expect_type_error"
+  | Expect_type_error (_, errors) ->
+    Format.fprintf formatter "Expect_type_error %s"
+      (Type_error_generator.Answer.show errors)
 ;;
 
 let name_of_expectation expectation =
@@ -154,7 +162,7 @@ let name_of_expectation expectation =
   | Expect_required_input_sequence_generation_steps(n) ->
     Printf.sprintf "should only require %d steps to discover inputs" n
   | Expect_no_type_errors -> "should have no type errors"
-  | Expect_type_error -> "should have a type error"
+  | Expect_type_error (_, _) -> "should have a type error" (* FIXME *)
 ;;
 
 (* **** Expectation parsing **** *)
@@ -197,6 +205,135 @@ let assert_two_args lst =
                                string_of_int (List.length lst))
 ;;
 
+let _parse_analysis_stack_args args_str =
+  let args = whitespace_split args_str in
+  let name = assert_one_arg args in
+  begin
+    try
+      let stack_module = Toploop_utils.stack_from_name name in
+      Expect_analysis_stack_is stack_module
+    with
+    | Not_found ->
+      raise @@ Expectation_parse_failure "invalid stack name"
+  end
+;;
+
+let _parse_input args_lst =
+  match args_lst with
+  | [args_str] ->
+    begin
+      try
+        let inputs =
+          args_str
+          |> whitespace_split
+          |> List.map int_of_string
+        in
+        Expect_input_is inputs
+      with Failure _ ->
+          raise @@ Expectation_parse_failure
+            ("Could not parse input: " ^ args_str)
+    end
+  | [] ->
+    raise @@ Expectation_parse_failure "Missing arguments"
+  | _ ->
+    raise @@ Expectation_parse_failure "Spurious arguments"
+;;
+
+let _parse_input_seq_reach args_lst =
+  let args_lst' =
+    String_utils.whitespace_split ~max:2 (String.join "" args_lst)
+  in
+  match args_lst' with
+  | [] ->
+    raise @@ Expectation_parse_failure
+      "Missing input sequence variable name"
+  | variable_name :: rest_args ->
+    begin
+      let (input_sequences, complete) =
+        match rest_args with
+        | [rest_args_str] ->
+          let rest_args_lst : string list =
+            rest_args_str
+            |> Str.split (Str.regexp "[][]")
+            |> List.map (Str.global_replace (Str.regexp "[ ]*") "")
+            |> List.filter (fun str -> not (String.equal "" str))
+          in
+          let complete : bool =
+            String.equal "!" (List.last rest_args_lst)
+          in
+          let input_sequences =
+            if complete then begin
+              let rest_args_lst' =
+                (* Remove final '!' element from list *)
+                rest_args_lst
+                |> List.rev
+                |> List.tl
+                |> List.rev
+              in
+              List.map
+                Input_generator.Answer.answer_from_string
+                rest_args_lst'
+            end else begin
+              List.map
+                Input_generator.Answer.answer_from_string
+                rest_args_lst
+            end
+          in
+          (input_sequences, complete)
+        | [] -> raise @@ Expectation_parse_failure
+                  "Missing input sequence arguments"
+        | _ -> raise @@ Expectation_parse_failure
+                  "Spurious input sequence arguments"
+      in
+      Expect_input_sequences_reach(
+        variable_name, input_sequences, complete)
+    end
+;;
+
+let _parse_gen_steps args =
+  let nstr = assert_one_arg args in
+  begin
+    try
+      Expect_required_input_sequence_generation_steps(int_of_string nstr)
+    with
+    | Failure _ ->
+      raise @@ Expectation_parse_failure
+        (Printf.sprintf
+            "Could not parse number of expected input generation steps: %s"
+            nstr)
+  end
+;;
+
+let _parse_type_errors args_lst =
+  let args_lst' =
+    String_utils.whitespace_split ~max:2 (String.join "" args_lst)
+  in
+  match args_lst' with
+  | [] ->
+    begin
+      raise @@ Expectation_parse_failure
+        "Missing variable name in type error report"
+    end
+  | var_name :: rest_args ->
+    begin
+      match rest_args with
+      | [type_errs] ->
+        begin
+          try
+            let type_errs =
+              Type_error_generator.Answer.answer_from_string type_errs
+            in
+            Expect_type_error (var_name, type_errs)
+          with Generator_answer.Parse_failure ->
+            raise @@ Expectation_parse_failure "Cannot parse type error string"
+        end
+      | [] ->
+        raise @@ Expectation_parse_failure "No type errors listed"
+      | _ ->
+        raise @@ Expectation_parse_failure "Spurious arguments"
+    end
+;;
+
 let parse_expectation str =
   try
     let expectation =
@@ -215,37 +352,9 @@ let parse_expectation str =
         Expect_ill_formed
       | "EXPECT-ANALYSIS-STACK-IS" :: args_part ->
         let args_str = String.join "" args_part in
-        let args = whitespace_split args_str in
-        let name = assert_one_arg args in
-        begin
-          try
-            let stack_module = Toploop_utils.stack_from_name name in
-            Expect_analysis_stack_is stack_module
-          with
-          | Not_found ->
-            raise @@ Expectation_parse_failure "invalid stack name"
-        end
+        _parse_analysis_stack_args args_str
       | "EXPECT-INPUT-IS"::args_part ->
-        begin
-          match args_part with
-          | [args_str] ->
-            begin
-              try
-                let inputs =
-                  args_str
-                  |> whitespace_split
-                  |> List.map int_of_string
-                in
-                Expect_input_is inputs
-              with Failure _ ->
-                  raise @@ Expectation_parse_failure
-                    ("Could not parse input: " ^ args_str)
-            end
-          | [] ->
-            raise @@ Expectation_parse_failure "Missing arguments"
-          | _ ->
-            raise @@ Expectation_parse_failure "Spurious arguments"
-        end
+        _parse_input args_part
       | "EXPECT-ANALYSIS-LOOKUP-FROM-END" :: args_part ->
         let args_str = String.join "" args_part in
         let args = whitespace_split ~max:2 args_str in
@@ -261,72 +370,14 @@ let parse_expectation str =
         assert_no_args args_part;
         Expect_analysis_no_inconsistencies
       | "EXPECT-INPUT-SEQUENCES-REACH" :: args_part ->
-        begin
-          match String_utils.whitespace_split ~max:2
-                  (String.join "" args_part) with
-          | [] ->
-            raise @@ Expectation_parse_failure
-              "Missing input sequence variable name"
-          | variable_name :: rest_args ->
-            begin
-              let (input_sequences, complete) =
-                match rest_args with
-                | [rest_args_str] ->
-                  let rest_args_lst : string list =
-                    rest_args_str
-                    |> Str.split (Str.regexp "[][]")
-                    |> List.map (Str.global_replace (Str.regexp "[ ]*") "")
-                    |> List.filter (fun str -> not (String.equal "" str))
-                  in
-                  let complete : bool =
-                    String.equal "!" (List.last rest_args_lst)
-                  in
-                  let input_sequences =
-                    if complete then begin
-                      let rest_args_lst' =
-                        (* Remove final '!' element from list *)
-                        rest_args_lst
-                        |> List.rev
-                        |> List.tl
-                        |> List.rev
-                      in
-                      List.map
-                        Input_generator.Answer.answer_from_string
-                        rest_args_lst'
-                    end else begin
-                      List.map
-                        Input_generator.Answer.answer_from_string
-                        rest_args_lst
-                    end
-                  in
-                  (input_sequences, complete)
-                | [] -> raise @@ Expectation_parse_failure
-                          "Missing input sequence arguments"
-                | _ -> raise @@ Expectation_parse_failure
-                          "Spurious input sequence arguments"
-              in
-              Expect_input_sequences_reach(
-                variable_name, input_sequences, complete)
-            end;
-        end
+        _parse_input_seq_reach args_part
       | "EXPECT-REQUIRED-INPUT-SEQUENCE-GENERATION-STEPS" :: args ->
-        let nstr = assert_one_arg args in
-        begin
-          try
-            Expect_required_input_sequence_generation_steps(int_of_string nstr)
-          with
-          | Failure _ ->
-            raise @@ Expectation_parse_failure
-              (Printf.sprintf
-                 "Could not parse number of expected input generation steps: %s"
-                 nstr)
-        end
+        _parse_gen_steps args
       | "EXPECT-NO-TYPE-ERRORS" :: args_part ->
         assert_no_args args_part;
         Expect_no_type_errors
       | "EXPECT-TYPE-ERROR" :: args_part ->
-        assert_no_args args_part;
-        Expect_type_error
+        _parse_type_errors args_part
       | _ ->
         raise @@ Expectation_not_found
     in
@@ -811,6 +862,7 @@ let test_sato
       assert_failure
         "Test specified input sequence requirement without context model."
   in
+  (* Create the generator *)
   let Var (last_ident, _) = Ast_tools.retv expr in
   let generator =
     Type_error_generator.create
@@ -828,12 +880,14 @@ let test_sato
     let _ = steps in
     total_errors := !total_errors + Type_error_generator.Answer.count type_errors;
   in
+  (* Run the generator *)
   let _ =
     Type_error_generator.generate_answers
       ~generation_callback:callback
       (Some generation_steps)
       generator
   in
+  (* Check if there are no type errors *)
   expect_left := observation !expect_left (observe_no_type_errors !total_errors);
 ;;
 
@@ -971,13 +1025,13 @@ let make_tests_from_dir pathname =
 
 let tests =
   "Test_source_files" >::: (
-    make_tests_from_dir "test-sources" @
+    (* make_tests_from_dir "test-sources" @
     make_tests_from_dir "test-sources/odefa-basic" @
     make_tests_from_dir "test-sources/odefa-fails" @
     make_tests_from_dir "test-sources/odefa-input" @
-    make_tests_from_dir "test-sources/odefa-stack" (* @
+    make_tests_from_dir "test-sources/odefa-stack" @
     make_tests_from_dir "test-sources/natodefa-basic" @
     make_tests_from_dir "test-sources/natodefa-input" *)
-    (* make_tests_from_dir "test-sources/odefa-types" *)
+    make_tests_from_dir "test-sources/odefa-types"
   )
 ;;

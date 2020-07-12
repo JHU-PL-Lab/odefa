@@ -5,7 +5,6 @@ open Odefa_ast;;
 open Ast;;
 open Ast_pp;;
 
-
 open Odefa_symbolic_interpreter;;
 open Odefa_symbolic_interpreter.Interpreter_types;;
 open Odefa_symbolic_interpreter.Interpreter;;
@@ -26,6 +25,19 @@ module type Answer = sig
   val count : t -> int;;
 end;;
 
+(* Utility to parse int sequences separated by commas. *)
+let parse_comma_seperated_ints lst_str =
+  let str_lst =
+    lst_str
+    |> Str.global_replace (Str.regexp "[ ]*") ""
+    |> Str.split (Str.regexp ",")
+  in
+  try
+    List.map int_of_string str_lst
+  with Failure _ ->
+    raise Parse_failure
+;;
+
 (* **** Input sequence **** *)
 
 module Input_sequence : Answer = struct
@@ -40,27 +52,16 @@ module Input_sequence : Answer = struct
 
   (* String "[ 1, 2, 3 ]" or "1, 2, 3" to input sequence *)
   let answer_from_string arg_str =
-    (* let arg_char_lst = String.to_list arg_str in *)
     let arg_str' =
-      begin
-        if (String.starts_with arg_str "[")
-            && (String.ends_with arg_str "]") then
-          arg_str
-          |> String.lchop
-          |> String.rchop
-        else
-          arg_str
-      end
+      if (String.starts_with arg_str "[") &&
+         (String.ends_with arg_str "]") then
+        arg_str
+        |> String.lchop
+        |> String.rchop
+      else
+        arg_str
     in
-    let str_lst =
-      arg_str'
-      |> Str.global_replace (Str.regexp "[ ]*") ""
-      |> Str.split (Str.regexp ",")
-    in
-    try
-      List.map int_of_string str_lst
-    with Failure _ ->
-      raise Parse_failure
+    parse_comma_seperated_ints arg_str'
   ;;
 
   let show inputs =
@@ -162,61 +163,105 @@ module Type_errors : Answer = struct
     }
   ;;
 
-  (*
-  let answer_from_string arg_str =
-    let arg_str' =
-      begin
-        if (String.starts_with arg_str "[")
-          && (String.ends_with arg_str "]") then
-          arg_str
+  let _parse_type type_str =
+    match type_str with
+    | "int" | "integer" -> Int_type
+    | "bool" | "boolean" -> Bool_type
+    | "fun" | "function" -> Fun_type
+    | _ ->
+      let is_rec_str =
+        Str.string_match (Str.regexp "{.*}") type_str 0 in
+      if is_rec_str then begin
+        let lbl_set =
+          type_str
           |> String.lchop
           |> String.rchop
-        else
-          arg_str
+          |> Str.split (Str.regexp ",")
+          |> List.map String.trim
+          |> List.map (fun lbl -> Ident lbl)
+          |> Ident_set.of_list
+        in
+        Rec_type lbl_set
+      end else begin
+        raise Parse_failure
       end
+  ;;
+
+  let _parse_op op_str =
+    let expr_lst =
+      try
+        Odefa_parser.Parser.parse_expression_string op_str
+      with Odefa_parser.Parser.Parse_error _ ->
+        raise Parse_failure
     in
-    let str_lst =
-      arg_str'
-      |> Str.global_replace (Str.regexp "[ ]*") ""
-      |> Str.split (Str.regexp ",")
+    match expr_lst with
+    | [expr] ->
+      begin
+        let Expr clist = expr in
+        match clist with
+        | [clause] -> clause
+        | _ -> raise Parse_failure
+      end
+    | _ -> raise Parse_failure
+  ;;
+
+  let _parse_def def_str =
+    let Clause (cl_var, cl_body) = _parse_op def_str in
+    let Var (cl_ident, _) = cl_var in
+    match cl_body with
+    | Value_body v -> (cl_ident, v)
+    | _ -> raise Parse_failure
+  ;;
+
+  (* ["operation" "definition" "expected" "actual"]*)
+  let answer_from_string arg_str =
+    let arg_lst =
+      Str.split (Str.regexp "[][]") arg_str
     in
-    List.map (fun str ->
-      str
-      |> Str.global_replace (Str.regexp "[)(]") ""
-      |> (fun str -> 
-        let lst = Str.split (Str.regexp "[,]") str in
-        match lst with
-        | [s1; s2; s3] ->
-          let to_type_err s =
-            match s with
-            | "int" -> Int_type
-            | "bool" -> Bool_type
-            | "fun" -> Fun_type
-            | "rec" -> Rec_type (Ident_set.empty)
-            | _ -> raise Parse_failure
+    match arg_lst with
+    | input_str :: type_err_strs ->
+      begin
+        let inputs = parse_comma_seperated_ints input_str in
+        let type_err_strs' =
+          type_err_strs
+          |> List.map String.trim
+          |> List.filter (fun s -> (String.length s) > 0)
+        in
+        let type_errs =
+          List.map
+            (fun type_err_str ->
+              let type_err_props =
+                Str.split (Str.regexp "[\"]") type_err_str
+                |> List.map String.trim
+                |> List.filter (fun s -> (String.length s) > 0)
+              in
+              match type_err_props with
+              | [op; def; expected; actual] ->
+                {
+                  terr_expected_type = _parse_type expected;
+                  terr_actual_type = _parse_type actual;
+                  terr_operation = _parse_op op;
+                  terr_var_definition = _parse_def def
+                }
+              | _ ->
+                raise Parse_failure
+            )
+            type_err_strs'
           in
-          (Ident(s1), to_type_err s2, to_type_err s3)
-        | _ -> raise Parse_failure 
-      )
-    )
-    str_lst
-  ;;
-  *)
-
-  (* TEMP *)
-  let answer_from_string (arg_str : string) =
-    let _ = arg_str in
-    { err_type_errors = [];
-      err_input_seq = []
-    }
+          {
+            err_type_errors = type_errs;
+            err_input_seq = inputs;
+          }
+      end
+    | _ ->
+      raise Parse_failure
   ;;
 
-  (* TODO: Show a "no type errors" message if type_error_seq is empty *)
   let show error_seq =
     let show_type_error type_error =
       let (ident, value) = type_error.terr_var_definition in
       "* Operation:  " ^ (show_clause type_error.terr_operation) ^ "\n" ^
-      "* Definition: " ^ (show_ident ident) ^" = "^ (show_value value) ^ "\n" ^
+      "* Definition: " ^ (show_ident ident) ^ " = " ^ (show_value value) ^ "\n" ^
       "* Expected:   " ^ (show_type_sig type_error.terr_expected_type) ^ "\n" ^
       "* Actual:     " ^ (show_type_sig type_error.terr_actual_type) ^ "\n"
     in
