@@ -12,6 +12,8 @@ let lazy_logger = Logger_utils.make_lazy_logger "Generator_utils";;
 exception Halt_interpretation_as_input_sequence_is_complete;;
 exception Halt_interpretation_on_abort of Var.t;;
 
+(* TODO: Check for correctness *)
+(*
 let absolutize_stack
     (reference_point : Ident.t list)
     (relstack : Relative_stack.t)
@@ -28,6 +30,7 @@ let absolutize_stack
   (* Attach the stack to C *)
   stack @ finish
 ;;
+*)
 
 (** Computes a relative stack by calculating the difference between two
     (absolute) stacks.  Given a reference point at which to start, this

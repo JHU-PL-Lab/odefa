@@ -82,7 +82,7 @@ module Type_errors : Answer = struct
     terr_expected_type : type_sig;
     terr_actual_type : type_sig;
     terr_operation : clause;
-    terr_var_definition : (ident * value)
+    terr_var_definition : clause
   }
 
   type error_seq = {
@@ -92,71 +92,76 @@ module Type_errors : Answer = struct
 
   type t = error_seq
 
-  let _symbol_to_var_value
-      (stop_stack : Ident.t list)
-      (symb_value : Constraint.value)
-    : Ast.value =
-    match symb_value with
-    | Constraint.Int n -> Ast.Value_int n
-    | Constraint.Bool b -> Ast.Value_bool b
-    | Constraint.Function f -> Ast.Value_function f
-    | Constraint.Record symb_map ->
-      begin
-        let var_map =
-          Ident_map.map
-            (fun (Symbol(ident, relstack)) ->
-              let abstack = Generator_utils.absolutize_stack stop_stack relstack in
-              Var (ident, Some (Ast.Freshening_stack (abstack)))
-            )
-            symb_map
-        in
-        Ast.Value_record (Record_value var_map)
-      end
-    ;;
+  let _val_to_clause_body val_src =
+    match val_src with
+    | Constraint.Value v ->
+      let v' =
+        match v with
+        | Constraint.Int n -> Ast.Value_int n
+        | Constraint.Bool b -> Ast.Value_bool b
+        | Constraint.Function f -> Ast.Value_function f
+        | Constraint.Record symb_map ->
+          begin
+            let var_map =
+              (* Discard context stack information *)
+              Ident_map.map
+                (fun (Symbol (id, _)) -> Var (id, None))
+                symb_map
+            in
+            Ast.Value_record (Record_value var_map)
+          end
+      in
+      Value_body v'
+    | Constraint.Input -> Input_body
+  ;;
+
+  let _symb_and_val_to_clause symb val_src =
+    let Symbol (ident, _) = symb in (* Discard any context stack info *)
+    let variable = Var (ident, None) in
+    Clause (variable, _val_to_clause_body val_src)
 
   let answer_from_result e x result =
-    let Concrete_stack stop_stack = result.er_stack in
     let solver = result.er_solver in
     let (input_seq, _) =
       Generator_utils.input_sequence_from_result e x result
     in
     let abort_points = result.er_abort_points in
+    (* Function to apply to left fold op *)
+    let accumulate_type_err accum (ab_symb, ab_info) =
+      let Symbol(_, relstack) = ab_symb in
+      match ab_info with
+      | Type_abort_info type_ab_info ->
+        let match_imap = type_ab_info.abort_matches in
+        let err_list =
+          match_imap
+          |> Ident_map.enum
+          |> Enum.filter_map
+            (fun (ident, _) ->
+              let type_err =
+                find_type_error solver (Symbol(ident, relstack))
+              in
+              match type_err with
+              | None -> None
+              | Some type_err_rec ->
+                let terr_symb = type_err_rec.terr_ident in
+                let terr_val = type_err_rec.terr_value in
+                Some {
+                  terr_expected_type = type_err_rec.terr_expected_type;
+                  terr_actual_type = type_err_rec.terr_actual_type;
+                  terr_operation = type_ab_info.abort_operation;
+                  terr_var_definition =
+                    _symb_and_val_to_clause terr_symb terr_val;
+                }
+            )
+          |> List.of_enum
+        in
+        err_list @ accum
+      | Match_abort_info _ -> accum (* Not implemented yet! *)
+    in
     let type_err_lst =
       abort_points
       |> Symbol_map.enum
-      |> Enum.fold
-          (fun accum (ab_symb, ab_info) ->
-            let Symbol(_, relstack) = ab_symb in
-            match ab_info with
-            | Type_abort_info type_ab_info ->
-              let match_imap = type_ab_info.abort_matches in
-              let err_list =
-                match_imap
-                |> Ident_map.enum
-                |> Enum.filter_map
-                  (fun (ident, _) ->
-                    let type_err =
-                      find_type_error solver (Symbol(ident, relstack))
-                    in
-                    match type_err with
-                    | None -> None
-                    | Some type_err_rec ->
-                      let terr_value =
-                        _symbol_to_var_value stop_stack type_err_rec.terr_value
-                      in
-                      Some {
-                        terr_expected_type = type_err_rec.terr_expected_type;
-                        terr_actual_type = type_err_rec.terr_actual_type;
-                        terr_operation = type_ab_info.abort_operation;
-                        terr_var_definition = (type_err_rec.terr_ident, terr_value);
-                      }
-                  )
-                |> List.of_enum
-              in
-              err_list @ accum
-            | Match_abort_info _ -> accum (* Not implemented yet! *)
-          )
-          []
+      |> Enum.fold accumulate_type_err []
     in
     { err_type_errors = type_err_lst;
       err_input_seq = input_seq;
@@ -187,10 +192,10 @@ module Type_errors : Answer = struct
       end
   ;;
 
-  let _parse_op op_str =
+  let _parse_clause cl_str =
     let expr_lst =
       try
-        Odefa_parser.Parser.parse_expression_string op_str
+        Odefa_parser.Parser.parse_expression_string cl_str
       with Odefa_parser.Parser.Parse_error _ ->
         raise Parse_failure
     in
@@ -205,15 +210,7 @@ module Type_errors : Answer = struct
     | _ -> raise Parse_failure
   ;;
 
-  let _parse_def def_str =
-    let Clause (cl_var, cl_body) = _parse_op def_str in
-    let Var (cl_ident, _) = cl_var in
-    match cl_body with
-    | Value_body v -> (cl_ident, v)
-    | _ -> raise Parse_failure
-  ;;
-
-  (* ["operation" "definition" "expected" "actual"]*)
+  (* [<input-seq>] ["operation" "definition" "expected" "actual"] *)
   let answer_from_string arg_str =
     (* Split on square brackets *)
     let arg_lst = Str.split (Str.regexp "[][]") arg_str in
@@ -241,8 +238,8 @@ module Type_errors : Answer = struct
                 {
                   terr_expected_type = _parse_type expected;
                   terr_actual_type = _parse_type actual;
-                  terr_operation = _parse_op op;
-                  terr_var_definition = _parse_def def
+                  terr_operation = _parse_clause op;
+                  terr_var_definition = _parse_clause def
                 }
               | _ ->
                 raise Parse_failure
@@ -260,9 +257,8 @@ module Type_errors : Answer = struct
 
   let show error_seq =
     let show_type_error type_error =
-      let (ident, value) = type_error.terr_var_definition in
       "* Operation  : " ^ (show_clause type_error.terr_operation) ^ "\n" ^
-      "* Definition : " ^ (show_ident ident) ^ " = " ^ (show_value value) ^ "\n" ^
+      "* Definition : " ^ (show_clause type_error.terr_var_definition) ^ "\n" ^
       "* Expected   : " ^ (show_type_sig type_error.terr_expected_type) ^ "\n" ^
       "* Actual     : " ^ (show_type_sig type_error.terr_actual_type) ^ "\n"
     in

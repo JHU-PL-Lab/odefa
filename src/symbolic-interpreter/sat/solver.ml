@@ -19,8 +19,8 @@ type contradiction =
 ;;
 
 type type_error = {
-  terr_ident : Ast.ident;
-  terr_value : Constraint.value;
+  terr_ident : symbol;
+  terr_value : Constraint.value_source;
   terr_expected_type : Ast.type_sig;
   terr_actual_type : Ast.type_sig;
 }
@@ -610,15 +610,13 @@ let find_type_error solver match_symbol =
       raise @@
         Utils.Invariant_failure ("Symbol " ^ (show_symbol symbol) ^ " not found in type constraint set!")
   in
-  let Symbol(var_ident, _) = symbol
-  in
-  let var_value =
+  let val_src =
     try
-      Symbol_map.find symbol solver.value_constraints_by_symbol
+      Constraint.Value (Symbol_map.find symbol solver.value_constraints_by_symbol)
     with Not_found ->
       begin
         if Symbol_set.mem symbol solver.input_constraints_by_symbol then
-          Constraint.Int 0 (* TODO: Temporary solution! *)
+          Constraint.Input
         else
           raise @@
             Utils.Invariant_failure
@@ -666,8 +664,8 @@ let find_type_error solver match_symbol =
   if not (_expected_actual_types_equal expected_type actual_type) then
     let type_err = 
       Some {
-        terr_ident = var_ident;
-        terr_value = var_value;
+        terr_ident = symbol;
+        terr_value = val_src;
         terr_expected_type = expected_type;
         terr_actual_type = actual_type;
       }

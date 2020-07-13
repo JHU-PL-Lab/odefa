@@ -35,8 +35,8 @@ type contradiction =
 (* Information relating to errors *)
 
 type type_error = {
-  terr_ident : Ast.ident;
-  terr_value : Constraint.value;
+  terr_ident : symbol;
+  terr_value : Constraint.value_source;
   terr_expected_type : Ast.type_sig;
   terr_actual_type : Ast.type_sig;
 }

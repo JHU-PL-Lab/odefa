@@ -46,12 +46,15 @@ TODO
 ---
 - [ ] Write tests (most important)
   - [x] Reorganize the rest of the pre-existing tests
-  - [ ] All clause/expression types
+  - [x] All clause/expression types
   - [ ] Tests that condition control flow on input (Parallel type errors)
   - [ ] Serial type errors
   - [ ] Type error after infinite loop/omega combinator
   - [ ] Recursion
 - [x] Add "no type errors found" message if there are no type errors
+- [ ] Refactor the solver
+  - [ ] Replace separate symbol_type with type_sig
+  - [x] Add Input to values
 - [ ] Add "Primitive" pattern/type for bool + int "=="
 - [ ] Change inputs
   - [x] Remove #true# clauses

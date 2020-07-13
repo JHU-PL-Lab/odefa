@@ -49,6 +49,20 @@ let pp_value formatter v =
 
 let show_value = Pp_utils.pp_to_string pp_value;;
 
+type value_source =
+  | Value of value
+  | Input
+[@@ deriving eq, ord, to_yojson]
+;;
+
+let pp_value_source formatter val_src =
+  match val_src with
+  | Value v -> pp_value formatter v
+  | Input -> Format.pp_print_string formatter "input"
+;;
+
+let show_value_source = Pp_utils.pp_to_string pp_value_source;;
+
 type t =
   | Constraint_value of symbol * value (* x = v *)
   | Constraint_input of symbol (* x = input *)
