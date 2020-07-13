@@ -1,4 +1,5 @@
 # EXPECT-WELL-FORMED
+# EXPECT-STUCK
 # EXPECT-TYPE-ERROR ~result [] [ "c = a and b" "a = 0" "bool" "int" ] [ "c = a and b" "b = 1" "bool" "int" ]
 # EXPECT-ALL-TYPE-ERRORS-FOUND
 

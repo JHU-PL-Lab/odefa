@@ -1,4 +1,5 @@
 # EXPECT-WELL-FORMED
+# EXPECT-STUCK
 # EXPECT-TYPE-ERROR ~result [] [ "z = x + y" "x = false" "int" "bool" ] [ "z = x + y" "y = false" "int" "bool" ]
 # EXPECT-ALL-TYPE-ERRORS-FOUND
 

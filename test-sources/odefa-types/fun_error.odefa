@@ -1,4 +1,5 @@
 # EXPECT-WELL-FORMED
+# EXPECT-STUCK
 # EXPECT-TYPE-ERROR ~result [] [ "ans = zero zero" "zero = 0" "fun" "int" ]
 # EXPECT-ALL-TYPE-ERRORS-FOUND
 
