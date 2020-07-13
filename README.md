@@ -47,9 +47,9 @@ TODO
 - [ ] Write tests (most important)
   - [x] Reorganize the rest of the pre-existing tests
   - [x] All clause/expression types
-  - [ ] Tests that condition control flow on input (Parallel type errors)
-  - [ ] Serial type errors
-  - [ ] Type error after infinite loop/omega combinator
+  - [x] Tests that condition control flow on input (Parallel type errors)
+  - [x] Serial type errors
+  - [x] Type error after infinite loop/omega combinator
   - [ ] Recursion
 - [x] Add "no type errors found" message if there are no type errors
 - [ ] Refactor the solver

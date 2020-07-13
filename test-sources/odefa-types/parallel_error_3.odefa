@@ -1,0 +1,17 @@
+# EXPECT-WELL-FORMED
+# EXPECT-TYPE-ERROR ~result [] [ "sum = x + y" "b = {}" "int" "{}" ] [ "sum = x + y" "c = true" "int" "bool" ]
+# EXPECT-ALL-TYPE-ERRORS-FOUND
+
+# XXX: Interesting that both type errors can be detected
+
+a = 2;
+b = {};
+c = true;
+f = fun x -> (
+    fret = fun y -> ( sum = x + y; );
+    );
+f1 = f a;
+m = f1 c;
+f2 = f a;
+n = f2 b;
+target = m;
