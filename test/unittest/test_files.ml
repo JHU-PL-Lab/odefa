@@ -988,7 +988,8 @@ let make_test filename expectations =
     (* Decide what kind of analysis to perform. *)
     let module_choice = ref Default_stack in
     let obs = _observation filename in
-    expectations_left := obs !expectations_left (observe_analysis_stack_selection module_choice);
+    expectations_left :=
+      obs !expectations_left (observe_analysis_stack_selection module_choice);
     (* Perform tests *)
     (* TODO: If no tests for a certain program exist, don't run said program. *)
     test_ddpa filename expectations_left !module_choice expr;
