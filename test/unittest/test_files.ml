@@ -5,9 +5,47 @@
    Each file is expected to contain a comment describing the expected test
    result.  The comment should be of one of the following forms:
 
-   - [EXPECT-EVALUATE] (which requires that the code evaluates to completion)
-   - [EXPECT-STUCK] (which requires that the code gets stuck)
-     FIXME: update this documentation
+   - EXPECT-EVALUATE: We expect that the code evaluates to completion.
+
+   - EXPECT-STUCK: We expect that the code gets stuck during evaluation.
+
+   - EXPECT-WELL-FORMED: We expect that the code is well-formed.
+
+   - EXPECT-ILL-FORMED: We expect that the code is not well-formed.
+
+   - EXPECT-ANALYSIS-STACK-IS <stack>: We expect that the context stack is
+      <stack>. Options for stack: 0ddpa, 1ddpa, 2ddpa, ddpaNR, none, <n>ddpa.
+  
+   - EXPECT-INPUT-IS <inputs>: We expect that the code can successfully process
+      the input sequence <inputs>, given as an int list (eg. [0, 1, 2]).
+
+   - EXPECT-ANALYSIS-LOOKUP-FROM-END <var> <type set>: We expect that the
+      variable <var> should be one of the types in <type set>.
+
+   - EXPECT-ANALYSIS-INCONSISTENCY-AT <var>: We expect to encounter an
+      inconsistency at the variable <var> in DDPA.
+
+   - EXPECT-ANALYSIS-NO-INCONSISTENCIES: We expect to not encounter any
+      inconsistency in DDPA.
+
+   - EXPECT-INPUT-SEQUENCES-REACH <var> <list of inputs> <complete?>: We
+      expect, looking up from the variable <var>, to generate the list of
+      inputs <list of inputs> using DDSE. <complete?> deontes if we expect
+      all control flow paths to have been explored.
+
+   - EXPECT-REQUIRED-INPUT-SEQUENCE-GENERATION-STEPS <steps>: We expect that
+      test generation should complete within a max of <steps> steps.
+
+   - EXPECT-NO-TYPE-ERRORS: We expect not to find any type errors using Sato.
+   
+   - EXPECT-TYPE-ERROR <var> <input seq> <type errors>: We expect that,
+      looking up from <var>, to encounter all the type errors in <type errors>
+      associated with the input sequence <input seq>. Type erro syntax has
+      the form ["<operation>" "<definition>" "<expected>" "<actual>"].
+
+   - EXPECT-ALL-TYPE-ERRORS-FOUND: We expect that all the type errors we've
+      found were the ones we listed in EXPECT-TYPE-ERROR expections, with
+      no spurious errors.
 *)
 
 (* FIXME: purge the term "inconsistency" *)
@@ -89,6 +127,7 @@ type test_expectation =
   | Expect_type_error of
     string * (* variable to look up from *)
     Type_error_generator.Answer.t (* the sequence of type errors *)
+  (* Are there no type errors other than the ones that were expected? *)
   | Expect_all_type_errors_found
 ;;
 
@@ -896,7 +935,11 @@ let test_sato
     expect_left := List.rev remaining_expectations;
     List.rev type_err_expectations
   in
-  let target_list = List.map (fun (x, _) -> x) type_err_expectations in
+  let target_list =
+    type_err_expectations
+    |> List.map (fun (x, _) -> x)
+    |> List.unique
+  in
   (* We always want to include a test from the last variable, especially if we
      are expecting no type errors. Add the last variable if it hasn't been
      included yet. *)
