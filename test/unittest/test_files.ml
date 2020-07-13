@@ -87,8 +87,9 @@ type test_expectation =
   (* Are there type errors? *)
   | Expect_no_type_errors
   | Expect_type_error of
-    string *
-    Type_error_generator.Answer.t
+    string * (* variable to look up from *)
+    Type_error_generator.Answer.t (* the sequence of type errors *)
+  | Expect_all_type_errors_found
 ;;
 
 (* **** Expectation utility functions **** *)
@@ -124,6 +125,8 @@ let pp_test_expectation formatter expectation =
   | Expect_type_error (_, errors) ->
     Format.fprintf formatter "Expect_type_error %s"
       (Type_error_generator.Answer.show errors)
+  | Expect_all_type_errors_found ->
+    Format.pp_print_string formatter "Expect_all_type_errors_found"
 ;;
 
 let name_of_expectation expectation =
@@ -160,6 +163,7 @@ let name_of_expectation expectation =
     Printf.sprintf "should only require %d steps to discover inputs" n
   | Expect_no_type_errors -> "should have no type errors"
   | Expect_type_error (_, _) -> "should have a type error" (* FIXME *)
+  | Expect_all_type_errors_found -> "should have found all listed type errors"
 ;;
 
 (* **** Expectation parsing **** *)
@@ -375,6 +379,9 @@ let parse_expectation str =
         Expect_no_type_errors
       | "EXPECT-TYPE-ERROR" :: args_part ->
         _parse_type_errors args_part
+      | "EXPECT-ALL-TYPE-ERRORS-FOUND" :: args_part ->
+        assert_no_args args_part;
+        Expect_all_type_errors_found
       | _ ->
         raise @@ Expectation_not_found
     in
@@ -522,6 +529,18 @@ let observe_no_type_errors num_type_errors expectation =
       assert_failure @@ "expected no type error, but type error detected"
   | _ -> Some expectation
 ;;
+
+let observe_all_type_errors_found type_err_list expectation =
+  match expectation with
+  | Expect_all_type_errors_found ->
+    if List.is_empty type_err_list then
+      None
+    else
+      assert_failure @@ "expected all type errors that were listed to be found, "
+        ^ "but unfound or spurious type errors still exist:" ^ "\n" ^
+        (String.join "\n" @@
+          List.map (fun (_, err) -> Type_error_generator.Answer.show err) type_err_list)
+  | _ -> Some expectation
 
 (* **** Testing **** *)
 
@@ -884,9 +903,9 @@ let test_sato
   let Var (Ident (last_ident), _) = Ast_tools.retv expr in
   let target_var_list =
     if List.mem last_ident target_list then
-      last_ident :: target_list
-    else
       target_list
+    else
+      last_ident :: target_list
   in
   let total_err_lst = ref [] in
   let total_err_num = ref 0 in
@@ -917,6 +936,9 @@ let test_sato
     ()
   in
   let _ = List.map run_type_checker target_var_list in
+  (* If we expected no type errors, check that there are indeed none. *)
+  expect_left :=
+    observation !expect_left (observe_no_type_errors !total_err_num);
   (* If we expected type errors, determine if any of them activated. *)
   let _ =
     List.map
@@ -930,11 +952,10 @@ let test_sato
       )
       type_err_expectations
   in
-  (* TODO: Add an ALL type errors expectation, to see if we get suprious type
-     errors? *)
-  (* If we expected no type errors, check that there are indeed none. *)
+  (* If we expected all type errors to be found, determine if any extra type
+     errors were found. *)
   expect_left :=
-    observation !expect_left (observe_no_type_errors !total_err_num);
+    observation !expect_left (observe_all_type_errors_found !total_err_lst);
 ;;
 
 let make_test filename expectations =
@@ -969,6 +990,7 @@ let make_test filename expectations =
     let obs = _observation filename in
     expectations_left := obs !expectations_left (observe_analysis_stack_selection module_choice);
     (* Perform tests *)
+    (* TODO: If no tests for a certain program exist, don't run said program. *)
     test_ddpa filename expectations_left !module_choice expr;
     test_ddse filename expectations_left !module_choice expr;
     test_sato filename expectations_left !module_choice instrumented_expr abort_map;
