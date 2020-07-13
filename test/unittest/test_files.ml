@@ -15,7 +15,7 @@
 
    - EXPECT-ANALYSIS-STACK-IS <stack>: We expect that the context stack is
       <stack>. Options for stack: 0ddpa, 1ddpa, 2ddpa, ddpaNR, none, <n>ddpa.
-  
+
    - EXPECT-INPUT-IS <inputs>: We expect that the code can successfully process
       the input sequence <inputs>, given as an int list (eg. [0, 1, 2]).
 
@@ -37,7 +37,7 @@
       test generation should complete within a max of <steps> steps.
 
    - EXPECT-NO-TYPE-ERRORS: We expect not to find any type errors using Sato.
-   
+
    - EXPECT-TYPE-ERROR <var> <input seq> <type errors>: We expect that,
       looking up from <var>, to encounter all the type errors in <type errors>
       associated with the input sequence <input seq>. Type erro syntax has
