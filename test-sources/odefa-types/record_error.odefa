@@ -1,0 +1,6 @@
+# EXPECT-WELL-FORMED
+# EXPECT-TYPE-ERROR ~result [] [ "ans = not_rec.label" "not_rec = fun x -> ( ret = x );" "{label}" "fun" ]
+# EXPECT-ALL-TYPE-ERRORS-FOUND
+
+not_rec = fun x -> ( ret = x );
+ans = not_rec.label;
