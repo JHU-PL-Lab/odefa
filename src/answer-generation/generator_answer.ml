@@ -44,10 +44,15 @@ module Input_sequence : Answer = struct
   type t = int list;;
 
   let answer_from_result e x result =
-    let (input_seq, _) =
+    let (input_seq, ab_symb_opt) =
       Generator_utils.input_sequence_from_result e x result
     in
-    input_seq
+    match ab_symb_opt with
+    | Some ab_symb ->
+      raise @@ Odefa_interpreter.Interpreter.Evaluation_failure
+        ("Evaluation got stuck on abort at " ^ (show_symbol ab_symb))
+    | None ->
+      input_seq
   ;;
 
   (* String "[ 1, 2, 3 ]" or "1, 2, 3" to input sequence *)
