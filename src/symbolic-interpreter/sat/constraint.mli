@@ -32,6 +32,7 @@ type value =
 type value_source =
   | Value of value
   | Input
+  | Binop of symbol * binary_operator * symbol
 [@@deriving eq, ord, show, to_yojson]
 ;;
 

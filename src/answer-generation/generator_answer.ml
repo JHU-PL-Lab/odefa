@@ -102,9 +102,9 @@ module Type_errors : Answer = struct
     | Constraint.Value v ->
       let v' =
         match v with
-        | Constraint.Int n -> Ast.Value_int n
-        | Constraint.Bool b -> Ast.Value_bool b
-        | Constraint.Function f -> Ast.Value_function f
+        | Constraint.Int n -> Value_int n
+        | Constraint.Bool b -> Value_bool b
+        | Constraint.Function f -> Value_function f
         | Constraint.Record symb_map ->
           begin
             let var_map =
@@ -113,11 +113,16 @@ module Type_errors : Answer = struct
                 (fun (Symbol (id, _)) -> Var (id, None))
                 symb_map
             in
-            Ast.Value_record (Record_value var_map)
+            Value_record (Record_value var_map)
           end
       in
       Value_body v'
     | Constraint.Input -> Input_body
+    | Constraint.Binop (symb1, op, symb2) ->
+      (* Discard context stack information *)
+      let Symbol (i1, _) = symb1 in
+      let Symbol (i2, _) = symb2 in
+      Binary_operation_body (Var (i1, None), op, Var (i2, None))
   ;;
 
   let _symb_and_val_to_clause symb val_src =

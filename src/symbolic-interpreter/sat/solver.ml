@@ -34,14 +34,13 @@ struct
   type t = symbol * ident [@@deriving ord];;
 end;;
 
-module Symbol_and_pattern =
-struct
-  type t = symbol * pattern;;
-end;;
-
 module Symbol_to_symbol_and_ident_multimap =
   Jhupllib.Multimap.Make(Symbol)(Symbol_and_ident)
 ;;
+
+type symbol_and_pattern = (symbol * pattern);;
+
+type binop = (symbol * binary_operator * symbol);;
 
 type t =
   { (** The set of all constraints in the solver. *)
@@ -60,6 +59,10 @@ type t =
         bodies are identical, this is a set. *)
     input_constraints_by_symbol : Symbol_set.t;
 
+    (** An index of all binary operator constraints by symbol.  As a symbol can
+        only assign one binary operator, this is a normal dictionary. *)
+    binop_constraints_by_symbol : binop Symbol_map.t;
+
     (** An index of all record projection constraints over the record symbol.
         As a given record symbol may be projected many times (and the results
         assigned to many symbols), this is a multimap. *)
@@ -68,11 +71,16 @@ type t =
     (** An index of all match constraints by the symbol being bound (as opposed
         to the variable being matched upon).  Since each variable can only be
         bound to a unique pattern matching clause, this is a map. *)
-    match_constraints_by_symbol : Symbol_and_pattern.t Symbol_map.t;
+    match_constraints_by_symbol : symbol_and_pattern Symbol_map.t;
 
     (** An index of all symbol type constraints.  Because each symbol must have
         exactly one type, this is a normal dictionary. *)
     type_constraints_by_symbol : symbol_type Symbol_map.t;
+
+    (** An index of all abort constraints by symbol.  Because a symbol can only
+        identify a single abort clause and (in the concrete syntax) are all
+        identical, this is a set. *)
+    abort_constraints_by_symbol : Symbol_set.t;
 
     (** The unique stack constraint which may appear in this solver.  Only one
         stack constraint may appear in any particular solver because all stack
@@ -90,10 +98,12 @@ let empty =
     alias_constraints_by_symbol = Symbol_to_symbol_multimap.empty;
     value_constraints_by_symbol = Symbol_map.empty;
     input_constraints_by_symbol = Symbol_set.empty;
+    binop_constraints_by_symbol = Symbol_map.empty;
     projection_constraints_by_record_symbol =
       Symbol_to_symbol_and_ident_multimap.empty;
     match_constraints_by_symbol = Symbol_map.empty;
     type_constraints_by_symbol = Symbol_map.empty;
+    abort_constraints_by_symbol = Symbol_set.empty;
     stack_constraint = None;
   }
 ;;
@@ -108,7 +118,7 @@ let _binop_types (op : binary_operator)
   | Binary_operator_modulus -> (IntSymbol, IntSymbol, IntSymbol)
   | Binary_operator_less_than
   | Binary_operator_less_than_or_equal_to
-  | Binary_operator_equal_to -> (IntSymbol, IntSymbol, BoolSymbol)
+  | Binary_operator_equal_to -> (IntSymbol, IntSymbol, BoolSymbol) (* TODO: Accomodate both bool and int equal *)
   | Binary_operator_and
   | Binary_operator_or
   | Binary_operator_xor -> (BoolSymbol, BoolSymbol, BoolSymbol)
@@ -157,9 +167,12 @@ let rec _add_constraints_and_close
               Symbol_to_symbol_multimap.add x1 x2
                 solver.alias_constraints_by_symbol
           }
-        | Constraint_binop _ ->
+        | Constraint_binop (x1, x2, op, x3) ->
           { solver with
             constraints = Constraint.Set.add c solver.constraints;
+            binop_constraints_by_symbol =
+              Symbol_map.add x1 (x2, op, x3)
+                solver.binop_constraints_by_symbol
           }
         | Constraint_projection(x1,x2,lbl) ->
           { solver with
@@ -207,10 +220,12 @@ let rec _add_constraints_and_close
             constraints = Constraint.Set.add c solver.constraints;
             stack_constraint = Some s;
           }
-        | Constraint_abort _ ->
+        | Constraint_abort ab ->
           begin
             { solver with
               constraints = Constraint.Set.add c solver.constraints;
+              abort_constraints_by_symbol =
+                Symbol_set.add ab solver.abort_constraints_by_symbol
             }
           end;
       in
@@ -600,29 +615,40 @@ let find_type_error solver match_symbol =
          the operation. *)
       Symbol_map.find match_symbol solver.match_constraints_by_symbol;
     with Not_found ->
-      raise @@
-        Utils.Invariant_failure ("Symbol " ^ (show_symbol match_symbol) ^ " not found in match constraint set!")
+      raise @@ Utils.Invariant_failure
+        ("Symbol " ^ (show_symbol match_symbol) ^ " not found in match constraint set!")
   in
   let sym_type : Constraint.symbol_type =
     try
       Symbol_map.find symbol solver.type_constraints_by_symbol
     with Not_found ->
-      raise @@
-        Utils.Invariant_failure ("Symbol " ^ (show_symbol symbol) ^ " not found in type constraint set!")
+      raise @@ Utils.Invariant_failure
+        ("Symbol " ^ (show_symbol symbol) ^ " not found in type constraint set!")
   in
   let val_src =
-    try
-      Constraint.Value (Symbol_map.find symbol solver.value_constraints_by_symbol)
-    with Not_found ->
-      begin
-        if Symbol_set.mem symbol solver.input_constraints_by_symbol then
-          Constraint.Input
-        else
-          raise @@
-            Utils.Invariant_failure
-            ("Symbol " ^ (show_symbol symbol) ^
-            " not found in value nor input constraint set!")
-      end
+    let value_opt =
+      Symbol_map.Exceptionless.find symbol solver.value_constraints_by_symbol
+    in
+    let input_opt =
+      Symbol_set.Exceptionless.find symbol solver.input_constraints_by_symbol
+    in
+    let binop_opt =
+      Symbol_map.Exceptionless.find symbol solver.binop_constraints_by_symbol
+    in
+    let abort_opt =
+      Symbol_set.Exceptionless.find symbol solver.abort_constraints_by_symbol
+    in
+    match (value_opt, input_opt, binop_opt, abort_opt) with
+    | (Some value, None, None, None) -> Constraint.Value value
+    | (None, Some _, None, None) -> Constraint.Input
+    | (None, None, Some (x1, op, x2), None) -> Constraint.Binop (x1, op, x2)
+    | (None, None, None, Some _) -> Constraint.Value (Int 0) (* TODO: Temp! *)
+    | (None, None, None, None) ->
+      raise @@ Utils.Invariant_failure
+        ("Symbol " ^ (show_symbol symbol) ^ " has no value in constraint set!")
+    | _ ->
+      raise @@ Utils.Invariant_failure
+        ("Symbol " ^ (show_symbol symbol) ^ " has multiple value definitions.")
   in
   let expected_type =
     match pattern with
@@ -655,8 +681,8 @@ let find_type_error solver match_symbol =
             raise @@
               Utils.Invariant_failure "Record value typed incorrectly!"
         with Not_found ->
-          raise @@
-            Utils.Invariant_failure ("Symbol " ^ (show_symbol symbol) ^ " not found in value constraint set!")
+          raise @@ Utils.Invariant_failure
+            ("Symbol " ^ (show_symbol symbol) ^ " not found in value constraint set!")
       in
       Rec_type record_labels
   in

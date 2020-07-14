@@ -52,6 +52,7 @@ let show_value = Pp_utils.pp_to_string pp_value;;
 type value_source =
   | Value of value
   | Input
+  | Binop of symbol * binary_operator * symbol
 [@@ deriving eq, ord, to_yojson]
 ;;
 
@@ -59,6 +60,9 @@ let pp_value_source formatter val_src =
   match val_src with
   | Value v -> pp_value formatter v
   | Input -> Format.pp_print_string formatter "input"
+  | Binop (x1, op, x2) ->
+    Format.fprintf formatter "%a %a %a"
+      pp_symbol x1 pp_binary_operator op pp_symbol x2
 ;;
 
 let show_value_source = Pp_utils.pp_to_string pp_value_source;;
