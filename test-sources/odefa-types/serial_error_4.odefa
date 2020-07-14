@@ -1,0 +1,14 @@
+# EXPECT-WELL-FORMED
+# EXPECT-STUCK
+
+zero = 0;
+one = 1;
+tru = true;
+fls = false;
+
+f = fun x -> ( rx = x and tru );
+g = fun y -> ( ry = y or fls );
+
+a = f zero;
+b = g a;
+c = b xor tru; # not b

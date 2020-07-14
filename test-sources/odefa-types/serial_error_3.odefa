@@ -1,0 +1,13 @@
+# EXPECT-WELL-FORMED
+# EXPECT-STUCK
+# EXPECT-TYPE-ERROR ~result [] [ "z = fans + one" "fans = x and tru" "int" "bool" ]
+# EXPECT-ALL-TYPE-ERRORS-FOUND
+
+zero = 0;
+one = 1;
+tru = true;
+
+f = fun x -> ( r = x and tru );
+fans = f zero;
+
+z = fans + one;

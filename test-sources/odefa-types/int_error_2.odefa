@@ -1,0 +1,13 @@
+# EXPECT-WELL-FORMED
+# EXPECT-STUCK
+# EXPECT-TYPE-ERROR ~result [] [ "c = a + b" "b = tru and fls" "int" "bool" ]
+# EXPECT-ALL-TYPE-ERRORS-FOUND
+
+zero = 0;
+one = 1;
+tru = true;
+fls = false;
+
+a = zero + one;
+b = tru and fls;
+c = a + b
