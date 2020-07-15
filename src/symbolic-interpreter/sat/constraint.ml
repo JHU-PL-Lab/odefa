@@ -53,6 +53,7 @@ type value_source =
   | Value of value
   | Input
   | Binop of symbol * binary_operator * symbol
+  | Abort
 [@@ deriving eq, ord, to_yojson]
 ;;
 
@@ -63,6 +64,7 @@ let pp_value_source formatter val_src =
   | Binop (x1, op, x2) ->
     Format.fprintf formatter "%a %a %a"
       pp_symbol x1 pp_binary_operator op pp_symbol x2
+  | Abort -> Format.pp_print_string formatter "abort"
 ;;
 
 let show_value_source = Pp_utils.pp_to_string pp_value_source;;

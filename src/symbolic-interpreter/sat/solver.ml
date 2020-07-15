@@ -642,7 +642,7 @@ let find_type_error solver match_symbol =
     | (Some value, None, None, None) -> Constraint.Value value
     | (None, Some _, None, None) -> Constraint.Input
     | (None, None, Some (x1, op, x2), None) -> Constraint.Binop (x1, op, x2)
-    | (None, None, None, Some _) -> Constraint.Value (Int 0) (* TODO: Temp! *)
+    | (None, None, None, Some _) -> Constraint.Abort
     | (None, None, None, None) ->
       raise @@ Utils.Invariant_failure
         ("Symbol " ^ (show_symbol symbol) ^ " has no value in constraint set!")

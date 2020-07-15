@@ -1,7 +1,8 @@
 # EXPECT-WELL-FORMED
 # EXPECT-STUCK
 # EXPECT-ANALYSIS-STACK-IS 6ddpa
-# EXPECT-TYPE-ERROR ~result [] [ "r2 = a - tru" "r3 = a - one" "int" "bool" ]
+# EXPECT-TYPE-ERROR ~result [] [ "r2 = a - tru" "tru = true" "int" "bool" "1" ]
+# EXPECT-REQUIRED-INPUT-SEQUENCE-GENERATION-STEPS 10000
 # EXPECT-ALL-TYPE-ERRORS-FOUND
 
 tru = true;

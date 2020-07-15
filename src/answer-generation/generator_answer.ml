@@ -11,7 +11,7 @@ open Odefa_symbolic_interpreter.Interpreter;;
 open Odefa_symbolic_interpreter.Solver;;
 (* open Odefa_symbolic_interpreter.Relative_stack;; *)
 
-(* let lazy_logger = Logger_utils.make_lazy_logger "Generator_answer";; *)
+let lazy_logger = Jhupllib.Logger_utils.make_lazy_logger "Generator_answer";;
 
 exception Parse_failure;;
 
@@ -87,15 +87,77 @@ module Type_errors : Answer = struct
     terr_expected_type : type_sig;
     terr_actual_type : type_sig;
     terr_operation : clause;
-    terr_var_definition : clause
+    terr_var_definition : clause;
+    terr_knockon_error_count : int;
   }
+  [@@ deriving show]
+  ;;
 
   type error_seq = {
     err_type_errors : type_error list;
     err_input_seq : int list
   }
+  ;;
 
-  type t = error_seq
+  type t = error_seq;;
+
+  module type Error_tree = sig
+    type t = Node of type_error * t list;;
+
+    val build_err_tree : type_error list -> type_error -> t;;
+    val size : t -> int;;
+  end;;
+
+  module Error_tree : Error_tree = struct
+    type t = Node of type_error * t list;;
+
+    let rec _build_err_tree
+        (op_to_terr_map : (clause, type_error) Map.t)
+        (root_err : type_error)
+      : t =
+      let root_op = root_err.terr_operation in (* O(1) *)
+      let children_err = (* O(n) *)
+        op_to_terr_map
+        |> Map.filter
+            (fun parent_op _ ->
+              lazy_logger `trace (fun () ->
+                Printf.sprintf "Check clauses: (%s) = (%s)"
+                  (show_clause root_op) (show_clause parent_op));
+              Ast.equal_clause root_op parent_op)
+        |> Map.values
+        |> List.of_enum
+      in
+      lazy_logger `trace (fun () ->
+        Printf.sprintf "Number of children: %d" (List.length children_err));
+      let children_tree =
+        List.map (_build_err_tree op_to_terr_map) children_err
+      in
+      Node (root_err, children_tree)
+    ;;
+
+    let build_err_tree type_err_lst root_err =
+      lazy_logger `trace (fun () ->
+        "Building tree for: " ^ (show_type_error root_err));
+      let op_to_terr =
+        type_err_lst
+        |> List.map (fun terr -> (terr.terr_var_definition, terr))
+        |> List.enum
+        |> Map.of_enum
+      in
+      _build_err_tree op_to_terr root_err
+    ;;
+
+    let rec _count error_tree =
+      let Node (_, children) = error_tree in
+      children
+      |> List.map _count
+      |> List.fold_left (fun a x -> a + x) 1
+    ;;
+
+    let size error_tree =
+      (_count error_tree) - 1 (* Exclude parent node *)
+    ;;
+  end;;
 
   let _val_to_clause_body val_src =
     match val_src with
@@ -123,6 +185,7 @@ module Type_errors : Answer = struct
       let Symbol (i1, _) = symb1 in
       let Symbol (i2, _) = symb2 in
       Binary_operation_body (Var (i1, None), op, Var (i2, None))
+    | Constraint.Abort -> Abort_body
   ;;
 
   let _symb_and_val_to_clause symb val_src =
@@ -160,7 +223,20 @@ module Type_errors : Answer = struct
                   terr_actual_type = type_err_rec.terr_actual_type;
                   terr_operation = type_ab_info.abort_operation;
                   terr_var_definition =
-                    _symb_and_val_to_clause terr_symb terr_val;
+                    begin
+                      let def = _symb_and_val_to_clause terr_symb terr_val in
+                      match def with
+                      | Clause (_, Abort_body) ->
+                        begin
+                          let abt_pt = Symbol_map.find terr_symb abort_points in
+                          match abt_pt with
+                          | Type_abort_info abt_pt_type -> abt_pt_type.abort_operation
+                          | _ ->
+                            raise @@ Jhupllib.Utils.Not_yet_implemented "match abort"
+                        end
+                      | _ -> def
+                    end;
+                    terr_knockon_error_count = 0;
                 }
             )
           |> List.of_enum
@@ -173,7 +249,25 @@ module Type_errors : Answer = struct
       |> Symbol_map.enum
       |> Enum.fold accumulate_type_err []
     in
-    { err_type_errors = type_err_lst;
+    lazy_logger `trace (fun () ->
+      Printf.sprintf "Total errors: %d" @@ List.length type_err_lst);
+    let parent_err_list =
+      type_err_lst
+      |> List.filter_map
+          (fun terr ->
+            match terr.terr_actual_type with
+            | Bottom_type -> None
+            | _ -> Some terr
+          )
+      |> List.map
+          (fun terr ->
+            let size =
+              Error_tree.size @@ Error_tree.build_err_tree type_err_lst terr
+            in
+            { terr with terr_knockon_error_count = size }
+          )
+    in
+    { err_type_errors = parent_err_list;
       err_input_seq = input_seq;
     }
   ;;
@@ -249,7 +343,16 @@ module Type_errors : Answer = struct
                   terr_expected_type = _parse_type expected;
                   terr_actual_type = _parse_type actual;
                   terr_operation = _parse_clause op;
-                  terr_var_definition = _parse_clause def
+                  terr_var_definition = _parse_clause def;
+                  terr_knockon_error_count = 0
+                }
+              | [op; def; expected; actual; count] ->
+                {
+                  terr_expected_type = _parse_type expected;
+                  terr_actual_type = _parse_type actual;
+                  terr_operation = _parse_clause op;
+                  terr_var_definition = _parse_clause def;
+                  terr_knockon_error_count = int_of_string count
                 }
               | _ ->
                 raise Parse_failure
@@ -266,11 +369,18 @@ module Type_errors : Answer = struct
   ;;
 
   let show error_seq =
+    let knockon_count_msg count =
+      if count = 0 then
+        ""
+      else
+        "\n** " ^ (string_of_int count) ^ " knock-on errors caused **"
+    in
     let show_type_error type_error =
       "* Operation  : " ^ (show_clause type_error.terr_operation) ^ "\n" ^
       "* Definition : " ^ (show_clause type_error.terr_var_definition) ^ "\n" ^
       "* Expected   : " ^ (show_type_sig type_error.terr_expected_type) ^ "\n" ^
-      "* Actual     : " ^ (show_type_sig type_error.terr_actual_type) ^ "\n"
+      "* Actual     : " ^ (show_type_sig type_error.terr_actual_type) ^
+      (knockon_count_msg type_error.terr_knockon_error_count)
     in
     let show_input_seq inputs =
       "[" ^ (String.join ", " @@ List.map string_of_int inputs) ^ "]"

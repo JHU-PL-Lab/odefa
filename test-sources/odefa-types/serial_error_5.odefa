@@ -1,6 +1,6 @@
 # EXPECT-WELL-FORMED
 # EXPECT-STUCK
-# EXPECT-TYPE-ERROR ~result [] [ "rx = x and tru" "zero = 0" "bool" "int" "2" ]
+# EXPECT-TYPE-ERROR ~result [] [ "ry = y or fls"  "one = 1"  "bool" "int" "1" ] [ "rx = x and tru" "zero = 0" "bool" "int" "1" ]
 # EXPECT-ALL-TYPE-ERRORS-FOUND
 
 zero = 0;
@@ -12,5 +12,5 @@ f = fun x -> ( rx = x and tru );
 g = fun y -> ( ry = y or fls );
 
 a = f zero;
-b = g a;
-c = b xor tru; # not b
+b = g one;
+c = a and b;

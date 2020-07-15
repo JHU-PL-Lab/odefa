@@ -988,7 +988,7 @@ let test_sato
       (fun type_err_expect ->
         if not (List.mem type_err_expect !total_err_lst) then
           let (_, err) = type_err_expect in
-          assert_failure @@ "Expected type errors not found:\n" ^
+          assert_failure @@ "expected type errors not found:\n" ^
             (Type_error_generator.Answer.show err)
         else
           total_err_lst := List.remove !total_err_lst type_err_expect;

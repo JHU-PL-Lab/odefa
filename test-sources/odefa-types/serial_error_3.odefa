@@ -1,6 +1,6 @@
 # EXPECT-WELL-FORMED
 # EXPECT-STUCK
-# EXPECT-TYPE-ERROR ~result [] [ "z = fans + one" "fans = x and tru" "int" "bool" ]
+# EXPECT-TYPE-ERROR ~result [] [ "r = x and tru" "zero = 0" "bool" "int" "1" ]
 # EXPECT-ALL-TYPE-ERRORS-FOUND
 
 zero = 0;
