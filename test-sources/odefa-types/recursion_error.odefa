@@ -1,7 +1,7 @@
 # EXPECT-WELL-FORMED
 # EXPECT-STUCK
 # EXPECT-ANALYSIS-STACK-IS 4ddpa
-# EXPECT-TYPE-ERROR ~result [] [ "b = a <= tru" "tru = true" "int" "bool" ]
+# EXPECT-TYPE-ERROR ~result [] [ "b = a <= tru" "tru = true" "int" "bool" "1" ]
 # EXPECT-ALL-TYPE-ERRORS-FOUND
 
 tru = true;

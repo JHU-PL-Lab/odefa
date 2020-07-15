@@ -54,15 +54,15 @@ TODO
 - [x] Add "no type errors found" message if there are no type errors
 - [ ] More precise type errors
   - [x] For knock-on type errors, chain them together using abort information and report number
-  - [ ] (Report actual knock-on errors instead of the count?)
+  - [ ] Report actual knock-on errors instead of the count?
   - [ ] If incorrectly-typed var was a function argument, report call site instead of original definition
 - [ ] Refactor the solver
   - [ ] Replace separate symbol_type with type_sig
   - [x] Add Input to values
 - [ ] Add "Primitive" pattern/type for bool + int "=="
-- [ ] Change inputs
+- [x] Change inputs
   - [x] Remove #true# clauses
-  - [ ] Add appropriate variant type for input values
+  - [x] Add appropriate variant type for input values
   - [x] DON'T add new types for inputs
 - [ ] More errors
   - [ ] Match errors (conjunction vs. disjunction)
@@ -71,8 +71,8 @@ TODO
 - [ ] Add odefa-to-natodefa mapping
   - [ ] Variants, lists, and other advanced data structures
   - [ ] Line + column numbers
-- [ ] Convert from nested clauses to "ANF" clauses (?)
-  - [ ] Report first error/abort encountered; don't report subsequent errors
+- [x] Convert from nested clauses to "ANF" clauses
+  - [x] Report first error/abort encountered; don't report subsequent errors
 - [ ] Heuristic for when to end recursion
   - [ ] Idea 1: Scale max steps by lines of code
   - [ ] Idea 2: Limit context stack growth re. adding the same call site

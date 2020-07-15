@@ -1,9 +1,9 @@
 # EXPECT-WELL-FORMED
-# EXPECT-TYPE-ERROR ~result [0] [ "sum1 = a + b" "b = false" "int" "bool" ]
+# EXPECT-TYPE-ERROR ~result [0] [ "sum2 = c + d" "d = false" "int" "bool" ] [ "sum1 = a + b" "b = false" "int" "bool" ]
 # EXPECT-ALL-TYPE-ERRORS-FOUND
 
 a = input;
-b = false; # Only first error should be found
+b = false;
 sum1 = a + b;
 c = input;
 d = false;

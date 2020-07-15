@@ -22,7 +22,7 @@ let rec instrument_clauses
   match c_list with
   | clause :: clauses' ->
     begin
-      let Clause(symb, body) = clause in
+      let Clause(v, body) = clause in
       match body with
       | Value_body value ->
         begin
@@ -32,7 +32,7 @@ let rec instrument_clauses
             let%bind new_body = instrument_clauses body in
             let new_fun_val = Function_value(arg, Expr(new_body)) in
             let new_val_body = Value_body(Value_function(new_fun_val)) in
-            let new_clause = Clause(symb, new_val_body) in
+            let new_clause = Clause(v, new_val_body) in
             let%bind new_clauses' = instrument_clauses clauses' in
             return @@ new_clause :: new_clauses'
           | _ ->
@@ -58,6 +58,13 @@ let rec instrument_clauses
             m2 = b ~ int;
             m = m1 and m2;
             constrain_binop = m ? (binop = a + b) : (ab = abort);
+
+            binop = a + b;
+            ==>
+            m1 = a ~ int;
+            m2 = b ~ int;
+            m = m1 and m2;
+            binop = m ? ( constrain_binop = a + b ) : ( ab = abort );
           *)
           let pattern =
             match binop with
@@ -72,50 +79,48 @@ let rec instrument_clauses
             | Binary_operator_equal_to -> Int_pattern
             | Binary_operator_and
             | Binary_operator_or
-            | Binary_operator_xor -> Bool_pattern 
+            | Binary_operator_xor -> Bool_pattern
           in
           (* Variables *)
           let%bind m1 = fresh_var "m1" in
           let%bind m2 = fresh_var "m2" in
           let%bind m = fresh_var "m" in
-          let%bind v = fresh_var "constrain_binop" in
           (* Clauses *)
           let m1_clause = Clause(m1, Match_body(v1, pattern)) in
           let m2_clause = Clause(m2, Match_body(v2, pattern)) in
-          (* Let-bind operator to stay under 80 lines *)
-          let and_op = Binary_operator_and in
-          let binop_body = Binary_operation_body(m1, and_op, m2) in
-          let m_clause = Clause(m, binop_body) in
-          let%bind new_clauses' = instrument_clauses clauses' in
-          let%bind t_path = return @@ Expr(clause :: new_clauses') in
+          let and_body = Binary_operation_body(m1, Binary_operator_and, m2) in
+          let m_clause = Clause(m, and_body) in
+          (* Conditional *)
+          let%bind c_binop = fresh_var "constrain_binop" in
+          let%bind t_path = return @@ Expr([Clause(c_binop, body)]) in
           let%bind f_path = add_type_ab [m1_clause; m2_clause] clause in
-          let val_clause
-            = Clause(v, Conditional_body(m, t_path, f_path))
-          in
-          return @@ [m1_clause; m2_clause; m_clause; val_clause]
+          let cond_clause = Clause(v, Conditional_body(m, t_path, f_path)) in
+          let%bind cont = instrument_clauses clauses' in
+          return @@ [m1_clause; m2_clause; m_clause; cond_clause] @ cont
         end
       | Projection_body (r, lbl) ->
         begin
           (*
-            proj = r.l;
+            proj = r.lbl;
             ==>
-            m = r ~ {l};
+            m = r ~ {lbl};
             constrain_proj = m ? (proj = r.l) : (ab = abort);
+            ==>
+            m = r ~ {lbl};
+            proj = m ? ( constrain_proj = r.lbl ) : ( ab = abort );
           *)
+          (* Pattern match *)
           let%bind m = fresh_var "m" in
-          let%bind v = fresh_var "constrain_proj" in
-          let rec_pat_set =
-            Ident_set.add lbl Ident_set.empty
-          in
+          let rec_pat_set = Ident_set.add lbl Ident_set.empty in
           let rec_pat = Rec_pattern rec_pat_set in
           let m_clause = Clause(m, Match_body(r, rec_pat)) in
-          let%bind new_clauses' = instrument_clauses clauses' in
-          let%bind t_path = return @@ Expr(clause :: new_clauses') in
+          (* Conditional *)
+          let%bind c_proj = fresh_var "constrain_proj" in
+          let%bind t_path = return @@ Expr([Clause(c_proj, body)]) in
           let%bind f_path = add_type_ab [m_clause] clause in
-          let val_clause
-            = Clause(v, Conditional_body(m, t_path, f_path))
-          in
-          return @@ [m_clause; val_clause]
+          let cond_clause = Clause(v, Conditional_body(m, t_path, f_path)) in
+          let%bind cont = instrument_clauses clauses' in
+          return @@ [m_clause; cond_clause] @ cont
         end
       | Appl_body (f, _) ->
         begin
@@ -124,17 +129,20 @@ let rec instrument_clauses
             ==>
             m = f ~ fun;
             constrain_appl = m ? (appl = f x) : (ab = abort);
+            ==>
+            m = f ~ fun;
+            appl = m ? ( constrain_appl = f x ) : ( ab = abort );
           *)
+          (* Pattern match *)
           let%bind m = fresh_var "m" in
-          let%bind v = fresh_var "constrain_appl" in
           let m_clause = Clause(m, Match_body(f, Fun_pattern)) in
-          let%bind new_clauses' = instrument_clauses clauses' in
-          let%bind t_path = return @@ Expr(clause :: new_clauses') in
+          (* Conditional *)
+          let%bind c_appl = fresh_var "constrain_appl" in
+          let%bind t_path = return @@ Expr([Clause(c_appl, body)]) in
           let%bind f_path = add_type_ab [m_clause] clause in
-          let val_clause
-            = Clause(v, Conditional_body(m, t_path, f_path))
-          in
-          return @@ [m_clause; val_clause]
+          let cond_clause = Clause(v, Conditional_body(m, t_path, f_path)) in
+          let%bind cont = instrument_clauses clauses' in
+          return @@ [m_clause; cond_clause] @ cont
         end
       | Conditional_body (pred, Expr path1, Expr path2) ->
         begin
@@ -144,23 +152,25 @@ let rec instrument_clauses
             m = pred ~ bool;
             constrain_cond = m ? (cond = pred ? true_path : false_path)
                                : (ab = abort)
+            ==>
+            m = pred ~ bool;
+            cond = m ? ( constrain_cond = pred ? true_path : false_path )
+                     : ( ab = abort );
           *)
+          (* Pattern match *)
           let%bind m = fresh_var "m" in
-          let%bind v = fresh_var "constrain_cond" in
           let m_clause = Clause(m, Match_body(pred, Bool_pattern)) in
-          let%bind new_clauses' = instrument_clauses clauses' in
-          let%bind new_path1 = instrument_clauses path1 in
-          let%bind new_path2 = instrument_clauses path2 in
-          let new_cond_body =
-            Conditional_body(pred, Expr new_path1, Expr new_path2)
-          in
-          let new_clause = Clause(symb, new_cond_body) in
-          let%bind t_path = return @@ Expr(new_clause :: new_clauses') in
+          (* Underlying conditional *)
+          let%bind path1' = instrument_clauses path1 in
+          let%bind path2' = instrument_clauses path2 in
+          let body' = Conditional_body(pred, Expr path1', Expr path2') in
+          (* Constrain conditional *)
+          let%bind c_cond = fresh_var "constrain_cond" in
+          let%bind t_path = return @@ Expr([Clause(c_cond, body')]) in
           let%bind f_path = add_type_ab [m_clause] clause in
-          let val_clause
-            = Clause(v, Conditional_body(m, t_path, f_path))
-          in
-          return @@ [m_clause; val_clause]
+          let cond_clause = Clause(v, Conditional_body(m, t_path, f_path)) in
+          let%bind cont = instrument_clauses clauses' in
+          return @@ [m_clause; cond_clause] @ cont
         end
     end
   | [] -> return []

@@ -1,0 +1,18 @@
+# EXPECT-WELL-FORMED
+# EXPECT-TYPE-ERROR ~result [0, 0] [ "rf = x + o" "t = true" "int" "bool" ] [ "sum1 = a + b" "b = false" "int" "bool" ]
+# EXPECT-TYPE-ERROR ~result [0, -1] [ "rg = y and t" "z = 0" "bool" "int" ] [ "sum1 = a + b" "b = false" "int" "bool" ]
+# EXPECT-ALL-TYPE-ERRORS-FOUND
+
+z = 0;
+o = 1;
+t = true;
+
+f = fun x -> ( rf = x + o );
+g = fun y -> ( rg = y and t );
+
+a = input;
+b = false;
+sum1 = a + b;
+c = input;
+bul = c < z;
+res = bul ? ( r1 = f t ) : ( r2 = g z );

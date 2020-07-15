@@ -569,17 +569,45 @@ let observe_no_type_errors num_type_errors expectation =
   | _ -> Some expectation
 ;;
 
-let observe_all_type_errors_found type_err_list expectation =
+let observe_all_type_errors_found remain_found_errs expectation =
   match expectation with
   | Expect_all_type_errors_found ->
-    if List.is_empty type_err_list then
+    if List.is_empty remain_found_errs then
       None
     else
       assert_failure @@ "expected all type errors that were listed to be found, "
         ^ "but unfound or spurious type errors still exist:" ^ "\n" ^
         (String.join "\n" @@
-          List.map (fun (_, err) -> Type_error_generator.Answer.show err) type_err_list)
+          List.map (fun (_, err) -> Type_error_generator.Answer.show err) remain_found_errs)
   | _ -> Some expectation
+
+
+let observe_type_errors type_expects_ref expectation =
+  match expectation with
+  | Expect_no_type_errors ->
+
+    type_expects_ref := expectation :: !type_expects_ref;
+    None
+  | Expect_type_error _ -> None
+  | Expect_all_type_errors_found -> None
+  | _ -> Some expectation
+;;
+
+let observe_no_type_errors_found expect_present expectation =
+  match expectation with
+  | Expect_no_type_errors ->
+    expect_present := true;
+    None
+  | _ -> Some expectation
+;;
+
+let observe_all_type_errors_found_2 expect_present expectation =
+  match expectation with
+  | Expect_all_type_errors_found ->
+    expect_present := true;
+    None
+  | _ -> Some expectation
+;;
 
 (* **** Testing **** *)
 
@@ -979,26 +1007,60 @@ let test_sato
     ()
   in
   let _ = List.map run_type_checker target_var_list in
-  (* If we expected no type errors, check that there are indeed none. *)
+  (* Report failed expectations *)
+  let no_err_expect = ref false in
+  let all_err_expect = ref false in
   expect_left :=
-    observation !expect_left (observe_no_type_errors !total_err_num);
-  (* If we expected type errors, determine if any of them activated. *)
-  let _ =
-    List.map
+    observation !expect_left (observe_no_type_errors_found no_err_expect);
+  expect_left :=
+    observation !expect_left (observe_all_type_errors_found_2 all_err_expect);
+  let violate_no_type_err_expect_msg =
+    if !no_err_expect && !total_err_num > 0 then
+        ["expected no type errors, but type errors found"]
+      else
+        []
+  in
+  let unfound_type_err_msgs =
+    List.filter_map
       (fun type_err_expect ->
         if not (List.mem type_err_expect !total_err_lst) then
           let (_, err) = type_err_expect in
-          assert_failure @@ "expected type errors not found:\n" ^
+          let failure_msg =
+            "expected type errors not found:\n" ^
             (Type_error_generator.Answer.show err)
+          in
+          Some failure_msg
         else
-          total_err_lst := List.remove !total_err_lst type_err_expect;
+          let _ = total_err_lst :=
+            List.remove !total_err_lst type_err_expect
+          in
+          None
       )
       type_err_expectations
   in
-  (* If we expected all type errors to be found, determine if any extra type
-     errors were found. *)
-  expect_left :=
-    observation !expect_left (observe_all_type_errors_found !total_err_lst);
+  let spurious_type_err_msgs =
+    if !all_err_expect then
+      List.map
+        (fun (_, err) ->
+          let failure_msg =
+            "spurious type errors found:\n" ^
+            (Type_error_generator.Answer.show err)
+          in
+          failure_msg
+        )
+        !total_err_lst
+    else
+      []
+  in
+  let err_msgs =
+    violate_no_type_err_expect_msg
+    @ unfound_type_err_msgs
+    @ spurious_type_err_msgs
+  in
+  if List.is_empty err_msgs then
+    ()
+  else
+    assert_failure @@ String.join "\n" err_msgs
 ;;
 
 let make_test filename expectations =

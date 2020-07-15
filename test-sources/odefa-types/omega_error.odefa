@@ -2,11 +2,10 @@
 # EXPECT-ANALYSIS-STACK-IS 0ddpa
 # EXPECT-ANALYSIS-LOOKUP-FROM-END r {}
 # EXPECT-ANALYSIS-NO-INCONSISTENCIES
-# EXPECT-TYPE-ERROR ~result [] [ "c = a + b" "b = false" "int" "bool" ]
-# EXPECT-ALL-TYPE-ERRORS-FOUND
+# EXPECT-NO-TYPE-ERRORS
 
 a = 1;
 b = false;
-c = a + b; # XXX: Type error somehow detected???
+c = a + b; # Type error is not reachable from end
 o = fun x -> ( r = x x );
 oo = o o; # => SPINS FOREVER
