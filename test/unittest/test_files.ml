@@ -559,40 +559,6 @@ let observe_no_inconsistency expectation =
   | _ -> Some expectation
 ;;
 
-let observe_no_type_errors num_type_errors expectation =
-  match expectation with
-  | Expect_no_type_errors ->
-    if num_type_errors = 0 then
-      None
-    else
-      assert_failure @@ "expected no type error, but type error detected"
-  | _ -> Some expectation
-;;
-
-let observe_all_type_errors_found remain_found_errs expectation =
-  match expectation with
-  | Expect_all_type_errors_found ->
-    if List.is_empty remain_found_errs then
-      None
-    else
-      assert_failure @@ "expected all type errors that were listed to be found, "
-        ^ "but unfound or spurious type errors still exist:" ^ "\n" ^
-        (String.join "\n" @@
-          List.map (fun (_, err) -> Type_error_generator.Answer.show err) remain_found_errs)
-  | _ -> Some expectation
-
-
-let observe_type_errors type_expects_ref expectation =
-  match expectation with
-  | Expect_no_type_errors ->
-
-    type_expects_ref := expectation :: !type_expects_ref;
-    None
-  | Expect_type_error _ -> None
-  | Expect_all_type_errors_found -> None
-  | _ -> Some expectation
-;;
-
 let observe_no_type_errors_found expect_present expectation =
   match expectation with
   | Expect_no_type_errors ->
@@ -601,7 +567,7 @@ let observe_no_type_errors_found expect_present expectation =
   | _ -> Some expectation
 ;;
 
-let observe_all_type_errors_found_2 expect_present expectation =
+let observe_all_type_errors_found expect_present expectation =
   match expectation with
   | Expect_all_type_errors_found ->
     expect_present := true;
@@ -1013,7 +979,7 @@ let test_sato
   expect_left :=
     observation !expect_left (observe_no_type_errors_found no_err_expect);
   expect_left :=
-    observation !expect_left (observe_all_type_errors_found_2 all_err_expect);
+    observation !expect_left (observe_all_type_errors_found all_err_expect);
   let violate_no_type_err_expect_msg =
     if !no_err_expect && !total_err_num > 0 then
         ["expected no type errors, but type errors found"]
