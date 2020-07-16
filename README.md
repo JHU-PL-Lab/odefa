@@ -64,12 +64,16 @@ TODO
   - [x] Remove #true# clauses
   - [x] Add appropriate variant type for input values
   - [x] DON'T add new types for inputs
-- [ ] Deal with aborts in the (regular) interpreter environment
+- [ ] Encode aborts with the relevant conditional identifiers
+  - [ ] Check to ensure that conditionals are valid (ie. are nested and include the abort as the final retv), either before or during lookup.
+  - [ ] Extract predicate and use constraint set to extract patterns + boolean operators
+  - [ ] Extract return values; retvs from true branches are what the abort constrains
 - [ ] More errors
-  - [ ] Add "Primitive" pattern/type for bool + int "=="
-  - [ ] Divide by zero (new nonzero pattern?)
+  - [ ] ~~Add "Primitive" pattern/type for bool + int "=="~~ Use an `or` statement instead
+  - [ ] Divide by zero (new nonzero pattern + type vs. nested constraints)
   - [ ] Match errors (conjunction vs. disjunction)
   - [ ] Asserts (encode in odefa)
+- [ ] Deal with aborts in the (regular) interpreter environment
 - [ ] Add odefa-to-natodefa mapping
   - [ ] Variants, lists, and other advanced data structures
   - [ ] Line + column numbers
