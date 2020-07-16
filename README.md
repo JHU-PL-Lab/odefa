@@ -56,17 +56,19 @@ TODO
   - [x] For knock-on type errors, chain them together using abort information and report number
   - [ ] Report actual knock-on errors instead of the count?
   - [ ] If incorrectly-typed var was a function argument, report call site instead of original definition
-- [ ] Refactor the solver
-  - [ ] Replace separate symbol_type with type_sig
+  - [ ] Report original binop instead of new constrained binop as value source
+- [x] Refactor the solver
+  - [x] ~~Replace separate `symbol_type` with `type_sig`~~ (Added comments instead)
   - [x] Add Input to values
-- [ ] Add "Primitive" pattern/type for bool + int "=="
 - [x] Change inputs
   - [x] Remove #true# clauses
   - [x] Add appropriate variant type for input values
   - [x] DON'T add new types for inputs
+- [ ] Deal with aborts in the (regular) interpreter environment
 - [ ] More errors
-  - [ ] Match errors (conjunction vs. disjunction)
+  - [ ] Add "Primitive" pattern/type for bool + int "=="
   - [ ] Divide by zero (new nonzero pattern?)
+  - [ ] Match errors (conjunction vs. disjunction)
   - [ ] Asserts (encode in odefa)
 - [ ] Add odefa-to-natodefa mapping
   - [ ] Variants, lists, and other advanced data structures

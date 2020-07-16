@@ -6,7 +6,9 @@ open Odefa_ast;;
 open Ast;;
 open Interpreter_types;;
 
-(** A high-level grouping of the types of symbols.  These types are not precise;
+(** A high-level grouping of the types of symbols.  These types are not precise
+    (most notably, all record types are subsumed under RecordSymbol, so the
+    record subtyping rules are skipped in lieu of simple equality comparisons);
     they are only designed to detect obvious contradictions in our formulae.
     The only types for which these symbols are entirely precise are those which
     we reason about using Z3 (as Z3 requires explicit symbol types). *)
@@ -17,7 +19,6 @@ type symbol_type =
   | FunctionSymbol
   | BottomSymbol
 [@@deriving eq, ord, show, to_yojson]
-(* TODO: Replace symbol_type with Ast.type_sig *)
 ;;
 
 (** A representation of runtime values in terms of symbols. *)

@@ -76,7 +76,7 @@ let () =
       : unit =
       if Input_sequence.generation_successful inputs then begin
         if args.ga_compact_output then begin
-          Printf.printf "* %s %d\n" (Input_sequence.show inputs) steps
+          Printf.printf "> %s %d\n" (Input_sequence.show inputs) steps
         end else begin
           Printf.printf "* Input sequence: %s\n* Generated in %d steps.\n"
             (Input_sequence.show inputs) steps
@@ -108,9 +108,9 @@ let () =
           Printf.printf "seq #: %d\n" answer_count;
           Printf.printf "err #: %d\n" !failed_generation_count;
           if Option.is_none generator_opt then
-            print_endline "flows: no"
+            print_endline "more: no"
           else
-            print_endline "flows: yes"
+            print_endline "more: yes"
         ) else (
           Printf.printf "%d input sequence%s generated\n"
             answer_count (if answer_count = 1 then "" else "s");

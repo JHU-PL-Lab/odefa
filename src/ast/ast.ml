@@ -185,10 +185,16 @@ type type_sig =
 [@@ deriving eq, ord, to_yojson]
 ;;
 
-module TypeSignature =
+module Type_signature =
 struct
   type t = type_sig
   let equal = equal_type_sig;;
   let compare = compare_type_sig;;
   let to_yojson = type_sig_to_yojson;;
+  (** True if first arg is subtyped by second arg, false otherwise *)
+  let subtype t1 t2 =
+    match t1, t2 with
+    | Rec_type l1, Rec_type l2 -> Ident_set.subset l1 l2
+    | _, _ -> equal t1 t2
+  ;;
 end;;

@@ -7,7 +7,6 @@ open Ast;;
 open Ast_pp;;
 open Interpreter_types;;
 
-(* TODO: Replace symbol_type with Ast.type_sig *)
 type symbol_type =
   | IntSymbol
   | BoolSymbol

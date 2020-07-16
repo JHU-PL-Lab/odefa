@@ -65,7 +65,9 @@ type t =
 
     (** An index of all record projection constraints over the record symbol.
         As a given record symbol may be projected many times (and the results
-        assigned to many symbols), this is a multimap. *)
+        assigned to many symbols), this is a multimap.  Note: Unlike all other
+        symbol maps, the record symbol, not the symbol identifying the clause,
+        is the key of the map. *)
     projection_constraints_by_record_symbol : Symbol_to_symbol_and_ident_multimap.t;
 
     (** An index of all match constraints by the symbol being bound (as opposed
@@ -181,7 +183,6 @@ let rec _add_constraints_and_close
               Symbol_to_symbol_and_ident_multimap.add x2 (x1,lbl)
                 solver.projection_constraints_by_record_symbol
           }
-        (* TODO: Flesh out Constraint_match *)
         | Constraint_match(x1,x2,p) ->
           { solver with
             constraints = Constraint.Set.add c solver.constraints;
@@ -595,18 +596,6 @@ let solvable solver =
   Option.is_some @@ solve solver
 ;;
 
-let _expected_actual_types_equal expected actual =
-  match expected, actual with
-  | Int_type, Int_type
-  | Bool_type, Bool_type
-  | Fun_type, Fun_type -> true
-  | Rec_type expected_lbls, Rec_type actual_lbls ->
-      (* True if actual type is a subset of the expected type, 
-         i.e. the expected type is a supertype of the actual type. *)
-      Ident_set.subset actual_lbls expected_lbls
-  | _ -> false
-;;
-
 let find_type_error solver match_symbol =
   let (symbol, pattern) =
     try
@@ -687,16 +676,13 @@ let find_type_error solver match_symbol =
       Rec_type record_labels
   in
   (* Don't return false positives *)
-  if not (_expected_actual_types_equal expected_type actual_type) then
-    let type_err = 
-      Some {
-        terr_ident = symbol;
-        terr_value = val_src;
-        terr_expected_type = expected_type;
-        terr_actual_type = actual_type;
-      }
-    in
-    type_err
+  if not (Ast.Type_signature.subtype expected_type actual_type) then 
+    Some {
+      terr_ident = symbol;
+      terr_value = val_src;
+      terr_expected_type = expected_type;
+      terr_actual_type = actual_type;
+    }
   else
     None
 ;;
