@@ -1,5 +1,5 @@
 # EXPECT-WELL-FORMED
-# EXPECT-TYPE-ERROR ~result [0] [ "sum1 = a + b" "b = true" "int" "bool" "1" ]
+# EXPECT-TYPE-ERROR ~result [0, 0] [ "sum1 = a + b" "b = true" "int" "bool" "1" ]
 # EXPECT-ALL-TYPE-ERRORS-FOUND
 
 a = input;

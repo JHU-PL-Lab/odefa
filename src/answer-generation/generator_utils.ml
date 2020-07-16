@@ -10,7 +10,6 @@ open Ast;;
 let lazy_logger = Logger_utils.make_lazy_logger "Generator_utils";;
 
 exception Halt_interpretation_as_input_sequence_is_complete;;
-exception Halt_interpretation_on_abort of Var.t;;
 
 (* TODO: Check for correctness *)
 (*
@@ -75,7 +74,7 @@ let input_sequence_from_result
     (e : expr)
     (x : Ident.t)
     (result : Interpreter.evaluation_result)
-  : (int list * symbol option) =
+  : (int list * symbol list) =
   match Solver.solve result.er_solver with
   | None ->
     raise @@ Jhupllib_utils.Invariant_failure
@@ -106,13 +105,14 @@ let input_sequence_from_result
       value
     in
     (* Callback function executed on each clause encountered *)
-    let stop_at_stop_var (Clause(x, b)) =
+    let stop_at_stop_var (Clause(x, _)) =
       if equal_var x stop_var then
-        raise Halt_interpretation_as_input_sequence_is_complete
-      else
-        match b with
-        | Abort_body -> raise @@ Halt_interpretation_on_abort x
-        | _ -> ()
+        raise Halt_interpretation_as_input_sequence_is_complete;
+    in
+    let abort_list = ref [] in
+    let accum_abort (Clause(x, _)) : unit =
+      lazy_logger `trace (fun () -> Printf.sprintf "%s" (Ast_pp.show_var x));
+      abort_list := x :: !abort_list;
     in
     (* Run the interpreter with the above input source and clause callback *)
     let execute_interpreter () =
@@ -121,24 +121,15 @@ let input_sequence_from_result
           Odefa_interpreter.Interpreter.eval
             ~input_source:read_from_solver
             ~clause_callback:stop_at_stop_var
+            ~abort_policy:accum_abort
             e
         in
         raise @@ Jhupllib.Utils.Invariant_failure
           "evaluation completed without triggering halt exception!"
       with
-      | Halt_interpretation_as_input_sequence_is_complete ->
-        None
-      | Halt_interpretation_on_abort abort_var ->
-        let (abort_x, abort_stack) = destructure_var abort_var in
-        let abort_relstack = relativize_stack stop_stack abort_stack in
-        let abort_symbol = Symbol(abort_x, abort_relstack) in
-        if Symbol_map.mem abort_symbol result.er_abort_points then
-          Some (abort_symbol)
-        else
-          raise @@ Utils.Invariant_failure
-            ("Encountered unknown abort clause " ^ (Ast_pp.show_var abort_var))
+      | Halt_interpretation_as_input_sequence_is_complete -> ()
     in
-    let abort_symbol_opt = execute_interpreter () in
+    let () = execute_interpreter () in
     let input_sequence = List.rev !input_record in
     let input_seq_ints =
       List.map
@@ -151,5 +142,20 @@ let input_sequence_from_result
         )
         input_sequence
     in
-    (input_seq_ints, abort_symbol_opt)
+    let abort_symbol_list =
+      List.map
+        (fun ab_var ->
+          let (ab_x, ab_stack) = destructure_var ab_var in
+          let ab_relstack = relativize_stack stop_stack ab_stack in
+          let ab_symb = Symbol (ab_x, ab_relstack) in
+          if Symbol_map.mem ab_symb result.er_abort_points then
+            ab_symb
+          else
+            raise @@ Utils.Invariant_failure
+              (Printf.sprintf "Encountered unknown abort clause %s"
+                (Ast_pp.show_var ab_var))
+        )
+        !abort_list
+    in
+    (input_seq_ints, abort_symbol_list)
 ;;

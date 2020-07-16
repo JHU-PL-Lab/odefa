@@ -6,3 +6,4 @@ x = input;
 four = 4;
 y = x < four;
 z = y ? ( dummy1 = 0; a = 5 ) : ( dummy2 = 0; b = 8 );
+target = z;

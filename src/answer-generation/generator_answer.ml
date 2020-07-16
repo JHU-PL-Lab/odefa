@@ -23,6 +23,8 @@ module type Answer = sig
   val empty : t;;
   val is_empty : t -> bool;;
   val count : t -> int;;
+  val count_list : t list -> int;;
+  val generation_successful : t -> bool;;
 end;;
 
 (* Utility to parse int sequences separated by commas. *)
@@ -41,18 +43,16 @@ let parse_comma_seperated_ints lst_str =
 (* **** Input sequence **** *)
 
 module Input_sequence : Answer = struct
-  type t = int list;;
+  type t = int list option;;
 
   let answer_from_result e x result =
-    let (input_seq, ab_symb_opt) =
+    let (input_seq, ab_symb_list) =
       Generator_utils.input_sequence_from_result e x result
     in
-    match ab_symb_opt with
-    | Some ab_symb ->
-      raise @@ Odefa_interpreter.Interpreter.Evaluation_failure
-        ("Evaluation got stuck on abort at " ^ (show_symbol ab_symb))
-    | None ->
-      input_seq
+    if List.is_empty ab_symb_list then
+      Some input_seq
+    else
+      None
   ;;
 
   (* String "[ 1, 2, 3 ]" or "1, 2, 3" to input sequence *)
@@ -66,17 +66,40 @@ module Input_sequence : Answer = struct
       else
         arg_str
     in
-    parse_comma_seperated_ints arg_str'
+    Some (parse_comma_seperated_ints arg_str')
   ;;
 
-  let show inputs =
-    "[" ^ (String.join ", " @@ List.map string_of_int inputs) ^ "]"
-  
-  let empty = [];;
+  let show inputs_opt =
+    match inputs_opt with
+    | Some inputs ->
+      "[" ^ (String.join ", " @@ List.map string_of_int inputs) ^ "]"
+    | None -> "???"
+  ;;
 
-  let is_empty inputs = List.is_empty inputs;;
+  let empty = Some [];;
 
-  let count inputs = List.length inputs;;
+  let is_empty inputs_opt =
+    match inputs_opt with
+    | Some inputs -> List.is_empty inputs
+    | None -> raise @@ Jhupllib.Utils.Invariant_failure "Undefined"
+
+  let count inputs_opt =
+    match inputs_opt with
+    | Some _ -> 1
+    | None -> 0 (* Fail silently *)
+  ;;
+
+  let count_list (inputs_opt_lst : t list) =
+    inputs_opt_lst
+    |> List.filter_map identity
+    |> List.length
+  ;;
+
+  let generation_successful inputs_opt =
+    match inputs_opt with
+    | Some _ -> true
+    | None -> false
+  ;;
 end;;
 
 (* **** Type Errors **** *)
@@ -402,4 +425,13 @@ module Type_errors : Answer = struct
   let is_empty type_errors = List.is_empty type_errors.err_type_errors;;
 
   let count type_errors = List.length type_errors.err_type_errors;;
+
+  let count_list type_error_list =
+    type_error_list
+    |> List.map count
+    |> List.fold_left (fun a x -> x + a) 0
+  ;;
+
+  (* Currently always returns true; no mechanism to detect failed answer gen *)
+  let generation_successful (_: t) = true;;
 end;;

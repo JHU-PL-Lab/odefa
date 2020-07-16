@@ -28,6 +28,13 @@ module type Answer = sig
 
   (** Count the number of answers in the data structure. *)
   val count : t -> int;;
+
+  (** Number of (valid) answers in the list. *)
+  val count_list : t list -> int;;
+
+  (** True if generating an answer from the result is successful, false
+      otherwise. *)
+  val generation_successful : t -> bool;;
 end;;
 
 (** An input sequence for a single program flow of symbolic evaluation. *)

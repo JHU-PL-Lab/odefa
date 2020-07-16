@@ -135,9 +135,16 @@ let matches env x p : bool =
   | _ -> false
 ;;
 
+let fail_on_abort (Clause(ab_var, _)) : unit =
+  lazy_logger `trace (fun () -> Printf.sprintf "Aborting %s" (Ast_pp.show_var ab_var));
+  raise @@ Evaluation_failure
+    (Printf.sprintf "Evaluation fails on abort clause at %s" (show_var ab_var))
+;;
+
 let rec evaluate
     ?input_source:(input_source=stdin_input_source)
     ?clause_callback:(clause_callback=fun (_:clause) -> ())
+    ?abort_policy:(abort_policy=fail_on_abort)
     env
     lastvar
     cls =
@@ -163,6 +170,7 @@ let rec evaluate
         evaluate
           ~input_source:input_source
           ~clause_callback:clause_callback
+          ~abort_policy:abort_policy
           env
           (Some x)
       in
@@ -272,16 +280,17 @@ let rec evaluate
         Environment.add env x result;
         recurse t
       | Abort_body ->
-        raise @@ Evaluation_failure(
-          Printf.sprintf "Cannot complete evaluation on abort clause at %s"
-            (show_var x)
-        )
+        abort_policy c;
+        (* Unreachable code with default abort policy *)
+        Environment.add env x (Value_int 0); (* TODO: Temp! *)
+        recurse t
     end
 ;;
 
 let eval
     ?input_source:(input_source=stdin_input_source)
     ?clause_callback:(clause_callback=fun (_:clause) -> ())
+    ?abort_policy:(abort_policy=fail_on_abort)
     e
   =
   let env = Environment.create(20) in
@@ -290,6 +299,7 @@ let eval
   evaluate
     ~input_source:input_source
     ~clause_callback:clause_callback
+    ~abort_policy:abort_policy
     env
     None
     cls

@@ -32,5 +32,6 @@ exception Evaluation_failure of string;;
 val eval :
   ?input_source:(var -> value) ->
   ?clause_callback:(clause -> unit) ->
+  ?abort_policy:(clause -> unit) -> (* XXX: Currently only using the clause var, but may also use body in future *)
   expr ->
   var * evaluation_environment;;

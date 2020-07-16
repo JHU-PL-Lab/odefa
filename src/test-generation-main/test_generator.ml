@@ -12,6 +12,7 @@ exception CommandLineParseFailure of string;;
 exception GenerationComplete;;
 
 module Input_generator = Generator.Make(Generator_answer.Input_sequence);;
+module Input_sequence = Input_generator.Answer;;
 
 let () =
   (* Parse CLI args *)
@@ -69,14 +70,19 @@ let () =
         ast
         args.ga_target_point
     in
+    let failed_generation_count = ref 0 in
     let generation_callback
-        (inputs : Input_generator.Answer.t) (steps : int)
+        (inputs : Input_sequence.t) (steps : int)
       : unit =
-      if args.ga_compact_output then begin
-        Printf.printf "%s\n%d\n" (Input_generator.Answer.show inputs) steps
+      if Input_sequence.generation_successful inputs then begin
+        if args.ga_compact_output then begin
+          Printf.printf "* %s %d\n" (Input_sequence.show inputs) steps
+        end else begin
+          Printf.printf "* Input sequence: %s\n* Generated in %d steps.\n"
+            (Input_sequence.show inputs) steps
+        end;
       end else begin
-        Printf.printf "Input sequence: %s\nGenerated in %d steps.\n"
-          (Input_generator.Answer.show inputs) steps
+        failed_generation_count := !failed_generation_count + 1;
       end;
       flush stdout;
       results_remaining := (Option.map (fun n -> n - 1) !results_remaining);
@@ -92,16 +98,25 @@ let () =
             args.ga_maximum_steps
             generator
         in
-        let answer_count = List.length answers in
+        let answer_count =
+          answers
+          |> List.map (fun (ans, _) ->  ans)
+          |> List.flatten
+          |> Input_sequence.count_list
+        in
         if args.ga_compact_output then (
-          Printf.printf "%d\n" answer_count;
+          Printf.printf "seq #: %d\n" answer_count;
+          Printf.printf "err #: %d\n" !failed_generation_count;
           if Option.is_none generator_opt then
-            print_endline "no"
+            print_endline "flows: no"
           else
-            print_endline "yes"
+            print_endline "flows: yes"
         ) else (
-          Printf.printf "%d answer%s generated\n"
+          Printf.printf "%d input sequence%s generated\n"
             answer_count (if answer_count = 1 then "" else "s");
+          Printf.printf "%d input sequence%s failed due to errors\n"
+            !failed_generation_count
+            (if answer_count = 1 then "" else "s");
           if Option.is_none generator_opt then
             print_endline "No further control flows exist."
           else
