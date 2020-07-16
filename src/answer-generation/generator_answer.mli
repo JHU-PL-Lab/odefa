@@ -20,12 +20,6 @@ module type Answer = sig
   (** Convert the answer into a string. *)
   val show : t -> string;;
 
-  (** Create an empty answer. *)
-  val empty : t;;
-
-  (** Predicate on if the answer is empty. *)
-  val is_empty : t -> bool;;
-
   (** Count the number of answers in the data structure. *)
   val count : t -> int;;
 

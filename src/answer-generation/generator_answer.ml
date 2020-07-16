@@ -20,8 +20,6 @@ module type Answer = sig
   val answer_from_result : expr -> ident -> evaluation_result -> t;;
   val answer_from_string : string -> t;;
   val show : t -> string;;
-  val empty : t;;
-  val is_empty : t -> bool;;
   val count : t -> int;;
   val count_list : t list -> int;;
   val generation_successful : t -> bool;;
@@ -76,12 +74,14 @@ module Input_sequence : Answer = struct
     | None -> "???"
   ;;
 
+  (*
   let empty = Some [];;
 
   let is_empty inputs_opt =
     match inputs_opt with
     | Some inputs -> List.is_empty inputs
     | None -> raise @@ Jhupllib.Utils.Invariant_failure "Undefined"
+  *)
 
   let count inputs_opt =
     match inputs_opt with
@@ -416,13 +416,6 @@ module Type_errors : Answer = struct
       "" (* Do not show anything if there are no type errors. *)
     end
   ;;
-
-  let empty = {
-    err_type_errors = [];
-    err_input_seq = [];
-  };;
-
-  let is_empty type_errors = List.is_empty type_errors.err_type_errors;;
 
   let count type_errors = List.length type_errors.err_type_errors;;
 
