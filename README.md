@@ -73,7 +73,7 @@ TODO
   - [ ] Divide by zero (new nonzero pattern + type vs. nested constraints)
   - [ ] Match errors (conjunction vs. disjunction)
   - [ ] Asserts (encode in odefa)
-- [ ] Deal with aborts in the (regular) interpreter environment
+- [x] Deal with aborts in the (regular) interpreter environment
 - [ ] Add odefa-to-natodefa mapping
   - [ ] Variants, lists, and other advanced data structures
   - [ ] Line + column numbers

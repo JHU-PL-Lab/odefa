@@ -11,9 +11,15 @@ let lazy_logger = Logger_utils.make_lazy_logger "Interpreter";;
 
 module Environment = Var_hashtbl;;
 
-type evaluation_environment = value Environment.t;;
+type evaluation_environment = (value option) Environment.t;;
 
-let pp_evaluation_environment = pp_map pp_var pp_value Environment.enum;;
+let pp_value_option formatter val_opt =
+  match val_opt with
+  | Some v -> Format.fprintf formatter "%a" pp_value v
+  | None -> Format.pp_print_string formatter "undefined"
+;;
+
+let pp_evaluation_environment = pp_map pp_var pp_value_option Environment.enum;;
 let show_evaluation_environment = pp_to_string pp_evaluation_environment;;
 
 exception Evaluation_failure of string;;
@@ -22,12 +28,10 @@ let lookup env x =
   if Environment.mem env x then
     Environment.find env x
   else
-    raise (
-      Evaluation_failure (
+    raise @@ Evaluation_failure (
         Printf.sprintf "cannot find variable %s in environment %s."
           (show_var x) (show_evaluation_environment env)
       )
-    )
 ;;
 
 (* FIXME: this functionality is duplicated in ast_wellformedness.
@@ -120,19 +124,25 @@ let cond_wire (conditional_site_x : var) (Expr(body)) =
 let stdin_input_source (_:var) = Value_int(read_int());;
 
 let matches env x p : bool =
-  let v = lookup env x in
-  match v, p with
-  | (_, Any_pattern)
-  | (Value_function(Function_value(_)), Fun_pattern)
-  | (Value_int _, Int_pattern)
-  | (Value_bool _, Bool_pattern) -> true
-  | (Value_record(Record_value(record)), Rec_pattern p_record) ->
+  let val_opt = lookup env x in
+  match val_opt with
+  | Some v ->
     begin
-      let pattern_enum = Ident_set.enum p_record in
-      let record_keys = Ident_set.of_enum @@ Ident_map.keys record in
-      Enum.for_all (fun ident -> Ident_set.mem ident record_keys) pattern_enum
+      match v, p with
+      | (_, Any_pattern)
+      | (Value_function(Function_value(_)), Fun_pattern)
+      | (Value_int _, Int_pattern)
+      | (Value_bool _, Bool_pattern) -> true
+      | (Value_record(Record_value(record)), Rec_pattern p_record) ->
+        begin
+          let p_enum = Ident_set.enum p_record in
+          let record_keys = Ident_set.of_enum @@ Ident_map.keys record in
+          Enum.for_all (fun ident -> Ident_set.mem ident record_keys) p_enum
+        end
+      | _ -> false
     end
-  | _ -> false
+  (* Since None has "type" of bottom, it cannot match any pattern *)
+  | None -> false
 ;;
 
 let fail_on_abort (Clause(ab_var, _)) : unit =
@@ -176,113 +186,134 @@ let rec evaluate
       in
       clause_callback c;
       match b with
-      | Value_body(v) ->
-        Environment.add env x v;
+      | Value_body v ->
+        Environment.add env x (Some v);
         recurse t
-      | Var_body(x') ->
-        let v = lookup env x' in
-        Environment.add env x v;
+      | Var_body x' ->
+        let v_opt = lookup env x' in
+        Environment.add env x v_opt;
         recurse t
       | Input_body ->
         let v = input_source x in
-        Environment.add env x v;
+        Environment.add env x (Some v);
         recurse t
-      | Appl_body(x', x'') ->
+      | Appl_body (x', x'') ->
         begin
           match lookup env x' with
-          | Value_function(f) ->
+          | Some (Value_function f) ->
             recurse @@ fun_wire f x'' x @ t
-          | r -> raise (Evaluation_failure
-                          (Printf.sprintf
-                             "cannot apply %s as it contains non-function %s"
-                             (show_var x') (show_value r)))
+          | Some r ->
+            raise @@ Evaluation_failure
+              (Printf.sprintf
+                "cannot apply %s as it contains non-function %s"
+                (show_var x') (show_value r))
+          | None ->
+            raise @@ Evaluation_failure
+              (Printf.sprintf "cannot apply %s to undefined value"
+                (show_var x))
         end
-      | Conditional_body(x',e1,e2) ->
-        let v = lookup env x' in
+      | Conditional_body (x', e1, e2) ->
+        let v_opt = lookup env x' in
         let e_target =
-          match v with
-          | Value_bool b -> if b then e1 else e2
-          | _ ->
-            raise (Evaluation_failure
-                     (Printf.sprintf
-                        "cannot condition on non-boolean value %s"
-                        (show_value v)))
+          match v_opt with
+          | Some (Value_bool b) -> if b then e1 else e2
+          | Some v ->
+            raise @@ Evaluation_failure
+              (Printf.sprintf
+                "cannot condition on non-boolean value %s" (show_value v))
+          | None ->
+            raise @@ Evaluation_failure
+              (Printf.sprintf "cannot condition on undefined value")
+
         in
         recurse @@ cond_wire x e_target @ t
-      | Match_body(x',p) ->
-        let result = Value_bool(matches env x' p) in
-        Environment.add env x result;
+      | Match_body (x', p) ->
+        let result = Value_bool (matches env x' p) in
+        Environment.add env x (Some result);
         recurse t
-      | Projection_body(x',l) ->
+      | Projection_body (x', l) ->
         begin
           match lookup env x' with
-          | Value_record(Record_value(els)) as r ->
+          | Some (Value_record (Record_value els)) ->
             begin
               try
                 let x'' = Ident_map.find l els in
-                let v = lookup env x'' in
-                Environment.add env x v;
+                let v_opt = lookup env x'' in
+                Environment.add env x v_opt;
                 recurse t
               with
               | Not_found ->
                 raise @@ Evaluation_failure(
                   Printf.sprintf "cannot project %s from %s: not present"
-                    (show_ident l) (show_value r))
+                    (show_ident l)
+                    (show_value (Value_record (Record_value els))))
             end
-          | v ->
+          | Some v ->
             raise @@ Evaluation_failure(
               Printf.sprintf "cannot project %s from non-record value %s"
                 (show_ident l) (show_value v))
+          | None ->
+            raise @@ Evaluation_failure
+              (Printf.sprintf "cannot project %s from undefined value"
+                (show_ident l))
         end
-      | Binary_operation_body(x1,op,x2) ->
-        let v1 = lookup env x1 in
-        let v2 = lookup env x2 in
+      | Binary_operation_body (x1, op, x2) ->
+        let v1_opt = lookup env x1 in
+        let v2_opt = lookup env x2 in
         let result =
           begin
-            match v1,op,v2 with
-            | (Value_int(n1),Binary_operator_plus,Value_int(n2)) ->
-              Value_int(n1+n2)
-            | (Value_int(n1),Binary_operator_minus,Value_int(n2)) ->
-              Value_int(n1-n2)
-            | (Value_int(n1),Binary_operator_times,Value_int(n2)) ->
-              Value_int(n1*n2)
-            | (Value_int(n1),Binary_operator_divide,Value_int(n2)) ->
-              if n2 <> 0 then Value_int(n1/n2) else
-                raise @@ Evaluation_failure(
-                  "Divide by zero at " ^ show_var x)
-            | (Value_int(n1),Binary_operator_modulus,Value_int(n2)) ->
-              if n2 <> 0 then Value_int(n1 mod n2) else
-                raise @@ Evaluation_failure(
-                  "Modulus by zero at " ^ show_var x)
-            | (Value_int(n1),Binary_operator_less_than,Value_int(n2)) ->
-              Value_bool (n1 < n2)
-            | ( Value_int(n1),
-                Binary_operator_less_than_or_equal_to,
-                Value_int(n2)
-              ) ->
-              Value_bool (n1 <= n2)
-            | (Value_int(n1),Binary_operator_equal_to,Value_int(n2)) ->
-              Value_bool (n1 = n2)
-            | (Value_bool(b1),Binary_operator_equal_to,Value_bool(b2)) ->
-              Value_bool (b1 = b2)
-            | (Value_bool(b1),Binary_operator_and,Value_bool(b2)) ->
-              Value_bool (b1 && b2)
-            | (Value_bool(b1),Binary_operator_or,Value_bool(b2)) ->
-              Value_bool (b1 || b2)
-            | (Value_bool(b1),Binary_operator_xor,Value_bool(b2)) ->
-              Value_bool (b1 <> b2)
-            | v1,op,v2 ->
-              raise @@ Evaluation_failure(
-                Printf.sprintf "Cannot complete binary operation: (%s) %s (%s)"
-                  (show_value v1) (show_binary_operator op) (show_value v2))
+            match v1_opt, v2_opt with
+            | Some v1, Some v2 ->
+              begin
+                match v1, op, v2 with
+                | (Value_int n1, Binary_operator_plus, Value_int n2) ->
+                  Value_int (n1 + n2)
+                | (Value_int n1, Binary_operator_minus, Value_int n2) ->
+                  Value_int (n1 - n2)
+                | (Value_int n1, Binary_operator_times, Value_int n2) ->
+                  Value_int (n1 * n2)
+                | (Value_int n1, Binary_operator_divide, Value_int n2) ->
+                  if n2 <> 0 then Value_int (n1 / n2) else
+                    raise @@ Evaluation_failure
+                      ("Divide by zero at " ^ show_var x)
+                | (Value_int n1, Binary_operator_modulus, Value_int n2) ->
+                  if n2 <> 0 then Value_int(n1 mod n2) else
+                    raise @@ Evaluation_failure
+                      ("Modulus by zero at " ^ show_var x)
+                | (Value_int n1, Binary_operator_less_than, Value_int n2) ->
+                  Value_bool (n1 < n2)
+                | (Value_int n1,
+                  Binary_operator_less_than_or_equal_to,
+                  Value_int n2) ->
+                  Value_bool (n1 <= n2)
+                | (Value_int n1, Binary_operator_equal_to, Value_int n2) ->
+                  Value_bool (n1 = n2)
+                | (Value_bool b1, Binary_operator_equal_to, Value_bool b2) ->
+                  Value_bool (b1 = b2)
+                | (Value_bool b1, Binary_operator_and, Value_bool b2) ->
+                  Value_bool (b1 && b2)
+                | (Value_bool b1, Binary_operator_or, Value_bool b2) ->
+                  Value_bool (b1 || b2)
+                | (Value_bool b1, Binary_operator_xor, Value_bool b2) ->
+                  Value_bool (b1 <> b2)
+                | _, _, _ ->
+                  raise @@ Evaluation_failure
+                    (Printf.sprintf
+                      "Cannot complete binary operation: (%s) %s (%s)"
+                      (show_value v1) (show_binary_operator op) (show_value v2))
+              end
+            | None, Some _ | Some _, None | None, None ->
+              raise @@ Evaluation_failure
+                (Printf.sprintf
+                  "cannot complete binary operation due to undefined values")
           end
         in
-        Environment.add env x result;
+        Environment.add env x (Some result);
         recurse t
       | Abort_body ->
         abort_policy c;
         (* Unreachable code with default abort policy *)
-        Environment.add env x (Value_int 0); (* TODO: Temp! *)
+        Environment.add env x None;
         recurse t
     end
 ;;

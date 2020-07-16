@@ -82,7 +82,7 @@ type callbacks =
       string -> string option -> string list option ->
       Abs_value_set.t -> unit
   ; cb_errors : Toploop_analysis_types.error list -> unit
-  ; cb_evaluation_result : var -> value Environment.t -> unit
+  ; cb_evaluation_result : var -> evaluation_environment -> unit
   ; cb_evaluation_failed : string -> unit
   ; cb_evaluation_disabled : unit -> unit
   ; cb_size_report_callback : int * int * int * int * int -> unit

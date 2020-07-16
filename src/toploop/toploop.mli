@@ -40,7 +40,7 @@ val stdout_variable_analysis_callback :
 val stdout_errors_callback : error list -> unit
 
 (** An evaluation callback which prints messages to stdout. *)
-val stdout_evaluation_result_callback : var -> value Environment.t -> unit
+val stdout_evaluation_result_callback : var -> evaluation_environment -> unit
 
 (** An evaluation callback which prints failure messages to stdout *)
 val stdout_evaluation_failed_callback : string -> unit

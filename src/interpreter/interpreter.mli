@@ -10,7 +10,11 @@ open Pp_utils;;
 
 module Environment = Var_hashtbl;;
 
-type evaluation_environment = value Environment.t;;
+(** The evaluation environment is a map of variables to their values.
+    The value is Some value if the value is defined in the program;
+    otherwise, e.g. an abort clause was encountered it is undefined
+    and stored as a None. *)
+type evaluation_environment = (value option) Environment.t;;
 
 val pp_evaluation_environment : evaluation_environment pretty_printer;;
 val show_evaluation_environment : evaluation_environment -> string;;
