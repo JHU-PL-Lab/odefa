@@ -194,7 +194,8 @@ struct
   (** True if first arg is subtyped by second arg, false otherwise *)
   let subtype t1 t2 =
     match t1, t2 with
-    | Rec_type l1, Rec_type l2 -> Ident_set.subset l1 l2
+    (* l1 is a superset of l2 *)
+    | Rec_type l1, Rec_type l2 -> Ident_set.subset l2 l1
     | _, _ -> equal t1 t2
   ;;
 end;;

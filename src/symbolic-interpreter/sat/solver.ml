@@ -676,7 +676,7 @@ let find_type_error solver match_symbol =
       Rec_type record_labels
   in
   (* Don't return false positives *)
-  if not (Ast.Type_signature.subtype expected_type actual_type) then 
+  if not (Ast.Type_signature.subtype actual_type expected_type) then 
     Some {
       terr_ident = symbol;
       terr_value = val_src;
