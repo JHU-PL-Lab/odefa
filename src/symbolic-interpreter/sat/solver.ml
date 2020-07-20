@@ -675,8 +675,10 @@ let find_type_error solver match_symbol =
       in
       Rec_type record_labels
   in
-  (* Don't return false positives *)
-  if not (Ast.Type_signature.subtype actual_type expected_type) then 
+  (* Don't return false positives.  Note: if actual_type is Bottom_type then
+     we don't record the error (it's an unreachable knock-on error). *)
+  let is_subtype = Ast.Type_signature.subtype actual_type expected_type in
+  if not is_subtype then
     Some {
       terr_ident = symbol;
       terr_value = val_src;

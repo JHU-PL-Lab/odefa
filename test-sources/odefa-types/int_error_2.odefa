@@ -8,6 +8,8 @@ one = 1;
 tru = true;
 fls = false;
 
+z = zero;
+
 a = zero + one;
 b = tru and fls;
-c = a + b
+c = a + b;

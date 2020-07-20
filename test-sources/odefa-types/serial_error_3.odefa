@@ -1,6 +1,6 @@
 # EXPECT-WELL-FORMED
 # EXPECT-STUCK
-# EXPECT-TYPE-ERROR ~result [] [ "r = x and tru" "zero = 0" "bool" "int" "1" ]
+# EXPECT-TYPE-ERROR ~result [] [ "r = x and tru" "zero = 0" "bool" "int" ]
 # EXPECT-ALL-TYPE-ERRORS-FOUND
 
 zero = 0;
