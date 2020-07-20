@@ -196,6 +196,9 @@ struct
     match t1, t2 with
     (* l1 is a superset of l2 *)
     | Rec_type l1, Rec_type l2 -> Ident_set.subset l2 l1
+    (* bottom is the subtype to all other types *)
+    | Bottom_type, _ -> true
+    (* All other combos - use equality *)
     | _, _ -> equal t1 t2
   ;;
 end;;
