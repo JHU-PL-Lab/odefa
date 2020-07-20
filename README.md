@@ -53,8 +53,9 @@ TODO
   - [x] Recursion
 - [x] Add "no type errors found" message if there are no type errors
 - [ ] More precise type errors
-  - [x] For knock-on type errors, chain them together using abort information and report number
-  - [ ] Report actual knock-on errors instead of the count?
+  - [x] ~~For knock-on type errors, chain them together using abort information and report number~~
+  - [x] ~~Report actual knock-on errors instead of the count?~~
+  - [x] No need to report (unreachable) knock-on errors
   - [ ] If incorrectly-typed var was a function argument, report call site instead of original definition
   - [ ] Report original binop instead of new constrained binop as value source
 - [x] Refactor the solver
@@ -72,8 +73,9 @@ TODO
   - [ ] ~~Add "Primitive" pattern/type for bool + int "=="~~ Use an `or` statement instead
   - [ ] Divide by zero (new nonzero pattern + type vs. nested constraints)
   - [ ] Match errors (conjunction vs. disjunction)
-  - [ ] Asserts (encode in odefa)
+  - [ ] Asserts (including fancier types/predicates) (encode in odefa)
 - [x] Deal with aborts in the (regular) interpreter environment
+- [ ] Add undefined value (replaces above bullet point)
 - [ ] Add odefa-to-natodefa mapping
   - [ ] Variants, lists, and other advanced data structures
   - [ ] Line + column numbers
@@ -85,3 +87,26 @@ TODO
 - [ ] Report errors locally, without having to reach the beginning (hard)
   - [ ] Type errors after infinite loops/omega combinators
   - [ ] Type errors in non-satisfiable universes
+- [ ] Achieve 100% coverage in finding errors (ultimate goal...)
+  - [ ] Run test from back, then if it gets stuck, restart in the middle of the program in a non-covered portion of code
+  - [x] \(This is a key advantage over forward analyses - no need to know values starting from the middle\)
+
+```
+m11 = a ~ int;
+m12 = b ~ int;
+m1 = m11 and m12;
+c_binop = m1 ? ( m2 = b <> 0;
+                 c_binop' = m2 ? ( c = a / b ) : ( ab2 = abort [ c_binop' ] )
+           ) : ( ab1 = abort [ c_binop ] )
+
+-----
+
+m11 = a ~ int;
+m12 = b ~ int;
+m1 = m11 and m12;
+m21 = a ~ bool;
+m22 = b ~ bool;
+m2 = m21 and m22;
+m = m1 or m2;
+c_binop = m ? ( c = a == b ) : ( ab = abort [ m ] )
+```
