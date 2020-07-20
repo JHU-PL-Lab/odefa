@@ -87,8 +87,8 @@ clause_body:
       { Value_body($1) }
   | KEYWORD_INPUT
       { Input_body }
-  | KEYWORD_ABORT
-      { Abort_body }
+  | KEYWORD_ABORT variable_list
+      { Abort_body $2 }
   | variable
       { Var_body($1) }
   | variable variable
@@ -147,6 +147,12 @@ record_element:
   | identifier EQUALS variable
       { ($1,$3) }
   ;
+
+variable_list:
+  | OPEN_BRACKET CLOSE_BRACKET
+      { [] }
+  | OPEN_BRACKET separated_nonempty_trailing_list(COMMA, variable) CLOSE_BRACKET
+      { $2 }
 
 function_value:
   | KEYWORD_FUN variable ARROW OPEN_PAREN expr CLOSE_PAREN

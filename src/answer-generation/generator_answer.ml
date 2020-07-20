@@ -148,7 +148,7 @@ module Type_errors : Answer = struct
       let Symbol (i1, _) = symb1 in
       let Symbol (i2, _) = symb2 in
       Binary_operation_body (Var (i1, None), op, Var (i2, None))
-    | Constraint.Abort -> Abort_body
+    | Constraint.Abort -> Abort_body []
   ;;
 
   let _symb_and_val_to_clause symb val_src =
