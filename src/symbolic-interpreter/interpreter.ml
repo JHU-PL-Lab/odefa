@@ -44,10 +44,82 @@ type lookup_environment = {
   (** A mapping from abort clause identifiers to identifier information
       associated with the error. *)
 
+  le_abort_mapping : abort_value Ident_map.t;
+
   le_first_var : Ident.t;
   (** The identifier which represents the first defined variable in the
       program. *)
-};;
+}
+[@@deriving show]
+;;
+
+(* Enumerate all functions in a program *)
+
+let rec enum_all_functions_in_expr expr : function_value Enum.t =
+  let Expr(clauses) = expr in
+  Enum.concat @@ Enum.map enum_all_functions_in_clause @@ List.enum clauses
+
+and enum_all_functions_in_clause clause : function_value Enum.t =
+  let Clause(_, body) = clause in
+  enum_all_functions_in_body body
+
+and enum_all_functions_in_body body : function_value Enum.t =
+  match body with
+  | Value_body v ->
+    enum_all_functions_in_value v
+  | Var_body _
+  | Input_body
+  | Appl_body (_, _)
+  | Binary_operation_body (_, _, _) ->
+    Enum.empty ()
+  | Conditional_body (_, e1, e2) ->
+    Enum.append
+      (enum_all_functions_in_expr e1) (enum_all_functions_in_expr e2)
+  | Match_body (_, _)
+  | Projection_body (_, _)
+  | Abort_body _ ->
+    Enum.empty ()
+
+and enum_all_functions_in_value value : function_value Enum.t =
+  match value with
+  | Value_record _ -> Enum.empty ()
+  | Value_function(Function_value(_,e) as f) ->
+    Enum.append (Enum.singleton f) @@ enum_all_functions_in_expr e
+  | Value_int _
+  | Value_bool _ -> Enum.empty ()
+;;
+
+(* Enumerate all aborts in a program *)
+
+let rec enum_all_aborts_in_expr expr : (ident * var list) Enum.t =
+  let Expr clauses = expr in
+  Enum.concat @@ Enum.map enum_all_aborts_in_clause @@ List.enum clauses
+
+and enum_all_aborts_in_clause clause : (ident * var list) Enum.t =
+  let Clause (Var(ident, _), body) = clause in
+  match body with
+  | Value_body v ->
+    enum_all_aborts_in_value v
+  | Conditional_body (_, e1, e2) ->
+    Enum.append
+      (enum_all_aborts_in_expr e1) (enum_all_aborts_in_expr e2)
+  | Abort_body vlist ->
+    Enum.singleton (ident, vlist)
+  | Var_body _
+  | Input_body
+  | Appl_body (_, _)
+  | Binary_operation_body (_, _, _)
+  | Match_body (_, _)
+  | Projection_body (_, _) ->
+    Enum.empty ()
+
+and enum_all_aborts_in_value value : (ident * var list) Enum.t =
+  match value with
+  | Value_function (Function_value (_, e)) ->
+    enum_all_aborts_in_expr e
+  | Value_int _ | Value_bool _ | Value_record _ ->
+    Enum.empty ()
+;;
 
 (**
    Given a program and its corresponding CFG, constructs an appropriate lookup
@@ -58,38 +130,7 @@ let prepare_environment
     (cfg : ddpa_graph)
     (e : expr)
   : lookup_environment =
-  (* Helper functions *)
-  let rec enum_all_functions_in_expr expr : function_value Enum.t =
-    let Expr(clauses) = expr in
-    Enum.concat @@ Enum.map enum_all_functions_in_clause @@ List.enum clauses
-  and enum_all_functions_in_clause clause : function_value Enum.t =
-    let Clause(_,body) = clause in
-    enum_all_functions_in_body body
-  and enum_all_functions_in_body body : function_value Enum.t =
-    match body with
-    | Value_body v ->
-      enum_all_functions_in_value v
-    | Var_body _
-    | Input_body
-    | Appl_body _
-    | Binary_operation_body (_, _, _) ->
-      Enum.empty ()
-    | Conditional_body (_, e1, e2) ->
-      Enum.append
-        (enum_all_functions_in_expr e1) (enum_all_functions_in_expr e2)
-    | Match_body (_, _)
-    | Projection_body (_, _)
-    | Abort_body _ ->
-      Enum.empty ()
-  and enum_all_functions_in_value value : function_value Enum.t =
-    match value with
-    | Value_record _ -> Enum.empty ()
-    | Value_function(Function_value(_,e) as f) ->
-      Enum.append (Enum.singleton f) @@ enum_all_functions_in_expr e
-    | Value_int _
-    | Value_bool _ -> Enum.empty ()
-  in
-  let function_parameter_mapping, function_return_mapping =
+  let (function_parameter_mapping, function_return_mapping) =
     enum_all_functions_in_expr e
     |> Enum.fold
       (fun (pm,rm) (Function_value(Var(p,_),Expr(clss)) as f) ->
@@ -156,14 +197,58 @@ let prepare_environment
     |> List.first
     |> (fun (Clause(Var(x,_),_)) -> x)
   in
-  { le_cfg = cfg;
-    le_clause_mapping = clause_mapping;
-    le_clause_predecessor_mapping = clause_predecessor_mapping;
-    le_function_parameter_mapping = function_parameter_mapping;
-    le_function_return_mapping = function_return_mapping;
-    le_abort_clause_mapping = aborts;
-    le_first_var = first_var;
-  }
+  let abort_map =
+    enum_all_aborts_in_expr e
+    |> Enum.map
+        (fun ((abort_ident: ident), (cond_vars : var list)) ->
+          let cond_clauses =
+            List.map
+              (fun (Var (k, _)) -> Ident_map.find k clause_mapping)
+              cond_vars
+          in
+          let pred_idents =
+            List.map
+              (fun (Clause (x, cls_body)) ->
+                match cls_body with
+                | Conditional_body (Var (pred, _), _, _) -> pred
+                | _ -> raise @@ Utils.Invariant_failure ((show_var x) ^ " is not a conditional!")
+              )
+              cond_clauses
+          in
+          let ret_clauses =
+            List.map
+              (fun (Clause (x, cls_body)) ->
+                match cls_body with
+                | Conditional_body (_, Expr (clist), _) -> List.last clist
+                | _ -> raise @@ Utils.Invariant_failure ((show_var x) ^ " is not a conditional!")
+              )
+              cond_clauses
+          in
+          let abort_val : abort_value =
+            {
+              abort_conditional_clauses = cond_clauses;
+              abort_predicate_idents = pred_idents;
+              abort_return_clauses = ret_clauses;
+            }
+          in
+          (abort_ident, abort_val)
+        )
+    |> Ident_map.of_enum
+  in
+  let lookup_env =
+    { le_cfg = cfg;
+      le_clause_mapping = clause_mapping;
+      le_clause_predecessor_mapping = clause_predecessor_mapping;
+      le_function_parameter_mapping = function_parameter_mapping;
+      le_function_return_mapping = function_return_mapping;
+      le_abort_clause_mapping = aborts;
+      le_abort_mapping = abort_map;
+      le_first_var = first_var;
+    }
+  in
+  lazy_logger `debug (fun () -> Printf.sprintf "Lookup environment:\n%s"
+      (show_lookup_environment lookup_env));
+  lookup_env
 ;;
 
 (* The type of the symbolic interpreter's cache key.  The arguments are the
@@ -260,7 +345,8 @@ type evaluation_result = {
   er_solver : Solver.t;
   er_stack : Relative_stack.concrete_stack;
   er_solution : (symbol -> value option);
-  er_abort_points : abort_info Symbol_map.t;
+  er_abort_points : abort_value Symbol_map.t;
+  er_errors : Error.Error_tree.t list;
 };;
 
 exception Invalid_query of string;;
@@ -729,12 +815,13 @@ struct
         let%orzero Unannotated_clause(
             Abs_clause(Abs_var v, Abs_abort_body _)) = acl1 in
         let abort_symbol = Symbol(v, relstack) in
-        let abort_info = Ident_map.find v env.le_abort_clause_mapping in
+        (* TODO: Take care of any uncaught exceptions? *)
+        let abort_value = Ident_map.find v env.le_abort_mapping in
         let lookup_var = env.le_first_var in
         let new_lookup_stack = lookup_var :: lookup_stack' in
         _trace_log_recurse new_lookup_stack relstack acl1;
         let%bind _ = recurse new_lookup_stack acl1 relstack in
-        let%bind () = record_abort_point abort_symbol abort_info in
+        let%bind () = record_abort_point abort_symbol abort_value in
         let%bind () = record_constraint @@ Constraint_abort(abort_symbol) in
         return abort_symbol
       end;
@@ -777,7 +864,11 @@ struct
 
   type evaluation = Evaluation of unit M.evaluation;;
 
-  let start (aborts : abort_info Ident_map.t) (cfg : ddpa_graph) (e : expr) (program_point : ident)
+  let start
+      (aborts : abort_info Ident_map.t)
+      (cfg : ddpa_graph)
+      (e : expr)
+      (program_point : ident)
     : evaluation =
     let open M in
     let _ = aborts in
@@ -820,21 +911,37 @@ struct
                "no stack constraint in solution!"
            | Some (get_value, Some stack) ->
              begin
-               lazy_logger `trace (fun () ->
+               lazy_logger `debug (fun () ->
                    Printf.sprintf
                      "Discovered answer of stack %s and formulae:\n%s"
                      (Relative_stack.show_concrete_stack stack)
                      (Solver.show evaluation_result.M.er_solver)
                  )
              end;
-             Some {er_solver = evaluation_result.M.er_solver;
-                   er_stack = stack;
-                   er_solution = get_value;
-                   er_abort_points = evaluation_result.M.er_abort_points;
-                  }
+             let solver = evaluation_result.M.er_solver in
+             let errors = evaluation_result.M.er_abort_points in
+             let error_trees =
+              errors
+              |> Symbol_map.enum
+              |> Enum.map
+                (fun (Symbol (_, relstack), e) ->
+                  List.map
+                    (fun id -> Symbol (id, relstack))
+                    e.abort_predicate_idents)
+              |> Enum.map (List.map (Solver.find_errors solver))
+              |> Enum.map Error.Error_tree.tree_from_error_list
+              |> List.of_enum
+             in
+             Some {
+                er_solver = evaluation_result.M.er_solver;
+                er_stack = stack;
+                er_solution = get_value;
+                er_abort_points = evaluation_result.M.er_abort_points;
+                er_errors = error_trees;
+              }
            | None ->
              begin
-               lazy_logger `trace (fun () ->
+               lazy_logger `debug (fun () ->
                    Printf.sprintf
                      "Dismissed answer with unsolvable formulae:\n%s"
                      (Solver.show evaluation_result.M.er_solver)

@@ -88,8 +88,7 @@ module Make(Answer : Answer) : Generator = struct
       end else begin
         let results, ev'_opt = Interpreter.step ev in
         if List.is_empty results then begin
-          lazy_logger `trace (fun () ->
-              "No new results found in this step.");
+          lazy_logger `trace (fun () -> "No new results found in this step.");
           match ev'_opt with
           | Some ev' ->
             (* No result and no termination.  Keep running. *)
@@ -97,8 +96,8 @@ module Make(Answer : Answer) : Generator = struct
                 "Interpreter evaluation not yet complete; continuing.");
             loop (step_count + 1) ev'
           | None ->
-            (* No result and no remaining computation; we terminated!  Give back a
-              result indicating as much. *)
+            (* No result and no remaining computation; we terminated!  Give
+              back a result indicating as much. *)
             lazy_logger `trace (fun () ->
                 "Interpreter evaluation complete; stopping.");
             { gen_answers = [];
@@ -111,7 +110,7 @@ module Make(Answer : Answer) : Generator = struct
             }
         end else begin
           (* We have results! *)
-          lazy_logger `trace (fun () -> "Found input sequences!");
+          lazy_logger `trace (fun () -> "New result found in this step.");
           let answers = List.map (Answer.answer_from_result e x) results in
           let generator_fn =
             match ev'_opt with

@@ -115,6 +115,7 @@ let show_clause = pp_to_string pp_clause;;
 
 let pp_type_sig formatter type_sig =
   match type_sig with
+  | Top_type -> Format.pp_print_string formatter "top"
   | Int_type -> Format.pp_print_string formatter "int"
   | Bool_type -> Format.pp_print_string formatter "bool"
   | Fun_type -> Format.pp_print_string formatter "fun"

@@ -31,8 +31,11 @@ type evaluation_result = {
   er_solution : (symbol -> value option);
   (** The solution to the formulae found by this evaluation. *)
 
-  er_abort_points : abort_info Symbol_map.t;
+  er_abort_points : abort_value Symbol_map.t;
   (** Any abort points encountered during this evaluation. *)
+
+  er_errors : Error.Error_tree.t list;
+  (** The set of errors accumulated via visiting aborts *)
 };;
 
 (** Raised if a query is invalid (e.g. a variable is requested for an expression

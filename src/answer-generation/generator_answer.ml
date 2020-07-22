@@ -3,15 +3,18 @@ open Batteries;;
 
 open Odefa_ast;;
 open Ast;;
-open Ast_pp;;
+(* open Ast_pp;; *)
 
-open Odefa_symbolic_interpreter;;
-open Odefa_symbolic_interpreter.Interpreter_types;;
+(* open Odefa_symbolic_interpreter;; *)
+open Odefa_symbolic_interpreter.Error;;
+(*
+open Odefa_symbolic_interpreter.Interpreter_types;; *)
 open Odefa_symbolic_interpreter.Interpreter;;
-open Odefa_symbolic_interpreter.Solver;;
+(* open Odefa_symbolic_interpreter.Solver;; *)
+
 (* open Odefa_symbolic_interpreter.Relative_stack;; *)
 
-let lazy_logger = Jhupllib.Logger_utils.make_lazy_logger "Generator_answer";;
+(* let lazy_logger = Jhupllib.Logger_utils.make_lazy_logger "Generator_answer";; *)
 
 exception Parse_failure;;
 
@@ -106,6 +109,7 @@ end;;
 
 module Type_errors : Answer = struct
 
+  (*
   type type_error = {
     terr_expected_type : type_sig;
     terr_actual_type : type_sig;
@@ -113,15 +117,18 @@ module Type_errors : Answer = struct
     terr_var_definition : clause;
   }
   ;;
+  *)
 
   type error_seq = {
-    err_type_errors : type_error list;
-    err_input_seq : int list
+    (* err_type_errors : type_error list; *)
+    err_errors : Error_tree.t list;
+    err_input_seq : int list;
   }
   ;;
 
   type t = error_seq;;
 
+  (*
   let _val_to_clause_body val_src =
     match val_src with
     | Constraint.Value v ->
@@ -156,6 +163,20 @@ module Type_errors : Answer = struct
     let variable = Var (ident, None) in
     Clause (variable, _val_to_clause_body val_src)
 
+  *)
+
+  let answer_from_result e x result =
+    let error_trees = result.er_errors in
+    let (input_seq, _) =
+      Generator_utils.input_sequence_from_result e x result
+    in
+    {
+      err_input_seq = input_seq;
+      err_errors = error_trees;
+    }
+  ;;
+
+  (*
   let answer_from_result e x result =
     let solver = result.er_solver in
     let (input_seq, _) =
@@ -205,6 +226,9 @@ module Type_errors : Answer = struct
     }
   ;;
 
+  *)
+
+  (*
   let _parse_type type_str =
     match type_str with
     | "int" | "integer" -> Int_type
@@ -291,7 +315,14 @@ module Type_errors : Answer = struct
     | _ ->
       raise Parse_failure
   ;;
+  *)
 
+  let answer_from_string _ =
+    { err_errors = [];
+      err_input_seq = [];
+    }
+
+  (*
   let show error_seq =
     let show_type_error type_error =
       "* Operation  : " ^ (show_clause type_error.terr_operation) ^ "\n" ^
@@ -310,8 +341,23 @@ module Type_errors : Answer = struct
       "" (* Do not show anything if there are no type errors. *)
     end
   ;;
+  *)
 
-  let count type_errors = List.length type_errors.err_type_errors;;
+  let show_input_seq input_seq =
+    "[" ^ (String.join ", " @@ List.map string_of_int input_seq) ^ "]"
+  ;;
+
+  let show error_seq =
+    if not @@ List.is_empty error_seq.err_errors then begin
+      "Type errors for input sequence " ^
+      (show_input_seq error_seq.err_input_seq) ^ ":\n" ^
+      (String.join ", " @@ List.map Error_tree.to_string error_seq.err_errors)
+    end else begin
+      ""
+    end
+  ;;
+
+  let count type_errors = List.length type_errors.err_errors;;
 
   let count_list type_error_list =
     type_error_list

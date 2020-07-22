@@ -79,3 +79,11 @@ type abort_info =
   | Match_abort_info of match_abort_info
 [@@ deriving eq, ord, show]
 ;;
+
+type abort_value = {
+  abort_conditional_clauses : clause list;
+  abort_predicate_idents : ident list;
+  abort_return_clauses : clause list;
+}
+[@@ deriving eq, ord, show]
+;;

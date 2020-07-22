@@ -5,6 +5,7 @@ open Odefa_ast;;
 
 open Ast;;
 open Constraint;;
+open Error;;
 open Interpreter_types;;
 open Symbol_cache;;
 
@@ -687,6 +688,180 @@ let find_type_error solver match_symbol =
     }
   else
     None
+;;
+
+let _get_val_source solver symbol =
+  let value_opt =
+    Symbol_map.Exceptionless.find symbol solver.value_constraints_by_symbol
+  in
+  let input_opt =
+    Symbol_set.Exceptionless.find symbol solver.input_constraints_by_symbol
+  in
+  let binop_opt =
+    Symbol_map.Exceptionless.find symbol solver.binop_constraints_by_symbol
+  in
+  let abort_opt =
+    Symbol_set.Exceptionless.find symbol solver.abort_constraints_by_symbol
+  in
+  match (value_opt, input_opt, binop_opt, abort_opt) with
+  | (Some value, None, None, None) -> Constraint.Value value
+    (*
+    begin
+      match value with
+      | Constraint.Int n -> Value_body (Value_int n)
+      | Constraint.Bool b -> Value_body (Value_bool b)
+      | Constraint.Function f -> Value_body (Value_function f)
+      | Constraint.Record r ->
+        begin
+          let r' =
+            r
+            |> Ident_map.enum
+            |> Enum.map (fun (lbl, Symbol(id, _)) -> (lbl, Var(id, None)))
+            |> Ident_map.of_enum
+          in
+          Value_body (Value_record (Record_value r'))
+        end
+    end
+    *)
+  | (None, Some _, None, None) -> Constraint.Input
+  | (None, None, Some (s1, op, s2), None) -> Constraint.Binop (s1, op, s2)
+  | (None, None, None, Some _) -> Constraint.Abort
+  | (None, None, None, None) ->
+    raise @@ Utils.Invariant_failure
+      ("Symbol " ^ (show_symbol symbol) ^ " has no value in constraint set!")
+  | _ ->
+    raise @@ Utils.Invariant_failure
+      ("Symbol " ^ (show_symbol symbol) ^ " has multiple value definitions.")
+;;
+
+let _find_type solver symbol =
+  let symb_type =
+    try
+      Symbol_map.find symbol solver.type_constraints_by_symbol
+    with Not_found ->
+      raise @@ Utils.Invariant_failure "Symbol not found in type constraint set!"
+  in
+  match symb_type with
+  | BottomSymbol -> Bottom_type
+  | IntSymbol -> Int_type
+  | BoolSymbol -> Bool_type
+  | FunctionSymbol -> Fun_type
+  | RecordSymbol ->
+    let rec_val =
+      try 
+        Symbol_map.find symbol solver.value_constraints_by_symbol
+      with Not_found ->
+        raise @@ Utils.Invariant_failure "Symbol not found in value constraint set!"
+    in
+    let rec_lbls =
+      match rec_val with
+      | Record rmap ->
+        rmap
+        |> Ident_map.keys
+        |> Ident_set.of_enum
+      | _ ->
+        raise @@ Utils.Invariant_failure "Value incorrectly typed as record!"
+    in
+    Rec_type rec_lbls
+;;
+
+let rec _find_errors solver symbol =
+  let binop_opt =
+    Symbol_map.Exceptionless.find symbol solver.binop_constraints_by_symbol
+  in
+  let match_opt =
+    Symbol_map.Exceptionless.find symbol solver.match_constraints_by_symbol
+  in
+  match (binop_opt, match_opt) with
+  | (Some b, None) ->
+    begin
+      let (s1, op, s2) = b in
+      let et1_opt = _find_errors solver s1 in
+      let et2_opt = _find_errors solver s2  in
+      match op with
+      (* TODO: If a symbol is another and/or or a pattern, recurse on find_error. Otherwise treat this as a leaf node. *)
+      | Binary_operator_and ->
+        Error_tree.add_and et1_opt et2_opt
+      | Binary_operator_or ->
+        Error_tree.add_or et1_opt et2_opt
+      | Binary_operator_xor
+      | Binary_operator_plus
+      | Binary_operator_minus
+      | Binary_operator_times
+      | Binary_operator_divide
+      | Binary_operator_modulus
+      | Binary_operator_less_than
+      | Binary_operator_less_than_or_equal_to
+      | Binary_operator_equal_to ->
+        let binop_value =
+          try
+            Symbol_map.find symbol solver.value_constraints_by_symbol
+          with Not_found ->
+            raise @@ Utils.Invariant_failure ("Binop at " ^ (show_symbol symbol) ^ " did not produce a value")
+        in
+        match binop_value with
+        | Constraint.Bool false ->
+          let binop_error = {
+            err_binop_ident = (fun (Symbol (x, _)) -> x) symbol;
+            err_binop_operation = op;
+            err_binop_left_val = _get_val_source solver s1;
+            err_binop_right_val = _get_val_source solver s2;
+          }
+          in
+          Some (Error_tree.singleton (Error_binop binop_error))
+        | Constraint.Bool true ->
+          None
+        | _ ->
+          raise @@ Utils.Invariant_failure ((show_symbol symbol) ^ " is not a boolean binop")
+    end
+  | (None, Some m) ->
+    begin
+      let (match_symb, pattern) = m in
+      let match_value =
+        try
+          Symbol_map.find symbol solver.value_constraints_by_symbol
+        with Not_found ->
+          raise @@ Utils.Invariant_failure ("Pattern match at " ^ (show_symbol symbol) ^ " did not produce a value")
+      in
+      match match_value with
+      | Constraint.Bool false ->
+        let expected_type =
+          match pattern with
+          | Int_pattern -> Int_type
+          | Bool_pattern -> Bool_type
+          | Fun_pattern -> Fun_type
+          | Rec_pattern labels -> Rec_type labels
+          | Any_pattern -> Top_type
+        in
+        let actual_type = _find_type solver match_symb in
+        if Ast.Type_signature.subtype actual_type expected_type then
+          let match_error = {
+            err_match_ident = (fun (Symbol (x, _)) -> x) symbol;
+            err_match_value = _get_val_source solver match_symb;
+            err_match_expected_type = expected_type;
+            err_match_actual_type = actual_type;
+          }
+          in
+          Some (Error_tree.singleton (Error_match match_error))
+        else
+          None
+      | Constraint.Bool true ->
+        None
+      | _ ->
+        raise @@ Utils.Invariant_failure ((show_symbol symbol) ^ " is not a boolean value")
+    end
+  | (None, None) ->
+    begin
+      raise @@ Utils.Invariant_failure "Error tree cannot include unwrapped values"
+    end
+  | (_, _) ->
+    raise @@ Utils.Invariant_failure ("Multiple definitions for symbol " ^ (show_symbol symbol))
+;;
+
+let find_errors solver symbol =
+  match _find_errors solver symbol with
+  | Some error_tree -> error_tree
+  | None -> raise @@ Utils.Invariant_failure ("Error tree cannot be produced")
 ;;
 
 let enum solver = Constraint.Set.enum solver.constraints;;

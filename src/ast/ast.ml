@@ -177,6 +177,7 @@ end;;
 (** A type representing the types of the language.
     Note that subtyping rules apply to records. *)
 type type_sig =
+  | Top_type
   | Int_type
   | Bool_type
   | Fun_type
@@ -196,7 +197,9 @@ struct
     match t1, t2 with
     (* l1 is a superset of l2 *)
     | Rec_type l1, Rec_type l2 -> Ident_set.subset l2 l1
-    (* bottom is the subtype to all other types *)
+    (* Top is the supertype of all other types *)
+    | _, Top_type -> true
+    (* Bottom is the subtype to all other types *)
     | Bottom_type, _ -> true
     (* All other combos - use equality *)
     | _, _ -> equal t1 t2
